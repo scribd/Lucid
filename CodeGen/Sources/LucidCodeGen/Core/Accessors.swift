@@ -1,0 +1,383 @@
+//
+//  Accessors.swift
+//  LucidCodeGen
+//
+//  Created by Théophane Rupin on 3/27/19.
+//
+
+extension Descriptions {
+    
+    func subtype(for name: String) throws -> Subtype {
+        guard let subtype = subtypesByName[name] else {
+            throw CodeGenError.subtypeNotFound(name)
+        }
+        return subtype
+    }
+    
+    func entity(for name: String) throws -> Entity {
+        guard let entity = entitiesByName[name] else {
+            throw CodeGenError.entityNotFound(name)
+        }
+        return entity
+    }
+    
+    func endpoint(for name: String) throws -> EndpointPayload {
+        guard let endpoint = endpointsByName[name] else {
+            throw CodeGenError.endpointPayloadNotFound(name)
+        }
+        return endpoint
+    }
+    
+    public var modelMappingHistory: Set<String> {
+        return Set(entities.flatMap {
+            $0.modelMappingHistory?.flatMap { [$0.from, $0.to] } ?? []
+        })
+    }
+}
+
+extension Entity {
+    
+    func property(for name: String) throws -> EntityProperty {
+        guard let property = properties.first(where: { $0.name == name }) else {
+            throw CodeGenError.propertyNotFound(self, name)
+        }
+        return property
+    }
+    
+    var usedProperties: [EntityProperty] {
+        return properties.filter { $0.unused == false }
+    }
+    
+    var values: [EntityProperty] {
+        return usedProperties.filter { $0.isValue }
+    }
+
+    var relationships: [EntityProperty] {
+        return usedProperties.filter { $0.isRelationship }
+    }
+
+    var valuesThenRelationships: [EntityProperty] {
+        return values + relationships
+    }
+
+    var relationshipsForIdentifierDerivation: [String: [(property: EntityProperty, relationship: EntityRelationship)]] {
+        return usedProperties.reduce(into: [:]) { relationships, property in
+            guard let relationship = property.relationship else { return }
+            let values = relationships[relationship.entityName] ?? []
+            relationships[relationship.entityName] = values + [(property, relationship)]
+        }
+    }
+    
+    func extractablePropertyEntities(_ descriptions: Descriptions) throws -> [Entity] {
+        return try Set(try extractablePropertyEntityNames(descriptions, history: Set()))
+            .sorted()
+            .map { try descriptions.entity(for: $0) }
+    }
+    
+    private func extractablePropertyEntityNames(_ descriptions: Descriptions, history: Set<String>) throws -> [String] {
+        guard !history.contains(name) else { return [] }
+        var history = history
+        history.insert(name)
+        
+        return try usedProperties.flatMap { property -> [String] in
+            guard let relationship = property.relationship, relationship.idOnly == false else {
+                return []
+            }
+            let relationshipEntity = try descriptions.entity(for: relationship.entityName)
+            return try [relationshipEntity.name] + relationshipEntity.extractablePropertyEntityNames(descriptions, history: history)
+        }
+    }
+    
+    var mutable: Bool {
+        return properties.contains { $0.mutable }
+    }
+    
+    var objc: Bool {
+        return identifier.objc || properties.contains { $0.objc }
+    }
+    
+    func coreDataName(for version: String?) throws -> String {
+        guard let version = version ?? addedAtVersion else {
+            throw CodeGenError.entityAddedAtVersionNotFound(name)
+        }
+        return "\(persistedName ?? name)_\(version.replacingOccurrences(of: ".", with: "_"))"
+    }
+    
+    var ignoredVersionRangesByPropertyName: [String: [(from: String, to: String)]] {
+        return (modelMappingHistory ?? []).reduce(into: [:]) {
+            for propertyName in $1.ignoreMigrationChecksOn {
+                var ranges = $0[propertyName] ?? []
+                ranges.append(($1.from, $1.to))
+                $0[propertyName] = ranges
+            }
+        }
+    }
+}
+
+extension EntityIdentifier {
+    
+    func relationshipIDs(_ entity: Entity, _ descriptions: Descriptions) throws -> [EntityIdentifierType.RelationshipID] {
+        switch identifierType {
+        case .void,
+             .scalarType:
+            return []
+        case .property(let propertyName):
+            let property = entity.properties.filter { $0.name == propertyName }
+
+            if let entityName = property.first?.relationship?.entityName {
+                let relationshipEntity = try descriptions.entity(for: entityName)
+                return [
+                    EntityIdentifierType.RelationshipID(variableName: propertyName,
+                                                        entityName: relationshipEntity.name)
+                ]
+            } else {
+                return []
+            }
+        case .relationships(_, let relationships):
+            return relationships
+        }
+    }
+    
+    func equivalentIdentifierTypeID(_ entity: Entity, _ descriptions: Descriptions) throws -> String? {
+        
+        if let equivalentIdentifierName = equivalentIdentifierName {
+            return try descriptions.entity(for: equivalentIdentifierName).identifierTypeID
+        }
+        
+        switch identifierType {
+        case .void,
+             .scalarType,
+             .relationships:
+            return nil
+            
+        case .property(let propertyName):
+            let property = entity.properties.filter { $0.name == propertyName }
+            let relationshipName: String? = property.first.flatMap {
+                switch $0.propertyType {
+                case .relationship(let relationship):
+                    return relationship.entityName
+                case .array,
+                     .scalar,
+                     .subtype:
+                    return nil
+                }
+            }
+            
+            if let entityName = relationshipName {
+                return try descriptions.entity(for: entityName).identifierTypeID
+            } else {
+                return nil
+            }
+        }
+    }
+}
+
+extension EntityProperty {
+    
+    var relationship: EntityRelationship? {
+        return propertyType.relationship
+    }
+    
+    var isRelationship: Bool {
+        return propertyType.isRelationship
+    }
+    
+    var isValue: Bool {
+        return propertyType.isValue
+    }
+    
+    var isSubtype: Bool {
+        return propertyType.isSubtype
+    }
+    
+    var isArray: Bool {
+        return propertyType.isArray
+    }
+    
+    var keysPathComponents: [[String]] {
+        return [key].map { key in
+            let components = key.split(separator: ".").map { String($0).camelCased(strict: matchExactKey) }
+            guard matchExactKey == false else { return components }
+            return components.map { $0.variableCased }
+        }
+    }
+}
+
+extension EntityProperty.PropertyType {
+    
+    var relationship: EntityRelationship? {
+        switch self {
+        case .relationship(let relationship),
+             .array(.relationship(let relationship)):
+            return relationship
+        case .subtype,
+             .scalar,
+             .array:
+            return nil
+        }
+    }
+    
+    var isRelationship: Bool {
+        return relationship != nil
+    }
+    
+    var isValue: Bool {
+        return isRelationship == false
+    }
+    
+    var isSubtype: Bool {
+        switch self {
+        case .subtype,
+             .array(.subtype):
+            return true
+        case .relationship,
+             .scalar,
+             .array:
+            return false
+        }
+    }
+    
+    func subtype(_ descriptions: Descriptions) throws -> Subtype? {
+        switch self {
+        case .subtype(let name):
+            return try descriptions.subtype(for: name)
+        default:
+            return nil
+        }
+    }
+    
+    var scalarType: PropertyScalarType? {
+        switch self {
+        case .scalar(let scalarType):
+            return scalarType
+        default:
+            return nil
+        }
+    }
+    
+    var isArray: Bool {
+        switch self {
+        case .array:
+            return true
+        case .relationship(let relationship) where relationship.association == .toMany:
+            return true
+        case .relationship,
+             .scalar,
+             .subtype:
+            return false
+        }
+    }
+}
+
+extension EntityIdentifier {
+    
+    var isRelationship: Bool {
+        switch identifierType {
+        case .relationships:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    var isScalarType: Bool {
+        switch identifierType {
+        case .scalarType:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    var isProperty: Bool {
+        switch identifierType {
+        case .property:
+            return true
+        default:
+            return false
+        }
+    }
+}
+
+extension MetadataProperty {
+    
+    var isArray: Bool {
+        return propertyType.isArray
+    }
+}
+
+extension MetadataProperty.PropertyType {
+
+    var isArray: Bool {
+        switch self {
+        case .scalar,
+             .subtype:
+            return false
+        case .array:
+            return true
+        }
+    }
+}
+
+extension EndpointPayloadEntity.Structure {
+    
+    var isArray: Bool {
+        switch self {
+        case .array,
+             .nestedArray:
+            return true
+        case .single:
+            return false
+        }
+    }
+}
+
+extension EndpointPayload {
+
+    enum InitializerType {
+        case initFromRoot
+        case initFromKey(_ key: String)
+        case initFromSubkey(key: String, subkey: String)
+        case mapFromSubstruct(key: String, subkey: String)
+    }
+    
+    func initializerType() throws -> InitializerType {
+
+        if let key = baseKey, let subkey = entity.entityKey {
+            switch entity.structure {
+            case .single,
+                 .array:
+                return .initFromSubkey(key: key, subkey: subkey)
+            case .nestedArray:
+                return .mapFromSubstruct(key: key, subkey: subkey)
+            }
+        } else if let key = baseKey {
+            return .initFromKey(key)
+        } else {
+            return .initFromRoot
+        }
+    }
+}
+
+extension Subtype {
+    
+    var isStruct: Bool {
+        switch items {
+        case .cases,
+             .options:
+            return false
+        case .properties:
+            return true
+        }
+    }
+    
+    var isEnum: Bool {
+        switch items {
+        case .cases:
+            return true
+        case .options,
+             .properties:
+            return false
+        }
+    }
+}

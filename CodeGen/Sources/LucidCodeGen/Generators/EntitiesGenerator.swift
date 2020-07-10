@@ -14,11 +14,14 @@ public final class EntitiesGenerator: Generator {
     
     private let descriptions: Descriptions
     
-    private let appVersion: String
+    private let reactiveKit: Bool
+
+    private let useCoreDataLegacyNaming: Bool
     
-    public init(descriptions: Descriptions, appVersion: String) {
+    public init(descriptions: Descriptions, reactiveKit: Bool, useCoreDataLegacyNaming: Bool) {
         self.descriptions = descriptions
-        self.appVersion = appVersion
+        self.reactiveKit = reactiveKit
+        self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
     }
     
     public func generate(for element: Description, in directory: Path) throws -> File? {
@@ -31,30 +34,43 @@ public final class EntitiesGenerator: Generator {
             
             return Meta.File(name: filename)
                 .with(header: header.meta)
-                .adding(import: .lucid())
+                .adding(import: .lucid(reactiveKit: reactiveKit))
                 .with(body: try subtype.meta())
                 .swiftFile(in: directory)
 
         case .entity(let entityName):
-            let filename = "\(entityName).swift"
+            let filename = "\(entityName.camelCased().suffixedName()).swift"
             
             let header = MetaHeader(filename: filename)
             let entityIdentifier = MetaEntityIdentifier(entityName: entityName, descriptions: descriptions)
             let entityIndexName = MetaEntityIndexName(entityName: entityName, descriptions: descriptions)
-            let entity = MetaEntity(entityName: entityName, descriptions: descriptions, appVersion: appVersion)
+            let entity = MetaEntity(entityName: entityName, useCoreDataLegacyNaming: useCoreDataLegacyNaming, descriptions: descriptions)
             let entityObjc = MetaEntityObjc(entityName: entityName, descriptions: descriptions)
             
-            return Meta.File(name: filename)
+            var result: Meta.File = Meta.File(name: filename)
                 .with(header: header.meta)
-                .adding(import: .lucid())
+                .adding(import: .lucid(reactiveKit: reactiveKit))
                 .adding(imports: try entity.imports())
-                .adding(members: try entityIdentifier.meta())
-                .adding(member: EmptyLine())
-                .adding(members: try entityIndexName.meta())
-                .adding(member: EmptyLine())
+
+            let identifierMeta = try entityIdentifier.meta()
+            if identifierMeta.isEmpty == false {
+                result = result
+                    .adding(members: identifierMeta)
+                    .adding(member: EmptyLine())
+            }
+
+            result = result
                 .adding(members: try entity.meta())
                 .adding(members: try entityObjc.meta())
-                .swiftFile(in: directory)
+
+            let indexMeta = try entityIndexName.meta()
+            if indexMeta.isEmpty == false {
+                result = result
+                    .adding(member: EmptyLine())
+                    .adding(members: try entityIndexName.meta())
+            }
+
+            return result.swiftFile(in: directory)
             
         case .endpoint,
              .subtype:

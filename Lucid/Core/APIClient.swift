@@ -9,6 +9,10 @@
 import Foundation
 import ReactiveKit
 
+#if !LUCID_REACTIVE_KIT
+import Combine
+#endif
+
 // MARK: - Error
 
 public enum APIError: Error, Equatable {
@@ -29,67 +33,93 @@ public struct APIRequestConfig: Codable, Hashable {
     fileprivate enum Constants {
         static let identifierPlaceholderPrefix = ":identifier_"
     }
-    
+
     public enum QueryValue: Codable, Hashable {
-        case value(String)
+        case _value(String)
         case identifier(key: String, localValue: String)
-        indirect case array([QueryValue])
-        
-        public static func optionalValue(_ value: String?) -> QueryValue? {
-            return value.flatMap { .value($0) }
-        }
-        
-        public static func optionalArray(_ array: [QueryValue]?) -> QueryValue? {
-            return array.flatMap { .array($0) }
-        }
-        
-        public static func array(from strings: [String]) -> QueryValue {
-            return .array(strings.map { .value($0) })
+        indirect case _array([QueryValue])
+
+        public static func value(_ value: String?) -> QueryValue? {
+            return value.flatMap { ._value($0) }
         }
 
-        public static func extras(_ extrasArray: [QueryResultConvertible]) -> QueryValue {
-            return .array(extrasArray.map { .value($0.requestValue) })
+        public static func value(_ value: QueryResultConvertible?) -> QueryValue? {
+            return .value(value?.requestValue)
         }
 
-        public static func optionalExtras<Extras>(_ extrasArray: [Extras]?) -> QueryValue? where Extras: RemoteEntityExtrasIndexName {
-            return extrasArray.flatMap { .extras($0) }
+        public static func value(_ array: [QueryValue]?) -> QueryValue? {
+            return array.flatMap { ._array($0) }
+        }
+
+        public static func value(_ strings: [String]?) -> QueryValue? {
+            return .value(strings?.map { ._value($0) })
+        }
+
+        public static func value(_ strings: [QueryResultConvertible]?) -> QueryValue? {
+            return .value(strings?.map { ._value($0.requestValue) })
         }
 
         public static func + (lhs: QueryValue, rhs: QueryValue) -> QueryValue {
             switch (lhs, rhs) {
-            case (.value(let lhsString), .value(let rhsString)):
-                return .value(lhsString + rhsString)
-            case (.array(let lhsValues), .array(let rhsValues)):
-                return .array(lhsValues + rhsValues)
-            case (.value, _),
+            case (._value(let lhsString), ._value(let rhsString)):
+                return ._value(lhsString + rhsString)
+            case (._array(let lhsValues), ._array(let rhsValues)):
+                return ._array(lhsValues + rhsValues)
+            case (._value, _),
                  (.identifier, _),
-                 (.array, _):
+                 (._array, _):
                 Logger.log(.verbose, "\(APIRequestConfig.QueryValue.self) attempting to add two incompatible types. Ignoring RHS argument.", assert: true)
                 return lhs
             }
         }
-        
+
         public var hashStringValue: String {
             switch self {
             case .identifier(let key, let localValue):
                 return "(\(key),\(localValue))"
-            case .array(let values):
+            case ._array(let values):
                 return "[\(values.map { $0.hashStringValue }.joined(separator: ","))]"
-            case .value(let value):
+            case ._value(let value):
                 return value
             }
         }
     }
-    
+
     public enum Body: Codable, Hashable {
         case raw(Data)
-        case formURLEncoded(OrderedDictionary<String, QueryValue>)
+        case _formURLEncoded(OrderedDictionary<String, QueryValue>)
+
+        public static func formURLEncoded(_ values: OrderedDictionary<String, QueryValue>) -> Body {
+            return ._formURLEncoded(values)
+        }
+
+        public static func formURLEncoded(_ values: [(key: String, value: QueryValue?)]) -> Body {
+            return ._formURLEncoded(OrderedDictionary(values.lazy.compactMap { key, value in
+                value.flatMap { (key, $0) }
+            }))
+        }
     }
-    
+
     public enum Path: Codable, Hashable, CustomStringConvertible, CustomDebugStringConvertible {
         case component(String)
         case identifier(key: String, localValue: String)
         indirect case path(parent: Path, child: Path)
+    }
+
+    public struct QueueingStrategy: Codable, Hashable {
+        public enum Synchronization: Int, Codable, Hashable {
+            case concurrent
+            case barrier
+        }
+
+        public let synchronization: Synchronization
+        public let retryOnInternetConnectionFailure: Bool
+
+        public init(synchronization: Synchronization,
+                    retryOnInternetConnectionFailure: Bool) {
+            self.synchronization = synchronization
+            self.retryOnInternetConnectionFailure = retryOnInternetConnectionFailure
+        }
     }
 
     private struct Core: Codable, Hashable {
@@ -100,6 +130,8 @@ public struct APIRequestConfig: Codable, Hashable {
         var headers: OrderedDictionary<String, String>
         var body: Body?
         var includeSessionKey: Bool
+        var timeoutInterval: TimeInterval?
+        var queueingStrategy: QueueingStrategy?
     }
 
     private var core: Core
@@ -130,10 +162,18 @@ public struct APIRequestConfig: Codable, Hashable {
         get { return core.includeSessionKey }
         set { core.includeSessionKey = newValue }
     }
+    public var timeoutInterval: TimeInterval? {
+        get { return core.timeoutInterval }
+        set { core.timeoutInterval = newValue }
+    }
+    public var queueingStrategy: QueueingStrategy {
+        get { return core.queueingStrategy ?? core.method.defaultQueueingStrategy }
+        set { core.queueingStrategy = newValue }
+    }
 
     public let deduplicate: Bool
     public let tag: String?
-        
+
     public init(method: HTTPMethod,
                 path: Path,
                 host: String? = nil,
@@ -141,8 +181,10 @@ public struct APIRequestConfig: Codable, Hashable {
                 headers: [(String, String?)] = [],
                 body: Body? = nil,
                 includeSessionKey: Bool = true,
+                timeoutInterval: TimeInterval? = nil,
                 deduplicate: Bool? = nil,
-                tag: String? = nil) {
+                tag: String? = nil,
+                queueingStrategy: QueueingStrategy? = nil) {
 
         self.core = Core(method: method,
                          host: host,
@@ -150,7 +192,9 @@ public struct APIRequestConfig: Codable, Hashable {
                          query: OrderedDictionary(query.compactMap { key, value in value.flatMap { (key, $0) } }),
                          headers: OrderedDictionary(headers.compactMap { key, value in value.flatMap { (key, $0) } }),
                          body: body,
-                         includeSessionKey: includeSessionKey)
+                         includeSessionKey: includeSessionKey,
+                         timeoutInterval: timeoutInterval,
+                         queueingStrategy: queueingStrategy)
         self.deduplicate = {
             if let deduplicate = deduplicate { return deduplicate }
             switch method {
@@ -180,7 +224,7 @@ public struct APIJSONCoderConfig {
     public var keyEncodingStrategy: JSONEncoder.KeyEncodingStrategy = .convertToSnakeCase
     public var dateDecodingStrategy: JSONDecoder.DateDecodingStrategy?
     public var dateEncodingStrategy: JSONEncoder.DateEncodingStrategy?
-    
+
     public init() {
         // no-op
     }
@@ -191,36 +235,38 @@ public struct APIJSONCoderConfig {
 /// Representation of a request to send to a server where `Model` is the
 /// expected type built from the response.
 public struct APIRequest<Model>: Equatable {
-    
+
     /// Request configurations.
     public var config: APIRequestConfig
-    
+
     /// JSON encoder/decoder to use for encoding/decoding bodies to post/server's responses.
     public var jsonCoderConfig: APIJSONCoderConfig
-    
+
     public init(_ config: APIRequestConfig, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
         self.config = config
         self.jsonCoderConfig = jsonCoderConfig
     }
-    
+
     public init(method: HTTPMethod = .get,
                 host: String? = nil,
                 path: APIRequestConfig.Path,
                 query: [(String, APIRequestConfig.QueryValue?)] = [],
                 headers: [(String, String?)] = [],
                 body: APIRequestConfig.Body? = nil,
-                tag: String? = nil) {
-        
+                tag: String? = nil,
+                queueingStrategy: APIRequestConfig.QueueingStrategy? = nil) {
+
         let config = APIRequestConfig(method: method,
                                       path: path,
                                       host: host,
                                       query: query,
                                       headers: headers,
                                       body: body,
-                                      tag: tag)
+                                      tag: tag,
+                                      queueingStrategy: queueingStrategy)
         self.init(config)
     }
-    
+
     public static func == (lhs: APIRequest<Model>, rhs: APIRequest<Model>) -> Bool {
         guard lhs.config == rhs.config else { return false }
         return true
@@ -230,27 +276,27 @@ public struct APIRequest<Model>: Equatable {
 // MARK: - Response
 
 public struct APIResponseHeader {
-  
+
     public let cachedResponse: Bool
-    
+
     public let etag: String?
-    
+
     public init(with headerFields: [AnyHashable: Any]) {
         self.cachedResponse = (headerFields["Status"] as? String)?.contains("304 Not Modified") ?? false
         self.etag = headerFields["Etag"] as? String
     }
-    
+
     static var empty: APIResponseHeader { return APIResponseHeader(with: [:]) }
 }
 
 public struct APIClientResponse<T> {
 
     public let data: T
-    
+
     public let header: APIResponseHeader
-    
+
     public let cachedResponse: Bool
-    
+
     public let jsonCoderConfig: APIJSONCoderConfig
 
     init(data: T, cachedResponse: Bool, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
@@ -259,14 +305,14 @@ public struct APIClientResponse<T> {
         self.cachedResponse = cachedResponse
         self.jsonCoderConfig = jsonCoderConfig
     }
-    
+
     init(data: T, urlResponse: HTTPURLResponse, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
         self.data = data
         self.header = APIResponseHeader(with: urlResponse.allHeaderFields)
         self.cachedResponse = header.cachedResponse
         self.jsonCoderConfig = jsonCoderConfig
     }
-    
+
     func with<O>(data: O) -> APIClientResponse<O> {
         return APIClientResponse<O>(data: data, cachedResponse: cachedResponse, jsonCoderConfig: jsonCoderConfig)
     }
@@ -277,7 +323,7 @@ public struct APIClientResponse<T> {
 public struct APIErrorPayload: Equatable {
     public let apiStatusCode: Int?
     public let message: String?
-    
+
     public init(apiStatusCode: Int?,
                 message: String?) {
         self.apiStatusCode = apiStatusCode
@@ -289,16 +335,31 @@ public struct APIErrorPayload: Equatable {
 
 /// Client able to send HTTP requests to a host.
 public protocol APIClient: AnyObject {
-    
+
     /// Identifier used for logging.
     var identifier: String { get }
-    
+
     /// Host to reach. Eg. `"https://api.scribd.com"`
     var host: String { get }
 
     var networkClient: NetworkClient { get }
 
     var deduplicator: APIRequestDeduplicating { get }
+
+    /// Send a request to the server.
+    ///
+    /// - Parameters:
+    ///     - request: Data request to send.
+    ///     - completion: Block to be called with either the retrieved `Data` or an `APIError`.
+    func send(request: APIRequest<Data>, completion: @escaping (Result<APIClientResponse<Data>, APIError>) -> Void)
+
+    /// Send a request to the server.
+    ///
+    /// - Parameters:
+    ///     - request: `Model` request to send.
+    ///     - completion: Block to be called with either the retrieved `Model` or an `APIError`.
+    /// - Note: Automatically decode the retrived `Data` to a given `Model` type.
+    func send<Model>(request: APIRequest<Model>, completion: @escaping (Result<APIClientResponse<Model>, APIError>) -> Void) where Model: Decodable
 
     /// Determine if the current state is consistent from when the request was sent, and the response should be handled.
     ///
@@ -307,20 +368,11 @@ public protocol APIClient: AnyObject {
     /// - Returns: A bool determining if the response is handled or ignored.
     func shouldHandleResponse(for requestConfig: APIRequestConfig, completion: @escaping (Bool) -> Void)
 
-    /// Send a request to the server.
+    /// Allows the client to track events that were sent. This will not be called for deduplicated requests.
     ///
     /// - Parameters:
-    ///     - request: Data request to send.
-    ///     - completion: Block to be called with either the retrieved `Data` or an `APIError`.
-    func send(request: APIRequest<Data>, completion: @escaping (Result<APIClientResponse<Data>, APIError>) -> Void)
-    
-    /// Send a request to the server.
-    ///
-    /// - Parameters:
-    ///     - request: `Model` request to send.
-    ///     - completion: Block to be called with either the retrieved `Model` or an `APIError`.
-    /// - Note: Automatically decode the retrived `Data` to a given `Model` type.
-    func send<Model>(request: APIRequest<Model>, completion: @escaping (Result<APIClientResponse<Model>, APIError>) -> Void) where Model: Decodable
+    ///     - request: Data that was sent.
+    func didSend(request: APIRequest<Data>)
 
     /// Provide an error payload from a response's body if this one contains an error's info.
     func errorPayload(from body: Data) -> APIErrorPayload?
@@ -346,7 +398,7 @@ public protocol APIClient: AnyObject {
     ///
     /// - Returns: Prepared copy of a given coder configuration.
     func jsonCoderConfig() -> APIJSONCoderConfig
-    
+
     /// Encode a query string.
     ///
     /// - Parameters:
@@ -355,7 +407,7 @@ public protocol APIClient: AnyObject {
     /// - Throws: An `APIRequestConfig.QueryValue.URLEncodingError` when the `query` cannot be URL-encoded
     /// - Note: A good place to implement a custom query string encoding.
     static func encodeQuery(_ query: OrderedDictionary<String, APIRequestConfig.QueryValue>) throws -> String
-    
+
     /// Encode a body.
     ///
     /// - Parameters:
@@ -368,7 +420,7 @@ public protocol APIClient: AnyObject {
 // MARK: - Default Implementation
 
 extension APIClient {
-    
+
     public func send(request: APIRequest<Data>, completion: @escaping (Result<APIClientResponse<Data>, APIError>) -> Void) {
 
         prepareRequest(request.config) { requestConfig in
@@ -383,8 +435,8 @@ extension APIClient {
                 }
 
                 let wrappedCompletion: (Result<APIClientResponse<Data>, APIError>) -> Void = { result in
-                    self.deduplicator.applyResultToDuplicates(request: requestConfig, result: result)
                     completion(result)
+                    self.deduplicator.applyResultToDuplicates(request: requestConfig, result: result)
                 }
 
                 let host = requestConfig.host ?? self.host
@@ -450,13 +502,15 @@ extension APIClient {
 
                 task.resume()
             }
+
+            self.didSend(request: request)
         }
     }
 
     public func send<Model>(request: APIRequest<Model>, completion: @escaping (Result<APIClientResponse<Model>, APIError>) -> Void) where Model: Decodable {
-        
+
         let dataRequest = APIRequest<Data>(request.config)
-        
+
         send(request: dataRequest) { result in
 
             switch result {
@@ -474,18 +528,24 @@ extension APIClient {
         }
     }
 
+    public func shouldHandleResponse(for requestConfig: APIRequestConfig, completion: @escaping (Bool) -> Void) {
+        completion(true)
+    }
+
+    public func didSend(request: APIRequest<Data>) {}
+
     public func response<Model>(from body: Data, with coderConfig: APIJSONCoderConfig) throws -> Model where Model: Decodable {
         return try coderConfig.decoder.decode(Model.self, from: body)
     }
-    
+
     public func prepareRequest(_ requestConfig: APIRequestConfig, completion: @escaping (APIRequestConfig) -> Void) {
         completion(requestConfig)
     }
-    
+
     public func jsonCoderConfig() -> APIJSONCoderConfig {
         return APIJSONCoderConfig()
     }
-    
+
     public static func encodeQuery(_ query: OrderedDictionary<String, APIRequestConfig.QueryValue>) throws -> String {
         guard query.isEmpty == false else {
             return String()
@@ -494,19 +554,19 @@ extension APIClient {
             try value.encodedValue(for: key)
         }.joined(separator: "&")
     }
-    
+
     public static func encodeBody(_ body: APIRequestConfig.Body) throws -> Data {
         switch body {
         case .raw(let data):
             return data
-            
-        case .formURLEncoded(let data):
+
+        case ._formURLEncoded(let data):
             do {
                 let data = try data.orderedKeyValues
                     .map { (key, value) in try value.encodedValue(for: key) }
                     .joined(separator: "&")
                     .data(using: .utf8)
-                
+
                 guard let _data = data else {
                     throw APIRequestConfig.Body.EncodingError.utf8Encoding
                 }
@@ -534,7 +594,7 @@ extension APIClient {
 // MARK: - Payload Conversion Utils
 
 public extension ResultPayloadConvertible {
-    
+
     static func make(from response: APIClientResponse<Data>, endpoint: Endpoint) -> Result<Self, APIError> {
         do {
             return .success(try Self(from: response.data, endpoint: endpoint, decoder: response.jsonCoderConfig.decoder))
@@ -547,8 +607,31 @@ public extension ResultPayloadConvertible {
 // MARK: - Reactive API
 
 public extension APIClient {
-    
+
+    private func _send(request: APIRequest<Data>) -> Signal<APIClientResponse<Data>, APIError> {
+        return FutureSubject { fulfill in
+            self.send(request: request) { result in
+                switch result {
+                case .success(let response):
+                    fulfill(.success(response))
+                case .failure(let error):
+                    fulfill(.failure(error))
+                }
+            }
+        }.toSignal()
+    }
+
+    #if LUCID_REACTIVE_KIT
     func send(request: APIRequest<Data>) -> Signal<APIClientResponse<Data>, APIError> {
+        return _send(request: request)
+    }
+    #else
+    func send(request: APIRequest<Data>) -> AnyPublisher<APIClientResponse<Data>, APIError> {
+        return _send(request: request).toPublisher().eraseToAnyPublisher()
+    }
+    #endif
+
+    private func _send<Model>(request: APIRequest<Model>) -> Signal<APIClientResponse<Model>, APIError> where Model: Decodable {
         return FutureSubject { fulfill in
             self.send(request: request) { result in
                 switch result {
@@ -560,39 +643,37 @@ public extension APIClient {
             }
         }.toSignal()
     }
-    
+
+    #if LUCID_REACTIVE_KIT
     func send<Model>(request: APIRequest<Model>) -> Signal<APIClientResponse<Model>, APIError> where Model: Decodable {
-        return FutureSubject { fulfill in
-            self.send(request: request) { result in
-                switch result {
-                case .success(let response):
-                    fulfill(.success(response))
-                case .failure(let error):
-                    fulfill(.failure(error))
-                }
-            }
-        }.toSignal()
+        return _send(request: request)
     }
+    #else
+    func send<Model>(request: APIRequest<Model>) -> AnyPublisher<APIClientResponse<Model>, APIError> where Model: Decodable {
+        return _send(request: request).toPublisher().eraseToAnyPublisher()
+    }
+    #endif
+
 }
 
 // MARK: - Identifier Placeholder
 
 private extension String {
-    
+
     var toIdentifierPlaceholder: (key: String, localValue: String)? {
         guard starts(with: APIRequestConfig.Constants.identifierPlaceholderPrefix) else { return nil }
 
         let keyAndLocalValue = self
             .replacingOccurrences(of: APIRequestConfig.Constants.identifierPlaceholderPrefix, with: String())
             .split(separator: ":")
-        
+
         if keyAndLocalValue.count == 2 {
             return (key: String(keyAndLocalValue[0]), localValue: String(keyAndLocalValue[1]))
         } else {
             return nil
         }
     }
-    
+
     static func identifierPlaceholderString(key: String, localValue: String) -> String {
         return "\(APIRequestConfig.Constants.identifierPlaceholderPrefix)\(key):\(localValue)"
     }
@@ -601,17 +682,17 @@ private extension String {
 // MARK: - Codable
 
 extension APIRequest: Codable where Model: Codable {
-    
+
     private enum Keys: String, CodingKey {
         case config
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
         config = try container.decode(APIRequestConfig.self, forKey: .config)
         jsonCoderConfig = APIJSONCoderConfig()
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: Keys.self)
         try container.encode(config, forKey: .config)
@@ -619,36 +700,36 @@ extension APIRequest: Codable where Model: Codable {
 }
 
 extension APIRequestConfig.QueryValue {
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
-        case .array(let values):
+        case ._array(let values):
             try container.encode(values)
         case .identifier(let key, let localValue):
             try container.encode(.identifierPlaceholderString(key: key, localValue: localValue))
-        case .value(let value):
+        case ._value(let value):
             try container.encode(value)
         }
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let values = try? container.decode([APIRequestConfig.QueryValue].self) {
-            self = .array(values)
+            self = ._array(values)
         } else {
             let value = try container.decode(String.self)
             if let placeholder = value.toIdentifierPlaceholder {
                 self = .identifier(key: placeholder.key, localValue: placeholder.localValue)
             } else {
-                self = .value(value)
+                self = ._value(value)
             }
         }
     }
 }
 
 extension APIRequestConfig.Path {
-    
+
     private init(from string: String) {
         var path: APIRequestConfig.Path?
         for component in string.split(separator: "/") {
@@ -667,12 +748,12 @@ extension APIRequestConfig.Path {
         }
         self = path ?? .component(String())
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(description)
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         self.init(from: try container.decode(String.self))
@@ -682,16 +763,16 @@ extension APIRequestConfig.Path {
 // MARK: - QueryValue Conversion
 
 public extension Bool {
-    
+
     var queryValue: APIRequestConfig.QueryValue {
-        return .value(description)
+        return ._value(description)
     }
 }
 
 // MARK: - URL Encoding
 
 extension APIRequestConfig.QueryValue {
-    
+
     enum URLEncodingError: Error {
         case encodingFailed
         case missingIdentifier
@@ -700,24 +781,24 @@ extension APIRequestConfig.QueryValue {
 }
 
 extension APIRequestConfig.QueryValue {
-    
+
     public func encodedValue(for key: String,
                              with allowedCharacterSet: CharacterSet? = APIRequestConfig.QueryValue.allowedCharacterSet) throws -> String {
-        
+
         let encodedKey = try encode(key, with: allowedCharacterSet)
-        
+
         switch self {
-        case .value(let value):
+        case ._value(let value):
             let encodedValue = try encode(value, with: allowedCharacterSet)
             return "\(encodedKey)=\(encodedValue)"
         case .identifier:
             throw URLEncodingError.missingIdentifier
-        case .array(let values):
+        case ._array(let values):
             let encodedValues = try values.map { value -> String in
                 switch value {
-                case .value(let value):
+                case ._value(let value):
                     return try encode(value, with: allowedCharacterSet)
-                case .array:
+                case ._array:
                     throw URLEncodingError.nestedArraysAreNotSupported
                 case .identifier:
                     throw URLEncodingError.missingIdentifier
@@ -726,7 +807,7 @@ extension APIRequestConfig.QueryValue {
             return encodedValues.map { "\(encodedKey)[]=\($0)" }.joined(separator: "&")
         }
     }
-    
+
     private func encode(_ string: String, with allowedCharacterSet: CharacterSet?) throws -> String {
         guard let allowedCharacterSet = allowedCharacterSet else {
             return string
@@ -749,18 +830,18 @@ extension APIRequestConfig.QueryValue {
 }
 
 extension APIRequestConfig.Body {
-    
+
     public enum EncodingError: Error {
         case utf8Encoding
         case formURLEncoding(Error)
     }
-    
+
     public var rawData: Data? {
         switch self {
         case .raw(let data):
             return data
-            
-        case .formURLEncoded:
+
+        case ._formURLEncoded:
             return nil
         }
     }
@@ -769,17 +850,17 @@ extension APIRequestConfig.Body {
 // MARK: - Codable
 
 extension APIRequestConfig.Body {
-    
+
     private enum FormatType: String, Codable {
         case raw
         case formURLEncoded
     }
-    
+
     private enum Keys: String, CodingKey {
         case formatType
         case data
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
         let type = try container.decode(FormatType.self, forKey: .formatType)
@@ -791,15 +872,15 @@ extension APIRequestConfig.Body {
             self = .formURLEncoded(try container.decode(OrderedDictionary.self, forKey: .data))
         }
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: Keys.self)
-        
+
         switch self {
         case .raw(let data):
             try container.encode(data, forKey: .data)
             try container.encode(FormatType.raw, forKey: .formatType)
-        case .formURLEncoded(let data):
+        case ._formURLEncoded(let data):
             try container.encode(data, forKey: .data)
             try container.encode(FormatType.formURLEncoded, forKey: .formatType)
         }
@@ -809,7 +890,7 @@ extension APIRequestConfig.Body {
 // MARK: - Conversions
 
 extension APIError {
-    
+
     init(network error: NSError) {
         if error.domain == NSURLErrorDomain {
             switch error.code {
@@ -829,7 +910,7 @@ extension APIError {
 }
 
 extension APIRequestConfig.Path {
-    
+
     public var description: String {
         switch self {
         case .component(let value):
@@ -840,7 +921,7 @@ extension APIRequestConfig.Path {
             return "\(lhs.description)/\(rhs.description)"
         }
     }
-    
+
     public var debugDescription: String {
         return description
     }
@@ -849,7 +930,7 @@ extension APIRequestConfig.Path {
 // MARK: - JSON Encoder/Decoder
 
 extension APIJSONCoderConfig {
-    
+
     public var encoder: JSONEncoder {
         let jsonEncoder = JSONEncoder()
         jsonEncoder.keyEncodingStrategy = keyEncodingStrategy
@@ -859,7 +940,7 @@ extension APIJSONCoderConfig {
         }
         return jsonEncoder
     }
-    
+
     public var decoder: JSONDecoder {
         let jsonDecoder = JSONDecoder()
         jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
@@ -869,12 +950,12 @@ extension APIJSONCoderConfig {
         }
         return jsonDecoder
     }
-    
+
     /// Default `JSONEncoder`
     public static var defaultJSONEncoder: JSONEncoder {
         return APIJSONCoderConfig().encoder
     }
-    
+
     /// Default `JSONDecoder`
     public static var defaultJSONDecoder: JSONDecoder {
         return APIJSONCoderConfig().decoder
@@ -884,11 +965,11 @@ extension APIJSONCoderConfig {
 // MARK: - Content Types
 
 extension APIRequest {
-    
+
     public mutating func set(contentType: HTTPContentType) {
         config.headers["Content-Type"] = contentType.rawValue
     }
-    
+
     public mutating func set<T: Encodable>(body data: T) {
         do {
             set(contentType: .json)
@@ -902,7 +983,7 @@ extension APIRequest {
 // MARK: - URLRequest
 
 extension APIRequestConfig {
-    
+
     func urlRequest(host: String,
                     queryEncoder: (OrderedDictionary<String, QueryValue>) throws -> String,
                     bodyEncoder: (APIRequestConfig.Body) throws -> Data) -> URLRequest? {
@@ -929,6 +1010,9 @@ extension APIRequestConfig {
                 Logger.log(.error, "\(APIRequestConfig.self): Could not encode body: \(error)", assert: true)
             }
         }
+        if let timeoutInterval = timeoutInterval {
+            urlRequest.timeoutInterval = timeoutInterval
+        }
         return urlRequest
     }
 }
@@ -936,7 +1020,7 @@ extension APIRequestConfig {
 // MARK: - Status Code
 
 extension HTTPURLResponse {
-    
+
     var isSuccess: Bool {
         switch statusCode {
         case 200..<300, 304:
@@ -950,7 +1034,7 @@ extension HTTPURLResponse {
 // MARK: - NetworkClient
 
 public protocol NetworkClient {
-    
+
     func dataTask(with request: URLRequest, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask
 }
 
@@ -959,7 +1043,7 @@ extension URLSession: NetworkClient {}
 // MARK: - Equatable
 
 extension APIError {
-    
+
     public static func == (lhs: APIError, rhs: APIError) -> Bool {
         switch (lhs, rhs) {
         case (.networkingProtocolIsNotHTTP, .networkingProtocolIsNotHTTP),
@@ -1010,10 +1094,10 @@ public extension RemoteIdentifier {
         case .local(let value):
             return .identifier(key: identifierTypeID, localValue: value.description)
         case .remote(let value, _):
-            return .value(value.description)
+            return ._value(value.description)
         }
     }
-    
+
     var pathComponent: APIRequestConfig.Path {
         switch value {
         case .local(let value):
@@ -1045,4 +1129,19 @@ public func / <ID>(_ lhs: APIRequestConfig.Path, _ rhs: ID) -> APIRequestConfig.
 public func / <ID>(_ lhs: APIRequestConfig.Path, _ rhs: ID?) -> APIRequestConfig.Path where ID: RemoteIdentifier {
     guard let identifierComponent = rhs?.pathComponent else { return lhs }
     return lhs / identifierComponent
+}
+
+public extension HTTPMethod {
+
+    var defaultQueueingStrategy: APIRequestConfig.QueueingStrategy {
+        switch self {
+        case .get,
+             .head:
+            return APIRequestConfig.QueueingStrategy(synchronization: .concurrent, retryOnInternetConnectionFailure: false)
+        case .delete,
+             .post,
+             .put:
+            return APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: true)
+        }
+    }
 }

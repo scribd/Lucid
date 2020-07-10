@@ -9,16 +9,16 @@
 import Foundation
 
 public final class CancellationToken {
-    
+
     private var _isCancelled = false
     private let cancelQueue = DispatchQueue(label: "\(CancellationToken.self)_cancel_queue")
 
     public init() { }
-    
+
     public var isCancelled: Bool {
         return cancelQueue.sync { _isCancelled }
     }
-    
+
     @discardableResult
     public func cancel() -> Bool {
         return cancelQueue.sync {
@@ -27,7 +27,7 @@ public final class CancellationToken {
             return result
         }
     }
-    
+
     public static func cancelling(after delay: TimeInterval, onCancel completion: @escaping () -> Void) -> CancellationToken {
         let token = CancellationToken()
         let timer = Timer(timeInterval: delay, repeats: false) { timer in

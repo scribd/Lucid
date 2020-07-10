@@ -16,10 +16,16 @@ public final class CoreDataXCDataModelGenerator: Generator {
 
     private let version: String
 
+    private let useCoreDataLegacyNaming: Bool
+
     private let descriptions: [String: Descriptions]
     
-    public init(version: String, descriptions: [String: Descriptions]) {
+    public init(version: String,
+                useCoreDataLegacyNaming: Bool,
+                descriptions: [String: Descriptions]) {
+
         self.version = version
+        self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
         self.descriptions = descriptions
     }
     
@@ -50,32 +56,37 @@ public final class CoreDataXCDataModelGenerator: Generator {
     private func generate(for entity: Entity, in descriptions: Descriptions, version: String, previousName: String? = nil) throws -> String {
 
         let elementIDText = previousName.flatMap { " elementID=\"\($0)\"" } ?? ""
-        let entityCoreDataName = try entity.coreDataName(for: version)
+        let entityCoreDataName = try entity.coreDataName(for: version, useCoreDataLegacyNaming: useCoreDataLegacyNaming)
+        let entityCoreDataManagedName = try entity.coreDataEntityTypeID(for: version).swiftString
         return """
-            <entity name="\(entityCoreDataName)" representedClassName="Managed\(entityCoreDataName)" syncable="YES" codeGenerationType="class"\(elementIDText)>
+            <entity name="\(entityCoreDataName)" representedClassName="\(entityCoreDataManagedName)" syncable="YES" codeGenerationType="class"\(elementIDText)>
                 <attribute name="_identifier" attributeType="\(try identifierCoreDataType(for: entity, in: descriptions))" usesScalarValueType="YES" syncable="YES" optional="YES"/>
                 <attribute name="__identifier" attributeType="\(entity.hasVoidIdentifier ? "Integer 64" : "String")" usesScalarValueType="YES" syncable="YES" optional="YES"/>
-                <attribute name="__typeUID" attributeType="String" usesScalarValueType="YES" syncable="YES" optional="YES"/>
+                <attribute name="\(useCoreDataLegacyNaming ? "__typeUID" : "__type_uid")" attributeType="String" usesScalarValueType="YES" syncable="YES" optional="YES"/>
         \(entity.remote ?
             """
-                    <attribute name="_remoteSynchronizationState" attributeType="String" syncable="YES" optional="YES"/>
+                    <attribute name="\(useCoreDataLegacyNaming ? "_remoteSynchronizationState" : "_remote_synchronization_state")" attributeType="String" syncable="YES" optional="YES"/>
             """
             : String()
         )
         \(entity.lastRemoteRead ?
             """
-                    <attribute name="__lastRemoteRead" attributeType="Date" syncable="YES" optional="NO"/>
+                    <attribute name="\(useCoreDataLegacyNaming ? "__lastRemoteRead" : "__last_remote_read")" attributeType="Date" syncable="YES" optional="NO"/>
             """
             : String()
         )
         \(try entity.usedProperties.map { property in
-            let elementIDText = property.previousName.flatMap { " elementID=\"_\($0)\"" } ?? ""
+            let propertyCoreDataName = property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming)
+            let propertyElementIDText = property.previousName.flatMap { " elementID=\"_\($0)\"" } ?? ""
             var value = String()
             if property.isRelationship && property.isArray == false {
+                let _propertyElementIDText = property.previousName.flatMap { " elementID=\"__\($0)\"" } ?? ""
+                let _typeUIDElementIDText = property.previousName.flatMap { " elementID=\"__\($0)\(useCoreDataLegacyNaming ? "TypeUID" : "_type_uid")\"" } ?? ""
+
                 value += """
-                        <attribute name="_\(property.name)" optional="YES" attributeType="\(try propertyCoreDataType(for: property, in: descriptions))" syncable="YES"\(elementIDText)/>
-                        <attribute name="__\(property.name)" optional="YES" attributeType="String" syncable="YES"\(elementIDText)/>
-                        <attribute name="__\(property.name)TypeUID" optional="YES" attributeType="String" syncable="YES"\(elementIDText)/>
+                        <attribute name="_\(propertyCoreDataName)" optional="YES" attributeType="\(try propertyCoreDataType(for: property, in: descriptions))" syncable="YES"\(propertyElementIDText)/>
+                        <attribute name="__\(propertyCoreDataName)" optional="YES" attributeType="String" syncable="YES"\(_propertyElementIDText)/>
+                        <attribute name="__\(propertyCoreDataName)\(useCoreDataLegacyNaming ? "TypeUID" : "_type_uid")" optional="YES" attributeType="String" syncable="YES"\(_typeUIDElementIDText)/>
                 """
             } else {
                 let optional = property.optional || property.extra
@@ -83,13 +94,13 @@ public final class CoreDataXCDataModelGenerator: Generator {
                 let defaultValueText = property.defaultValue.flatMap { " \($0.coreDataAttributeName)=\"\($0.coreDataValue)\"" } ?? ""
 
                 value += """
-                        <attribute name="_\(property.name)"\(optionalText) attributeType="\(try propertyCoreDataType(for: property, in: descriptions))" \(property.propertyType.usesScalarValueType ? "usesScalarValueType=\"YES\" ": "")syncable="YES"\(elementIDText)\(defaultValueText)/>
+                        <attribute name="_\(propertyCoreDataName)"\(optionalText) attributeType="\(try propertyCoreDataType(for: property, in: descriptions))" \(property.propertyType.usesScalarValueType ? "usesScalarValueType=\"YES\" ": "")syncable="YES"\(propertyElementIDText)\(defaultValueText)/>
                 """
             }
             if property.extra {
                 value += """
                 
-                        <attribute name="__\(property.name)ExtraFlag" optional="NO" attributeType="\(PropertyScalarType.bool.coreDataType)" usesScalarValueType="YES" syncable="YES" defaultValueString="0"/>
+                        <attribute name="__\(propertyCoreDataName)\(useCoreDataLegacyNaming ? "ExtraFlag" : "_extra_flag")" optional="NO" attributeType="\(PropertyScalarType.bool.coreDataType)" usesScalarValueType="YES" syncable="YES" defaultValueString="0"/>
                 """
             }
             return value
@@ -212,7 +223,7 @@ private extension DefaultValue {
         case .currentDate:
             return "0"
         case .enumCase(let value):
-            return value.snakeCased
+            return value
         case .`nil`:
             return "nil"
         }
@@ -253,19 +264,12 @@ private extension Optional where Wrapped == [ModelMapping] {
             }
 
             let fromEntity = try fromDescriptions.entity(for: entity.name)
-            let fromEntityPreviousName: String?
-            
-            if let previousMapping = previousMapping {
-                fromEntityPreviousName = try entity.coreDataName(for: previousMapping.to)
-            } else {
-                fromEntityPreviousName = fromEntity.previousName
-            }
-            
+
             mappings.append((
                 entity: fromEntity,
                 descriptions: fromDescriptions,
                 version: mapping.from,
-                previousName: fromEntityPreviousName
+                previousName: nil
             ))
 
             mappings.append((

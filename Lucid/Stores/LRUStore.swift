@@ -14,7 +14,7 @@ private final class LinkedListElement<T> {
     let value: T?
     var next: LinkedListElement?
     var prev: LinkedListElement?
-    
+
     init(value: T? = nil,
          next: LinkedListElement? = nil,
          prev: LinkedListElement? = nil) {
@@ -27,27 +27,27 @@ private final class LinkedListElement<T> {
 // MARK: - Store
 
 public final class LRUStore<E: Entity>: StoringConvertible {
-    
+
     private let store: Storing<E>
-    
+
     private let limit: Int
-    
+
     private var _elementsByID = DualHashDictionary<E.Identifier, LinkedListElement<E.Identifier>>()
     private var _identifiersListSentinel = LinkedListElement<E.Identifier>()
-    
+
     private lazy var identifiersDispatchQueue = DispatchQueue(label: "\(ObjectIdentifier(self))", attributes: .concurrent)
-    
+
     public let level: StoreLevel
-    
+
     public init(store: Storing<E>, limit: Int = 100) {
         self.store = store
         self.limit = limit
         level = store.level
         _ = identifiersDispatchQueue // For thread-safety
     }
-    
-    public func get(byID identifier: E.Identifier, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
-        store.get(byID: identifier, in: context) { result in
+
+    public func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+        store.get(withQuery: query, in: context) { result in
             switch result {
             case .success(let queryResult):
                 guard let successfulEntity = queryResult.entity else {
@@ -145,7 +145,7 @@ private extension LRUStore {
     func _remove<S>(_ identifiers: S) -> [E.Identifier] where S: Sequence, S.Element == E.Identifier {
         return identifiers.compactMap { _remove($0) ? $0 : nil }
     }
-    
+
     @discardableResult
     func _remove(_ identifier: E.Identifier) -> Bool {
         guard let elementInList = _elementsByID[identifier] else {
@@ -156,21 +156,21 @@ private extension LRUStore {
         elementInList.next?.prev = elementInList.prev
         return true
     }
-    
+
     @discardableResult
     func _push<S>(_ identifiers: S) -> [E.Identifier] where S: Sequence, S.Element == E.Identifier {
         var identifiersToRemove = [E.Identifier]()
-        
+
         for identifier in identifiers {
             _remove(identifier)
-            
+
             let element = LinkedListElement(value: identifier,
                                             next: _identifiersListSentinel.next,
                                             prev: _identifiersListSentinel)
             _identifiersListSentinel.next?.prev = element
             _identifiersListSentinel.next = element
             _elementsByID[identifier] = element
-            
+
             if _elementsByID.count > limit, let oldestIdentifier = _identifiersListSentinel.prev?.value {
                 _remove(oldestIdentifier)
                 identifiersToRemove.append(oldestIdentifier)
@@ -181,16 +181,16 @@ private extension LRUStore {
             Logger.log(.verbose, "\(LRUStore.self): Dropping \(identifiersToRemove.count) elements as the \(limit) limit was reached.")
         }
         Logger.log(.verbose, "\(LRUStore.self): Entities count: \(_elementsByID.count) / \(limit)")
-        
+
         return identifiersToRemove
     }
-    
+
     func _remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping () -> Void) where S: Sequence, S.Element == E.Identifier {
         guard !identifiers.any.isEmpty else {
             completion()
             return
         }
-        
+
         store.remove(identifiers, in: context) { result in
             if result == nil {
                 Logger.log(.error, "\(LRUStore.self): Could not delete entity: \(identifiers) because of error. Unexpectedly received nil.", assert: true)

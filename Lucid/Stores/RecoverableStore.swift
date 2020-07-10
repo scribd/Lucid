@@ -36,10 +36,10 @@ public final class RecoverableStore<E: Entity> {
 
 extension RecoverableStore: StoringConvertible {
 
-    public func get(byID identifier: E.Identifier, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+    public func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
 
         operationQueue.run(title: "\(RecoverableStore.self):get") { operationCompletion in
-            self.mainStore.get(byID: identifier, in: context) { result in
+            self.mainStore.get(withQuery: query, in: context) { result in
                 completion(result)
                 operationCompletion()
             }

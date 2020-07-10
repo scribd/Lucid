@@ -1,6 +1,6 @@
 //
 //  BaseStoreTests.swift
-//  Lucid
+//  LucidTests
 //
 //  Created by Théophane Rupin on 12/12/18.
 //  Copyright © 2018 Scribd. All rights reserved.
@@ -9,35 +9,35 @@
 import Foundation
 import XCTest
 
-@testable import Lucid
-@testable import LucidTestKit
+@testable import Lucid_ReactiveKit
+@testable import LucidTestKit_ReactiveKit
 
 class StoreTests: XCTestCase {
-    
+
     var context: ReadContext<EntitySpy>!
-    
+
     var entityStore: Storing<EntitySpy>!
 
     var entityRelationshipStore: Storing<EntityRelationshipSpy>!
-    
+
     var additionalWaitTime: TimeInterval? { return nil }
-    
+
     override class var defaultTestSuite: XCTestSuite {
         return XCTestSuite(name: "StoreTests")
     }
-    
+
     override func setUp() {
         super.setUp()
         Logger.shared = LoggerMock()
         context = ReadContext<EntitySpy>()
-        
+
         let expectation = self.expectation(description: "set_up")
         asyncSetup {
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: 5)
     }
-    
+
     override func tearDown() {
         defer { super.tearDown() }
         context = nil
@@ -52,15 +52,15 @@ class StoreTests: XCTestCase {
 
         EntitySpy.resetRecords()
     }
-    
+
     open func asyncSetup(_ completion: @escaping () -> Void) {
         completion()
     }
-    
+
     open func asyncTearDown(_ completion: @escaping () -> Void) {
         completion()
     }
-    
+
     func test_store_should_create_entity_then_retrieve_it() {
         let expectation = self.expectation(description: "entity")
 
@@ -73,19 +73,19 @@ class StoreTests: XCTestCase {
 
             switch result {
             case .success(let entity):
-                
+
                 self.entityStore.get(byID: entity.identifier, in: self.context) { result in
                     switch result {
                     case .success(let result):
                         XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
                         XCTAssertEqual(result.entity?.title, "fake_title_42")
-                        
+
                     case .failure(let error):
                         XCTFail("Unexpected error: \(error).")
                     }
                     expectation.fulfill()
                 }
-                
+
             case .failure(let error):
                 XCTFail("Unexpected error: \(error).")
                 expectation.fulfill()
@@ -94,10 +94,10 @@ class StoreTests: XCTestCase {
 
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_complete_with_nil_when_entity_is_not_found() {
         let expectation = self.expectation(description: "entity")
-        
+
         entityStore.set(EntitySpy(idValue: .remote(42, nil)), in: WriteContext(dataTarget: .local)) { result in
             guard let result = result else {
                 XCTFail("Unexpectedly received nil.")
@@ -107,18 +107,18 @@ class StoreTests: XCTestCase {
 
             switch result {
             case .success:
-                
+
                 self.entityStore.get(byID: EntitySpyIdentifier(value: .remote(24, nil)), in: self.context) { result in
                     switch result {
                     case .success(let result):
                         XCTAssertNil(result.entity)
-                        
+
                     case .failure(let error):
                         XCTFail("Unexpected error: \(error).")
                     }
                     expectation.fulfill()
                 }
-                
+
             case .failure(let error):
                 XCTFail("Unexpected error: \(error).")
                 expectation.fulfill()
@@ -130,7 +130,7 @@ class StoreTests: XCTestCase {
 
     func test_store_should_update_an_entity_and_retrieve_the_update() {
         let expectation = self.expectation(description: "entity")
-        
+
         entityStore.set(EntitySpy(idValue: .remote(42, nil)), in: WriteContext(dataTarget: .local)) { result in
             guard let result = result else {
                 XCTFail("Unexpectedly received nil.")
@@ -231,7 +231,7 @@ class StoreTests: XCTestCase {
         let doc1Expectation = self.expectation(description: "document1")
         let doc2Expectation = self.expectation(description: "document2")
         let doc3Expectation = self.expectation(description: "document3")
-        
+
         write(EntitySpy(idValue: .remote(1, nil), title: "Test1")) {
             self.write(EntitySpy(idValue: .remote(2, nil), title: "Test2")) {
                 self.write(EntitySpy(idValue: .remote(3, nil), title: "Another3")) {
@@ -247,7 +247,7 @@ class StoreTests: XCTestCase {
                                 switch result {
                                 case .success(let result):
                                     XCTAssertNil(result.entity)
-                                    
+
                                 case .failure(let error):
                                     XCTFail("Unexpected error: \(error).")
                                 }
@@ -258,7 +258,7 @@ class StoreTests: XCTestCase {
                                 switch result {
                                 case .success(let result):
                                     XCTAssertNil(result.entity)
-                                    
+
                                 case .failure(let error):
                                     XCTFail("Unexpected error: \(error).")
                                 }
@@ -269,7 +269,7 @@ class StoreTests: XCTestCase {
                                 switch result {
                                 case .success(let result):
                                     XCTAssertNotNil(result.entity)
-                                    
+
                                 case .failure(let error):
                                     XCTFail("Unexpected error: \(error).")
                                 }
@@ -283,7 +283,7 @@ class StoreTests: XCTestCase {
                 }
             }
         }
-        
+
         _wait(for: [doc1Expectation, doc2Expectation, doc3Expectation], timeout: 1)
     }
 
@@ -346,9 +346,9 @@ class StoreTests: XCTestCase {
 
         _wait(for: [doc1Expectation, doc2Expectation, doc3Expectation], timeout: 1)
     }
-    
+
     // MARK: - Search
-    
+
     func test_store_should_retrieve_entities_filtered_by_title_with_a_regex() {
         let expectation = self.expectation(description: "entities")
 
@@ -384,10 +384,10 @@ class StoreTests: XCTestCase {
 
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_retrieve_entities_with_local_identifier_contained_in_array() {
         let expectation = self.expectation(description: "entities")
-        
+
         write((0..<10).map { EntitySpy(idValue: .local("local_id_\($0)")) }) {
             self.entityStore.search(withQuery: .filter(.identifier >> [EntitySpyIdentifier(value: .local("local_id_5")), EntitySpyIdentifier(value: .local("local_id_0"))]), in: self.context) { result in
                 switch result {
@@ -399,13 +399,13 @@ class StoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_retrieve_entities_with_local_and_remote_identifier_contained_in_array() {
         let expectation = self.expectation(description: "entities")
-        
+
         write((0..<10).map { EntitySpy(idValue: .remote($0, "local_id_\($0)")) }) {
             self.entityStore.search(withQuery: .filter(.identifier >> [EntitySpyIdentifier(value: .remote(5, nil)), EntitySpyIdentifier(value: .local("local_id_0"))]), in: self.context) { result in
                 switch result {
@@ -417,7 +417,7 @@ class StoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
 
@@ -441,7 +441,7 @@ class StoreTests: XCTestCase {
 
     func test_store_should_retrieve_entities_with_identifier_or_title() {
         let expectation = self.expectation(description: "entities")
-        
+
         write((0..<10).map { EntitySpy(idValue: .remote($0, nil)) }) {
             self.entityStore.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(5, nil))) || .title == .string("fake_title_7")),
                                     in: self.context) { result in
@@ -498,7 +498,7 @@ class StoreTests: XCTestCase {
 
     func test_store_should_retrieve_entities_with_an_expression_evaluated_against_true() {
         let expectation = self.expectation(description: "entities")
-        
+
         write((0..<10).map { EntitySpy(idValue: .remote($0, nil)) }) {
             self.entityStore.search(withQuery: .filter((.identifier == .identifier(EntitySpyIdentifier(value: .remote(5, nil)))) == .value(.bool(true))),
                                     in: self.context) { result in
@@ -514,7 +514,7 @@ class StoreTests: XCTestCase {
 
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_retrieve_all_entities_ordered_by_identifier_desc() {
         let expectation = self.expectation(description: "entities")
 
@@ -559,14 +559,14 @@ class StoreTests: XCTestCase {
 
     func test_store_should_retrieve_all_entities_ordered_by_title_asc_identifier_asc() {
         let expectation = self.expectation(description: "entities")
-        
+
         let entities: [EntitySpy] = [
             EntitySpy(idValue: .remote(0, nil), title: "book_one"),
             EntitySpy(idValue: .remote(1, nil), title: "book_two"),
             EntitySpy(idValue: .remote(2, nil), title: "book_one"),
             EntitySpy(idValue: .remote(3, nil), title: "book_two")
         ]
-        
+
         write(entities) {
             self.entityStore.search(withQuery: .order([.asc(by: .index(.title)),
                                                        .asc(by: .identifier)]),
@@ -581,27 +581,27 @@ class StoreTests: XCTestCase {
                     XCTAssertEqual(queryResult.array[1].identifier, EntitySpyIdentifier(value: .remote(2, nil)))
                     XCTAssertEqual(queryResult.array[2].identifier, EntitySpyIdentifier(value: .remote(1, nil)))
                     XCTAssertEqual(queryResult.array[3].identifier, EntitySpyIdentifier(value: .remote(3, nil)))
-                
+
                 case .failure(let error):
                     XCTFail("Unexpected error: \(error).")
                 }
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
 
     func test_store_should_retrieve_all_entities_ordered_by_title_asc_identifier_desc() {
         let expectation = self.expectation(description: "entities")
-        
+
         let entities: [EntitySpy] = [
             EntitySpy(idValue: .remote(0, nil), title: "book_one"),
             EntitySpy(idValue: .remote(1, nil), title: "book_two"),
             EntitySpy(idValue: .remote(2, nil), title: "book_one"),
             EntitySpy(idValue: .remote(3, nil), title: "book_two")
         ]
-        
+
         write(entities) {
             self.entityStore.search(withQuery: .order([.asc(by: .index(.title)),
                                                        .desc(by: .identifier)]),
@@ -616,20 +616,20 @@ class StoreTests: XCTestCase {
                     XCTAssertEqual(queryResult.array[1].identifier, EntitySpyIdentifier(value: .remote(0, nil)))
                     XCTAssertEqual(queryResult.array[2].identifier, EntitySpyIdentifier(value: .remote(3, nil)))
                     XCTAssertEqual(queryResult.array[3].identifier, EntitySpyIdentifier(value: .remote(1, nil)))
-                    
+
                 case .failure(let error):
                     XCTFail("Unexpected error: \(error).")
                 }
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_retrieve_all_entities_ordered_by_array_of_identifiers() {
         let expectation = self.expectation(description: "entities")
-        
+
         write((0..<10).map { EntitySpy(idValue: .remote($0, nil)) }) {
             self.entityStore.search(withQuery: .order([.identifiers([EntitySpyIdentifier(value: .remote(5, nil)), EntitySpyIdentifier(value: .remote(1, nil))].any)]),
                               in: self.context) { result in
@@ -652,7 +652,7 @@ class StoreTests: XCTestCase {
 
     func test_store_should_retrieve_all_entities_ordered_by_title_asc() {
         let expectation = self.expectation(description: "entities")
-        
+
         write((0..<10).map { EntitySpy(idValue: .remote($0, nil)) }) {
             self.entityStore.search(withQuery: .order([.asc(by: .index(.title))]),
                                     in: self.context) { result in
@@ -712,13 +712,13 @@ class StoreTests: XCTestCase {
     }
 
     // MARK: - Relationship
-    
+
     func test_store_should_retrieve_one_entity_through_a_one_to_one_relationship_identifier() {
         let expectation = self.expectation(description: "relationship")
-        
+
         let entity = EntitySpy(idValue: .remote(42, nil), oneRelationshipIdValue: .remote(24, nil))
         let relationship = EntityRelationshipSpy(idValue: .remote(24, nil))
-        
+
         write(entities: [entity, relationship]) {
             self.entityStore.search(withQuery: .filter(.oneRelationship == relationship.identifier),
                                     in: self.context) { result in
@@ -731,16 +731,16 @@ class StoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_retrieve_one_entity_through_a_one_to_one_relationship_with_a_local_and_remote_identifier() {
         let expectation = self.expectation(description: "relationship")
-        
+
         let entity = EntitySpy(idValue: .remote(42, nil), oneRelationshipIdValue: .remote(24, "local_id"))
         let relationship = EntityRelationshipSpy(idValue: .local("local_id"))
-        
+
         write(entities: [entity, relationship]) {
             self.entityStore.search(withQuery: .filter(.oneRelationship == relationship.identifier),
                                     in: self.context) { result in
@@ -753,16 +753,16 @@ class StoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_retrieve_one_entity_through_a_one_to_one_relationship_with_two_local_identifiers() {
         let expectation = self.expectation(description: "relationship")
-        
+
         let entity = EntitySpy(idValue: .remote(42, nil), oneRelationshipIdValue: .local("local_id"))
         let relationship = EntityRelationshipSpy(idValue: .local("local_id"))
-        
+
         write(entities: [entity, relationship]) {
             self.entityStore.search(withQuery: .filter(.oneRelationship == relationship.identifier),
                                     in: self.context) { result in
@@ -775,16 +775,16 @@ class StoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_retrieve_one_entity_through_a_one_to_one_relationship_with_two_full_identifiers() {
         let expectation = self.expectation(description: "relationship")
-        
+
         let entity = EntitySpy(idValue: .remote(42, nil), oneRelationshipIdValue: .remote(24, "local_id"))
         let relationship = EntityRelationshipSpy(idValue: .remote(24, "local_id"))
-        
+
         write(entities: [entity, relationship]) {
             self.entityStore.search(withQuery: .filter(.oneRelationship == relationship.identifier),
                                     in: self.context) { result in
@@ -797,13 +797,13 @@ class StoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_retrieve_several_entities_through_a_many_to_many_relationship() {
         let expectation = self.expectation(description: "relationship")
-        
+
         let entity = EntitySpy(idValue: .remote(42, nil), manyRelationshipsIdValues: [.remote(1, nil), .remote(2, nil)])
         let relationshipOne = EntityRelationshipSpy(idValue: .remote(1, nil))
         let relationshipTwo = EntityRelationshipSpy(idValue: .remote(2, nil))
@@ -822,17 +822,17 @@ class StoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_retrieve_several_entities_through_a_many_to_many_relationship_with_local_and_remote_identifiers() {
         let expectation = self.expectation(description: "relationship")
-        
+
         let entity = EntitySpy(idValue: .remote(42, nil), manyRelationshipsIdValues: [.remote(24, "local_id_1"), .remote(25, "local_id_2")])
         let relationshipOne = EntityRelationshipSpy(idValue: .local("local_id_1"))
         let relationshipTwo = EntityRelationshipSpy(idValue: .local("local_id_2"))
-        
+
         write(entities: [entity, relationshipOne, relationshipTwo]) {
             self.entityRelationshipStore.search(withQuery: .filter(.identifier >> [relationshipOne.identifier, relationshipTwo.identifier]),
                                                 in: ReadContext<EntityRelationshipSpy>()) { result in
@@ -847,17 +847,17 @@ class StoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_retrieve_several_entities_through_a_many_to_many_relationship_with_local_identifiers() {
         let expectation = self.expectation(description: "relationship")
-        
+
         let entity = EntitySpy(idValue: .remote(42, nil), manyRelationshipsIdValues: [.local("local_id_1"), .local("local_id_2")])
         let relationshipOne = EntitySpy(idValue: .local("local_id_1"))
         let relationshipTwo = EntitySpy(idValue: .local("local_id_2"))
-        
+
         write(entities: [entity, relationshipOne, relationshipTwo]) {
             self.entityStore.search(withQuery: .filter(.identifier >> [relationshipOne.identifier, relationshipTwo.identifier]),
                                     in: self.context) { result in
@@ -872,17 +872,17 @@ class StoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_retrieve_several_entities_through_a_many_to_many_relationship_with_only_full_identifiers() {
         let expectation = self.expectation(description: "relationship")
-        
+
         let entity = EntitySpy(idValue: .remote(42, nil), manyRelationshipsIdValues: [.remote(24, "local_id_1"), .remote(25, "local_id_2")])
         let relationshipOne = EntityRelationshipSpy(idValue: .remote(24, "local_id_1"))
         let relationshipTwo = EntityRelationshipSpy(idValue: .remote(25, "local_id_2"))
-        
+
         write(entities: [entity, relationshipOne, relationshipTwo]) {
             self.entityRelationshipStore.search(withQuery: .filter(.identifier >> entity.manyRelationships),
                                                 in: ReadContext<EntityRelationshipSpy>()) { result in
@@ -897,17 +897,17 @@ class StoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_retrieve_an_entity_for_which_a_relationship_identifier_is_contained_in_an_array_of_full_identifiers() {
         let expectation = self.expectation(description: "relationship")
-        
+
         let entity = EntitySpy(idValue: .remote(42, nil), oneRelationshipIdValue: .remote(24, "local_id_1"))
         let relationshipOne = EntityRelationshipSpy(idValue: .remote(24, "local_id_1"))
         let relationshipTwo = EntityRelationshipSpy(idValue: .remote(25, "local_id_2"))
-        
+
         write(entities: [entity, relationshipOne, relationshipTwo]) {
             self.entityStore.search(withQuery: .filter(.oneRelationship >> [relationshipOne.identifier, relationshipTwo.identifier]),
                                     in: self.context) { result in
@@ -921,17 +921,17 @@ class StoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_retrieve_an_entity_for_which_a_relationship_identifier_is_contained_in_an_array_of_local_identifiers() {
         let expectation = self.expectation(description: "relationship")
-        
+
         let entity = EntitySpy(idValue: .remote(42, nil), oneRelationshipIdValue: .remote(24, "local_id_1"))
         let relationshipOne = EntityRelationshipSpy(idValue: .local("local_id_1"))
         let relationshipTwo = EntityRelationshipSpy(idValue: .remote(25, "local_id_2"))
-        
+
         write(entities: [entity, relationshipOne, relationshipTwo]) {
             self.entityStore.search(withQuery: .filter(.oneRelationship >> [relationshipOne.identifier, relationshipTwo.identifier]),
                                     in: self.context) { result in
@@ -945,17 +945,17 @@ class StoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_retrieve_an_entity_for_which_a_relationship_identifier_is_contained_in_an_array_of_remote_identifiers() {
         let expectation = self.expectation(description: "relationship")
-        
+
         let entity = EntitySpy(idValue: .remote(42, nil), oneRelationshipIdValue: .remote(24, "local_id_1"))
         let relationshipOne = EntityRelationshipSpy(idValue: .remote(24, nil))
         let relationshipTwo = EntityRelationshipSpy(idValue: .remote(25, "local_id_2"))
-        
+
         write(entities: [entity, relationshipOne, relationshipTwo]) {
             self.entityStore.search(withQuery: .filter(.oneRelationship >> [relationshipOne.identifier, relationshipTwo.identifier]),
                                     in: self.context) { result in
@@ -969,17 +969,17 @@ class StoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_not_retrieve_an_entity_for_which_a_relationship_identifier_is_not_contained_in_an_array_of_identifiers() {
         let expectation = self.expectation(description: "relationship")
-        
+
         let entity = EntitySpy(idValue: .remote(42, nil), oneRelationshipIdValue: .remote(1, "local_id_1"))
         let relationshipOne = EntityRelationshipSpy(idValue: .remote(24, nil))
         let relationshipTwo = EntityRelationshipSpy(idValue: .remote(25, "local_id_2"))
-        
+
         write(entities: [entity, relationshipOne, relationshipTwo]) {
             self.entityStore.search(withQuery: .filter(.oneRelationship >> [relationshipOne.identifier, relationshipTwo.identifier]),
                                     in: self.context) { result in
@@ -992,7 +992,7 @@ class StoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         _wait(for: [expectation], timeout: 1)
     }
 
@@ -1047,7 +1047,7 @@ class StoreTests: XCTestCase {
 
     func test_that_merging_entities_updates_unrequested_extras_with_requested_extras() {
         let entity = EntitySpy(idValue: .remote(42, nil), oneRelationshipIdValue: .remote(1, "local_id_1"))
-        
+
         let updatedEntity = EntitySpy(idValue: .remote(42, nil),
                                       title: "another_title",
                                       extra: .requested(7))
@@ -1137,15 +1137,15 @@ class StoreTests: XCTestCase {
 // MARK: - Utils
 
 extension StoreTests {
-    
+
     func write(_ entities: [EntitySpy], completion: @escaping () -> Void) {
         write(entities: entities as [AnyObject], completion: completion)
     }
-    
+
     func write(_ entities: [EntityRelationshipSpy], completion: @escaping () -> Void) {
         write(entities: entities as [AnyObject], completion: completion)
     }
-    
+
     func write(_ entity: EntitySpy, completion: @escaping () -> Void) {
         write(entities: [entity as AnyObject], completion: completion)
     }
@@ -1155,7 +1155,7 @@ extension StoreTests {
     }
 
     private func write(entities: [AnyObject], completion: @escaping () -> Void) {
-        
+
         let relationships = entities.lazy.compactMap { $0 as? EntityRelationshipSpy }
         let entities = entities.lazy.compactMap { $0 as? EntitySpy }
 
@@ -1174,7 +1174,7 @@ extension StoreTests {
                     XCTFail("Unexpectedly received nil.")
                     return
                 }
-                
+
                 if let error = result.error {
                     XCTFail("Unexpected error: \(error).")
                 }
@@ -1183,9 +1183,9 @@ extension StoreTests {
             }
         }
     }
-    
+
     func _wait(for expectations: [XCTestExpectation], timeout: TimeInterval) {
-        
+
         if let additionalWaitTime = additionalWaitTime {
             let additionalExpectation = self.expectation(description: "additional time")
             DispatchQueue.main.asyncAfter(deadline: .now() + additionalWaitTime) {

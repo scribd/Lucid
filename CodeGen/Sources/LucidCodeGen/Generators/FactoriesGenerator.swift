@@ -13,9 +13,12 @@ public final class FactoriesGenerator: Generator {
     public let name = "factories"
     
     private let descriptions: Descriptions
+
+    private let reactiveKit: Bool
     
-    public init(descriptions: Descriptions) {
+    public init(descriptions: Descriptions, reactiveKit: Bool) {
         self.descriptions = descriptions
+        self.reactiveKit = reactiveKit
     }
     
     public func generate(for element: Description, in directory: Path) throws -> File? {
@@ -32,10 +35,12 @@ public final class FactoriesGenerator: Generator {
                 .swiftFile(in: directory)
             
         case .entity(let entityName):
-            let filename = "\(entityName)Factory.swift"
+            let filename = "\(entityName.camelCased().suffixedName())Factory.swift"
             
             let header = MetaHeader(filename: filename)
-            let entityFactory = MetaEntityFactory(entityName: entityName, descriptions: descriptions)
+            let entityFactory = MetaEntityFactory(entityName: entityName,
+                                                  descriptions: descriptions,
+                                                  reactiveKit: reactiveKit)
             
             return Meta.File(name: filename)
                 .with(header: header.meta)
@@ -44,10 +49,12 @@ public final class FactoriesGenerator: Generator {
                 .swiftFile(in: directory)
             
         case .subtype(let subtypeName):
-            let filename = "\(subtypeName)Factory.swift"
+            let filename = "\(subtypeName.camelCased().suffixedName())Factory.swift"
             
             let header = MetaHeader(filename: filename)
-            let subtypeFactory = MetaSubtypeFactory(subtypeName: subtypeName, descriptions: descriptions)
+            let subtypeFactory = MetaSubtypeFactory(subtypeName: subtypeName,
+                                                    descriptions: descriptions,
+                                                    reactiveKit: reactiveKit)
             
             return Meta.File(name: filename)
                 .with(header: header.meta)

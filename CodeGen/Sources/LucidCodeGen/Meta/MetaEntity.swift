@@ -10,10 +10,10 @@ import Meta
 struct MetaEntity {
     
     let entityName: String
+
+    let useCoreDataLegacyNaming: Bool
     
     let descriptions: Descriptions
-    
-    let appVersion: String
     
     func imports() throws -> [Import] {
         let entity = try descriptions.entity(for: entityName)
@@ -24,16 +24,28 @@ struct MetaEntity {
     func meta() throws -> [FileBodyMember] {
         let entity = try descriptions.entity(for: entityName)
 
+        let inheritenceTypeString: String
+        switch entity.inheritenceType {
+        case .localAndRemote:
+            inheritenceTypeString = "LocalEntiy, RemoteEntity"
+        case .local:
+            inheritenceTypeString = "LocalEntiy"
+        case .remote:
+            inheritenceTypeString = "RemoteEntity"
+        case .basic:
+            inheritenceTypeString = "Entity"
+        }
+
         return try [
             [
-                Comment.mark(entity.name),
+                Comment.mark(entity.transformedName),
                 EmptyLine(),
                 try entityType()
             ],
             payloadInitializer(),
             [
                 EmptyLine(),
-                Comment.mark("\(entity.remote ? "Remote" : "")Entity"),
+                Comment.mark(inheritenceTypeString),
                 EmptyLine(),
                 try remoteEntityExtension(),
             ],
@@ -54,6 +66,7 @@ struct MetaEntity {
         }
         
         return Type(identifier: entity.typeID())
+            .adding(inheritedType: .codable)
             .with(kind: .class(final: true))
             .with(accessLevel: .public)
             .with(body: [
@@ -74,6 +87,10 @@ struct MetaEntity {
                     TypeAlias(
                         identifier: TypeAliasIdentifier(name: "Subtype"),
                         value: .entitySubtype
+                    ).with(accessLevel: .public),
+                    TypeAlias(
+                        identifier: TypeAliasIdentifier(name: "QueryContext"),
+                        value: entity.queryContext ? TypeIdentifier(name: "\(entity.transformedName)QueryContext") : .never
                     ).with(accessLevel: .public),
                     EmptyLine(),
                     Comment.comment("IdentifierTypeID"),
@@ -105,7 +122,7 @@ struct MetaEntity {
     private func properties(for properties: [EntityProperty]) throws -> [TypeBodyMember] {
         return try properties.flatMap { property -> [TypeBodyMember] in
             return [
-                Property(variable: Variable(name: property.name)
+                Property(variable: property.variable
                     .with(type: try property.valueTypeID(descriptions))
                     .with(immutable: true))
                     .with(accessLevel: .public),
@@ -147,7 +164,7 @@ struct MetaEntity {
             )
             .adding(parameter: entity.lastRemoteRead ? FunctionParameter(name: "lastRemoteRead", type: .date) : nil)
             .adding(parameters: try entity.valuesThenRelationships.map { property in
-                FunctionParameter(name: property.name, type: try property.valueTypeID(descriptions))
+                FunctionParameter(name: property.transformedName(), type: try property.valueTypeID(descriptions))
                     .with(defaultValue: property.defaultValue?.variableValue)
             })
             .adding(member: EmptyLine())
@@ -221,7 +238,7 @@ struct MetaEntity {
         case .scalar,
              .subtype,
              .array:
-            return TupleParameter(name: property.name, value: Reference.named("payload") + Reference.named(property.payloadName))
+            return TupleParameter(name: property.transformedName(), value: Reference.named("payload") + Reference.named(property.payloadName))
         case .relationship(let relationship):
             let relationshipEntity = try descriptions.entity(for: relationship.entityName)
             switch relationship.association {
@@ -244,7 +261,7 @@ struct MetaEntity {
                 } else {
                     value = .named("payload") + .named("identifier") + relationshipEntity.identifierVariable.reference
                 }
-                return TupleParameter(name: property.name, value: value)
+                return TupleParameter(name: property.transformedName(), value: value)
 
             case .toOne:
                 let value: Reference
@@ -258,7 +275,7 @@ struct MetaEntity {
                         (property.optional ? .unwrap : .none) +
                         .named("identifier")
                 }
-                return TupleParameter(name: property.name, value: value)
+                return TupleParameter(name: property.transformedName(), value: value)
 
             case .toMany:
                 let value: Reference
@@ -276,7 +293,7 @@ struct MetaEntity {
                             .adding(member: Reference.named("$0") + .named("identifier"))
                         ) + .named("any")
                 }
-                return TupleParameter(name: property.name, value: value)
+                return TupleParameter(name: property.transformedName(), value: value)
             }
         }
     }
@@ -312,7 +329,7 @@ struct MetaEntity {
                         .filter { $0.mutable }
                         .map { property in
                             FunctionParameter(
-                                name: property.name,
+                                name: property.transformedName(),
                                 type: try property.valueTypeID(descriptions)
                             ).with(defaultValue: property.defaultValue?.variableValue)
                         }
@@ -325,8 +342,8 @@ struct MetaEntity {
                             .adding(parameter: entity.lastRemoteRead ? TupleParameter(name: "lastRemoteRead", value: +.named("distantPast")) : nil)
                             .adding(parameters: entity.valuesThenRelationships.map { property in
                                 TupleParameter(
-                                    name: property.name,
-                                    value: property.mutable ? .named(property.name) : .named(.`self`) + .named(property.name)
+                                    name: property.transformedName(),
+                                    value: property.mutable ? .named(property.transformedName()) : .named(.`self`) + .named(property.transformedName())
                                 )
                             })
                         ))
@@ -335,12 +352,14 @@ struct MetaEntity {
         ]
     }
 
-    // MARK: - Entity / RemoteEntity Extension
+    // MARK: - Entity / LocalEntity / RemoteEntity Extension
     
     private func remoteEntityExtension() throws -> Extension {
         let entity = try descriptions.entity(for: entityName)
         return Extension(type: entity.typeID())
-            .adding(inheritedType: entity.remote ? .remoteEntity : .entity)
+            .adding(inheritedType: entity.inheritenceType.isLocal ? .localEntity : nil)
+            .adding(inheritedType: entity.inheritenceType.isRemote ? .remoteEntity : nil)
+            .adding(inheritedType: entity.inheritenceType.isBasic ? .entity : nil)
             .adding(members: try extrasTypeAlias(entity))
             .adding(member: EmptyLine())
             .adding(member: try indexValueFunction())
@@ -350,6 +369,7 @@ struct MetaEntity {
             .adding(member: try entityRelationshipEntityTypeUIDsProperty())
             .adding(member: EmptyLine())
             .adding(member: try equalityFunction())
+            .adding(members: try shouldOverwriteFunction())
     }
 
     private func extrasTypeAlias(_ entity: Entity) throws -> [TypeBodyMember] {
@@ -377,7 +397,7 @@ struct MetaEntity {
 
                 case .subtype(let name):
                     returnReference = +.named("subtype") | .call(Tuple()
-                        .adding(parameter: TupleParameter(value: +.named(name.variableCased) | .call(Tuple()
+                        .adding(parameter: TupleParameter(value: +.named(name.camelCased().suffixedName().variableCased()) | .call(Tuple()
                             .adding(parameter: TupleParameter(value: property.reference)
                         )))
                     ))
@@ -414,23 +434,26 @@ struct MetaEntity {
                 }
                 
                 if try property.valueTypeID(descriptions).isOptionalOrExtra {
-                    return SwitchCase(name: property.name)
+                    return SwitchCase(name: property.transformedName(ignoreLexicon: false))
                         .adding(member: Return(value: (property.entityReferenceValue + .named("flatMap") | .block(FunctionBody()
-                            .adding(parameter: FunctionBodyParameter(name: property.name))
+                            .adding(parameter: FunctionBodyParameter(name: property.transformedName()))
                             .adding(member: +.named("optional") | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: returnReference))
                             ))) ?? +.named("none")
                         )))
                 } else {
-                    return SwitchCase(name: property.name).adding(member: Return(value: returnReference))
+                    return SwitchCase(name: property.transformedName(ignoreLexicon: false))
+                        .adding(member: Return(value: returnReference))
                 }
             }
         
         return Function(kind: .named("entityIndexValue"))
             .with(accessLevel: .public)
-            .adding(parameter: FunctionParameter(alias: "for", name: "indexName", type: entity.indexNameTypeID))
+            .adding(parameter: FunctionParameter(alias: "for", name: "indexName", type: try entity.indexNameTypeID(descriptions)))
             .with(resultType: .entityIndexValue)
-            .adding(member: Switch(reference: .named("indexName"))
+            .adding(member: cases.isEmpty ?
+                Return(value: +.named("none")) :
+                Switch(reference: .named("indexName"))
                 .with(cases: cases)
                 .adding(case: entity.lastRemoteRead ?
                     SwitchCase(name: "lastRemoteRead").adding(member: Return(value: +.named("date") | .call(Tuple()
@@ -444,13 +467,13 @@ struct MetaEntity {
         let entity = try descriptions.entity(for: entityName)
         
         return ComputedProperty(variable: Variable(name: "entityRelationshipIndices")
-            .with(type: .array(element: entity.indexNameTypeID)))
+            .with(type: .array(element: try entity.indexNameTypeID(descriptions))))
             .with(accessLevel: .public)
             .adding(member: Return(value: Value.array(try entity.indexes(descriptions).compactMap { property in
                 switch property.propertyType {
                 case .relationship,
                      .array(.relationship):
-                    return .reference(+.named(property.name))
+                    return .reference(+.named(property.transformedName()))
                 case .scalar,
                      .subtype,
                      .array:
@@ -494,17 +517,46 @@ struct MetaEntity {
             .adding(member: Return(value: Value.bool(true)))
     }
 
+    private func shouldOverwriteFunction() throws -> [TypeBodyMember] {
+        let entity = try descriptions.entity(for: entityName)
+        guard entity.requiresCustomShouldOverwriteFunction,
+            entity.extendedPropertyNamesForShouldOverwrite.count > 0 else { return [] }
+
+        return [
+            EmptyLine(),
+            Function(kind: .named("shouldOverwrite"))
+                .with(accessLevel: .public)
+                .with(static: true)
+                .adding(parameter: FunctionParameter(alias: "_", name: "updated", type: entity.typeID()))
+                .adding(parameter: FunctionParameter(alias: "_", name: "local", type: entity.typeID()))
+                .with(resultType: .bool)
+                .adding(members: entity.extendedPropertyNamesForShouldOverwrite.map { extendedProperty in
+                    If(condition: (.named("updated") + Reference.named(extendedProperty)) != (.named("local") + Reference.named(extendedProperty)))
+                        .adding(member: Return(value: Value.bool(true)))
+                })
+                .adding(member:
+                    If(condition: .named("updated") != .named("local"))
+                        .adding(member: Return(value: Value.bool(true)))
+                )
+                .adding(member: Return(value: Value.bool(false)))
+        ]
+    }
+
     // MARK: - CoreData Extensions
     
     private func coreDataExtensions() throws -> [FileBodyMember] {
         let entity = try descriptions.entity(for: entityName)
         guard entity.persist else { return [] }
-        
-        return [
-            EmptyLine(),
-            Comment.mark("CoreDataIndexName"),
-            EmptyLine(),
-            try coreDataIndexNameExtension(),
+
+        let coreDataIndexName: [FileBodyMember] = try entity.hasIndexes(descriptions) ?
+            [
+                EmptyLine(),
+                Comment.mark("CoreDataIndexName"),
+                EmptyLine(),
+                try coreDataIndexNameExtension()
+            ] : []
+
+        return coreDataIndexName + [
             EmptyLine(),
             Comment.mark("CoreDataEntity"),
             EmptyLine(),
@@ -515,7 +567,7 @@ struct MetaEntity {
     private func coreDataIndexNameExtension() throws -> Extension {
         let entity = try descriptions.entity(for: entityName)
 
-        return Extension(type: entity.indexNameTypeID)
+        return Extension(type: try entity.indexNameTypeID(descriptions))
             .adding(inheritedType: .coreDataIndexName)
             .adding(member: EmptyLine())
             .adding(member: ComputedProperty(variable: Variable(name: "predicateString")
@@ -523,12 +575,12 @@ struct MetaEntity {
                 .with(accessLevel: .public)
                 .adding(member: Switch(reference: .named(.`self`))
                     .with(cases: try entity.indexes(descriptions).map { property in
-                        SwitchCase(name: property.name)
-                            .adding(member: Return(value: Value.string("_\(property.name)")))
+                        SwitchCase(name: property.transformedName(ignoreLexicon: false))
+                            .adding(member: Return(value: Value.string("_\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))")))
                     })
                     .adding(case: entity.lastRemoteRead ?
                         SwitchCase(name: "lastRemoteRead")
-                            .adding(member: Return(value: Value.string("__lastRemoteRead"))) : nil
+                            .adding(member: Return(value: Value.string(useCoreDataLegacyNaming ? "__lastRemoteRead" : "__last_remote_read"))) : nil
                     )
                 )
             )
@@ -539,7 +591,7 @@ struct MetaEntity {
                 .adding(member: Switch(reference: .named(.`self`))
                     .with(cases: try entity.indexes(descriptions).map { property in
                         let isOneToOneRelationship = property.relationship?.association == .toOne
-                        return SwitchCase(name: property.name)
+                        return SwitchCase(name: property.transformedName(ignoreLexicon: false))
                             .adding(member: Return(value: Value.bool(isOneToOneRelationship)))
                     })
                     .adding(case: entity.lastRemoteRead ?
@@ -554,8 +606,11 @@ struct MetaEntity {
                 .with(accessLevel: .public)
                 .adding(member: Switch(reference: .named(.`self`))
                     .with(cases: try entity.indexes(descriptions).map { property in
-                        SwitchCase(name: property.name)
-                            .adding(member: Return(value: property.relationship?.association == .toOne ? Value.string("__\(property.name)TypeUID") : Value.nil))
+                        SwitchCase(name: property.transformedName(ignoreLexicon: false))
+                            .adding(member: Return(value: property.relationship?.association == .toOne ?
+                                Value.string("__\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))\(useCoreDataLegacyNaming ? "TypeUID" : "_type_uid")") :
+                                Value.nil
+                            ))
                         }
                     )
                     .adding(case: entity.lastRemoteRead ?
@@ -595,7 +650,8 @@ struct MetaEntity {
             ], catch: Catch()
                 .adding(member: Reference.named("Logger") + .named("log") | .call(Tuple()
                     .adding(parameter: TupleParameter(value: +Reference.named("error")))
-                    .adding(parameter: TupleParameter(value: Value.string("\\(\(entity.name).self): \\(error)")))
+                    .adding(parameter: TupleParameter(value: Value.string("\\(\(entity.transformedName).self): \\(error)")))
+                    .adding(parameter: TupleParameter(name: "domain", value: Value.string("Lucid")))
                     .adding(parameter: TupleParameter(name: "assert", value: Value.bool(true)))
                 ))
                 .adding(member: Return(value: Value.nil))
@@ -605,7 +661,7 @@ struct MetaEntity {
         return Function(kind: .named("entity"))
             .with(accessLevel: .public)
             .with(static: true)
-            .adding(parameter: FunctionParameter(alias: "from", name: "coreDataEntity", type: try entity.coreDataEntityTypeID(appVersion: appVersion)))
+            .adding(parameter: FunctionParameter(alias: "from", name: "coreDataEntity", type: try entity.coreDataEntityTypeID()))
             .with(resultType: .optional(wrapped: entity.typeID()))
             .adding(member: body)
     }
@@ -618,7 +674,7 @@ struct MetaEntity {
         
         return Function(kind: .named("merge"))
             .with(accessLevel: .public)
-            .adding(parameter: FunctionParameter(alias: "into", name: "coreDataEntity", type: try entity.coreDataEntityTypeID(appVersion: appVersion)))
+            .adding(parameter: FunctionParameter(alias: "into", name: "coreDataEntity", type: try entity.coreDataEntityTypeID()))
             .adding(member: coreDataEntity + .named("setProperty") | .call(Tuple()
                 .adding(parameter: TupleParameter(value: entity.identifierTypeID().reference + .named("remotePredicateString")))
                 .adding(parameter: TupleParameter(name: "value", value: .named("identifier") + .named("remoteCoreDataValue") | .call()))
@@ -628,22 +684,24 @@ struct MetaEntity {
                 .adding(parameter: TupleParameter(name: "value", value: .named("identifier") + .named("localCoreDataValue") | .call()))
             ))
             .adding(member: Assignment(
-                variable: coreDataEntity + .named("__typeUID"),
+                variable: coreDataEntity + .named(useCoreDataLegacyNaming ? "__typeUID" : "__type_uid"),
                 value: .named("identifier") + .named("identifierTypeID")
             ))
             .adding(member: entity.remote ?
-                Assignment(variable: coreDataEntity + .named("_remoteSynchronizationState"), value: .named("identifier") + .named("_remoteSynchronizationState") + .named("value") + coreDataValue)
-                : nil
+                Assignment(
+                    variable: coreDataEntity + .named(useCoreDataLegacyNaming ? "_remoteSynchronizationState" : "_remote_synchronization_state"),
+                    value: .named("identifier") + .named("_remoteSynchronizationState") + .named("value") + coreDataValue
+                ) : nil
             )
             .adding(member: entity.lastRemoteRead ?
-                Assignment(variable: coreDataEntity + .named("__lastRemoteRead"), value: Reference.named("lastRemoteRead")) : nil
+                Assignment(variable: coreDataEntity + .named(useCoreDataLegacyNaming ? "__lastRemoteRead" : "__last_remote_read"), value: Reference.named("lastRemoteRead")) : nil
             )
             .adding(members: try entity.valuesThenRelationships.flatMap { property -> [FunctionBodyMember] in
-                let coreDataPropertyName = "_\(property.name)"
+                let coreDataPropertyName = "_\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))"
                 let extraFlagBodyMember: FunctionBodyMember = {
                     guard property.extra else { return Reference.none }
                     return coreDataEntity + .named("setProperty") | .call(Tuple()
-                        .adding(parameter: TupleParameter(value: Value.string("_\(coreDataPropertyName)ExtraFlag")))
+                        .adding(parameter: TupleParameter(value: Value.string("_\(coreDataPropertyName)\(useCoreDataLegacyNaming ? "ExtraFlag" : "_extra_flag")")))
                         .adding(parameter: TupleParameter(name: "value", value: property.reference + Reference.named("coreDataFlagValue")))
                     )
                 }()
@@ -653,7 +711,7 @@ struct MetaEntity {
                     let isStoredAsOptional = try property.propertyType.isStoredAsOptional(descriptions)
                     if isStoredAsOptional == false {
                         remoteProperty = coreDataEntity + .named("setProperty") | .call(Tuple()
-                            .adding(parameter: TupleParameter(value: Value.string("_\(property.name)")))
+                            .adding(parameter: TupleParameter(value: Value.string("_\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))")))
                             .adding(parameter: TupleParameter(name: "value", value: property.entityReference |
                                 (property.extra == false && property.optional ? .unwrap : .none) |
                                 (property.extra ? .none + .named("extraValue") | .call() : .none) +
@@ -661,19 +719,19 @@ struct MetaEntity {
                                 .call()))
                         )
                     } else {
-                        remoteProperty = Assignment(variable: coreDataEntity + .named("_\(property.name)"),
+                        remoteProperty = Assignment(variable: coreDataEntity + .named("_\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))"),
                                                     value: property.entityReference |
                                                         (property.extra ? .none + .named("extraValue") | .call() : .none) +
                                                         .named("remoteCoreDataValue") | .call())
                     }
 
-                    let localProperty = Assignment(variable: coreDataEntity + .named("__\(property.name)"),
+                    let localProperty = Assignment(variable: coreDataEntity + .named("__\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))"),
                                                    value: property.entityReference |
                                                     (property.extra ? .none + .named("extraValue") | .call() : .none) +
                                                     .named("localCoreDataValue") | .call())
                     
                     let propertyTypeID = try property.valueTypeID(descriptions)
-                    let identifierTypeIDProperty = Assignment(variable: coreDataEntity + .named("__\(property.name)TypeUID"),
+                    let identifierTypeIDProperty = Assignment(variable: coreDataEntity + .named("__\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))\(useCoreDataLegacyNaming ? "TypeUID" : "_type_uid")"),
                                                               value: property.entityReference |
                                                                 (property.extra ? .none + .named("extraValue") | .call() : .none) |
                                                                 (propertyTypeID.isOptionalOrExtra ? .unwrap : .none) +
@@ -722,12 +780,14 @@ struct MetaEntity {
                     .adding(parameter: TupleParameter(value: entity.identifierTypeID().reference + .named(.`self`)))
                     .adding(parameter: TupleParameter(
                         name: "identifierTypeID",
-                        value: .named("coreDataEntity") + .named("__typeUID")
+                        value: .named("coreDataEntity") + .named(useCoreDataLegacyNaming ? "__typeUID" : "__type_uid")
                     ))
                     .adding(parameter: entity.remote ? TupleParameter(
                         name: "remoteSynchronizationState",
-                        value: .named("coreDataEntity") + .named("_remoteSynchronizationState") | .unwrap + .named("synchronizationStateValue")
-                        ) : nil)
+                        value: .named("coreDataEntity") + .named(
+                            useCoreDataLegacyNaming ? "_remoteSynchronizationState" : "_remote_synchronization_state"
+                        ) | .unwrap + .named("synchronizationStateValue")
+                    ) : nil)
                 )
             }
         }()
@@ -740,14 +800,14 @@ struct MetaEntity {
         let lastRemoteReadParameter = entity.lastRemoteRead ? [
             TupleParameter(
                 name: "lastRemoteRead",
-                value: .try | .named("coreDataEntity") + .named("__lastRemoteRead") + .named("dateValue") | .call(Tuple()
-                    .adding(parameter: TupleParameter(name: "propertyName", value: Value.string("__lastRemoteRead")))
+                value: .try | .named("coreDataEntity") + .named(useCoreDataLegacyNaming ? "__lastRemoteRead" : "__last_remote_read") + .named("dateValue") | .call(Tuple()
+                    .adding(parameter: TupleParameter(name: "propertyName", value: Value.string(useCoreDataLegacyNaming ? "__lastRemoteRead" : "__last_remote_read")))
                 )
             )
         ] : []
         
         let propertyParameters = try wrappedIdentifierParameter + lastRemoteReadParameter + entity.valuesThenRelationships.map { property in
-            let coreDataPropertyName = "_\(property.name)"
+            let coreDataPropertyName = "_\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))"
             let propertyValueTypeID = try property.valueTypeID(descriptions)
 
             if let relationship = property.relationship, property.isArray == false {
@@ -756,35 +816,38 @@ struct MetaEntity {
                 let relationshipValueReference: Reference = {
                     return .named("coreDataEntity") + .named("identifierValueType") | .call(Tuple()
                         .adding(parameter: TupleParameter(value: relationshipEntity.identifierTypeID().reference + .named(.`self`)))
-                        .adding(parameter: TupleParameter(name: "identifierTypeID", value: .named("coreDataEntity") + .named("__\(property.name)TypeUID")))
-                        .adding(parameter: TupleParameter(name: "propertyName", value: Value.string("_\(property.name)")))
+                        .adding(parameter: TupleParameter(name: "identifierTypeID", value: .named("coreDataEntity") + .named("_\(coreDataPropertyName)\(useCoreDataLegacyNaming ? "TypeUID" : "_type_uid")")))
+                        .adding(parameter: TupleParameter(name: "propertyName", value: Value.string(coreDataPropertyName)))
                     )
                 }()
 
                 if property.extra {
                     return TupleParameter(
-                        name: property.name,
+                        name: property.transformedName(),
                         value: (propertyValueTypeID.isOptional && property.extra == false ? .none : .try) |
                             .named("Extra") | .call(Tuple()
                                 .adding(parameter: TupleParameter(name: "value", value: relationshipValueReference))
-                                .adding(parameter: TupleParameter(name: "requested", value:
-                                    Reference.named("coreDataEntity") + .named("boolValue") |
-                                        .call(Tuple()
-                                            .adding(parameter: TupleParameter(name: "propertyName", value: Value.string("_\(coreDataPropertyName)ExtraFlag")))
+                                .adding(parameter: TupleParameter(
+                                    name: "requested",
+                                    value: Reference.named("coreDataEntity") + .named("boolValue") | .call(Tuple()
+                                        .adding(parameter: TupleParameter(
+                                            name: "propertyName",
+                                            value: Value.string("_\(coreDataPropertyName)\(useCoreDataLegacyNaming ? "ExtraFlag" : "_extra_flag")")
+                                        ))
                                     )
                                 ))
                             )
                     )
                 } else {
                     return TupleParameter(
-                        name: property.name,
+                        name: property.transformedName(),
                         value: (propertyValueTypeID.isOptionalOrExtra ? .none : .try) | relationshipValueReference
                     )
                 }
             } else {
                 let isStoredAsOptional = try property.propertyType.isStoredAsOptional(descriptions)
                 let coreDataValueReference = Reference.named(
-                    "\(coreDataValueAccessorName(for: property.propertyType).variableCased)Value"
+                    "\(coreDataValueAccessorName(for: property.propertyType))Value".variableCased()
                 )
 
                 let isOptional = propertyValueTypeID.isOptionalOrExtra == false && isStoredAsOptional
@@ -793,10 +856,10 @@ struct MetaEntity {
                 let shouldPassPropertyName = isOptional || shouldUsePropertyDirectly == false
 
                 let propertyValueReference: Reference = {
-                    return .named("coreDataEntity") + (shouldUsePropertyDirectly ? property.privateReference + .none : .none) |
+                    return .named("coreDataEntity") + (shouldUsePropertyDirectly ? .named(coreDataPropertyName) + .none : .none) |
                         coreDataValueReference |
                         .call(Tuple()
-                            .adding(parameter: shouldPassPropertyName ? TupleParameter(name: "propertyName", value: Value.string("_\(property.name)")) : nil)
+                            .adding(parameter: shouldPassPropertyName ? TupleParameter(name: "propertyName", value: Value.string(coreDataPropertyName)) : nil)
                         )
                 }()
 
@@ -804,21 +867,21 @@ struct MetaEntity {
 
                 if property.extra {
                     return TupleParameter(
-                        name: property.name,
+                        name: property.transformedName(),
                         value: tryValue |
                             .named("Extra") | .call(Tuple()
                                 .adding(parameter: TupleParameter(name: "value", value: propertyValueReference))
                                 .adding(parameter: TupleParameter(name: "requested", value:
                                     Reference.named("coreDataEntity") + .named("boolValue") |
                                         .call(Tuple()
-                                            .adding(parameter: TupleParameter(name: "propertyName", value: Value.string("_\(coreDataPropertyName)ExtraFlag")))
+                                            .adding(parameter: TupleParameter(name: "propertyName", value: Value.string("_\(coreDataPropertyName)\(useCoreDataLegacyNaming ? "ExtraFlag" : "_extra_flag")")))
                                     )
                                 ))
                         )
                     )
                 } else {
                     return TupleParameter(
-                        name: property.name,
+                        name: property.transformedName(),
                         value: tryValue | propertyValueReference
                     )
                 }
@@ -833,7 +896,7 @@ struct MetaEntity {
         return Function(kind: .`init`(convenience: true))
             .with(accessLevel: .private)
             .with(throws: shouldThrows)
-            .adding(parameter: FunctionParameter(name: "coreDataEntity", type: try entity.coreDataEntityTypeID(appVersion: appVersion)))
+            .adding(parameter: FunctionParameter(name: "coreDataEntity", type: try entity.coreDataEntityTypeID()))
             .adding(member: Reference.named(.`self`) + .named("init") | .call(Tuple()
                 .with(parameters: propertyParameters)
             ))
@@ -846,11 +909,11 @@ struct MetaEntity {
         case .array(let value):
             return"\(coreDataValueAccessorName(for: value))Array"
         case .relationship(let value) where value.association == .toMany:
-            return "\(value.entityName)Array"
+            return "\(value.entityName.camelCased())Array"
         case .relationship(let value):
-            return value.entityName
+            return value.entityName.camelCased()
         case .subtype(let value):
-            return value
+            return value.camelCased()
         }
     }
     
@@ -859,7 +922,7 @@ struct MetaEntity {
         guard entity.hasVoidIdentifier == false else { return [] }
 
         let identifierValueTypeID = try entity.identifierValueTypeID(descriptions)
-        let arrayFunctionName = "\(entity.name.variableCased)ArrayValue"
+        let arrayFunctionName = "\(entity.name.camelCased().variableCased())ArrayValue"
         
         return [
             EmptyLine(),
@@ -936,10 +999,10 @@ struct MetaEntity {
                         .adding(parameter: TupleParameter(name: "identifier", value: Reference.named("updated") + .named("identifier")))
                         .adding(parameters: entity.valuesThenRelationships.map { property in
                             property.extra ?
-                                TupleParameter(name: property.name, value: Reference.named(property.name) + .named("merging") | .call(Tuple()
-                                    .adding(parameter: TupleParameter(name: "with", value: Reference.named("updated") + .named(property.name)))
+                                TupleParameter(name: property.transformedName(), value: Reference.named(property.transformedName()) + .named("merging") | .call(Tuple()
+                                    .adding(parameter: TupleParameter(name: "with", value: Reference.named("updated") + .named(property.transformedName())))
                                 )) :
-                                TupleParameter(name: property.name, value: Reference.named("updated") + .named(property.name))
+                                TupleParameter(name: property.transformedName(), value: Reference.named("updated") + .named(property.transformedName()))
                         })
                     )
                 )

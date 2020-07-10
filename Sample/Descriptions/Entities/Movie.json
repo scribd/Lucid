@@ -1,0 +1,36 @@
+{
+    "name": "movie",
+    "uid": "movie",
+    "added_at_version": "1.0.0",
+    "persist": true,
+    "identifier": {
+        "type": "int"
+    },
+    "query_context": true,
+    "properties": [
+        {
+            "name": "title",
+            "property_type": "string"
+        },
+        {
+            "name": "genres",
+            "property_type": {
+                "entity_name": "genre",
+                "association": "to_many"
+            },
+            "extra": true
+        },
+        {
+            "name": "popularity",
+            "property_type": "double"
+        },
+        {
+            "name": "overview",
+            "property_type": "string"
+        },
+        {
+            "name": "poster_path",
+            "property_type": "URL"
+        }
+    ]
+}

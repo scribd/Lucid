@@ -8,52 +8,56 @@
 
 import XCTest
 
+#if LUCID_REACTIVE_KIT
+@testable import Lucid_ReactiveKit
+#else
 @testable import Lucid
+#endif
 
 final class APIClientSpy: APIClient {
 
     var deduplicator: APIRequestDeduplicating = APIRequestDeduplicatorSpy()
-    
+
     // MARK: - Stubs
-    
+
     var identifierStub = UUID().uuidString
-    
+
     var hostStub = "http://fake_host/"
-    
+
     var resultStubs = [APIRequestConfig: Any]()
-    
+
     // MARK: - Behavior
-    
+
     var requestWillComplete: Bool = true
-    
+
     var completionDelay: TimeInterval?
 
     var willHandleResponse: Bool = true
-    
+
     // MARK: - Records
-    
+
     private(set) var requestRecords = [Any]()
 
     private(set) var shouldHandleResponseRecords = [(APIRequestConfig, (Bool) -> Void)]()
 
     // MARK: - Implementation
-    
+
     deinit {
         DiskCache<APIClientQueueRequest>(basePath: "\(identifierStub)_client_queue").clear()
     }
-    
+
     var identifier: String {
         return identifierStub
     }
-    
+
     var host: String {
         return hostStub
     }
-    
+
     var networkClient: NetworkClient {
         return URLSession.shared
     }
-    
+
     func send(request: APIRequest<Data>, completion: @escaping (Result<APIClientResponse<Data>, APIError>) -> Void) {
         requestRecords.append(request as Any)
         guard let resultStub = resultStubs[request.config] as? Result<APIClientResponse<Data>, APIError> else {
@@ -71,7 +75,7 @@ final class APIClientSpy: APIClient {
             }
         }
     }
-    
+
     func send<Model>(request: APIRequest<Model>, completion: @escaping (Result<Model, APIError>) -> Void) where Model: Decodable {
         requestRecords.append(request as Any)
         guard let resultStub = resultStubs[request.config] as? Result<Model, APIError> else {
@@ -94,7 +98,7 @@ final class APIClientSpy: APIClient {
         shouldHandleResponseRecords.append((requestConfig, completion))
         completion(willHandleResponse)
     }
-    
+
     func errorPayload(from body: Data) -> APIErrorPayload? {
         return nil
     }

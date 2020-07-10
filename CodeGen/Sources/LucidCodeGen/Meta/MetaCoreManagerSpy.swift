@@ -10,12 +10,14 @@ import Meta
 struct MetaCoreManagerSpy {
     
     let descriptions: Descriptions
+
+    let reactiveKit: Bool
     
     func imports() -> [Import] {
         return [
-            .lucidTestKit,
+            .lucidTestKit(reactiveKit: reactiveKit),
             .app(descriptions, testable: true),
-            .lucid(testable: true)
+            .lucid(reactiveKit: reactiveKit, testable: true)
         ]
     }
 

@@ -18,13 +18,15 @@ struct MetaEndpointPayloadTests {
     let endpointName: String
     
     let descriptions: Descriptions
+
+    let reactiveKit: Bool
     
     func imports() -> [Import] {
         return [
             .xcTest,
-            .lucid(testable: true),
+            .lucid(reactiveKit: reactiveKit, testable: true),
             .app(descriptions, testable: true),
-            .lucidTestKit,
+            .lucidTestKit(reactiveKit: reactiveKit),
             .appTestKit(descriptions)
         ]
     }
@@ -32,7 +34,7 @@ struct MetaEndpointPayloadTests {
     func meta() throws -> Type {
         let endpoint = try descriptions.endpoint(for: endpointName)
         let testCombinations = try self.testCombinations()
-        return Type(identifier: TypeIdentifier(name: "\(endpoint.name)PayloadTests"))
+        return Type(identifier: TypeIdentifier(name: "\(endpoint.transformedName)PayloadTests"))
             .adding(inheritedType: .xcTestCase)
             .adding(member: EmptyLine())
             .adding(member: Function(kind: .named("setUp"))
@@ -56,7 +58,7 @@ struct MetaEndpointPayloadTests {
             .adding(member: Comment.mark("Payloads"))
             .adding(member: EmptyLine())
             .adding(members: endpoint.tests.map { test in
-                Property(variable: Variable(name: "\(endpoint.testJSONResourceName(for: test).variableCased)")
+                Property(variable: Variable(name: "\(endpoint.testJSONResourceName(for: test).variableCased())")
                     .with(kind: .lazy)
                     .with(immutable: false)
                     .with(type: .data))
@@ -83,20 +85,20 @@ struct MetaEndpointPayloadTests {
                 
                 let assert: Reference = entity.count.flatMap {
                     return Reference.named("XCTAssertEqual") | .call(Tuple()
-                        .adding(parameter: TupleParameter(value: .named("endpointResult") + .named(entity.name.variableCased.pluralName) + .named("array") + .named("count")))
+                        .adding(parameter: TupleParameter(value: .named("endpointResult") + .named(entity.name.camelCased().variableCased().pluralName) + .named("array") + .named("count")))
                         .adding(parameter: TupleParameter(value: Value.int($0)))
                     )
                 } ?? Reference.named("XCTAssertFalse") | .call(Tuple()
-                    .adding(parameter: TupleParameter(value: .named("endpointResult") + .named(entity.name.variableCased.pluralName) + .named("isEmpty")))
+                    .adding(parameter: TupleParameter(value: .named("endpointResult") + .named(entity.name.camelCased().variableCased().pluralName) + .named("isEmpty")))
                 )
                 
-                let function = Function(kind: .named("test_derived_from_entity_\(endpoint.testJSONResourceName(for: test).variableCased)_\(test.name.variableCased)_\(endpointName.variableCased)_\(entity.name.variableCased)"))
+                let function = Function(kind: .named("test_\(test.name)_\(endpointName.camelCased(separators: "_/").snakeCased)_\(entity.name)"))
                     .adding(member: Do(body: [
                         Assignment(
                             variable: Variable(name: "endpointResult"),
                             value: .try | .named("EndpointResultPayload") | .call(Tuple()
-                                .adding(parameter: TupleParameter(name: "from", value: Reference.named(endpoint.testJSONResourceName(for: test).variableCased)))
-                                .adding(parameter: TupleParameter(name: "endpoint", value: +.named(endpointName)))
+                                .adding(parameter: TupleParameter(name: "from", value: Reference.named(endpoint.testJSONResourceName(for: test).variableCased())))
+                                .adding(parameter: TupleParameter(name: "endpoint", value: +.named(endpointName.camelCased(separators: "_/").variableCased())))
                                 .adding(parameter: TupleParameter(name: "decoder", value: .named("APIJSONCoderConfig") + .named("defaultJSONDecoder")))
                             )
                         ),

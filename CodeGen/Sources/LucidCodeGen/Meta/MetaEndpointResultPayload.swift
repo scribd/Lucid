@@ -42,7 +42,7 @@ struct MetaEndpointResultPayload {
             .with(accessLevel: .public)
             .with(kind: .enum(indirect: false))
             .adding(members: descriptions.endpoints.map { endpoint in
-                Case(name: endpoint.name.variableCased)
+                Case(name: endpoint.transformedName.variableCased())
             })
     }
     
@@ -77,7 +77,7 @@ struct MetaEndpointResultPayload {
             .adding(member: Switch(reference: .named("endpoint")).with(cases: try descriptions.endpoints.map { endpoint in
                 let entity = try descriptions.entity(for: endpoint.entity.entityName)
                 let extractableEntityNames = Set(try entity.extractablePropertyEntities(descriptions).map { $0.name } + [entity.name])
-                return SwitchCase(name: endpoint.name.variableCased)
+                return SwitchCase(name: endpoint.transformedName.variableCased())
                     .adding(member:
                         Assignment(
                             variable: Variable(name: "payload"),
@@ -138,12 +138,12 @@ struct MetaEndpointResultPayload {
                 if entity.hasVoidIdentifier {
                     return """
                     case _ where E.self == \(entity.typeID().swiftString).self:
-                        return \(entity.name.unversionedName.variableCased.pluralName).first as? E
+                        return \(entity.name.camelCased().variableCased().pluralName).first as? E
                     """
                 } else {
                     return """
                     case let entityIdentifier as \(entity.identifierTypeID().swiftString):
-                        return \(entity.name.unversionedName.variableCased.pluralName)[entityIdentifier] as? E
+                        return \(entity.name.camelCased().variableCased().pluralName)[entityIdentifier] as? E
                     """
                 }
             }.joined(separator: "\n"))
@@ -173,12 +173,12 @@ struct MetaEndpointResultPayload {
                 if entity.hasVoidIdentifier {
                     return """
                     case is \(entity.typeID().swiftString).Type:
-                        return \(entity.name.unversionedName.variableCased.pluralName) as? AnySequence<E> ?? [].any
+                        return \(entity.name.camelCased().variableCased().pluralName) as? AnySequence<E> ?? [].any
                     """
                 } else {
                     return """
                     case is \(entity.typeID().swiftString).Type:
-                        return \(entity.name.unversionedName.variableCased.pluralName).orderedKeyValues.map { $0.1 }.any as? AnySequence<E> ?? [].any
+                        return \(entity.name.camelCased().variableCased().pluralName).orderedKeyValues.map { $0.1 }.any as? AnySequence<E> ?? [].any
                     """
                 }
             }.joined(separator: "\n"))

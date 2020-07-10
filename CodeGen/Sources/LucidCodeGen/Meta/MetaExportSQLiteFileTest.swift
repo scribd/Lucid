@@ -16,14 +16,16 @@ struct MetaExportSQLiteFileTest {
     let sqliteFileName: String
     
     let platform: Platform?
+
+    let reactiveKit: Bool
     
     func imports() -> [Import] {
         return [
             .xcTest,
             .app(descriptions, testable: true),
-            .lucid(testable: true),
+            .lucid(reactiveKit: reactiveKit, testable: true),
             .appTestKit(descriptions),
-            .lucidTestKit
+            .lucidTestKit(reactiveKit: reactiveKit)
         ]
     }
     
@@ -42,7 +44,7 @@ struct MetaExportSQLiteFileTest {
             
             private let coreDataManager = CoreDataManager(modelName: "\(descriptions.targets.app.moduleName)",
                                                           in: Bundle(for: CoreManagerContainer.self),
-                                                          migrations: CoreDataManager.migrations)
+                                                          migrations: CoreDataManager.migrations())
 
             private let projectDirectoryPath: String = {
                 guard let projectDirectoryPath = ProcessInfo.processInfo.environment["LUCID_PROJECT_DIR"] else {
@@ -96,7 +98,7 @@ struct MetaExportSQLiteFileTest {
             \(MetaCode(indentation: 2, meta: descriptions.entities.filter { $0.persist }.flatMap { entity -> [FunctionBodyMember] in
                 [
                     EmptyLine(),
-                    Comment.comment(entity.name),
+                    Comment.comment(entity.transformedName),
                     Assignment(
                         variable: entity.coreDataStoreVariable,
                         value: TypeIdentifier.coreDataStore(of: entity.typeID()).reference | .call(Tuple()

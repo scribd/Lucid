@@ -2,7 +2,7 @@
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="15508" systemVersion="18G95" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="EntityRelationshipSpy" representedClassName="ManagedEntityRelationshipSpy" syncable="YES" codeGenerationType="class">
         <attribute name="__identifier" optional="YES" attributeType="String"/>
-        <attribute name="__typeUID" optional="YES" attributeType="String"/>
+        <attribute name="__type_uid" optional="YES" attributeType="String"/>
         <attribute name="_identifier" optional="YES" attributeType="Integer 64" usesScalarValueType="YES"/>
         <attribute name="_title" optional="YES" attributeType="String"/>
         <attribute name="_relationships" optional="YES" attributeType="Binary"/>
@@ -12,7 +12,7 @@
         <attribute name="__identifier" optional="YES" attributeType="String"/>
         <attribute name="__oneRelationship" optional="YES" attributeType="String"/>
         <attribute name="__oneRelationshipTypeUID" optional="YES" attributeType="String"/>
-        <attribute name="__typeUID" optional="YES" attributeType="String"/>
+        <attribute name="__type_uid" optional="YES" attributeType="String"/>
         <attribute name="_extra" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="_identifier" optional="YES" attributeType="Integer 64" usesScalarValueType="YES"/>
         <attribute name="_manyRelationships" optional="YES" attributeType="Binary"/>

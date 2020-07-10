@@ -12,11 +12,10 @@ public final class APIClientQueueDefaultScheduler {
 
     private enum State {
         case ready
-        case requestInProgress
         case requestScheduled(timer: ScheduledTimer)
     }
-    
-    private let dispatchQueue: DispatchQueue
+
+    private let stateQueue: DispatchQueue
     private var _state: State
 
     private let timeInterval: TimeInterval
@@ -26,64 +25,51 @@ public final class APIClientQueueDefaultScheduler {
 
     public init(timeInterval: TimeInterval = Constants.defaultTimeInterval,
                 timerProvider: ScheduledTimerProviding = ScheduledTimerProvider(),
-                dispatchQueue: DispatchQueue = DispatchQueue(label: "\(APIClientQueueDefaultScheduler.self)")) {
+                stateQueue: DispatchQueue = DispatchQueue(label: "\(APIClientQueueDefaultScheduler.self)_state_queue")) {
 
         self.timeInterval = timeInterval
         self.timerProvider = timerProvider
-        self.dispatchQueue = dispatchQueue
+        self.stateQueue = stateQueue
+        self._state = .ready
 
-        _state = .ready
+        if stateQueue === DispatchQueue.main {
+            Logger.log(.error, "\(APIClientQueueDefaultScheduler.self) should not assign the main queue as the state queue.", assert: true)
+        }
     }
 }
 
 extension APIClientQueueDefaultScheduler: APIClientQueueScheduling {
 
     public func didEnqueueNewRequest() {
-        dispatchQueue.async(flags: .barrier) {
-            switch self._state {
-            case .ready,
-                 .requestScheduled:
-                self._beginRequest()
-            case .requestInProgress:
-                return
-            }
+        stateQueue.async(flags: .barrier) {
+            self._beginRequest()
         }
     }
 
     public func flush() {
-        dispatchQueue.async(flags: .barrier) {
-            switch self._state {
-            case .ready,
-                 .requestScheduled:
-                self._beginRequest()
-            case .requestInProgress:
-                return
-            }
+        stateQueue.async(flags: .barrier) {
+            self._beginRequest()
         }
     }
 
     public func requestDidSucceed() {
-        dispatchQueue.async(flags: .barrier) {
+        stateQueue.async(flags: .barrier) {
             switch self._state {
-            case .ready,
-                 .requestScheduled:
-                Logger.log(.error, "\(APIClientQueueDefaultScheduler.self) encountered unexpected state", assert: true)
-                return
-            case .requestInProgress:
-                self._state = .ready
+            case .requestScheduled:
+                Logger.log(.info, "\(APIClientQueueDefaultScheduler.self) request did succeed while in scheduled state.")
+            case .ready:
                 self._beginRequest()
             }
         }
     }
 
     public func requestDidFail() {
-        dispatchQueue.async(flags: .barrier) {
+        stateQueue.async(flags: .barrier) {
             switch self._state {
-            case .ready,
-                 .requestScheduled:
-                Logger.log(.error, "\(APIClientQueueDefaultScheduler.self) encountered unexpected state", assert: true)
+            case .requestScheduled:
+                Logger.log(.info, "\(APIClientQueueDefaultScheduler.self) request did fail while in scheduled state")
                 return
-            case .requestInProgress:
+            case .ready:
                 let timer = self.timerProvider.scheduledTimer(timeInterval: self.timeInterval,
                                                               target: self,
                                                               selector: #selector(self.beginRequest))
@@ -96,34 +82,34 @@ extension APIClientQueueDefaultScheduler: APIClientQueueScheduling {
 private extension APIClientQueueDefaultScheduler {
 
     @objc func beginRequest() {
-        dispatchQueue.async {
+        stateQueue.async(flags: .barrier) {
             self._beginRequest()
         }
     }
-    
-    func _beginRequest() {
 
+    func _beginRequest() {
         switch _state {
-        case .requestInProgress:
-            Logger.log(.error, "\(APIClientQueueDefaultScheduler.self) encountered unexpected state", assert: true)
-            return
         case .ready:
              break
         case .requestScheduled(let timer):
             timer.invalidate()
         }
 
+        _state = .ready
+
         guard let delegate = delegate else {
             Logger.log(.error, "\(APIClientQueueDefaultScheduler.self) lacks delegate", assert: true)
             return
         }
 
-        let requestIsInProgress = delegate.processNext()
+        let processResult = delegate.processNext()
 
-        if requestIsInProgress {
-            _state = .requestInProgress
-        } else {
-            _state = .ready
+        switch processResult {
+        case .didNotProcess,
+             .processedBarrier:
+            return
+        case .processedConcurrent:
+            _beginRequest()
         }
     }
 }

@@ -1,0 +1,7 @@
+{
+    "name": "/movie",
+    "entity": {
+        "entity_name": "movie",
+        "structure": "single"
+    }
+}

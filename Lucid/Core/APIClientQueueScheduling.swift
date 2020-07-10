@@ -23,5 +23,25 @@ public protocol APIClientQueueScheduling: AnyObject {
 
 public protocol APIClientQueueSchedulerDelegate: AnyObject {
 
-    func processNext() -> Bool
+    @discardableResult
+    func processNext() -> APIClientQueueSchedulerProcessNextResult
+}
+
+public enum APIClientQueueSchedulerProcessNextResult {
+    case didNotProcess
+    case processedBarrier
+    case processedConcurrent
+}
+
+public extension APIClientQueueSchedulerProcessNextResult {
+
+    var didProcess: Bool {
+        switch self {
+        case .didNotProcess:
+            return false
+        case .processedBarrier,
+             .processedConcurrent:
+            return true
+        }
+    }
 }

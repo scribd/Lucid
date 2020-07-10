@@ -1,0 +1,190 @@
+//
+// CoreManagerContainer.swift
+//
+// Generated automatically.
+// Copyright © Scribd. All rights reserved.
+//
+
+import Lucid
+import Combine
+
+// MARK: - Response Handler
+
+protocol CoreManagerContainerClientQueueResponseHandler: APIClientQueueResponseHandler {
+    var managers: CoreManagerContainer? { get set } // Should be declared weak in order to avoid a retain cycle
+}
+// MARK: - Resolvers
+
+typealias CoreManagerResolver = GenreCoreManagerProviding &
+                                MovieCoreManagerProviding
+
+protocol GenreCoreManagerProviding {
+    var genreManager: CoreManaging<Genre, AppAnyEntity> { get }
+}
+
+protocol MovieCoreManagerProviding {
+    var movieManager: CoreManaging<Movie, AppAnyEntity> { get }
+}
+
+
+// MARK: - Container
+
+public final class CoreManagerContainer {
+
+    private let _responseHandler: CoreManagerContainerClientQueueResponseHandler? = nil
+    public var responseHandler: APIClientQueueResponseHandler? {
+        return _responseHandler
+    }
+
+    public let mainClientQueue: APIClientQueue
+    public let clientQueues: Set<APIClientQueue>
+
+    public let coreDataManager: CoreDataManager
+
+    private let _genreManager: CoreManager<Genre>
+    private lazy var _genreRelationshipManager = CoreManaging<Genre, AppAnyEntity>.RelationshipManager(self)
+    var genreManager: CoreManaging<Genre, AppAnyEntity> {
+        return _genreManager.managing(_genreRelationshipManager)
+    }
+
+    private let _movieManager: CoreManager<Movie>
+    private lazy var _movieRelationshipManager = CoreManaging<Movie, AppAnyEntity>.RelationshipManager(self)
+    var movieManager: CoreManaging<Movie, AppAnyEntity> {
+        return _movieManager.managing(_movieRelationshipManager)
+    }
+
+    public init(cacheLimit: Int,
+                client: APIClient,
+                coreDataManager: CoreDataManager = CoreDataManager(modelName: "Sample", in: Bundle(for: CoreManagerContainer.self), migrations: [])) {
+
+        let mainClientQueue = APIClientQueue.clientQueue(
+            for: "\(CoreManagerContainer.self)_api_client_queue",
+            client: client,
+            scheduler: APIClientQueueDefaultScheduler()
+        )
+        if let responseHandler = _responseHandler {
+            mainClientQueue.register(responseHandler)
+        }
+        self.mainClientQueue = mainClientQueue
+        self.coreDataManager = coreDataManager
+
+        var clientQueues = Set([mainClientQueue])
+        var clientQueue = mainClientQueue
+
+        _genreManager = CoreManager(
+            stores: Genre.stores(
+                with: client,
+                clientQueue: &clientQueue,
+                coreDataManager: coreDataManager,
+                cacheLimit: cacheLimit
+            )
+        )
+        if clientQueues.contains(clientQueue) == false, let responseHandler = _responseHandler {
+            clientQueue.register(responseHandler)
+        }
+        clientQueues.insert(clientQueue)
+        clientQueue = mainClientQueue
+
+        _movieManager = CoreManager(
+            stores: Movie.stores(
+                with: client,
+                clientQueue: &clientQueue,
+                coreDataManager: coreDataManager,
+                cacheLimit: cacheLimit
+            )
+        )
+        if clientQueues.contains(clientQueue) == false, let responseHandler = _responseHandler {
+            clientQueue.register(responseHandler)
+        }
+        clientQueues.insert(clientQueue)
+        clientQueue = mainClientQueue
+
+        self.clientQueues = clientQueues
+
+        // Init of lazy vars for thread-safety.
+        _ = _genreRelationshipManager
+        _ = _movieRelationshipManager
+
+        _responseHandler?.managers = self
+    }
+}
+
+extension CoreManagerContainer: CoreManagerResolver {
+}
+
+// MARK: - Relationship Manager
+
+extension CoreManagerContainer: RelationshipCoreManaging {
+
+    public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
+                    entityType: String,
+                    in context: _ReadContext<EndpointResultPayload>) -> AnyPublisher<AnySequence<AppAnyEntity>, ManagerError> {
+        switch entityType {
+        case GenreIdentifier.entityTypeUID:
+            return genreManager.get(
+                byIDs: DualHashSet(identifiers.lazy.compactMap { $0.toRelationshipID() }),
+                in: context
+            ).once.map { $0.lazy.map { .genre($0) }.any }.eraseToAnyPublisher()
+        case MovieIdentifier.entityTypeUID:
+            return movieManager.get(
+                byIDs: DualHashSet(identifiers.lazy.compactMap { $0.toRelationshipID() }),
+                in: context
+            ).once.map { $0.lazy.map { .movie($0) }.any }.eraseToAnyPublisher()
+        default:
+            return Fail(error: .notSupported).eraseToAnyPublisher()
+        }
+    }
+}
+
+// MARK: - Default Entity Stores
+
+// Manually add the function:
+// static func stores(with client: APIClient) -> [Storing<E>]
+// to an individual class adopting the Entity protocol to provide custom functionality
+
+extension Entity {
+    static func stores(with client: APIClient,
+                       clientQueue: APIClientQueue,
+                       coreDataManager: CoreDataManager,
+                       cacheLimit: Int) -> Array<Storing<Self>> {
+        let localStore = LRUStore<Self>(store: InMemoryStore().storing, limit: cacheLimit)
+        return Array(arrayLiteral: localStore.storing)
+    }
+}
+
+extension CoreDataEntity {
+    static func stores(with client: APIClient,
+                       clientQueue: APIClientQueue,
+                       coreDataManager: CoreDataManager,
+                       cacheLimit: Int) -> Array<Storing<Self>> {
+        let localStore = CacheStore<Self>(
+            keyValueStore: LRUStore(store: InMemoryStore().storing, limit: cacheLimit).storing,
+            persistentStore: CoreDataStore(coreDataManager: coreDataManager).storing
+        )
+        return Array(arrayLiteral: localStore.storing)
+    }
+}
+
+extension RemoteEntity {
+    static func stores(with client: APIClient,
+                       clientQueue: APIClientQueue,
+                       coreDataManager: CoreDataManager,
+                       cacheLimit: Int) -> Array<Storing<Self>> {
+        let remoteStore = RemoteStore<Self>(client: client, clientQueue: clientQueue)
+        return Array(arrayLiteral: remoteStore.storing)
+    }
+}
+
+extension RemoteEntity where Self : CoreDataEntity {
+    static func stores(with client: APIClient,
+                       clientQueue: APIClientQueue,
+                       coreDataManager: CoreDataManager,
+                       cacheLimit: Int) -> Array<Storing<Self>> {
+        let remoteStore = RemoteStore<Self>(client: client, clientQueue: clientQueue)
+        let localStore = CacheStore<Self>(
+            keyValueStore: LRUStore(store: InMemoryStore().storing, limit: cacheLimit).storing,
+            persistentStore: CoreDataStore(coreDataManager: coreDataManager).storing
+        )
+        return Array(arrayLiteral: remoteStore.storing, localStore.storing)
+    }
+}

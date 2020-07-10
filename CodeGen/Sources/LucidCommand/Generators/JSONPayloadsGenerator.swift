@@ -54,8 +54,8 @@ final class JSONPayloadsGenerator {
                 urlSession.request(test.url, httpMethod: test.httpMethod, headers: ["Authorization": authToken], body: test.body, logger: logger) { json in
                     defer { dispatchGroup.leave() }
                     guard let json = json else { return }
-                    let outputDirectory = self.outputPath + OutputDirectory.jsonPayloads(endpoint.name).path(appModuleName: self.descriptions.targets.app.moduleName)
-                    let outputFile = outputDirectory + "\(test.name.capitalized)\(endpoint.name.capitalized)Payload.json"
+                    let outputDirectory = self.outputPath + OutputDirectory.jsonPayloads(endpoint.transformedName).path(appModuleName: self.descriptions.targets.app.moduleName)
+                    let outputFile = outputDirectory + "\(test.name.camelCased().capitalized)\(endpoint.transformedName.capitalized)Payload.json"
                     do {
                         try outputFile.parent().mkpath()
                         try outputFile.write(json)

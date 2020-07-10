@@ -9,7 +9,11 @@
 import Foundation
 import UIKit
 
+#if LUCID_REACTIVE_KIT
+@testable import Lucid_ReactiveKit
+#else
 @testable import Lucid
+#endif
 
 final class BackgroundTaskManagerSpy: BackgroundTaskManaging {
 

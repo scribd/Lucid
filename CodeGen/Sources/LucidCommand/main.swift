@@ -14,12 +14,15 @@ import PathKit
 let main = Group {
     $0.command(
         "swift",
-        Option<String>("config-path", default: ".codegen-swift.yaml", description: "Configuration file location."),
+        Option<String>("config-path", default: ".lucid.yaml", description: "Configuration file location."),
         Option<String>("current-version", default: String(), description: "Current app version."),
         Option<String>("cache-path", default: String(), description: "Cache files location."),
         Option<String>("no-repo-update", default: String(), description: "Skips repository update for version checking."),
-        Option<String>("force-build-model", default: String(), description: "Attempts to build a core data model.")
-    ) { configPath, currentVersion, cachePath, noRepoUpdate, forceBuildModel in
+        Option<String>("force-build-new-db-model", default: String(), description: "Force to build a new Database Model regardless of changes."),
+        VariadicOption<String>("force-build-new-db-model-for-versions", default: [], description: "Force to build a new Database Model regardless of changes for versions."),
+        Option<String>("reactive-kit", default: String(), description: "Weither to use ReactiveKit's API."),
+        VariadicOption<String>("selected-targets", default: [], description: "List of targets to generate.")
+    ) { configPath, currentVersion, cachePath, noRepoUpdate, forceBuildNewDBModel, forceBuildNewDBModelForVersions, reactiveKit, selectedTargets in
         
         let logger = Logger()
         
@@ -28,8 +31,12 @@ let main = Group {
                                                                currentVersion: currentVersion.isEmpty ? nil : currentVersion,
                                                                cachePath: cachePath.isEmpty ? nil : cachePath,
                                                                noRepoUpdate: noRepoUpdate == "true" ? true : noRepoUpdate == "false" ? false : nil,
-                                                               forceBuildModel: forceBuildModel == "true" ? true : forceBuildModel == "false" ? false : nil)
-
+                                                               forceBuildNewDBModel: forceBuildNewDBModel == "true" ? true : forceBuildNewDBModel == "false" ? false : nil,
+                                                               forceBuildNewDBModelForVersions: forceBuildNewDBModelForVersions.isEmpty ? nil : Set(forceBuildNewDBModelForVersions),
+                                                               selectedTargets: Set(selectedTargets),
+                                                               reactiveKit: reactiveKit == "true" ? true : reactiveKit == "false" ? false : nil,
+                                                               logger: logger)
+        
         let currentDescriptionsParser = DescriptionsParser(inputPath: configuration.inputPath,
                                                            targets: configuration.targets,
                                                            logger: logger)
@@ -44,7 +51,6 @@ let main = Group {
                                                                         noRepoUpdate: configuration.noRepoUpdate,
                                                                         logger: logger)
         
-        
         var appVersions = currentDescriptions.modelMappingHistory
         appVersions.remove(configuration.currentVersion)
 
@@ -58,7 +64,7 @@ let main = Group {
         descriptions[configuration.currentVersion] = currentDescriptions
         
         let _shouldGenerateDataModel: Bool
-        if configuration.forceBuildModel {
+        if configuration.forceBuildNewDBModel || forceBuildNewDBModelForVersions.contains(currentVersion) {
             _shouldGenerateDataModel = true
         } else if let latestReleaseTag = try? descriptionsVersionManager.resolveLatestReleaseTag(excluding: true,
                                                                                                  appVersion: configuration.currentVersion) {
@@ -84,13 +90,19 @@ let main = Group {
         logger.moveToParent()
         
         logger.moveToChild("Starting code generation...")
-        for target in configuration.targets.all {
+        for target in configuration.targets.all where target.isSelected {
             let descriptionsHash = try descriptionsVersionManager.descriptionsHash(absoluteInputPath: configuration.inputPath)
             let generator = SwiftCodeGenerator(to: target,
                                                descriptions: descriptions,
                                                appVersion: configuration.currentVersion,
                                                shouldGenerateDataModel: _shouldGenerateDataModel,
                                                descriptionsHash: descriptionsHash,
+                                               responseHandlerFunction: configuration.responseHandlerFunction,
+                                               coreDataMigrationsFunction: configuration.coreDataMigrationsFunction,
+                                               reactiveKit: configuration.reactiveKit,
+                                               useCoreDataLegacyNaming: configuration.useCoreDataLegacyNaming,
+                                               lexicon: configuration.lexicon,
+                                               entitySuffix: configuration.entitySuffix,
                                                logger: logger)
             try generator.generate()
         }

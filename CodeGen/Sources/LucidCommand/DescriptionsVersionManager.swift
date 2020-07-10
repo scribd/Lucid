@@ -179,8 +179,8 @@ func shouldGenerateDataModel(byComparing oldVersion: Descriptions,
 
     var result = false
 
-    for newVersionEntity in newVersion.persistedEntitiesByName.values {
-        if let newVersionEntityPreviousName = newVersionEntity.previousName,
+    for newVersionEntity in newVersion.persistedEntitiesByName.values.sorted(by: { $0.name < $1.name }) {
+        if let newVersionEntityPreviousName = newVersionEntity.previousSearchableName,
             let oldVersionEntity = oldVersion.persistedEntitiesByName[newVersionEntityPreviousName],
             oldVersionEntity.addedAtVersion == newVersionEntity.addedAtVersion {
             if try _shouldGenerateDataModel(byComparing: oldVersionEntity, to: newVersionEntity, appVersion: appVersion, logger: logger) {
@@ -253,9 +253,14 @@ private func _shouldGenerateDataModel(byComparing oldVersion: Entity,
         result = true
     }
     
+    if oldVersion.platforms != newVersion.platforms {
+        logger.warn("'\(newVersion.name).platforms' value changed from '\(oldVersion.platforms)' to '\(newVersion.platforms)'.")
+        result = true
+    }
+    
     let oldProperties = oldVersion.properties.reduce(into: [:]) { $0[$1.name] = $1 }
     for newProperty in newVersion.properties {
-        if let oldProperty = oldProperties[newProperty.previousName ?? newProperty.name] {
+        if let oldProperty = oldProperties[newProperty.previousSearchableName ?? newProperty.name] {
             if try _shouldGenerateDataModel(byComparing: oldProperty, to: newProperty, entityName: newVersion.name, appVersion: appVersion, logger: logger) {
                 result = true
             }
@@ -348,6 +353,11 @@ private func _shouldGenerateDataModel(byComparing oldVersion: EntityProperty,
         logger.warn("'\(entityName).\(newVersion.name).previousName' value changed from '\(oldVersion.previousName ?? "nil")' to '\(newVersion.previousName ?? "nil")'.")
         result = true
     }
+    
+    if oldVersion.platforms != newVersion.platforms {
+        logger.warn("'\(newVersion.name).platforms' value changed from '\(oldVersion.platforms)' to '\(newVersion.platforms)'.")
+        result = true
+    }
 
     if oldVersion.unused != newVersion.unused {
         // Toggling the unused flag
@@ -383,7 +393,7 @@ func validateDescriptions(byComparing oldVersion: Descriptions,
                           logger: Logger) throws {
     
     for newVersion in newVersion.persistedEntitiesByName.values {
-        if let previousName = newVersion.previousName,
+        if let previousName = newVersion.previousSearchableName,
             let oldVersion = oldVersion.persistedEntitiesByName[previousName] {
 
             if oldVersion.identifierTypeID != newVersion.identifierTypeID {

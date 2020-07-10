@@ -9,17 +9,30 @@
 import Foundation
 import XCTest
 
+#if LUCID_REACTIVE_KIT
+@testable import Lucid_ReactiveKit
+#else
 @testable import Lucid
+#endif
 
-public enum AnyEntitySpyIndexName: Hashable {
+public enum AnyEntitySpyIndexName: Hashable, QueryResultConvertible {
     case entitySpy(EntitySpy.IndexName)
     case entityRelationshipSpy(EntityRelationshipSpy.IndexName)
+
+    public var requestValue: String {
+        switch self {
+        case .entitySpy(let index):
+            return index.requestValue
+        case .entityRelationshipSpy(let index):
+            return index.requestValue
+        }
+    }
 }
 
 public enum AnyEntitySpy: EntityIndexing, EntityConvertible {
     case entitySpy(EntitySpy)
     case entityRelationshipSpy(EntityRelationshipSpy)
-    
+
     public init?<E>(_ entity: E) where E: Entity {
         switch entity {
         case let entity as EntitySpy:
@@ -30,7 +43,7 @@ public enum AnyEntitySpy: EntityIndexing, EntityConvertible {
             return nil
         }
     }
-    
+
     public var entityRelationshipIndices: [AnyEntitySpyIndexName] {
         switch self {
         case .entitySpy(let entity):
@@ -39,7 +52,7 @@ public enum AnyEntitySpy: EntityIndexing, EntityConvertible {
             return entity.entityRelationshipIndices.map { .entityRelationshipSpy($0) }
         }
     }
-    
+
     public var entityRelationshipEntityTypeUIDs: [String] {
         switch self {
         case .entitySpy(let entity):
@@ -48,7 +61,7 @@ public enum AnyEntitySpy: EntityIndexing, EntityConvertible {
             return entity.entityRelationshipEntityTypeUIDs
         }
     }
-    
+
     public func entityIndexValue(for indexName: AnyEntitySpyIndexName) -> EntityIndexValue<EntityRelationshipSpyIdentifier, VoidSubtype> {
         switch (self, indexName) {
         case (.entitySpy(let entity), .entitySpy(let indexName)):
@@ -60,7 +73,7 @@ public enum AnyEntitySpy: EntityIndexing, EntityConvertible {
             return .none
         }
     }
-    
+
     public var description: String {
         switch self {
         case .entitySpy(let entity):

@@ -9,15 +9,15 @@
 import Foundation
 
 public final class BatchManager<E: BatchEntity> {
- 
+
     private let batchSize: Int
     private let remoteStore: RemoteStore<E>
     private var objects: [E.BatchableObject] = []
-    
+
     private let queue = DispatchQueue(label: "\(BatchManager.self)", qos: .utility)
-    
+
     // MARK: Inits
-    
+
     public init(batchSize: Int,
                 remoteStore: RemoteStore<E>) {
         self.batchSize = batchSize
@@ -28,13 +28,13 @@ public final class BatchManager<E: BatchEntity> {
 // MARK: - Interface
 
 public extension BatchManager {
-    
+
     func consume(_ object: E.BatchableObject) {
         queue.async {
             self._consume(object)
         }
     }
-    
+
     func flush(completion: @escaping () -> Void) {
         queue.async {
             self._flush()

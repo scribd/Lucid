@@ -35,7 +35,7 @@ public struct ScheduledTimerProvider: ScheduledTimerProviding {
                           repeats: false)        
 
         RunLoop.main.add(timer, forMode: .common)
-        
+
         return timer
     }
 }

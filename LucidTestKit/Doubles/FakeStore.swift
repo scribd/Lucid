@@ -6,7 +6,11 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
+#if LUCID_REACTIVE_KIT
+@testable import Lucid_ReactiveKit
+#else
 @testable import Lucid
+#endif
 
 /**
  * This is just a simplified version of the InMemoryStore, altered to allow a fake StoreLevel.
@@ -21,8 +25,12 @@ final class FakeStore<E: Entity>: StoringConvertible {
         self.level = level
     }
 
-    func get(byID identifier: E.Identifier, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
-        completion(.success(QueryResult(from: self._cache[identifier])))
+    func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+        if let identifier = query.identifier {
+            completion(.success(QueryResult(from: self._cache[identifier])))
+        } else {
+            completion(.failure(.identifierNotFound))
+        }
     }
 
     func search(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {

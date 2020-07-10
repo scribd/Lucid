@@ -1,6 +1,6 @@
 //
 //  CoreManagerTests.swift
-//  APITests
+//  LucidTests
 //
 //  Created by Théophane Rupin on 12/10/18.
 //  Copyright © 2018 Scribd. All rights reserved.
@@ -10,38 +10,38 @@ import Foundation
 import ReactiveKit
 import XCTest
 
-@testable import Lucid
-@testable import LucidTestKit
+@testable import Lucid_ReactiveKit
+@testable import LucidTestKit_ReactiveKit
 
 final class CoreManagerTests: XCTestCase {
-        
+
     private var remoteStoreSpy: StoreSpy<EntitySpy>!
-    
+
     private var memoryStoreSpy: StoreSpy<EntitySpy>!
-    
+
     private var manager: CoreManaging<EntitySpy, AnyEntitySpy>!
-    
+
     private var disposeBag: DisposeBag!
-    
+
     override func setUp() {
         super.setUp()
-        
+
         Logger.shared = LoggerMock(shouldCauseFailures: false)
 
         remoteStoreSpy = StoreSpy()
         remoteStoreSpy.levelStub = .remote
-        
+
         memoryStoreSpy = StoreSpy()
         memoryStoreSpy.levelStub = .memory
-        
+
         disposeBag = DisposeBag()
-        
+
         manager = CoreManager(stores: [remoteStoreSpy.storing, memoryStoreSpy.storing]).managing()
     }
-    
+
     override func tearDown() {
         defer { super.tearDown() }
-        
+
         remoteStoreSpy = nil
         memoryStoreSpy = nil
         manager = nil
@@ -49,7 +49,7 @@ final class CoreManagerTests: XCTestCase {
     }
 
     // MARK: - get(byID:in:cacheStrategy:completion:)
-    
+
     func test_manager_should_get_entity_from_remote_store_then_cache_it_when_cache_strategy_is_prefer_remote() {
 
         remoteStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil))))
@@ -57,7 +57,7 @@ final class CoreManagerTests: XCTestCase {
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
             persistenceStrategy: .persist(.discardExtraLocalData)
@@ -160,20 +160,20 @@ final class CoreManagerTests: XCTestCase {
     }
 
     func test_manager_should_get_entity_from_remote_store_only_when_cache_strategy_is_remote_only() {
-        
+
         remoteStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil))))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
-        
+
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
             persistenceStrategy: .doNotPersist
         ))
 
         let signal = manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: context)
-        
+
         signal
             .observe { event in
                 switch event {
@@ -191,24 +191,24 @@ final class CoreManagerTests: XCTestCase {
                 }
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [onceExpectation], timeout: 1)
     }
-    
+
     func test_manager_should_fail_to_get_entity_from_remote_store_when_cache_strategy_is_remote_only() {
-        
+
         remoteStoreSpy.getResultStub = .failure(.api(.api(httpStatusCode: 500, errorPayload: nil)))
         memoryStoreSpy.getResultStub = .success(.empty())
 
         let onceExpectation = self.expectation(description: "once")
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
             persistenceStrategy: .doNotPersist
         ))
 
         let signal = manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: context)
-        
+
         signal
             .observe { event in
                 switch event {
@@ -227,17 +227,17 @@ final class CoreManagerTests: XCTestCase {
                 }
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [onceExpectation], timeout: 1)
     }
-    
+
     func test_manager_should_get_entity_from_memory_store_only_when_strategy_is_cache_only() {
 
         memoryStoreSpy.getResultStub = .success(.empty())
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .local)
 
         let signal = manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: context)
@@ -269,7 +269,7 @@ final class CoreManagerTests: XCTestCase {
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .local)
 
         let signal = manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: context)
@@ -408,28 +408,28 @@ final class CoreManagerTests: XCTestCase {
     }
 
     func test_manager_should_not_return_nil_from_cache_but_should_return_nil_from_remote_store_when_strategy_is_prefer_cache() {
-        
+
         memoryStoreSpy.getResultStub = .success(.empty())
         memoryStoreSpy.removeResultStub = .success(())
         remoteStoreSpy.getResultStub = .success(.empty())
-        
+
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .localThen(.remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
             persistenceStrategy: .persist(.discardExtraLocalData)
         )))
 
         let signal = manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: context)
-        
+
         signal
             .observe { event in
                 switch event {
                 case .next(let result):
                     XCTAssertNil(result.entity)
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
-                    
+
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                         XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 0)
                         onceExpectation.fulfill()
@@ -441,7 +441,7 @@ final class CoreManagerTests: XCTestCase {
                 }
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -467,9 +467,9 @@ final class CoreManagerTests: XCTestCase {
                 case .next:
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
-                    
+
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                        
+
                         XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
                         XCTAssertEqual(self.memoryStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
                         onceExpectation.fulfill()
@@ -537,7 +537,7 @@ final class CoreManagerTests: XCTestCase {
             endpoint: .request(APIRequestConfig(
                 method: .get,
                 path: .path("fake_entity"),
-                query: [("ids", .array([.value("42"), .value("43")]))]
+                query: [("ids", .value(["42", "43"]))]
             ), resultPayload: .empty),
             persistenceStrategy: .persist(.discardExtraLocalData)
         )))
@@ -561,16 +561,16 @@ final class CoreManagerTests: XCTestCase {
                 }
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
     func test_manager_returns_remote_values_if_local_result_count_does_not_match_identifier_count_when_observing_once_signal_and_strategy_is_prefer_cache() {
-        
+
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil))]))
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(43, nil))]))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(43, nil))])
-        
+
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
 
@@ -578,14 +578,14 @@ final class CoreManagerTests: XCTestCase {
             endpoint: .request(APIRequestConfig(
                 method: .get,
                 path: .path("fake_entity"),
-                query: [("ids", .array([.value("42"), .value("43")]))]
+                query: [("ids", .value(["42", "43"]))]
             ), resultPayload: .empty),
             persistenceStrategy: .persist(.discardExtraLocalData)
         )))
 
         let expectedIdentifiers = [EntitySpyIdentifier(value: .remote(42, nil)), EntitySpyIdentifier(value: .remote(43, nil))]
         let signals = manager.search(withQuery: .filter(.identifier >> expectedIdentifiers), in: context)
-        
+
         signals
             .once
             .observe { event in
@@ -602,33 +602,33 @@ final class CoreManagerTests: XCTestCase {
                 }
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
     func test_manager_returns_both_remote_results_and_local_results_when_observing_continuous_signal_and_strategy_is_prefer_cache() {
-        
+
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil))]))
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(43, nil))]))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(43, nil))])
-        
+
         let continuousExpectation = self.expectation(description: "continuous")
         continuousExpectation.expectedFulfillmentCount = 2
-        
+
         var continuousCallCount = 0
 
         let context = ReadContext<EntitySpy>(dataSource: .localThen(.remote(
             endpoint: .request(APIRequestConfig(
                 method: .get,
                 path: .path("fake_entity"),
-                query: [("ids", .array([.value("42"), .value("43")]))]
+                query: [("ids", .value(["42", "43"]))]
             ), resultPayload: .empty),
             persistenceStrategy: .persist(.discardExtraLocalData)
         )))
 
         let expectedIdentifiers = [EntitySpyIdentifier(value: .remote(42, nil)), EntitySpyIdentifier(value: .remote(43, nil))]
         let signals = manager.search(withQuery: .filter(.identifier >> expectedIdentifiers), in: context)
-        
+
         signals
             .continuous
             .observe { event in
@@ -651,10 +651,10 @@ final class CoreManagerTests: XCTestCase {
                 }
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [continuousExpectation], timeout: 1)
     }
-    
+
     // MARK: - search(withQuery:context:cacheStrategy:completion:)
 
     func test_manager_should_get_entities_from_remote_store_then_cache_them_when_strategy_is_prefer_remote() {
@@ -707,7 +707,7 @@ final class CoreManagerTests: XCTestCase {
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
             persistenceStrategy: .persist(.discardExtraLocalData)
@@ -809,20 +809,20 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
     func test_manager_should_get_entities_from_remote_store_when_strategy_is_remote_only() {
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(42, nil))]))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
-        
+
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
             persistenceStrategy: .doNotPersist
         ))
 
         let signals = manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
-        
+
         signals
             .once
             .observe { event in
@@ -843,26 +843,26 @@ final class CoreManagerTests: XCTestCase {
                 }
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [onceExpectation], timeout: 1)
     }
-    
+
     func test_manager_should_get_entities_when_remote_store_fails_and_strategy_is_remote_only() {
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(42, nil))]))
         memoryStoreSpy.searchResultStub = .failure(.notSupported)
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
-        
+
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
             persistenceStrategy: .doNotPersist
         ))
 
         let signals = manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
-        
+
         signals
             .once
             .observe { event in
@@ -883,15 +883,15 @@ final class CoreManagerTests: XCTestCase {
                 }
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
     func test_manager_should_fail_to_get_entities_when_stores_fails_and_strategy_is_remote_only() {
-        
+
         remoteStoreSpy.searchResultStub = .failure(.api(.api(httpStatusCode: 500, errorPayload: nil)))
         memoryStoreSpy.searchResultStub = .failure(.notSupported)
-        
+
         let onceExpectation = self.expectation(description: "once")
 
         let context = ReadContext<EntitySpy>(dataSource: .remote(
@@ -900,7 +900,7 @@ final class CoreManagerTests: XCTestCase {
         ))
 
         let signals = manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
-        
+
         signals
             .once
             .observe { event in
@@ -917,17 +917,17 @@ final class CoreManagerTests: XCTestCase {
                 }
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [onceExpectation], timeout: 1)
     }
-    
+
     func test_manager_should_get_entities_from_memory_store_then_not_cache_them_when_strategy_is_cache() {
 
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(42, nil))]))
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .local)
 
         let signals = manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
@@ -981,7 +981,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(documents.first?.identifier.value.remoteValue, 42)
                     XCTAssertEqual(documents.array.last?.identifier.value.remoteValue, 42)
                     XCTAssertEqual(documents.count, 2)
-                    
+
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                         XCTAssertEqual(self.memoryStoreSpy.queryRecords.first?.filter, .identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil))))
                         XCTAssertEqual(self.memoryStoreSpy.queryRecords.count, 2)
@@ -1002,22 +1002,22 @@ final class CoreManagerTests: XCTestCase {
     }
 
     func test_manager_should_ignore_empty_entities_from_memory_then_get_entities_from_remote_store_when_strategy_is_prefer_cache() {
-        
+
         let entities = [EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(42, nil))]
         memoryStoreSpy.searchResultStub = .success(.entities([]))
         remoteStoreSpy.searchResultStub = .success(.entities(entities))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
-        
+
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .localThen(.remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
             persistenceStrategy: .persist(.discardExtraLocalData)
         )))
 
         let signals = manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
-        
+
         signals
             .once
             .observe { event in
@@ -1026,7 +1026,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(documents.first?.identifier.value.remoteValue, 42)
                     XCTAssertEqual(documents.array.last?.identifier.value.remoteValue, 42)
                     XCTAssertEqual(documents.count, 2)
-                    
+
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                         XCTAssertEqual(self.memoryStoreSpy.queryRecords.first?.filter, .identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil))))
                         XCTAssertEqual(self.memoryStoreSpy.queryRecords.count, 2)
@@ -1041,10 +1041,10 @@ final class CoreManagerTests: XCTestCase {
                 }
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [onceExpectation], timeout: 1)
     }
-    
+
     // MARK: - Providers
 
     func test_manager_should_send_entity_update_to_provider_when_strategy_is_prefer_cache() {
@@ -1074,7 +1074,7 @@ final class CoreManagerTests: XCTestCase {
                 case .next(let documents):
                     XCTAssertEqual(documents.first?.title, "fake_title")
                     XCTAssertEqual(documents.count, 1)
-                    
+
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                         XCTAssertEqual(self.memoryStoreSpy.queryRecords.first?.filter, .identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil))))
                         XCTAssertEqual(self.memoryStoreSpy.queryRecords.count, 2)
@@ -1089,7 +1089,7 @@ final class CoreManagerTests: XCTestCase {
                 }
             }
             .dispose(in: disposeBag)
-        
+
         signals
             .continuous
             .observe { event in
@@ -1111,7 +1111,7 @@ final class CoreManagerTests: XCTestCase {
                 }
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
     }
 
@@ -1151,7 +1151,7 @@ final class CoreManagerTests: XCTestCase {
                             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                             persistenceStrategy: .persist(.discardExtraLocalData)
                         ))
-                        self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).discardResult()
+                        self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).observe { _ in }.dispose(in: self.disposeBag)
                         onceExpectation.fulfill()
                     case .failed(let error):
                         XCTFail("Unexpected error: \(error)")
@@ -1222,7 +1222,7 @@ final class CoreManagerTests: XCTestCase {
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                         persistenceStrategy: .persist(.discardExtraLocalData)
                     ))
-                    self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).discardResult()
+                    self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).observe { _ in }.dispose(in: self.disposeBag)
                     onceExpectation.fulfill()
                 case .failed(let error):
                     XCTFail("Unexpected error: \(error)")
@@ -1303,7 +1303,7 @@ final class CoreManagerTests: XCTestCase {
                             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                             persistenceStrategy: .persist(.discardExtraLocalData)
                         ))
-                        self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).discardResult()
+                        self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).observe { _ in }.dispose(in: self.disposeBag)
                         onceExpectation.fulfill()
                     case .failed(let error):
                         XCTFail("Unexpected error: \(error)")
@@ -1378,7 +1378,7 @@ final class CoreManagerTests: XCTestCase {
                             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                             persistenceStrategy: .persist(.discardExtraLocalData)
                         ))
-                        self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).discardResult()
+                        self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).observe { _ in }.dispose(in: self.disposeBag)
                         onceExpectation.fulfill()
                     case .failed(let error):
                         XCTFail("Unexpected error: \(error)")
@@ -1447,7 +1447,7 @@ final class CoreManagerTests: XCTestCase {
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                         persistenceStrategy: .persist(.discardExtraLocalData)
                     ))
-                    self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).discardResult()
+                    self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).observe { _ in }.dispose(in: self.disposeBag)
                     onceExpectation.fulfill()
                 case .failed(let error):
                     XCTFail("Unexpected error: \(error)")
@@ -1488,7 +1488,7 @@ final class CoreManagerTests: XCTestCase {
         continuousExpectation.expectedFulfillmentCount = 2
         var continuousCallCount = 0
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(
                 method: .get,
@@ -1517,7 +1517,7 @@ final class CoreManagerTests: XCTestCase {
                             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                             persistenceStrategy: .persist(.discardExtraLocalData)
                         ))
-                        self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).discardResult()
+                        self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).observe { _ in }.dispose(in: self.disposeBag)
                         onceExpectation.fulfill()
                     case .failed(let error):
                         XCTFail("Unexpected error: \(error)")
@@ -1588,7 +1588,7 @@ final class CoreManagerTests: XCTestCase {
                         self.memoryStoreSpy.removeResultStub = .success(())
                         self.remoteStoreSpy.removeResultStub = .success(())
                         self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
-                        self.manager.remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: WriteContext(dataTarget: .local)).discardResult()
+                        self.manager.remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: WriteContext(dataTarget: .local)).observe { _ in }.dispose(in: self.disposeBag)
                         onceExpectation.fulfill()
                     case .failed(let error):
                         XCTFail("Unexpected error: \(error)")
@@ -1655,12 +1655,12 @@ final class CoreManagerTests: XCTestCase {
                     case .next(let documents):
                         XCTAssertEqual(documents.first?.title, "fake_title")
                         XCTAssertEqual(documents.count, 1)
-                        
+
                         let newDocument = EntitySpy(idValue: .remote(42, nil), title: "updated_fake_title")
                         self.memoryStoreSpy.setResultStub = .success([newDocument])
                         self.remoteStoreSpy.setResultStub = .success([newDocument])
                         self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
-                        self.manager.set(newDocument, in: WriteContext(dataTarget: .local)).discardResult()
+                        self.manager.set(newDocument, in: WriteContext(dataTarget: .local)).observe { _ in }.dispose(in: self.disposeBag)
                         onceExpectation.fulfill()
                     case .failed(let error):
                         XCTFail("Unexpected error: \(error)")
@@ -1669,7 +1669,7 @@ final class CoreManagerTests: XCTestCase {
                     }
                 }
                 .dispose(in: disposeBag)
-            
+
             signals
                 .continuous
                 .observe { event in
@@ -1697,23 +1697,23 @@ final class CoreManagerTests: XCTestCase {
     }
 
     // MARK: - Partial vs Complete Results
-    
+
     func test_manager_should_send_new_truth_to_all_query_for_complete_results() {
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([]))
         memoryStoreSpy.searchResultStub = .success(.entities([]))
-        
+
         let continuousExpectation1 = self.expectation(description: "continuous1")
         let continuousExpectation2 = self.expectation(description: "continuous2")
         let continuousExpectation3 = self.expectation(description: "continuous3")
 
         var continuousCallCount = 0
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        
+
         let allQueryContext = ReadContext<EntitySpy>(dataSource: .local)
 
         let allQuerySignals = manager.search(withQuery: .all, in: allQueryContext)
-        
+
         dispatchQueue.sync {
             allQuerySignals
                 .continuous
@@ -1747,7 +1747,7 @@ final class CoreManagerTests: XCTestCase {
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
         memoryStoreSpy.searchResultStub = .success(.entities([]))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil), title: "fake_title")])
-        
+
         let firstContext = ReadContext<EntitySpy>(
             dataSource: .remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity")), resultPayload: .empty),
@@ -1769,7 +1769,7 @@ final class CoreManagerTests: XCTestCase {
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")]))
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")])
-        
+
         let secondContext = ReadContext<EntitySpy>(
             dataSource: .remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity")), resultPayload: .empty),
@@ -1778,7 +1778,7 @@ final class CoreManagerTests: XCTestCase {
         )
 
         let secondUpdateSignals = manager.search(withQuery: .all, in: secondContext)
-        
+
         dispatchQueue.sync {
             secondUpdateSignals
                 .once
@@ -1788,23 +1788,23 @@ final class CoreManagerTests: XCTestCase {
 
         wait(for: [continuousExpectation3], timeout: 1)
     }
-    
+
     func test_manager_should_send_new_truth_to_all_query_for_contextual_results() {
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([]))
         memoryStoreSpy.searchResultStub = .success(.entities([]))
-        
+
         let continuousExpectation1 = self.expectation(description: "continuous1")
         let continuousExpectation2 = self.expectation(description: "continuous2")
         let continuousExpectation3 = self.expectation(description: "continuous3")
-        
+
         var continuousCallCount = 0
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        
+
         let allQueryContext = ReadContext<EntitySpy>(dataSource: .local)
 
         let allQuerySignals = manager.search(withQuery: .all, in: allQueryContext)
-        
+
         dispatchQueue.sync {
             allQuerySignals
                 .continuous
@@ -1834,13 +1834,13 @@ final class CoreManagerTests: XCTestCase {
                 }
                 .dispose(in: disposeBag)
         }
-        
+
         wait(for: [continuousExpectation1], timeout: 1)
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
         memoryStoreSpy.searchResultStub = .success(.entities([]))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil), title: "fake_title")])
-        
+
         let firstContext = ReadContext<EntitySpy>(
             dataSource: .remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity")), resultPayload: .empty),
@@ -1849,20 +1849,20 @@ final class CoreManagerTests: XCTestCase {
         )
 
         let firstUpdateSignals = manager.search(withQuery: .all, in: firstContext)
-        
+
         dispatchQueue.sync {
             firstUpdateSignals
                 .once
                 .observe { _ in }
                 .dispose(in: disposeBag)
         }
-        
+
         wait(for: [continuousExpectation2], timeout: 1)
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")]))
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")])
-        
+
         let secondContext = ReadContext<EntitySpy>(
             dataSource: .remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity")), resultPayload: .empty),
@@ -1871,33 +1871,33 @@ final class CoreManagerTests: XCTestCase {
         )
 
         let secondUpdateSignals = manager.search(withQuery: .all, in: secondContext)
-        
+
         dispatchQueue.sync {
             secondUpdateSignals
                 .once
                 .observe { _ in }
                 .dispose(in: disposeBag)
         }
-        
+
         wait(for: [continuousExpectation3], timeout: 1)
     }
-    
+
     func test_manager_should_send_new_truth_to_all_query_for_paginated_results() {
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([]))
         memoryStoreSpy.searchResultStub = .success(.entities([]))
-        
+
         let continuousExpectation1 = self.expectation(description: "continuous1")
         let continuousExpectation2 = self.expectation(description: "continuous2")
         let continuousExpectation3 = self.expectation(description: "continuous3")
-        
+
         var continuousCallCount = 0
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        
+
         let allQueryContext = ReadContext<EntitySpy>(dataSource: .local)
 
         let allQuerySignals = manager.search(withQuery: .all, in: allQueryContext)
-        
+
         dispatchQueue.sync {
             allQuerySignals
                 .continuous
@@ -1927,13 +1927,13 @@ final class CoreManagerTests: XCTestCase {
                 }
                 .dispose(in: disposeBag)
         }
-        
+
         wait(for: [continuousExpectation1], timeout: 1)
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
         memoryStoreSpy.searchResultStub = .success(.entities([]))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil), title: "fake_title")])
-        
+
         let firstContext = ReadContext<EntitySpy>(
             dataSource: .remote(
                 endpoint: .request(APIRequestConfig(
@@ -1946,20 +1946,20 @@ final class CoreManagerTests: XCTestCase {
         )
 
         let firstUpdateSignals = manager.search(withQuery: .all, in: firstContext)
-        
+
         dispatchQueue.sync {
             firstUpdateSignals
                 .once
                 .observe { _ in }
                 .dispose(in: disposeBag)
         }
-        
+
         wait(for: [continuousExpectation2], timeout: 1)
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")]))
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")])
-        
+
         let secondContext = ReadContext<EntitySpy>(
             dataSource: .remote(
                 endpoint: .request(APIRequestConfig(
@@ -1972,21 +1972,21 @@ final class CoreManagerTests: XCTestCase {
         )
 
         let secondUpdateSignals = manager.search(withQuery: .all, in: secondContext)
-        
+
         dispatchQueue.sync {
             secondUpdateSignals
                 .once
                 .observe { _ in }
                 .dispose(in: disposeBag)
         }
-        
+
         wait(for: [continuousExpectation3], timeout: 1)
     }
-    
+
     // MARK: Deleting local records on search
-    
+
     func test_manager_should_delete_non_matching_synced_local_records_for_complete_results() {
-        
+
         let searchExpectation = self.expectation(description: "search")
 
         remoteStoreSpy.searchResultStub = .success(.entities([
@@ -2019,7 +2019,7 @@ final class CoreManagerTests: XCTestCase {
             .dispose(in: disposeBag)
 
         wait(for: [searchExpectation], timeout: 1)
-        
+
         XCTAssertEqual(memoryStoreSpy.removeCallCount, 1)
         XCTAssertEqual(memoryStoreSpy.identifierRecords.count, 3)
         XCTAssertTrue(memoryStoreSpy.identifierRecords.contains(EntitySpyIdentifier(value: .remote(3, nil))))
@@ -2028,9 +2028,9 @@ final class CoreManagerTests: XCTestCase {
     }
 
     func test_manager_should_not_delete_non_matching_out_of_sync_local_records_for_complete_results() {
-        
+
         let searchExpectation = self.expectation(description: "search")
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([
             EntitySpy(idValue: .remote(1, nil), remoteSynchronizationState: .synced),
             EntitySpy(idValue: .remote(2, nil), remoteSynchronizationState: .synced)
@@ -2044,7 +2044,7 @@ final class CoreManagerTests: XCTestCase {
         ]))
         memoryStoreSpy.removeResultStub = .success(())
         memoryStoreSpy.setResultStub = .success([])
-        
+
         let context = ReadContext<EntitySpy>(
             dataSource: .remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity")), resultPayload: .empty),
@@ -2059,18 +2059,18 @@ final class CoreManagerTests: XCTestCase {
                 searchExpectation.fulfill()
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [searchExpectation], timeout: 1)
-        
+
         XCTAssertEqual(memoryStoreSpy.removeCallCount, 0)
         XCTAssertEqual(memoryStoreSpy.identifierRecords.count, 0)
         XCTAssertTrue(memoryStoreSpy.identifierRecords.isEmpty)
     }
 
     func test_manager_should_not_delete_non_matching_synced_local_records_for_contextual_results() {
-        
+
         let searchExpectation = self.expectation(description: "search")
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([
             EntitySpy(idValue: .remote(1, nil), remoteSynchronizationState: .synced),
             EntitySpy(idValue: .remote(2, nil), remoteSynchronizationState: .synced)
@@ -2084,7 +2084,7 @@ final class CoreManagerTests: XCTestCase {
         ]))
         memoryStoreSpy.removeResultStub = .success(())
         memoryStoreSpy.setResultStub = .success([])
-        
+
         let context = ReadContext<EntitySpy>(
             dataSource: .remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity")), resultPayload: .empty),
@@ -2099,18 +2099,18 @@ final class CoreManagerTests: XCTestCase {
                 searchExpectation.fulfill()
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [searchExpectation], timeout: 1)
-        
+
         XCTAssertEqual(memoryStoreSpy.removeCallCount, 0)
         XCTAssertEqual(memoryStoreSpy.identifierRecords.count, 0)
         XCTAssertTrue(memoryStoreSpy.identifierRecords.isEmpty)
     }
 
     func test_manager_should_not_delete_non_matching_synced_local_records_for_paginated_results() {
-        
+
         let searchExpectation = self.expectation(description: "search")
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([
             EntitySpy(idValue: .remote(1, nil), remoteSynchronizationState: .synced),
             EntitySpy(idValue: .remote(2, nil), remoteSynchronizationState: .synced)
@@ -2124,7 +2124,7 @@ final class CoreManagerTests: XCTestCase {
         ]))
         memoryStoreSpy.removeResultStub = .success(())
         memoryStoreSpy.setResultStub = .success([])
-        
+
         let context = ReadContext<EntitySpy>(
             dataSource: .remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity")), resultPayload: .empty),
@@ -2139,28 +2139,28 @@ final class CoreManagerTests: XCTestCase {
                 searchExpectation.fulfill()
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [searchExpectation], timeout: 1)
-        
+
         XCTAssertEqual(memoryStoreSpy.removeCallCount, 0)
         XCTAssertEqual(memoryStoreSpy.identifierRecords.count, 0)
         XCTAssertTrue(memoryStoreSpy.identifierRecords.isEmpty)
     }
-    
+
     // MARK: - Query Ordering
 
     func test_results_should_be_returned_in_query_order() {
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([]))
         memoryStoreSpy.searchResultStub = .success(.entities([]))
-        
+
         let continuousExpectation1 = self.expectation(description: "continuous1")
         let continuousExpectation2 = self.expectation(description: "continuous2")
         var continuousCount = 0
-        
+
         let query = Query<EntitySpy>(filter: .all,
                                      order: [.asc(by: .index(.title))])
-        
+
         let firstContext = ReadContext<EntitySpy>(dataSource: .local)
 
         manager.search(withQuery: query, in: firstContext)
@@ -2173,11 +2173,11 @@ final class CoreManagerTests: XCTestCase {
                         XCTFail("Expected 3 entities")
                         return
                     }
-                    
+
                     XCTAssertEqual(result.array[0].title, "another_fake_title")
                     XCTAssertEqual(result.array[1].title, "fake_title")
                     XCTAssertEqual(result.array[2].title, "some_fake_title")
-                    
+
                     continuousExpectation2.fulfill()
                 }
                 continuousCount += 1
@@ -2193,7 +2193,7 @@ final class CoreManagerTests: XCTestCase {
             EntitySpy(idValue: .remote(43, nil), title: "another_fake_title"),
             EntitySpy(idValue: .remote(44, nil), title: "some_fake_title")
         ]))
-        
+
         let secondContext = ReadContext<EntitySpy>(
             dataSource: .remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity")), resultPayload: .empty),
@@ -2210,18 +2210,18 @@ final class CoreManagerTests: XCTestCase {
     }
 
     func test_results_should_be_returned_in_multiple_query_order_ascending_identifiers() {
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([]))
         memoryStoreSpy.searchResultStub = .success(.entities([]))
-        
+
         let continuousExpectation1 = self.expectation(description: "continuous1")
         let continuousExpectation2 = self.expectation(description: "continuous2")
         var continuousCount = 0
-        
+
         let query = Query<EntitySpy>(filter: .all,
                                      order: [.asc(by: .index(.title)),
                                              .asc(by: .identifier)])
-        
+
         let firstContext = ReadContext<EntitySpy>(dataSource: .local)
 
         manager.search(withQuery: query, in: firstContext)
@@ -2234,7 +2234,7 @@ final class CoreManagerTests: XCTestCase {
                         XCTFail("Expected 3 entities")
                         return
                     }
-                    
+
                     XCTAssertEqual(result.array[0].identifier, EntitySpyIdentifier(value: .remote(43, nil)))
                     XCTAssertEqual(result.array[1].identifier, EntitySpyIdentifier(value: .remote(42, nil)))
                     XCTAssertEqual(result.array[2].identifier, EntitySpyIdentifier(value: .remote(44, nil)))
@@ -2244,9 +2244,9 @@ final class CoreManagerTests: XCTestCase {
                 continuousCount += 1
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [continuousExpectation1], timeout: 1)
-        
+
         memoryStoreSpy.searchResultStub = .success(.entities([]))
         memoryStoreSpy.setResultStub = .success([])
         remoteStoreSpy.searchResultStub = .success(.entities([
@@ -2254,7 +2254,7 @@ final class CoreManagerTests: XCTestCase {
             EntitySpy(idValue: .remote(43, nil), title: "another_fake_title"),
             EntitySpy(idValue: .remote(44, nil), title: "fake_title")
         ]))
-        
+
         let secondContext = ReadContext<EntitySpy>(
             dataSource: .remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity")), resultPayload: .empty),
@@ -2266,25 +2266,25 @@ final class CoreManagerTests: XCTestCase {
             .once
             .observeNext { _ in }
             .dispose(in: disposeBag)
-        
+
         wait(for: [continuousExpectation2], timeout: 1)
     }
 
     func test_results_should_be_returned_in_multiple_query_order_descending_identifiers() {
-        
+
         remoteStoreSpy.searchResultStub = .success(.entities([]))
         memoryStoreSpy.searchResultStub = .success(.entities([]))
-        
+
         let continuousExpectation1 = self.expectation(description: "continuous1")
         let continuousExpectation2 = self.expectation(description: "continuous2")
         var continuousCount = 0
-        
+
         let query = Query<EntitySpy>(filter: .all,
                                      order: [.asc(by: .index(.title)),
                                              .desc(by: .identifier)])
-        
+
         let firstContext = ReadContext<EntitySpy>(dataSource: .local)
-        
+
         manager.search(withQuery: query, in: firstContext)
             .continuous
             .observeNext { result in
@@ -2295,19 +2295,19 @@ final class CoreManagerTests: XCTestCase {
                         XCTFail("Expected 3 entities")
                         return
                     }
-                    
+
                     XCTAssertEqual(result.array[0].identifier, EntitySpyIdentifier(value: .remote(43, nil)))
                     XCTAssertEqual(result.array[1].identifier, EntitySpyIdentifier(value: .remote(44, nil)))
                     XCTAssertEqual(result.array[2].identifier, EntitySpyIdentifier(value: .remote(42, nil)))
-                    
+
                     continuousExpectation2.fulfill()
                 }
                 continuousCount += 1
             }
             .dispose(in: disposeBag)
-        
+
         wait(for: [continuousExpectation1], timeout: 1)
-        
+
         memoryStoreSpy.searchResultStub = .success(.entities([]))
         memoryStoreSpy.setResultStub = .success([])
         remoteStoreSpy.searchResultStub = .success(.entities([
@@ -2315,7 +2315,7 @@ final class CoreManagerTests: XCTestCase {
             EntitySpy(idValue: .remote(43, nil), title: "another_fake_title"),
             EntitySpy(idValue: .remote(44, nil), title: "fake_title")
         ]))
-        
+
         let secondContext = ReadContext<EntitySpy>(
             dataSource: .remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity")), resultPayload: .empty),
@@ -2327,14 +2327,14 @@ final class CoreManagerTests: XCTestCase {
             .once
             .observeNext { _ in }
             .dispose(in: disposeBag)
-        
+
         wait(for: [continuousExpectation2], timeout: 1)
     }
-    
+
     // MARK: - Disposing
-    
+
     func test_search_should_release_continuous_provider_as_soon_as_the_observer_is_disposed() {
-        
+
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "updated_fake_title")]))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
@@ -2342,7 +2342,7 @@ final class CoreManagerTests: XCTestCase {
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
         memoryStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
         remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
-        
+
         let continuousExpectation = self.expectation(description: "continuous")
         continuousExpectation.isInverted = true
 
@@ -2359,14 +2359,14 @@ final class CoreManagerTests: XCTestCase {
                 continuousExpectation.fulfill()
             }
             .dispose(in: disposeBag)
-        
+
         disposeBag.dispose()
-        
+
         wait(for: [continuousExpectation], timeout: 1)
     }
-    
+
     func test_search_should_release_once_provider_as_soon_as_the_observer_is_disposed() {
-        
+
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "updated_fake_title")]))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
@@ -2374,7 +2374,7 @@ final class CoreManagerTests: XCTestCase {
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
         memoryStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
         remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
-        
+
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.isInverted = true
 
@@ -2391,23 +2391,23 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             }
             .dispose(in: disposeBag)
-        
+
         disposeBag.dispose()
-        
+
         wait(for: [onceExpectation], timeout: 1)
     }
-    
+
     func test_get_should_release_once_provider_as_soon_as_the_observer_is_disposed() {
-        
+
         memoryStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil), title: "fake_title")))
         remoteStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil), title: "fake_title")))
-        
+
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
         memoryStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
         remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
-        
+
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
-        
+
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.isInverted = true
 
@@ -2423,22 +2423,22 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             }
             .dispose(in: disposeBag)
-        
+
         disposeBag.dispose()
-        
+
         wait(for: [onceExpectation], timeout: 1)
     }
-    
+
     func test_set_should_release_once_provider_as_soon_as_the_observer_is_disposed() {
-        
+
         let entity = EntitySpy(idValue: .remote(42, nil), title: "fake_title")
         memoryStoreSpy.setResultStub = .success([entity])
         remoteStoreSpy.setResultStub = .success([entity])
-        
+
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
         memoryStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
         remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
-        
+
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.isInverted = true
 
@@ -2447,28 +2447,28 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             }
             .dispose(in: disposeBag)
-        
+
         disposeBag.dispose()
-        
+
         wait(for: [onceExpectation], timeout: 1)
     }
-    
+
     // MARK: - Observer Ordering
 
     func test_continuous_observer_should_receive_all_updates_in_order() {
         let count = 500
-        
+
         let expectedResults = (0..<count).map { index in
             (0..<index).map { EntitySpy(idValue: .remote($0, nil), title: "title_\($0)") }
         }
-        
+
         let memoryStore = InMemoryStore<EntitySpy>()
         manager = CoreManager(stores: [memoryStore.storing]).managing()
-        
+
         let continuousExpectation = self.expectation(description: "continuous")
         continuousExpectation.expectedFulfillmentCount = count
         var continuousCallCount = 0
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .local)
 
         manager.search(withQuery: .all, in: context)
@@ -2483,7 +2483,7 @@ final class CoreManagerTests: XCTestCase {
                 continuousExpectation.fulfill()
             }
             .dispose(in: disposeBag)
-        
+
         let entities = (0..<count).map { EntitySpy(idValue: .remote($0, nil), title: "title_\($0)") }
 
         entities.forEach { entity in
@@ -2492,9 +2492,9 @@ final class CoreManagerTests: XCTestCase {
                     XCTFail("\(error)")
                 }
                 .dispose(in: disposeBag)
-            
+
         }
-        
+
         wait(for: [continuousExpectation], timeout: 20)
     }
 
@@ -2521,7 +2521,7 @@ final class CoreManagerTests: XCTestCase {
         remoteStoreSpy.getResultStub = .success(QueryResult<EntitySpy>(from: entity, metadata: stubMetadata))
 
         let onceExpectation = self.expectation(description: "once")
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
             persistenceStrategy: .doNotPersist
@@ -2547,7 +2547,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
 
         let onceExpectation = self.expectation(description: "once")
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
             persistenceStrategy: .persist(.discardExtraLocalData)
@@ -2573,7 +2573,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
 
         let onceExpectation = self.expectation(description: "once")
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .localThen(.remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
             persistenceStrategy: .persist(.discardExtraLocalData)
@@ -2599,7 +2599,7 @@ final class CoreManagerTests: XCTestCase {
         remoteStoreSpy.searchResultStub = .success(QueryResult<EntitySpy>(from: entity, metadata: stubMetadata))
 
         let onceExpectation = self.expectation(description: "once")
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
             persistenceStrategy: .doNotPersist
@@ -2749,7 +2749,7 @@ final class CoreManagerTests: XCTestCase {
 
         wait(for: [onceExpectation], timeout: 1)
     }
-    
+
     // MARK: Test Updates For Extras Changes
 
     func test_manager_should_not_send_entity_update_to_provider_when_extra_changes_from_unrequested_to_unrequested() {
@@ -2790,7 +2790,7 @@ final class CoreManagerTests: XCTestCase {
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                         persistenceStrategy: .persist(.discardExtraLocalData)
                     ))
-                    self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).discardResult()
+                    self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).observe { _ in }.dispose(in: self.disposeBag)
                     onceExpectation.fulfill()
                 case .failed(let error):
                     XCTFail("Unexpected error: \(error)")
@@ -2870,7 +2870,7 @@ final class CoreManagerTests: XCTestCase {
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                         persistenceStrategy: .persist(.discardExtraLocalData)
                     ))
-                    self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).discardResult()
+                    self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).observe { _ in }.dispose(in: self.disposeBag)
                     onceExpectation.fulfill()
                 case .failed(let error):
                     XCTFail("Unexpected error: \(error)")
@@ -2950,7 +2950,7 @@ final class CoreManagerTests: XCTestCase {
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                         persistenceStrategy: .persist(.discardExtraLocalData)
                     ))
-                    self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).discardResult()
+                    self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).observe { _ in }.dispose(in: self.disposeBag)
                     onceExpectation.fulfill()
                 case .failed(let error):
                     XCTFail("Unexpected error: \(error)")
@@ -3031,7 +3031,7 @@ final class CoreManagerTests: XCTestCase {
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                         persistenceStrategy: .persist(.discardExtraLocalData)
                     ))
-                    self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).discardResult()
+                    self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).observe { _ in }.dispose(in: self.disposeBag)
                     onceExpectation.fulfill()
                 case .failed(let error):
                     XCTFail("Unexpected error: \(error)")
@@ -3082,7 +3082,7 @@ final class CoreManagerTests: XCTestCase {
         continuousExpectation.expectedFulfillmentCount = 2
 
         var continuousCount = 0
-        
+
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
             persistenceStrategy: .persist(.discardExtraLocalData)
@@ -3105,7 +3105,7 @@ final class CoreManagerTests: XCTestCase {
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                         persistenceStrategy: .persist(.discardExtraLocalData)
                     ))
-                    self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).discardResult()
+                    self.manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: getContext).observe { _ in }.dispose(in: self.disposeBag)
                     onceExpectation.fulfill()
                 case .failed(let error):
                     XCTFail("Unexpected error: \(error)")
@@ -3152,7 +3152,7 @@ final class CoreManagerTests: XCTestCase {
         onceExpectation.expectedFulfillmentCount = 2
 
         let validatorSpy = UserAccessValidatorSpy()
-        
+
         let context = ReadContext<EntitySpy>(
             dataSource: .remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
@@ -4262,6 +4262,235 @@ final class CoreManagerTests: XCTestCase {
     func test_remove_all_returns_failure_for_change_from_local_access_to_no_access() {
         performRemoveAllForAccessLevelChange(from: .localAccess, to: .noAccess)
     }
+
+    // MARK: - Internet connection errors
+    // MARK: get: local --> remote
+
+    func test_get_local_or_remote_returns_nil_result_if_local_result_missing_and_receiving_internet_connection_error() {
+        remoteStoreSpy.getResultStub = .failure(.api(.internetConnectionFailure(NSError(domain: "test", code: 0, userInfo: nil))))
+        memoryStoreSpy.getResultStub = .success(.entities([]))
+
+        let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
+        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+
+        let onceExpectation = self.expectation(description: "once")
+        onceExpectation.expectedFulfillmentCount = 2
+
+        let context = ReadContext<EntitySpy>(dataSource:
+            .localOr(
+                .remote(
+                    endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
+                    persistenceStrategy: .persist(.discardExtraLocalData)
+                )
+            )
+        )
+
+        manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: context)
+            .observe { event in
+                switch event {
+                case .next(let queryResult):
+                    XCTAssertTrue(queryResult.isEmpty)
+                    onceExpectation.fulfill()
+                case .failed(let error):
+                    XCTFail("Unexpected error: \(error)")
+                case .completed:
+                    onceExpectation.fulfill()
+                }
+            }
+            .dispose(in: disposeBag)
+
+        wait(for: [onceExpectation], timeout: 1)
+    }
+
+    func test_get_local_then_remote_returns_nil_result_if_local_result_missing_and_receiving_internet_connection_error() {
+        remoteStoreSpy.getResultStub = .failure(.api(.internetConnectionFailure(NSError(domain: "test", code: 0, userInfo: nil))))
+        memoryStoreSpy.getResultStub = .success(.entities([]))
+
+        let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
+        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+
+        let onceExpectation = self.expectation(description: "once")
+        onceExpectation.expectedFulfillmentCount = 2
+
+        let context = ReadContext<EntitySpy>(dataSource:
+            .localThen(
+                .remote(
+                    endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
+                    persistenceStrategy: .persist(.discardExtraLocalData)
+                )
+            )
+        )
+
+        manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: context)
+            .observe { event in
+                switch event {
+                case .next(let queryResult):
+                    XCTAssertTrue(queryResult.isEmpty)
+                    onceExpectation.fulfill()
+                case .failed(let error):
+                    XCTFail("Unexpected error: \(error)")
+                case .completed:
+                    onceExpectation.fulfill()
+                }
+            }
+            .dispose(in: disposeBag)
+
+        wait(for: [onceExpectation], timeout: 1)
+    }
+
+    // MARK: search: local --> remote
+
+    func test_search_local_or_remote_returns_nil_result_if_local_result_missing_and_receiving_internet_connection_error() {
+        remoteStoreSpy.searchResultStub = .failure(.api(.internetConnectionFailure(NSError(domain: "test", code: 0, userInfo: nil))))
+        memoryStoreSpy.searchResultStub = .success(.entities([]))
+
+        let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
+        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+
+        let onceExpectation = self.expectation(description: "once")
+        onceExpectation.expectedFulfillmentCount = 2
+
+        let context = ReadContext<EntitySpy>(dataSource:
+            .localOr(
+                .remote(
+                    endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
+                    persistenceStrategy: .persist(.discardExtraLocalData)
+                )
+            )
+        )
+
+        manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
+            .once
+            .observe { event in
+                switch event {
+                case .next(let queryResult):
+                    XCTAssertTrue(queryResult.isEmpty)
+                    onceExpectation.fulfill()
+                case .failed(let error):
+                    XCTFail("Unexpected error: \(error)")
+                case .completed:
+                    onceExpectation.fulfill()
+                }
+            }
+            .dispose(in: disposeBag)
+
+        wait(for: [onceExpectation], timeout: 1)
+    }
+
+    func test_search_local_then_remote_returns_nil_result_if_local_result_missing_and_receiving_internet_connection_error() {
+        remoteStoreSpy.searchResultStub = .failure(.api(.internetConnectionFailure(NSError(domain: "test", code: 0, userInfo: nil))))
+        memoryStoreSpy.searchResultStub = .success(.entities([]))
+
+        let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
+        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+
+        let onceExpectation = self.expectation(description: "once")
+        onceExpectation.expectedFulfillmentCount = 2
+
+        let context = ReadContext<EntitySpy>(dataSource:
+            .localThen(
+                .remote(
+                    endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
+                    persistenceStrategy: .persist(.discardExtraLocalData)
+                )
+            )
+        )
+
+        manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
+            .once
+            .observe { event in
+                switch event {
+                case .next(let queryResult):
+                    XCTAssertTrue(queryResult.isEmpty)
+                    onceExpectation.fulfill()
+                case .failed(let error):
+                    XCTFail("Unexpected error: \(error)")
+                case .completed:
+                    onceExpectation.fulfill()
+                }
+            }
+            .dispose(in: disposeBag)
+
+        wait(for: [onceExpectation], timeout: 1)
+    }
+
+    func test_search_local_or_remote_returns_partial_local_result_when_receiving_internet_connection_error() {
+        remoteStoreSpy.searchResultStub = .failure(.api(.internetConnectionFailure(NSError(domain: "test", code: 0, userInfo: nil))))
+        memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil))]))
+
+        let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
+        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+
+        let onceExpectation = self.expectation(description: "once")
+        onceExpectation.expectedFulfillmentCount = 2
+
+        let context = ReadContext<EntitySpy>(dataSource:
+            .localOr(
+                .remote(
+                    endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
+                    persistenceStrategy: .persist(.discardExtraLocalData)
+                )
+            )
+        )
+
+        let expectedIdentifiers = [EntitySpyIdentifier(value: .remote(42, nil)), EntitySpyIdentifier(value: .remote(43, nil))]
+        manager.search(withQuery: .filter(.identifier >> expectedIdentifiers), in: context)
+            .once
+            .observe { event in
+                switch event {
+                case .next(let queryResult):
+                    XCTAssertEqual(queryResult.count, 1)
+                    XCTAssertEqual(queryResult.first?.identifier, EntitySpyIdentifier(value: .remote(43, nil)))
+                    onceExpectation.fulfill()
+                case .failed(let error):
+                    XCTFail("Unexpected error: \(error)")
+                case .completed:
+                    onceExpectation.fulfill()
+                }
+            }
+            .dispose(in: disposeBag)
+
+        wait(for: [onceExpectation], timeout: 1)
+    }
+
+    func test_search_local_then_remote_returns_partial_local_result_when_receiving_internet_connection_error() {
+        remoteStoreSpy.searchResultStub = .failure(.api(.internetConnectionFailure(NSError(domain: "test", code: 0, userInfo: nil))))
+        memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil))]))
+
+        let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
+        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+
+        let onceExpectation = self.expectation(description: "once")
+        onceExpectation.expectedFulfillmentCount = 2
+
+        let context = ReadContext<EntitySpy>(dataSource:
+            .localThen(
+                .remote(
+                    endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
+                    persistenceStrategy: .persist(.discardExtraLocalData)
+                )
+            )
+        )
+
+        let expectedIdentifiers = [EntitySpyIdentifier(value: .remote(42, nil)), EntitySpyIdentifier(value: .remote(43, nil))]
+        manager.search(withQuery: .filter(.identifier >> expectedIdentifiers), in: context)
+            .once
+            .observe { event in
+                switch event {
+                case .next(let queryResult):
+                    XCTAssertEqual(queryResult.count, 1)
+                    XCTAssertEqual(queryResult.first?.identifier, EntitySpyIdentifier(value: .remote(43, nil)))
+                    onceExpectation.fulfill()
+                case .failed(let error):
+                    XCTFail("Unexpected error: \(error)")
+                case .completed:
+                    onceExpectation.fulfill()
+                }
+            }
+            .dispose(in: disposeBag)
+
+        wait(for: [onceExpectation], timeout: 1)
+    }
 }
 
 // MARK: - UserAccessValidatorSpy Helper
@@ -4271,9 +4500,9 @@ private final class UserAccessInvalidatingStoreSpy<E: Entity>: StoreSpy<E> {
     var userAccessAfterStoreResponse: UserAccess = .remoteAccess
     var userAccessSpy: UserAccessValidatorSpy?
 
-    override func get(byID identifier: E.Identifier, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+    override func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
         userAccessSpy?.stub = userAccessAfterStoreResponse
-        super.get(byID: identifier, in: context, completion: completion)
+        super.get(withQuery: query, in: context, completion: completion)
     }
 
     override func search(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {

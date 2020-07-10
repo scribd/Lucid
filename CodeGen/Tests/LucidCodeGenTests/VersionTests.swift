@@ -114,4 +114,10 @@ final class VersionTests: XCTestCase {
         let rhs = try Version("release_10.1.1-10", source: .gitTag)
         XCTAssertLessThan(lhs, rhs)
     }
+
+    func test_shortest_length_should_be_applied_for_comparison() throws {
+        let lhs = try Version("10.14", source: .description)
+        let rhs = try Version("9.9.1", source: .description)
+        XCTAssertGreaterThan(lhs, rhs)
+    }
 }

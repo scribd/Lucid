@@ -8,13 +8,6 @@
 
 import ReactiveKit
 
-public extension Signal {
-    
-    func discardResult() {
-        observe { _ in }.dispose()
-    }
-}
-
 public extension Signal where Error == ManagerError {
 
     func substituteValueForNonCriticalFailure(_ value: Element) -> ReactiveKit.Signal<Element, ManagerError> {
@@ -53,7 +46,7 @@ public extension Signal where Element: Sequence, Element.Element: Entity, Error 
     func when(updatingOneOf indices: [Element.Element.IndexName]?) -> SafeSignal<[(old: Element.Element?, new: Element.Element)]> {
         var _lastElements: DualHashDictionary<Element.Element.Identifier, Element.Element>?
         let dispatchQueue = DispatchQueue(label: "\(Self.self):updates")
-        
+
         return receive(on: dispatchQueue).compactMap { elements in
             defer { _lastElements = DualHashDictionary(elements.lazy.map { ($0.identifier, $0) }) }
             guard let lastElements = _lastElements else { return nil }
@@ -62,36 +55,36 @@ public extension Signal where Element: Sequence, Element.Element: Entity, Error 
                 guard let lastElement = lastElements[element.identifier] else {
                     return (nil, element)
                 }
-                
+
                 let shouldUpdate = indices?.contains { index in
                     element.entityIndexValue(for: index) != lastElement.entityIndexValue(for: index)
                 } ?? true
 
                 return shouldUpdate ? (lastElement, element) : nil
             }
-            
+
             return update.isEmpty ? nil : update
         }
     }
 }
 
 public extension Signal where Element: Entity, Error == Never {
-    
+
     var whenUpdatingAnything: SafeSignal<(old: Element?, new: Element)> {
         return when(updatingOneOf: nil)
     }
-    
+
     func when(updatingOneOf indices: [Element.IndexName]?) -> SafeSignal<(old: Element?, new: Element)> {
         return map { [$0] }.when(updatingOneOf: indices).compactMap { $0.first }
     }
 }
 
 public extension Signal where Element: OptionalProtocol, Element.Wrapped: Entity, Error == Never {
-    
+
     var whenUpdatingAnything: SafeSignal<(old: Element.Wrapped?, new: Element.Wrapped)> {
         return when(updatingOneOf: nil)
     }
-    
+
     func when(updatingOneOf indices: [Element.Wrapped.IndexName]?) -> SafeSignal<(old: Element.Wrapped?, new: Element.Wrapped)> {
         return compactMap { $0._unbox }.when(updatingOneOf: indices)
     }
@@ -142,7 +135,8 @@ public extension StoreError {
              .invalidCoreDataEntity,
              .coreData,
              .invalidContext,
-             .identifierNotSynced:
+             .identifierNotSynced,
+             .identifierNotFound:
             return false
         }
     }
@@ -165,3 +159,5 @@ public extension APIError {
         }
     }
 }
+
+extension Array: Error where Element: Error {}

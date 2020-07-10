@@ -110,7 +110,8 @@ struct MetaEndpointPayload {
         switch try endpoint.initializerType() {
         case .initFromKey(let key),
              .initFromSubkey(let key, _),
-             .mapFromSubstruct(let key, _):
+             .mapFromSubstruct(let key, _),
+             .initFromRoot(.some(let key)):
             return Type(identifier: TypeIdentifier(name: "Keys"))
                 .with(kind: .enum(indirect: false))
                 .with(accessLevel: .private)
@@ -133,14 +134,14 @@ struct MetaEndpointPayload {
                 .with(accessLevel: .private)
                 .adding(inheritedType: .string)
                 .adding(inheritedType: .codingKey)
-                .adding(member: Case(name: subkey.camelCased().variableCased))
+                .adding(member: Case(name: subkey.camelCased(ignoreLexicon: true).variableCased()))
             
         case .mapFromSubstruct(_, let subkey):
             return Type(identifier: TypeIdentifier(name: "NestedValue"))
                 .with(kind: .struct)
                 .with(accessLevel: .private)
                 .adding(inheritedType: .decodable)
-                .adding(member: Property(variable: Variable(name: subkey.camelCased().variableCased)
+                .adding(member: Property(variable: Variable(name: subkey.camelCased(ignoreLexicon: true).variableCased())
                     .with(type: endpoint.payloadTypeID.arrayElementOrSelf.wrappedOrSelf)
                 ))
             
@@ -166,16 +167,35 @@ struct MetaEndpointPayload {
             payloadPropertyTypeID = .array(element: .failableValue(of: arrayElementTypeID))
         }
         
+        let unwrappedValues: Reference = payloadPropertyTypeID.isArray ?
+            +.named("lazy") + .named(.compactMap) | .block(FunctionBody()
+                .adding(member: .named("$0") + .named("value") | .call())
+            ) + .named("any") : .none
+        
         let metadataKey: String?
         switch try endpoint.initializerType() {
-        case .initFromRoot:
+        case .initFromRoot(nil):
             metadataKey = nil
-            function = function.adding(member: Assignment(
-                variable: Reference.named(.`self`) + endpoint.payloadVariable.reference,
-                value: .try | payloadPropertyTypeID.reference | .call(Tuple()
-                    .adding(parameter: TupleParameter(name: "from", value: Reference.named("decoder")))
-                )
-            ))
+            function = function
+                .adding(member: Assignment(
+                    variable: Reference.named(.`self`) + endpoint.payloadVariable.reference,
+                    value: .try | payloadPropertyTypeID.reference | .call(Tuple()
+                        .adding(parameter: TupleParameter(name: "from", value: Reference.named("decoder")))
+                    ) | unwrappedValues
+                ))
+            
+        case .initFromRoot(.some(let key)):
+            metadataKey = nil
+            function = function
+                .adding(member: container)
+                .adding(member: Assignment(
+                    variable: .named(.`self`) + endpoint.payloadVariable.reference,
+                    value: .try | .named("container") + decodeMethod | .call(Tuple()
+                        .adding(parameter: TupleParameter(value: payloadPropertyTypeID.reference + .named(.`self`)))
+                        .adding(parameter: TupleParameter(name: "forKey", value: +.named(key)))
+                    ) | unwrappedValues
+                ))
+            
         case .initFromKey(let key):
             metadataKey = key
             function = function
@@ -185,13 +205,9 @@ struct MetaEndpointPayload {
                     value: .try | .named("container") + decodeMethod | .call(Tuple()
                         .adding(parameter: TupleParameter(value: payloadPropertyTypeID.reference + .named(.`self`)))
                         .adding(parameter: TupleParameter(name: "forKey", value: +.named(key)))
-                    ) | (
-                        payloadPropertyTypeID.isArray ?
-                            +.named("lazy") + .named(.compactMap) | .block(FunctionBody()
-                                .adding(member: .named("$0") + .named("value") | .call())
-                            ) + .named("any") : .none
-                    )
+                    ) | unwrappedValues
                 ))
+            
         case .initFromSubkey(let key, let subkey):
             metadataKey = key
             function = function
@@ -207,14 +223,10 @@ struct MetaEndpointPayload {
                     variable: .named(.`self`) + endpoint.payloadVariable.reference,
                     value: .try | .named("nestedContainer") + decodeMethod | .call(Tuple()
                         .adding(parameter: TupleParameter(value: payloadPropertyTypeID.reference + .named(.`self`)))
-                        .adding(parameter: TupleParameter(name: "forKey", value: +.named(subkey.camelCased().variableCased)))
-                    ) | (
-                        payloadPropertyTypeID.isArray ?
-                            +.named("lazy") + .named(.compactMap) | .block(FunctionBody()
-                                .adding(member: .named("$0") + .named("value") | .call())
-                            ) + .named("any") : .none
-                    )
+                        .adding(parameter: TupleParameter(name: "forKey", value: +.named(subkey.camelCased().variableCased())))
+                    ) | unwrappedValues
                 ))
+            
         case .mapFromSubstruct(let key, let subkey):
             metadataKey = key
             var nestedDecodingType = TypeIdentifier(name: "NestedValue")
@@ -229,26 +241,38 @@ struct MetaEndpointPayload {
                         .adding(parameter: TupleParameter(value: nestedDecodingType.reference + .named(.`self`)))
                         .adding(parameter: TupleParameter(name: "forKey", value: +.named(key)))
                     ) + .named("lazy") + .named(endpoint.entity.structure.isArray ? .compactMap : .map) | .block(FunctionBody()
-                        .adding(member: Reference.named("$0") | (+.named("value") | .call() | .unwrap) + .named(subkey.camelCased().variableCased))
+                        .adding(member: Reference.named("$0") | (+.named("value") | .call() | .unwrap) + .named(subkey.camelCased().variableCased()))
                     ) + .named("any")
                 ))
         }
         
         if endpoint.metadata == nil {
-            return function.adding(member: Assignment(
-                variable: .named(.`self`) + .named("endpointMetadata"),
-                value: TypeIdentifier.voidMetadata.reference | .call()
-            ))
+            return function
+                .adding(member: Assignment(
+                    variable: .named(.`self`) + .named("endpointMetadata"),
+                    value: TypeIdentifier.voidMetadata.reference | .call()
+                ))
         } else if let metadataKeyName = metadataKey {
-            return function.adding(member: Assignment(
-                variable: .named(.`self`) + .named("endpointMetadata"),
-                value: try .try | .named("container") + decodeMethod | .call(Tuple()
-                    .adding(parameter: TupleParameter(value: metadataPropertyTypeID().reference + .named(.`self`)))
-                    .adding(parameter: TupleParameter(name: "forKey", value: +.named(metadataKeyName)))
-                )
-            ))
+            return function
+                .adding(member: Assignment(
+                    variable: .named(.`self`) + .named("endpointMetadata"),
+                    value: try .try | .named("container") + decodeMethod | .call(Tuple()
+                        .adding(parameter: TupleParameter(value: metadataPropertyTypeID().reference + .named(.`self`)))
+                        .adding(parameter: TupleParameter(name: "forKey", value: +.named(metadataKeyName)))
+                    )
+                ))
         } else {
-            throw CodeGenError.unsupportedMetadataIdentifier
+            return function
+                .adding(member: Assignment(
+                    variable: Variable(name: "singleValueContainer"),
+                    value: .try | Reference.named("decoder") + .named("singleValueContainer") | .call()
+                ))
+                .adding(member: Assignment(
+                    variable: .named(.`self`) + .named("endpointMetadata"),
+                    value: try .try | .named("singleValueContainer") + decodeMethod | .call(Tuple()
+                        .adding(parameter: TupleParameter(value: metadataPropertyTypeID().reference + .named(.`self`)))
+                    )
+                ))
         }
     }
     
@@ -262,9 +286,38 @@ struct MetaEndpointPayload {
             .adding(inheritedType: .decodable)
             .adding(inheritedType: .endpointMetadata)
             .adding(members: metadata.map {
-                return Property(variable: $0.variable.with(type: $0.typeID))
+                Property(variable: $0.variable().with(type: $0.typeID))
                     .with(accessLevel: .public)
             })
+            .adding(member: EmptyLine())
+            .adding(member: Type(identifier: TypeIdentifier(name: "Keys"))
+                .with(kind: .enum(indirect: false))
+                .with(accessLevel: .private)
+                .adding(inheritedType: .string)
+                .adding(inheritedType: .codingKey)
+                .adding(members: metadata.map { property in
+                    Case(name: property.name.camelCased(ignoreLexicon: true).variableCased())
+                })
+            )
+            .adding(member: EmptyLine())
+            .adding(member: Function.initFromDecoder
+                .with(accessLevel: .public)
+                .adding(member: Assignment(
+                    variable: Variable(name: "container"),
+                    value: .try | .named("decoder") + .named("container") | .call(Tuple()
+                        .adding(parameter: TupleParameter(name: "keyedBy", value: TypeIdentifier(name: "Keys").reference + .named(.`self`)))
+                    )
+                ))
+                .adding(members: metadata.map { property in
+                    Assignment(
+                        variable: Reference.named(property.name.camelCased().variableCased()),
+                        value: .try | .named("container") + .named("decode") | .call(Tuple()
+                            .adding(parameter: TupleParameter(value: property.typeID.reference + .named(.`self`)))
+                            .adding(parameter: TupleParameter(name: "forKey", value: +.named(property.name.camelCased(ignoreLexicon: true).variableCased())))
+                        )
+                    )
+                })
+            )
     }
     
     private func accessors() throws -> Extension {

@@ -11,6 +11,12 @@ struct MetaCoreManagerContainer {
     
     let descriptions: Descriptions
     
+    let responseHandlerFunction: String?
+
+    let coreDataMigrationsFunction: String?
+
+    let reactiveKit: Bool
+
     func meta() -> [FileBodyMember] {
         return [
             [
@@ -72,18 +78,20 @@ struct MetaCoreManagerContainer {
         return Type(identifier: .coreManagerContainer)
             .with(kind: .class(final: true))
             .with(accessLevel: .public)
-            .adding(member: PlainCode(code: """
-            
-            private let _responseHandler: CoreManagerContainerClientQueueResponseHandler? = makeResponseHandler()
-            public var responseHandler: APIClientQueueResponseHandler? {
-                return _responseHandler
-            }
+            .adding(member:
+                PlainCode(code: """
 
-            public let mainClientQueue: APIClientQueue
-            public let clientQueues: Set<APIClientQueue>
-            
-            public let coreDataManager: CoreDataManager
-            """))
+                private let _responseHandler: CoreManagerContainerClientQueueResponseHandler? = \(responseHandlerFunction.flatMap { "\($0)()" } ?? "nil")
+                public var responseHandler: APIClientQueueResponseHandler? {
+                    return _responseHandler
+                }
+
+                public let coreDataManager: CoreDataManager
+
+                public let clientQueues: Set<APIClientQueue>
+                public let mainClientQueue: APIClientQueue
+                """)
+            )
             .adding(members: descriptions.entities.flatMap { entity -> [TypeBodyMember] in
                 [
                     EmptyLine(),
@@ -115,51 +123,62 @@ struct MetaCoreManagerContainer {
                         .adding(parameter: TupleParameter(name: "in", value: Reference.named("Bundle") | .call(Tuple()
                             .adding(parameter: TupleParameter(name: "for", value: Reference.named("CoreManagerContainer.self")))
                         )))
-                        .adding(parameter: TupleParameter(name: "migrations", value: Reference.named("CoreDataManager.migrations")))
+                        .adding(parameter: TupleParameter(
+                            name: "migrations",
+                            value: coreDataMigrationsFunction.flatMap { Reference.named($0) | .call() } ?? Value.array([])
+                        ))
                     ))
                 )
                 .adding(member: EmptyLine())
-                .adding(member: PlainCode(code: """
-                let mainClientQueue = APIClientQueue.clientQueue(
-                    for: "\\(CoreManagerContainer.self)_api_client_queue",
-                    client: client,
-                    scheduler: APIClientQueueDefaultScheduler()
+                .adding(member:
+                    PlainCode(code: """
+                    self.coreDataManager = coreDataManager
+
+                    var clientQueues = Set<APIClientQueue>()
+                    var clientQueue: APIClientQueue
+
+                    """)
                 )
-                if let responseHandler = _responseHandler {
-                    mainClientQueue.register(responseHandler)
-                }
-                self.mainClientQueue = mainClientQueue
-                self.coreDataManager = coreDataManager
+                .adding(members: descriptions.clientQueueNames.map { clientQueueName -> FunctionBodyMember in
+                    PlainCode(code: """
+                    let \(clientQueueName)ClientQueue = APIClientQueue.clientQueue(
+                        for: "\\(CoreManagerContainer.self)_\(clientQueueName == Entity.mainClientQueueName ? "" : "\(clientQueueName)_")api_client_queue",
+                        client: client,
+                        scheduler: APIClientQueueDefaultScheduler()
+                    )
 
-                var clientQueues = Set([mainClientQueue])
-                var clientQueue = mainClientQueue
-
-                """))
+                    """)
+                })
                 .adding(members: descriptions.entities.flatMap { entity -> [FunctionBodyMember] in
                     [
+                        PlainCode(code: """
+                        clientQueue = \(entity.clientQueueName)ClientQueue
+                        """),
                         Assignment(
                             variable: entity.privateCoreManagerVariable.reference,
                             value: TypeIdentifier.coreManager().reference | .call(Tuple()
                                 .adding(parameter: TupleParameter(name: "stores", value: entity.typeID().reference + .named("stores") | .call(Tuple()
-                                .adding(parameter: TupleParameter(name: "with", value: Reference.named("client")))
-                                .adding(parameter: TupleParameter(name: "clientQueue", value: Reference.named("&clientQueue")))
-                                .adding(parameter: TupleParameter(name: "coreDataManager", value: Reference.named("coreDataManager")))
-                                .adding(parameter: TupleParameter(name: "cacheLimit", value: Reference.named("cacheLimit")))
-                            ))))
+                                    .adding(parameter: TupleParameter(name: "with", value: Reference.named("client")))
+                                    .adding(parameter: TupleParameter(name: "clientQueue", value: Reference.named("&clientQueue")))
+                                    .adding(parameter: TupleParameter(name: "coreDataManager", value: Reference.named("coreDataManager")))
+                                    .adding(parameter: TupleParameter(name: "cacheLimit", value: Reference.named("cacheLimit")))
+                                    ))))
                         ),
                         PlainCode(code: """
-                        if clientQueues.contains(clientQueue) == false, let responseHandler = _responseHandler {
-                            clientQueue.register(responseHandler)
-                        }
                         clientQueues.insert(clientQueue)
-                        clientQueue = mainClientQueue
 
                         """)
                     ]
                 })
-                .adding(member: PlainCode(code: """
-                self.clientQueues = clientQueues
-                """))
+                .adding(member:
+                    PlainCode(code: """
+                    if let responseHandler = _responseHandler {
+                        clientQueues.forEach { $0.register(responseHandler) }
+                    }
+                    self.clientQueues = clientQueues
+                    self.mainClientQueue = mainClientQueue
+                    """)
+                )
                 .adding(member: EmptyLine())
                 .adding(member: Comment.comment("Init of lazy vars for thread-safety."))
                 .adding(members: descriptions.entities.map { entity in
@@ -169,9 +188,11 @@ struct MetaCoreManagerContainer {
                     )
                 })
                 .adding(member: EmptyLine())
-                .adding(member: PlainCode(code: """
-                _responseHandler?.managers = self
-                """))
+                .adding(member:
+                    PlainCode(code: """
+                    _responseHandler?.managers = self
+                    """)
+                )
             )
     }
     
@@ -187,8 +208,15 @@ struct MetaCoreManagerContainer {
                     type: .anySequence(element: .anyRelationshipIdentifierConvertible))
                 )
                 .adding(parameter: FunctionParameter(name: "entityType", type: .string))
-                .adding(parameter: FunctionParameter(alias: "in", name: "context", type: TypeIdentifier(name: "AppReadContext")))
-                .with(resultType: .signal(of: .anySequence(element: .appAnyEntity), error: .managerError))
+                .adding(parameter: FunctionParameter(
+                    alias: "in",
+                    name: "context",
+                    type: TypeIdentifier(name: "_ReadContext").adding(genericParameter: .endpointResultPayload)
+                ))
+                .with(resultType: reactiveKit ?
+                    .signal(of: .anySequence(element: .appAnyEntity), error: .managerError) :
+                    .anyPublisher(of: .anySequence(element: .appAnyEntity), error: .managerError)
+                )
                 .adding(member: Switch(reference: .named("entityType"))
                     .adding(cases: descriptions.entities.map { entity in
                         SwitchCase()
@@ -202,18 +230,23 @@ struct MetaCoreManagerContainer {
                                 .adding(parameter: TupleParameter(name: "in", value: Reference.named("context")))
                             ) + .named("once") + .named(.map) | .block(FunctionBody()
                                 .adding(member: .named("$0") + .named("lazy") + .named(.map) | .block(FunctionBody()
-                                    .adding(member: +.named(entity.name.unversionedName.variableCased) | .call(Tuple()
+                                    .adding(member: +.named(entity.name.camelCased().variableCased()) | .call(Tuple()
                                         .adding(parameter: TupleParameter(value: Reference.named("$0")))
                                     ))
                                 ) + .named("any"))
-                            )))
+                            ) | (reactiveKit == false ? +.named("eraseToAnyPublisher") | .call() : .none)))
                     })
                     .adding(case: SwitchCase(name: .default)
-                        .adding(member: Return(value: TypeIdentifier.signal().reference | .call(Tuple()
-                            .adding(parameter: TupleParameter(name: "result", value: +.named("failure") | .call(Tuple()
-                                .adding(parameter: TupleParameter(value: +.named("notSupported")))
-                            ))
-                        ))))
+                        .adding(member: reactiveKit ?
+                            Return(value: TypeIdentifier.signal().reference | .call(Tuple()
+                                .adding(parameter: TupleParameter(name: "result", value: +.named("failure") | .call(Tuple()
+                                    .adding(parameter: TupleParameter(value: +.named("notSupported")))
+                                ))
+                            ))) :
+                            Return(value: TypeIdentifier(name: "Fail").reference | .call(Tuple()
+                                .adding(parameter: TupleParameter(name: "error", value: +.named("notSupported")))
+                            ) + .named("eraseToAnyPublisher") | .call())
+                        )
                     )
                 )
             )

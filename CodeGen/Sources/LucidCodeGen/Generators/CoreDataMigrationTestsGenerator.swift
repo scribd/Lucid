@@ -23,15 +23,19 @@ public final class CoreDataMigrationTestsGenerator: Generator {
     
     private let platform: Platform?
 
+    private let reactiveKit: Bool
+
     public init(descriptions: Descriptions,
                 sqliteFiles: [String],
                 appVersion: String,
-                platform: Platform?) {
+                platform: Platform?,
+                reactiveKit: Bool) {
         
         self.descriptions = descriptions
         self.sqliteFiles = sqliteFiles
         self.appVersion = appVersion
         self.platform = platform
+        self.reactiveKit = reactiveKit
     }
     
     public func generate(for element: Description, in directory: Path) throws -> File? {
@@ -46,7 +50,8 @@ public final class CoreDataMigrationTestsGenerator: Generator {
         let coreDataMigrationTests = MetaCoreDataMigrationTests(descriptions: descriptions,
                                                                 sqliteVersions: sqliteVersions,
                                                                 appVersion: appVersion,
-                                                                platform: platform)
+                                                                platform: platform,
+                                                                reactiveKit: reactiveKit)
         
         return Meta.File(name: filename)
             .with(header: header.meta)

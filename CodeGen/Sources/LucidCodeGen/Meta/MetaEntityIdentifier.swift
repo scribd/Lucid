@@ -42,6 +42,7 @@ struct MetaEntityIdentifier {
         let entity = try descriptions.entity(for: entityName)
 
         return Type(identifier: entity.identifierTypeID())
+            .adding(inheritedType: .codable)
             .with(kind: .class(final: true))
             .with(accessLevel: .public)
             .adding(inheritedType: .coreDataIdentifier)
@@ -306,7 +307,7 @@ struct MetaEntityIdentifier {
         return Property(variable: Variable(name: "entityTypeUID")
             .with(static: true))
             .with(accessLevel: .public)
-            .with(value: Value.string(entityName.unversionedName.snakeCased))
+            .with(value: Value.string(entityName))
     }
     
     // MARK: - IdentifierTypeID

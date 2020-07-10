@@ -42,7 +42,7 @@ public enum Description: Equatable {
     }
 }
 
-public enum TargetName: String, CaseIterable {
+public enum TargetName: String, CaseIterable, Decodable {
     case app = "app"
     case appTests = "app_tests"
     case appTestSupport = "app_test_support"
@@ -73,6 +73,9 @@ public protocol Target {
     
     /// Where to generate the boilerplate code.
     var outputPath: Path { get }
+    
+    /// Is target selected to be generated.
+    var isSelected: Bool { get }
 }
 
 public typealias Platform = String
@@ -202,8 +205,6 @@ public struct MetadataProperty: Equatable {
 
     public let name: String
 
-    public let key: String?
-
     public let propertyType: PropertyType
 
     public let optional: Bool
@@ -238,6 +239,10 @@ public struct Entity {
     public let modelMappingHistory: [ModelMapping]?
     
     public let lastRemoteRead: Bool
+    
+    public let queryContext: Bool
+
+    public let clientQueueName: String
 }
 
 // MARK: - ModelMapping
@@ -306,6 +311,8 @@ public struct EntityProperty {
     public let matchExactKey: Bool
     
     public let previousName: String?
+
+    public let persistedName: String?
 
     public let addedAtVersion: String?
 

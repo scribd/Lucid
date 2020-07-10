@@ -6,7 +6,13 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
+import Foundation
+
+#if LUCID_REACTIVE_KIT
+@testable import Lucid_ReactiveKit
+#else
 @testable import Lucid
+#endif
 
 // MARK: - EntitySpy
 
@@ -14,14 +20,14 @@ public final class EntitySpyIdentifier: RemoteIdentifier, CoreDataIdentifier {
 
     public typealias RemoteValueType = Int
     public typealias LocalValueType = String
-    
+
     public let _remoteSynchronizationState: PropertyBox<RemoteSynchronizationState>
-    
+
     private let property: PropertyBox<IdentifierValueType<String, Int>>
     public var value: IdentifierValueType<String, Int> {
         return property.value
     }
-    
+
     public static let entityTypeUID = "entity_spy"
     public let identifierTypeID: String
 
@@ -32,15 +38,15 @@ public final class EntitySpyIdentifier: RemoteIdentifier, CoreDataIdentifier {
         self.identifierTypeID = identifierTypeID ?? EntitySpy.identifierTypeID
         property = PropertyBox(value, atomic: true)
     }
-    
+
     public static func < (lhs: EntitySpyIdentifier, rhs: EntitySpyIdentifier) -> Bool {
         return lhs.value < rhs.value
     }
-    
+
     public static func == (_ lhs: EntitySpyIdentifier, _ rhs: EntitySpyIdentifier) -> Bool {
         return lhs.value == rhs.value && lhs.identifierTypeID == rhs.identifierTypeID
     }
-    
+
     public func hash(into hasher: inout DualHasher) {
         hasher.combine(value)
         hasher.combine(identifierTypeID)
@@ -49,19 +55,19 @@ public final class EntitySpyIdentifier: RemoteIdentifier, CoreDataIdentifier {
     public func update(with newValue: EntitySpyIdentifier) {
         property.value.merge(with: newValue.value)
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(property.value)
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         property = PropertyBox(try container.decode(IdentifierValueType<String, Int>.self), atomic: true)
         _remoteSynchronizationState = PropertyBox(.synced, atomic: true)
         identifierTypeID = EntitySpy.identifierTypeID
     }
-    
+
     public var description: String {
         return "\(EntitySpyIdentifier.self):\(value.description)"
     }
@@ -76,7 +82,7 @@ public enum EntitySpyIndexName {
 }
 
 extension EntitySpyIndexName: CoreDataIndexName {
-    
+
     public var predicateString: String {
         switch self {
         case .title:
@@ -91,7 +97,7 @@ extension EntitySpyIndexName: CoreDataIndexName {
             return "_manyRelationships"
         }
     }
-    
+
     public var isOneToOneRelationship: Bool {
         switch self {
         case .title,
@@ -103,7 +109,7 @@ extension EntitySpyIndexName: CoreDataIndexName {
             return true
         }
     }
-    
+
     public var identifierTypeIDRelationshipPredicateString: String? {
         switch self {
         case .title,
@@ -113,6 +119,24 @@ extension EntitySpyIndexName: CoreDataIndexName {
             return nil
         case .oneRelationship:
             return "__oneRelationshipTypeUID"
+        }
+    }
+}
+
+extension EntitySpyIndexName: QueryResultConvertible {
+
+    public var requestValue: String {
+        switch self {
+        case .title:
+            return "title"
+        case .subtitle:
+            return "subtitle"
+        case .extra:
+            return "extra"
+        case .manyRelationships:
+            return "many_relationships"
+        case .oneRelationship:
+            return "one_relationship"
         }
     }
 }
@@ -155,7 +179,7 @@ public final class EntityEndpointResultPayloadSpy: ResultPayloadConvertible {
         self.stubEntityMetadata = stubEntityMetadata?.any
         self.stubEndpointMetadata = stubEndpointMetadata
     }
-    
+
     public convenience init(from data: Data,
                             endpoint: EndpointStubData,
                             decoder: JSONDecoder) throws {
@@ -163,7 +187,7 @@ public final class EntityEndpointResultPayloadSpy: ResultPayloadConvertible {
                   stubEntityMetadata: endpoint.stubEntityMetadata,
                   stubEndpointMetadata: endpoint.stubEndpointMetadata)
     }
-    
+
     public var metadata: EndpointResultMetadata {
         metadataRecordCount += 1
         return EndpointResultMetadata(endpoint: stubEndpointMetadata,
@@ -196,24 +220,35 @@ public struct EntitySpyMetadata: EntityMetadata, EntityIdentifiable {
     public var identifier: EntitySpyIdentifier { return EntitySpyIdentifier(value: .remote(remoteID, nil)) }
 }
 
+public enum EntitySpyExtrasIndexName: Hashable, RemoteEntityExtrasIndexName {
+    case extra
+
+    public var requestValue: String {
+        switch self {
+        case .extra: return "extra"
+        }
+    }
+}
+
 public final class EntitySpy: RemoteEntity {
 
     public typealias Metadata = EntitySpyMetadata
-    public typealias ExtrasIndexName = VoidExtrasIndexName
+    public typealias ExtrasIndexName = EntitySpyExtrasIndexName
     public typealias ResultPayload = EntityEndpointResultPayloadSpy
+    public typealias QueryContext = Never
 
     public static let identifierTypeID = "entity_spy"
 
     static var stubEndpointData: EndpointStubData?
 
     // MARK: - Records
-    
+
     static var remotePathRecords = [RemotePath<EntitySpy>]()
 
     static var endpointInvocationCount: Int = 0
 
     static var indexNameRecords = [IndexName]()
-    
+
     static var mergingRecords = [EntitySpy]()
 
     static func resetRecords() {
@@ -223,18 +258,18 @@ public final class EntitySpy: RemoteEntity {
         indexNameRecords.removeAll()
         mergingRecords.removeAll()
     }
-    
+
     // MARK: - API
-    
+
     public typealias Identifier = EntitySpyIdentifier
     public typealias IndexName = EntitySpyIndexName
-    
+
     public let identifier: EntitySpyIdentifier
     let title: String
     let subtitle: String
     let extra: Extra<Int>
     let oneRelationship: EntityRelationshipSpyIdentifier
-    
+
     let manyRelationships: AnySequence<EntityRelationshipSpyIdentifier>
 
     init<S>(identifier: EntitySpyIdentifier,
@@ -286,7 +321,7 @@ public final class EntitySpy: RemoteEntity {
             .manyRelationships
         ]
     }
-    
+
     public var entityRelationshipEntityTypeUIDs: [String] {
         return [EntityRelationshipSpyIdentifier.entityTypeUID]
     }
@@ -296,11 +331,11 @@ public final class EntitySpy: RemoteEntity {
         return APIRequestConfig(method: .get, path: .path("fake_entity") / remotePath.identifier())
     }
 
-    public static var endpoint: EndpointStubData? {
+    public static func endpoint(for remotePath: RemotePath<EntitySpy>) -> EndpointStubData? {
         EntitySpy.endpointInvocationCount += 1
         return stubEndpointData
     }
-    
+
     public static func == (lhs: EntitySpy, rhs: EntitySpy) -> Bool {
         guard lhs.identifier == rhs.identifier else { return false }
         guard lhs.title == rhs.title else { return false }
@@ -309,10 +344,27 @@ public final class EntitySpy: RemoteEntity {
         guard lhs.manyRelationships == rhs.manyRelationships else { return false }
         return true
     }
+
+    public static var shouldValidate: Bool {
+        return true
+    }
+
+    public func isEntityValid(for query: Query<EntitySpy>) -> Bool {
+
+        guard let requestedExtras = query.extras else { return true }
+
+        for requestedExtra in requestedExtras {
+            switch requestedExtra {
+            case .extra: return extra != .unrequested
+            }
+        }
+
+        return true
+    }
 }
 
 extension EntitySpy: CoreDataEntity {
-    
+
     public static func entity(from coreDataEntity: ManagedEntitySpy) -> EntitySpy? {
         do {
             return try EntitySpy(coreDataEntity: coreDataEntity)
@@ -321,9 +373,9 @@ extension EntitySpy: CoreDataEntity {
             return nil
         }
     }
-    
+
     public func merge(into coreDataEntity: ManagedEntitySpy) {
-        coreDataEntity.__typeUID = identifier.identifierTypeID
+        coreDataEntity.__type_uid = identifier.identifierTypeID
         coreDataEntity.setProperty(Identifier.remotePredicateString, value: identifier.value.remoteValue?.coreDataValue())
         coreDataEntity.__identifier = identifier.value.localValue?.coreDataValue()
         coreDataEntity._title = title.coreDataValue()
@@ -335,7 +387,7 @@ extension EntitySpy: CoreDataEntity {
         coreDataEntity.setProperty("_extra", value: extra.extraValue().coreDataValue())
         coreDataEntity.setProperty("__extraExtraFlag", value: extra.coreDataFlagValue)
     }
-    
+
     private convenience init(coreDataEntity: ManagedEntitySpy) throws {
         self.init(
             identifier: try coreDataEntity.identifierValueType(EntitySpyIdentifier.self, identifierTypeID: EntitySpy.identifierTypeID),
@@ -352,7 +404,7 @@ extension EntitySpy: CoreDataEntity {
 }
 
 extension EntitySpy {
-    
+
     convenience init(idValue: IdentifierValueType<String, Int> = .remote(1, nil),
                      remoteSynchronizationState: RemoteSynchronizationState = .outOfSync,
                      title: String? = nil,
@@ -360,7 +412,7 @@ extension EntitySpy {
                      extra: Extra<Int> = .unrequested,
                      oneRelationshipIdValue: IdentifierValueType<String, Int> = .remote(1, nil),
                      manyRelationshipsIdValues: [IdentifierValueType<String, Int>] = []) {
-        
+
         self.init(
             identifier: EntitySpyIdentifier(value: idValue, remoteSynchronizationState: remoteSynchronizationState),
             title: title ?? "fake_title_\(idValue.remoteValue?.description ?? "none")",

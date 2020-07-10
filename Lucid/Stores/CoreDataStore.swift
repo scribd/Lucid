@@ -12,18 +12,18 @@ import CoreData
 // MARK: - CoreManager
 
 public final class CoreDataManager: NSObject {
-    
+
     // MARK: - State
-    
+
     fileprivate enum State {
         case unloaded
         case loaded(NSPersistentContainer, NSManagedObjectContext)
         case loading([() -> Void])
         case failed(NSError?)
     }
-    
+
     // MARK: - Migration
-    
+
     public enum MigrationVersion {
         case legacy(Int)
         case appVersion(String)
@@ -43,16 +43,16 @@ public final class CoreDataManager: NSObject {
     public struct Migration {
         public let version: MigrationVersion
         public let execute: (NSManagedObjectContext) -> Result<Void, StoreError>
-        
+
         public init(version: MigrationVersion,
                     execute: @escaping (NSManagedObjectContext) -> Result<Void, StoreError>) {
             self.version = version
             self.execute = execute
         }
     }
-    
+
     // MARK: - Configuration
-    
+
     enum Configuration {
         static let modelName = "Lucid"
         static let bundle = Bundle(for: CoreDataManager.self)
@@ -62,7 +62,7 @@ public final class CoreDataManager: NSObject {
         static var stateDispatchQueue: DispatchQueue {
             return DispatchQueue(label: "\(CoreDataManager.self)")
         }
-        
+
         static var isTestTarget: Bool {
             return NSClassFromString("XCTest") != nil
         }
@@ -93,12 +93,12 @@ public final class CoreDataManager: NSObject {
     private static var _testingManagedObjectModel: NSManagedObjectModel?
 
     // MARK: - Dependencies
-    
+
     private var _state: State = .unloaded
     private let stateDispatchQueue: DispatchQueue
     private let forceMigration: Bool
     private let userDefaults: UserDefaults
-    
+
     public let modelURL: URL
     public let persistentStoreURL: URL
     private let migrations: [Migration]
@@ -111,7 +111,7 @@ public final class CoreDataManager: NSObject {
          dispatchQueue: DispatchQueue = Configuration.stateDispatchQueue,
          forceMigration: Bool = Configuration.forceMigration,
          userDefaults: UserDefaults = .standard) {
-        
+
         self.modelURL = modelURL
         self.persistentStoreURL = persistentStoreURL
         self.migrations = migrations
@@ -120,7 +120,7 @@ public final class CoreDataManager: NSObject {
         self.stateDispatchQueue = dispatchQueue
         self.forceMigration = forceMigration
     }
-    
+
     public convenience init(modelName: String,
                             in bundle: Bundle,
                             migrations: [Migration] = [],
@@ -133,7 +133,7 @@ public final class CoreDataManager: NSObject {
             }
             return modelURL
         }()
-        
+
         let persistentStoreURL: URL = {
             guard let appSupportDirectory = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory, .userDomainMask, true).first else {
                 Logger.log(.error, "\(CoreDataManager.self): Could not find app support directory URL.", assert: true)
@@ -141,22 +141,22 @@ public final class CoreDataManager: NSObject {
             }
             return URL(fileURLWithPath: "\(appSupportDirectory)/\(modelName).sqlite")
         }()
-        
+
         self.init(modelURL: modelURL, persistentStoreURL: persistentStoreURL, migrations: migrations, storeType: storeType)
     }
-    
+
     deinit {
         unloadPersistentStore(sync: true)
     }
 
     // MARK: - API
-    
+
     private var modelName: String {
         return modelURL.lastPathComponent
             .replacingOccurrences(of: ".momd", with: "")
             .replacingOccurrences(of: ".mom", with: "")
     }
-    
+
     func backupPersistentStore(to destinationURL: URL, completion: @escaping (Bool) -> Void) {
         stateDispatchQueue.async {
             self._persistentContainer {
@@ -164,7 +164,7 @@ public final class CoreDataManager: NSObject {
                     completion(false)
                     return
                 }
-                
+
                 let success = persistentContainer.persistentStoreCoordinator.backupPersistentStore(to: destinationURL)
                 if success {
                     Logger.log(.info, "\(CoreDataManager.self): Persistent store was successfully exported to: \(destinationURL.path).")
@@ -188,7 +188,7 @@ public final class CoreDataManager: NSObject {
                 completion(false, nil)
                 return
             }
-            
+
             let entityNames = descriptions.compactMap { $0.name }
 
             context.perform {
@@ -198,7 +198,7 @@ public final class CoreDataManager: NSObject {
                         let request = NSBatchDeleteRequest(fetchRequest: fetch)
                         try context.execute(request)
                     }
-                    
+
                     try context.save()
                     Logger.log(.info, "\(CoreDataManager.self): The database is now cleared.")
                     completion(true, nil)
@@ -236,7 +236,7 @@ public final class CoreDataManager: NSObject {
 
         sync ? stateDispatchQueue.sync(execute: action) : stateDispatchQueue.async(execute: action)
     }
-    
+
     private func _persistentContainer(_ completion: @escaping () -> Void) {
         switch _state {
         case .unloaded:
@@ -289,22 +289,22 @@ public final class CoreDataManager: NSObject {
         guard let managedObjectModel = _loadManagedObjectModel(completion) else { return }
 
         Logger.log(.info, "\(CoreDataManager.self): Loading persistent stores.")
-        
+
         let persistentContainer = NSPersistentContainer(name: modelName, managedObjectModel: managedObjectModel)
-        
+
         let description = NSPersistentStoreDescription(url: persistentStoreURL)
         description.shouldAddStoreAsynchronously = true
         description.shouldInferMappingModelAutomatically = true
         description.shouldMigrateStoreAutomatically = true
         description.type = storeType.descriptionType
         persistentContainer.persistentStoreDescriptions = [description]
-        
+
         persistentContainer.loadPersistentStores { description, error in
-            
+
             self.stateDispatchQueue.async {
 
                 if let error = error {
-                    Logger.log(.error, "\(CoreDataManager.self): Error while loading persistent stores: \(error).", assert: true)
+                    Logger.log(.error, "\(CoreDataManager.self): Error while loading persistent stores: \(error).")
 
                     if recovering == false {
                         Logger.log(.warning, "\(CoreDataManager.self): Deleting persistent stores and reloading.")
@@ -318,7 +318,7 @@ public final class CoreDataManager: NSObject {
                     }
                     return
                 }
-                
+
                 Logger.log(.info, "\(CoreDataManager.self): Persistent stores loaded successfully.")
                 Logger.log(.info, "\(CoreDataManager.self): \(description.url?.path.replacingOccurrences(of: " ", with: "\\ ") ?? "_")")
 
@@ -404,7 +404,7 @@ public final class CoreDataManager: NSObject {
             completion()
         }
     }
-    
+
     private func removePersistentStore() {
         Logger.log(.warning, "\(CoreDataManager.self): Destroying persistent store at: \(persistentStoreURL.path).")
         let fileManager = FileManager.default
@@ -446,23 +446,28 @@ private extension CoreDataManager.State {
 // MARK: - Store
 
 public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity {
-    
+
     public let level: StoreLevel = .disk
-    
+
     private let coreDataManager: CoreDataManager
-    
+
     public init(coreDataManager: CoreDataManager) {
         self.coreDataManager = coreDataManager
     }
-    
-    public func get(byID identifier: E.Identifier, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+
+    public func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+
+        guard let identifier = query.identifier else {
+            completion(.failure(.identifierNotFound))
+            return
+        }
 
         coreDataManager.makeContext { managedObjectContext in
             guard let managedObjectContext = managedObjectContext else {
                 completion(.failure(.invalidCoreDataState))
                 return
             }
-            
+
             managedObjectContext.perform {
                 switch CoreDataStore._get(byID: identifier, in: managedObjectContext) {
                 case .success(.some(let coreDataEntity)):
@@ -495,7 +500,7 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
                     if query.order.contains(where: { $0.isByIdentifiers }) {
                         entities = entities.order(with: query.order)
                     }
-                    let result = QueryResult(fromOrderedEntities: entities, for: query)
+                    let result = QueryResult(fromProcessedEntities: entities, for: query)
                     completion(.success(result))
                 case .failure(let error):
                     completion(.failure(error))
@@ -511,7 +516,7 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
                 completion(.failure(.invalidCoreDataState))
                 return
             }
-            
+
             managedObjectContext.perform {
                 var mergedEntities: [E] = []
                 for entity in entities {
@@ -538,7 +543,7 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
                         return
                     }
                 }
-                
+
                 do {
                     try managedObjectContext.save()
                     completion(.success(mergedEntities.any))
@@ -549,7 +554,7 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
             }
         }
     }
-    
+
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void) {
 
         coreDataManager.makeContext { managedObjectContext in
@@ -557,7 +562,7 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
                 completion(.failure(.invalidCoreDataState))
                 return
             }
-            
+
             managedObjectContext.perform {
                 switch CoreDataStore._search(withQuery: query, in: managedObjectContext, loggingContext: "REMOVE ALL") {
                 case .success(let coreDataEntities) where coreDataEntities.isEmpty:
@@ -593,15 +598,15 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
             }
         }
     }
-    
+
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
-        
+
         coreDataManager.makeContext { managedObjectContext in
             guard let managedObjectContext = managedObjectContext else {
                 completion(.failure(.invalidCoreDataState))
                 return
             }
-         
+
             managedObjectContext.perform {
                 for identifier in identifiers {
                     switch CoreDataStore._get(byID: identifier, in: managedObjectContext, loggingContext: "REMOVE") {
@@ -614,7 +619,7 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
                         return
                     }
                 }
-                
+
                 do {
                     try managedObjectContext.save()
                     completion(.success(()))
@@ -630,17 +635,17 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
 // MARK: - Store Utils
 
 public extension CoreDataStore {
-    
+
     static func _get(byID identifier: E.Identifier, in context: NSManagedObjectContext, loggingContext: String? = nil) -> Result<E.CoreDataObject?, StoreError> {
-        
+
         let loggingContext = loggingContext.flatMap { "\($0) - " } ?? String()
-        
+
         let fetchRequest = E.CoreDataObject.fetchRequest()
         guard let filter = CoreDataQuery<E>.Filter(.identifier == .identifier(identifier)) else {
             return .failure(.notSupported)
         }
         fetchRequest.predicate = filter.predicate
-        
+
         do {
             guard let results = try context.fetch(fetchRequest) as? [E.CoreDataObject] else {
                 return .failure(.invalidCoreDataState)
@@ -651,13 +656,13 @@ public extension CoreDataStore {
             return .failure(.coreData(error as NSError))
         }
     }
-    
+
     static func _search(withQuery query: Query<E>, in context: NSManagedObjectContext, loggingContext: String? = nil) -> Result<AnySequence<E.CoreDataObject>, StoreError> {
-        
+
         let loggingContext = loggingContext.flatMap { "\($0) - " } ?? String()
 
         let fetchRequest = E.CoreDataObject.fetchRequest()
-        
+
         if let predicate = query.predicate {
             switch predicate {
             case .success(let predicate):
@@ -668,7 +673,15 @@ public extension CoreDataStore {
         }
 
         fetchRequest.sortDescriptors = query.order.flatMap { $0.sortDescriptors }
-        
+
+        if let limit = query.limit {
+            fetchRequest.fetchLimit = limit
+        }
+
+        if let offset = query.offset {
+            fetchRequest.fetchOffset = offset
+        }
+
         do {
             guard let results = try context.fetch(fetchRequest) as? [E.CoreDataObject] else {
                 return .failure(.invalidCoreDataState)
@@ -692,13 +705,13 @@ private enum CoreDataQuery<E> where E: CoreDataEntity {
         case negated(Filter)
         case binary(Filter, Query<E>.Operator, Filter)
     }
-    
+
     enum Value {
         case identifier(Any)
         case index(EntityIndexValue)
         case bool(Bool)
     }
-    
+
     enum Property {
         case localIdentifier
         case remoteIdentifier
@@ -708,7 +721,7 @@ private enum CoreDataQuery<E> where E: CoreDataEntity {
         case typeUIDRelationship(E.IndexName)
         case index(E.IndexName)
     }
-    
+
     enum EntityIndexValue {
         case string(String)
         case int(Int)
@@ -741,7 +754,7 @@ private extension CoreDataQuery.Filter {
                 Logger.log(.error, "Invalid filter. Value should be an identifier.", assert: true)
                 return nil
             }
-            
+
             switch identifier.value {
             case .local(let value):
                 self = .binary(
@@ -766,7 +779,7 @@ private extension CoreDataQuery.Filter {
                     )
                 )
             }
-            
+
         case .binary(.property(.identifier), .containedIn, .values(let values)),
              .binary(.values(let values), .containedIn, .property(.identifier)):
 
@@ -795,7 +808,7 @@ private extension CoreDataQuery.Filter {
                     return newBinary
                 }
             }
-            
+
             let remoteIdentifiersBinary = remoteIdentifiers.keys.sorted().reduce(nil) { (binary, entityTypeUID) -> CoreDataQuery<E>.Filter? in
                 guard let remoteIdentifiers = remoteIdentifiers[entityTypeUID] else { return binary }
                 let newBinary: CoreDataQuery<E>.Filter = .binary(
@@ -809,7 +822,7 @@ private extension CoreDataQuery.Filter {
                     return newBinary
                 }
             }
-            
+
             switch (localIdentifiersBinary, remoteIdentifiersBinary) {
             case (.some(let binary), nil),
                  (nil, .some(let binary)):
@@ -820,15 +833,15 @@ private extension CoreDataQuery.Filter {
                 Logger.log(.error, "Invalid filter. Values should only contain identifiers.", assert: true)
                 return nil
             }
-            
+
         case .binary(.property(.index(let index)), .equalTo, .value(let value)) where index.isOneToOneRelationship,
              .binary(.value(let value), .equalTo, .property(.index(let index))) where index.isOneToOneRelationship:
-            
+
             guard let relationshipIdentifier = value.relationshipIdentifier else {
                 Logger.log(.error, "Invalid filter. Value should be a relationship identifier.", assert: true)
                 return nil
             }
-            
+
             switch relationshipIdentifier.coreDataIdentifierValue {
             case .local(let value):
                 self = .binary(
@@ -856,7 +869,7 @@ private extension CoreDataQuery.Filter {
                 Logger.log(.error, "Invalid filter. Only relationships with CoreDataIdentifiers can be filtered on.", assert: true)
                 return nil
             }
-            
+
         case .binary(.property(.index(let index)), .containedIn, .values(let values)) where index.isOneToOneRelationship,
              .binary(.values(let values), .containedIn, .property(.index(let index))) where index.isOneToOneRelationship:
 
@@ -869,9 +882,9 @@ private extension CoreDataQuery.Filter {
                 Logger.log(.error, "Invalid filter. Values should only contain identifiers.", assert: true)
                 return nil
             }
-            
+
             let (remoteIdentifiers, localIdentifiers) = CoreDataQuery<E>.Filter.decomposeIdentifiers(for: values, relationships: true)
-            
+
             let localIdentifiersBinary = localIdentifiers.keys.sorted().reduce(nil) { (binary, entityTypeUID) -> CoreDataQuery<E>.Filter? in
                 guard let localIdentifiers = localIdentifiers[entityTypeUID] else { return binary }
                 let newBinary = CoreDataQuery<E>.Filter.binary(
@@ -885,7 +898,7 @@ private extension CoreDataQuery.Filter {
                     return newBinary
                 }
             }
-            
+
             let remoteIdentifiersBinary = remoteIdentifiers.keys.sorted().reduce(nil) { (binary, entityTypeUID) -> CoreDataQuery<E>.Filter? in
                 guard let remoteIdentifiers = remoteIdentifiers[entityTypeUID] else { return binary }
                 let newBinary = CoreDataQuery<E>.Filter.binary(
@@ -899,7 +912,7 @@ private extension CoreDataQuery.Filter {
                     return newBinary
                 }
             }
-            
+
             switch (localIdentifiersBinary, remoteIdentifiersBinary) {
             case (.some(let binary), nil),
                  (nil, .some(let binary)):
@@ -920,28 +933,28 @@ private extension CoreDataQuery.Filter {
              .binary(.binary, .lessThanOrEqual, .binary):
             Logger.log(.error, "Invalid filter. Cannot use .equalTo, .containedIn, .match, .greaterThan, .greaterThanOrEqual, .lessThan and .lessThanOrEqual operators with .binary.", assert: true)
             return nil
-            
+
         case .binary(let lhs, let op, let rhs):
             guard let lhs = CoreDataQuery<E>.Filter(lhs), let rhs = CoreDataQuery<E>.Filter(rhs) else { return nil }
             self = .binary(lhs, op, rhs)
-            
+
         case .negated(let filter):
             guard let filter = CoreDataQuery<E>.Filter(filter) else { return nil }
             self = .negated(filter)
-            
+
         case .property(let property):
             guard let property = CoreDataQuery<E>.Property(property) else { return nil }
             self = .property(property)
-            
+
         case .value(let value):
             guard let value = CoreDataQuery<E>.Value(value) else { return nil }
             self = .value(value)
-            
+
         case .values(let values):
             self = .values(values.lazy.compactMap { CoreDataQuery<E>.Value($0) }.any)
         }
     }
-    
+
     private static func decomposeIdentifiers(for values: DualHashSet<Query<E>.Value>, relationships: Bool = false) -> (remoteIdentifiers: [String: [CoreDataQuery<E>.Value]], localIdentifiers: [String: [CoreDataQuery<E>.Value]]) {
         let result: (remoteIdentifiers: [String: [CoreDataQuery<E>.Value]], localIdentifiers: [String: [CoreDataQuery<E>.Value]]) = values.reduce(into: ([:], [:])) { identifiers, value in
             guard let entityTypeUID = relationships ? value.relationshipIdentifier?.identifierTypeID : value.identifier?.identifierTypeID else {
@@ -968,7 +981,7 @@ private extension CoreDataQuery.Filter {
 }
 
 extension CoreDataQuery.Value {
-    
+
     init?(_ value: Query<E>.Value) {
         switch value {
         case .bool(let value):
@@ -984,7 +997,7 @@ extension CoreDataQuery.Value {
 }
 
 extension CoreDataQuery.Property {
-    
+
     init?(_ property: Query<E>.Property) {
         switch property {
         case .index(let name):
@@ -997,7 +1010,7 @@ extension CoreDataQuery.Property {
 }
 
 extension CoreDataQuery.EntityIndexValue {
-    
+
     init?(_ indexValue: EntityIndexValue<E.RelationshipIdentifier, E.Subtype>) {
         switch indexValue {
         case .string(let value):
@@ -1037,7 +1050,7 @@ extension CoreDataQuery.EntityIndexValue {
 // MARK: - CoreDataQuery --> NSPredicate Conversions
 
 private extension Query where E: CoreDataEntity {
-    
+
     var predicate: Result<NSPredicate?, StoreError>? {
         return filter.flatMap {
             guard let predicate = CoreDataQuery<E>.Filter($0)?.predicate else {
@@ -1049,7 +1062,7 @@ private extension Query where E: CoreDataEntity {
 }
 
 private extension CoreDataQuery.Filter {
-    
+
     var predicate: NSPredicate? {
         guard let predicateString = predicateString else { return nil }
         return NSPredicate(format: predicateString, argumentArray: predicateValues)
@@ -1057,7 +1070,7 @@ private extension CoreDataQuery.Filter {
 }
 
 private extension CoreDataQuery.Filter {
-    
+
     var predicateString: String? {
         switch self {
         case .binary(let filter, .equalTo, .value(.bool(let value))),
@@ -1082,7 +1095,7 @@ private extension CoreDataQuery.Filter {
             return "%@"
         }
     }
-    
+
     var isBinary: Bool {
         switch self {
         case .binary:
@@ -1115,7 +1128,7 @@ private extension CoreDataQuery.Filter {
 }
 
 private extension Query.Operator {
-    
+
     var predicateString: String {
         switch self {
         case .and:
@@ -1163,7 +1176,7 @@ private extension CoreDataQuery.Property {
 }
 
 private extension CoreDataQuery.Value {
-    
+
     var predicateValue: Any? {
         switch self {
         case .bool(let value):
@@ -1177,7 +1190,7 @@ private extension CoreDataQuery.Value {
 }
 
 private extension CoreDataQuery.EntityIndexValue {
-    
+
     var predicateValue: Any? {
         switch self {
         case .string(let value):
@@ -1218,7 +1231,7 @@ private extension CoreDataQuery.EntityIndexValue {
 // MARK: - Query --> NSSortDescriptor Conversions
 
 private extension Query.Order where E: CoreDataEntity {
-    
+
     var sortDescriptors: [NSSortDescriptor] {
         switch self {
         case .asc(let property):
@@ -1234,7 +1247,7 @@ private extension Query.Order where E: CoreDataEntity {
 }
 
 private extension Query.Property where E: CoreDataEntity {
-    
+
     func sortDescriptors(ascending: Bool) -> [NSSortDescriptor] {
         switch self {
         case .identifier:
@@ -1258,17 +1271,17 @@ private extension Query.Property where E: CoreDataEntity {
 // MARK: - CoreData Utils
 
 private extension NSPersistentStoreCoordinator {
-    
+
     /// Inspired of https://oleb.net/blog/2018/03/core-data-sqlite-backup/
     func backupPersistentStore(to destinationURL: URL, fileManager: FileManager = .default) -> Bool {
-        
+
         guard let sourceStore = persistentStores.first else {
             Logger.log(.error, "\(NSPersistentStoreCoordinator.self): Could not find persistent store.", assert: true)
             return false
         }
-        
+
         let backupCoordinator = NSPersistentStoreCoordinator(managedObjectModel: managedObjectModel)
-        
+
         let intermediateStoreOptions = (sourceStore.options ?? [:]).merging([NSReadOnlyPersistentStoreOption: true]) { $1 }
         let intermediateStore: NSPersistentStore
         do {
@@ -1282,7 +1295,7 @@ private extension NSPersistentStoreCoordinator {
             Logger.log(.error, "\(NSPersistentStoreCoordinator.self): Could not add persistent store: \(error).", assert: true)
             return false
         }
-        
+
         let backupStoreOptions: [AnyHashable: Any] = [
             NSReadOnlyPersistentStoreOption: true,
             // Disable write-ahead logging. Benefit: the entire store will be
@@ -1292,7 +1305,7 @@ private extension NSPersistentStoreCoordinator {
             // Minimize file size
             NSSQLiteManualVacuumOption: true
         ]
-        
+
         do {
             if fileManager.fileExists(atPath: destinationURL.path) {
                 try fileManager.removeItem(atPath: destinationURL.path)
@@ -1314,14 +1327,14 @@ private extension NSPersistentStoreCoordinator {
 }
 
 public extension CoreDataManager {
-    
+
     static func migrate(from oldObject: NSManagedObject,
                         to newObject: NSManagedObject,
                         mappingBlock: (String, Any?) -> (key: String, value: Any?)?) -> Bool {
-        
+
         let attributeNames = Set(newObject.entity.attributesByName.keys)
             .intersection(oldObject.entity.attributesByName.keys)
-        
+
         for attributeName in attributeNames {
             let oldValue = oldObject.primitiveValue(forKey: attributeName)
             guard let (newAttributeName, newValue) = mappingBlock(attributeName, oldValue) else {
@@ -1329,7 +1342,7 @@ public extension CoreDataManager {
             }
             newObject.setPrimitiveValue(newValue, forKey: newAttributeName)
         }
-        
+
         return true
     }
 }

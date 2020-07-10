@@ -12,11 +12,13 @@ struct MetaSubtypeFactory {
     let subtypeName: String
     
     let descriptions: Descriptions
+
+    let reactiveKit: Bool
     
     func imports() -> [Import] {
         return [
             .app(descriptions, testable: true),
-            .lucid(testable: true)
+            .lucid(reactiveKit: reactiveKit, testable: true)
         ]
     }
     
@@ -35,7 +37,9 @@ struct MetaSubtypeFactory {
             }
             return [
                 Extension(type: subtype.typeID())
-                    .adding(member: defautlValueProperty.with(value: +.named(firstCase)))
+                    .adding(member: defautlValueProperty
+                        .with(value: +.named(firstCase.camelCased().variableCased(ignoreLexicon: false)))
+                    )
             ]
             
         case .options(let allOptions, let unusedOptions):
@@ -45,7 +49,9 @@ struct MetaSubtypeFactory {
             }
             return [
                 Extension(type: subtype.typeID())
-                    .adding(member: defautlValueProperty.with(value: +.named(firstOption)))
+                    .adding(member: defautlValueProperty
+                        .with(value: +.named(firstOption.camelCased().variableCased(ignoreLexicon: false)))
+                    )
             ]
 
         case .properties(let properties):
@@ -55,7 +61,7 @@ struct MetaSubtypeFactory {
                     .with(accessLevel: .public)
                     .adding(inheritedType: .subtypeFactory)
                     .adding(members: properties.map { property in
-                        Property(variable: Variable(name: property.name)
+                        Property(variable: Variable(name: property.name.camelCased().variableCased(ignoreLexicon: true))
                             .with(immutable: false)
                             .with(type: property.typeID()))
                             .with(accessLevel: .public)
@@ -69,13 +75,16 @@ struct MetaSubtypeFactory {
                             let value: VariableValue
                             switch property.propertyType {
                             case .custom(let _value):
-                                value = .named(_value) + .named("factoryDefaultValue")
+                                value = .named(_value.camelCased().suffixedName()) + .named("factoryDefaultValue")
                             case .scalar(let _value):
-                                value = _value.defaultValue(propertyName: property.name, identifier: .named("identifier"))
+                                value = _value.defaultValue(
+                                    propertyName: property.name.camelCased().variableCased(ignoreLexicon: true),
+                                    identifier: .named("identifier")
+                                )
                             }
                             
                             return Assignment(
-                                variable: Reference.named(property.name),
+                                variable: Reference.named(property.name.camelCased().variableCased(ignoreLexicon: true)),
                                 value: value
                             )
                         })
@@ -86,7 +95,10 @@ struct MetaSubtypeFactory {
                         .with(accessLevel: .public)
                         .adding(member: Return(value: subtype.typeID().reference | .call(Tuple()
                             .adding(parameters: properties.map { property in
-                                TupleParameter(name: property.name, value: Reference.named(property.name))
+                                TupleParameter(
+                                    name: property.name.camelCased().variableCased(ignoreLexicon: true),
+                                    value: Reference.named(property.name.camelCased().variableCased(ignoreLexicon: true)
+                                ))
                             })
                         )))
                     )

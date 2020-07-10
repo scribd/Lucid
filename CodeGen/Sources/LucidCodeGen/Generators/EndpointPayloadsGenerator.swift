@@ -13,9 +13,12 @@ public final class EndpointPayloadsGenerator: Generator {
     public let name = "payloads"
     
     private let descriptions: Descriptions
+
+    private let reactiveKit: Bool
     
-    public init(descriptions: Descriptions) {
+    public init(descriptions: Descriptions, reactiveKit: Bool) {
         self.descriptions = descriptions
+        self.reactiveKit = reactiveKit
     }
     
     public func generate(for element: Description, in directory: Path) throws -> File? {
@@ -28,7 +31,7 @@ public final class EndpointPayloadsGenerator: Generator {
             
             return Meta.File(name: filename)
                 .with(header: header.meta)
-                .adding(import: .lucid())
+                .adding(import: .lucid(reactiveKit: reactiveKit))
                 .adding(member: try resultPayload.meta())
                 .swiftFile(in: directory)
 
@@ -36,7 +39,7 @@ public final class EndpointPayloadsGenerator: Generator {
             let entity = try descriptions.entity(for: entityName)
             guard entity.remote else { return nil }
             
-            let filename = "\(entityName)Payloads.swift"
+            let filename = "\(entityName.camelCased().suffixedName())Payloads.swift"
             
             let header = MetaHeader(filename: filename)
             let entityPayload = MetaEntityPayload(entityName: entityName,
@@ -44,12 +47,12 @@ public final class EndpointPayloadsGenerator: Generator {
             
             return Meta.File(name: filename)
                 .with(header: header.meta)
-                .adding(import: .lucid())
+                .adding(import: .lucid(reactiveKit: reactiveKit))
                 .with(body: try entityPayload.meta())
                 .swiftFile(in: directory)
             
         case .endpoint(let endpointName):
-            let filename = "\(endpointName)EndpointPayload.swift"
+            let filename = "\(endpointName.camelCased(separators: "_/").suffixedName())EndpointPayload.swift"
             
             let header = MetaHeader(filename: filename)
             let entityPayload = MetaEndpointPayload(endpointName: endpointName,
@@ -57,7 +60,7 @@ public final class EndpointPayloadsGenerator: Generator {
             
             return Meta.File(name: filename)
                 .with(header: header.meta)
-                .adding(import: .lucid())
+                .adding(import: .lucid(reactiveKit: reactiveKit))
                 .with(body: try entityPayload.meta())
                 .swiftFile(in: directory)
             

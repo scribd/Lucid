@@ -9,7 +9,7 @@
 public enum ManagerResult<E> where E: Entity {
     case groups(DualHashDictionary<EntityIndexValue<E.RelationshipIdentifier, E.Subtype>, [E]>)
     case entities([E])
-    
+
     public var entities: [E] {
         switch self {
         case .groups(let groups):
@@ -18,11 +18,11 @@ public enum ManagerResult<E> where E: Entity {
             return entities
         }
     }
-    
+
     public var entity: E? {
         return entities.first
     }
-    
+
     public var isEmpty: Bool {
         return entities.isEmpty
     }
@@ -33,7 +33,7 @@ public extension ManagerResult {
     static func entity(_ entity: E?) -> ManagerResult {
         return .entities([entity].compactMap { $0 })
     }
-    
+
     static var empty: ManagerResult {
         return .entities([])
     }
@@ -42,7 +42,7 @@ public extension ManagerResult {
 // MARK: - Sequence
 
 extension ManagerResult: Sequence {
-    
+
     public __consuming func makeIterator() -> Array<E>.Iterator {
         return entities.makeIterator()
     }
@@ -51,7 +51,7 @@ extension ManagerResult: Sequence {
 // MARK: - Conversions
 
 public extension QueryResult {
-    
+
     var managerResult: ManagerResult<E> {
         switch data {
         case .groups(let groups):

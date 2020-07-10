@@ -1,0 +1,15 @@
+{
+    "name": "genre",
+    "uid": "genre",
+    "added_at_version": "1.0.0",
+    "persist": true,
+    "identifier": {
+        "type": "int"
+    },
+    "properties": [
+        {
+            "name": "name",
+            "property_type": "string"
+        }
+    ]
+}

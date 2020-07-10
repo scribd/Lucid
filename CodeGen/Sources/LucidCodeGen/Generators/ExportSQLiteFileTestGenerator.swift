@@ -21,16 +21,20 @@ public final class ExportSQLiteFileTestGenerator: Generator {
     private let platform: Platform?
 
     private let descriptions: Descriptions
+
+    private let reactiveKit: Bool
         
     public init(descriptions: Descriptions,
                 descriptionsHash: String,
                 sqliteFile: Path,
-                platform: Platform?) {
+                platform: Platform?,
+                reactiveKit: Bool) {
 
         self.descriptions = descriptions
         self.descriptionsHash = descriptionsHash
         self.sqliteFile = sqliteFile
         self.platform = platform
+        self.reactiveKit = reactiveKit
     }
     
     public func generate(for element: Description, in directory: Path) throws -> File? {
@@ -40,7 +44,8 @@ public final class ExportSQLiteFileTestGenerator: Generator {
         let exportSQLiteFileTest = MetaExportSQLiteFileTest(descriptions: descriptions,
                                                             descriptionsHash: descriptionsHash,
                                                             sqliteFileName: sqliteFile.lastComponentWithoutExtension,
-                                                            platform: platform)
+                                                            platform: platform,
+                                                            reactiveKit: reactiveKit)
         
         return Meta.File(name: filename)
             .with(header: header.meta)

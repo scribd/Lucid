@@ -18,13 +18,15 @@ struct MetaCoreDataMigrationTests {
     
     let platform: Platform?
 
+    let reactiveKit: Bool
+
     func imports() -> [Import] {
         return [
             .xcTest,
             .app(descriptions, testable: true),
-            .lucid(testable: true),
+            .lucid(reactiveKit: reactiveKit, testable: true),
             .appTestKit(descriptions),
-            .lucidTestKit
+            .lucidTestKit(reactiveKit: reactiveKit)
         ]
     }
     
@@ -128,17 +130,17 @@ struct MetaCoreDataMigrationTests {
 
                 let coreDataManager = CoreDataManager(modelURL: modelURL,
                                                       persistentStoreURL: destinationURL,
-                                                      migrations: CoreDataManager.migrations,
+                                                      migrations: CoreDataManager.migrations(),
                                                       forceMigration: true)
             \(MetaCode(indentation: 1, meta: descriptions.entities.filter { $0.persist }.map { entity in
 
                 let rangesToIgnoreByPropertyName = entity.ignoredVersionRangesByPropertyName
                 let testCode = PlainCode(code: """
                 
-                let \(entity.name.variableCased)Expectation = self.expectation(description: "\(entity.name)")
-                let \(entity.name.variableCased)CoreDataStore = \(MetaCode(meta: TypeIdentifier.coreDataStore(of: entity.typeID())))(coreDataManager: coreDataManager)
-                \(entity.name.variableCased)CoreDataStore.get(byID: \(entity.name)Factory\(entity.hasVoidIdentifier ? "()" : "(42)").entity.identifier, in: AppReadContext()) { result in
-                    defer { \(entity.name.variableCased)Expectation.fulfill() }
+                let \(entity.transformedName.variableCased())Expectation = self.expectation(description: "\(entity.transformedName)")
+                let \(entity.transformedName.variableCased())CoreDataStore = \(MetaCode(meta: TypeIdentifier.coreDataStore(of: entity.typeID())))(coreDataManager: coreDataManager)
+                \(entity.transformedName.variableCased())CoreDataStore.get(byID: \(entity.transformedName)Factory\(entity.hasVoidIdentifier ? "()" : "(42)").entity.identifier, in: _ReadContext<EndpointResultPayload>()) { result in
+                    defer { \(entity.transformedName.variableCased())Expectation.fulfill() }
                     switch result {
                     case .success(let result):
                         XCTAssertNotNil(result.entity)

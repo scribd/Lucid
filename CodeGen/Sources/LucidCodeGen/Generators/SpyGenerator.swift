@@ -15,9 +15,12 @@ public final class SpyGenerator: Generator {
     public let name = "spies"
     
     private let descriptions: Descriptions
+
+    private let reactiveKit: Bool
     
-    public init(descriptions: Descriptions) {
+    public init(descriptions: Descriptions, reactiveKit: Bool) {
         self.descriptions = descriptions
+        self.reactiveKit = reactiveKit
     }
     
     public func generate(for element: Description, in directory: Path) throws -> File? {
@@ -26,7 +29,7 @@ public final class SpyGenerator: Generator {
             let filename = "CoreManagerSpy+ManagerProviding.swift"
             
             let header = MetaHeader(filename: filename)
-            let spyFactory = MetaCoreManagerSpy(descriptions: descriptions)
+            let spyFactory = MetaCoreManagerSpy(descriptions: descriptions, reactiveKit: reactiveKit)
             
             return Meta.File(name: filename)
                 .with(header: header.meta)

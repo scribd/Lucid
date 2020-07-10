@@ -8,9 +8,15 @@
 
 import Foundation
 import XCTest
-import ReactiveKit
 
+#if LUCID_REACTIVE_KIT
+import ReactiveKit
+@testable import Lucid_ReactiveKit
+#else
+import Combine
 @testable import Lucid
+#endif
+
 
 final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
 
@@ -19,9 +25,10 @@ final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
         entityType: String,
         context: _ReadContext<EntityEndpointResultPayloadSpy>
     )]()
-    
+
+    #if LUCID_REACTIVE_KIT
     var getByIDsStubs: [Signal<[AnyEntitySpy], ManagerError>] = [Signal(just: [])]
-    
+
     func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
              entityType: String,
              in context: _ReadContext<EntityEndpointResultPayloadSpy>) -> Signal<AnySequence<AnyEntitySpy>, ManagerError> {
@@ -35,4 +42,26 @@ final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
 
         return getByIDsStubs[getByIDsInstanciations.count - 1].map { $0.any }
     }
+
+    #else
+    var getByIDsStubs: [AnyPublisher<[AnyEntitySpy], ManagerError>] = [
+        Just([]).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
+    ]
+
+    func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
+             entityType: String,
+             in context: _ReadContext<EntityEndpointResultPayloadSpy>) -> AnyPublisher<AnySequence<AnyEntitySpy>, ManagerError> {
+
+        getByIDsInstanciations.append((identifiers.array, entityType, context))
+
+        guard getByIDsStubs.count >= getByIDsInstanciations.count else {
+            XCTFail("Expected stub for call number \(getByIDsInstanciations.count - 1)")
+            return Just([].any)
+                .setFailureType(to: ManagerError.self)
+                .eraseToAnyPublisher()
+        }
+
+        return getByIDsStubs[getByIDsInstanciations.count - 1].map { $0.any }.eraseToAnyPublisher()
+    }
+    #endif
 }

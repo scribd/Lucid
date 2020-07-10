@@ -41,7 +41,7 @@ struct MetaSubtypeObjc {
             return Type(identifier: subtype.typeID(objc: true))
                 .with(kind: .enum(indirect: false))
                 .adding(inheritedType: .int)
-                .adding(members: usedCases.map { Case(name: $0) })
+                .adding(members: usedCases.map { Case(name: $0.camelCased().variableCased()) })
                 .adding(member: needsNoneCase ? Case(name: "none") : nil)
                 .adding(member: EmptyLine())
                 .adding(member: Function(kind: .`init`)
@@ -49,9 +49,9 @@ struct MetaSubtypeObjc {
                     .adding(parameter: FunctionParameter(alias: "_", name: "value", type: subtypeTypeID))
                     .adding(member: Switch(reference: Reference.named("value"))
                         .adding(cases: usedCases.map {
-                            SwitchCase(name: "\($0)\(needsNoneCase ? "?" : "")").adding(member: Assignment(
+                            SwitchCase(name: "\($0.camelCased().variableCased())\(needsNoneCase ? "?" : "")").adding(member: Assignment(
                                 variable: Reference.named(.`self`),
-                                value: +.named($0)
+                                value: +.named($0.camelCased().variableCased())
                             ))
                         })
                         .adding(case: needsNoneCase ? SwitchCase(name: "none")
@@ -68,7 +68,7 @@ struct MetaSubtypeObjc {
                     .with(accessLevel: .public)
                     .adding(member: Switch(reference: Reference.named(.`self`))
                         .adding(cases: usedCases.map {
-                            SwitchCase(name: $0).adding(member: Return(value: +.named($0)))
+                            SwitchCase(name: $0.camelCased().variableCased()).adding(member: Return(value: +.named($0.camelCased().variableCased())))
                         })
                         .adding(case: needsNoneCase ? SwitchCase(name: "none")
                             .adding(member: Return(value: Value.nil)) : nil
@@ -96,12 +96,12 @@ struct MetaSubtypeObjc {
                 )
                 .adding(member: EmptyLine())
                 .adding(members: usedOptions.map {
-                    Property(variable: Variable(name: $0)
+                    Property(variable: Variable(name: $0.camelCased().variableCased())
                         .with(static: true))
                         .with(accessLevel: .public)
                         .with(objc: true)
                         .with(value: subtype.typeID(objc: true).reference | .call(Tuple()
-                            .adding(parameter: TupleParameter(value: +.named($0)))
+                            .adding(parameter: TupleParameter(value: +.named($0.camelCased().variableCased())))
                         ))
                 })
 
@@ -126,11 +126,11 @@ struct MetaSubtypeObjc {
                 .adding(members: properties.filter { $0.objc }.enumerated().flatMap { index, property -> [TypeBodyMember] in
                     return [
                         EmptyLine(),
-                        ComputedProperty(variable: Variable(name: property.name)
+                        ComputedProperty(variable: Variable(name: property.name.camelCased().variableCased())
                             .with(type: property.typeID(objc: true)))
                             .with(accessLevel: .public)
                             .with(objc: true)
-                            .adding(member: Return(value: .named("value") + .named(property.name)))
+                            .adding(member: Return(value: .named("value") + .named(property.name.camelCased().variableCased())))
                     ]
                 })
         }

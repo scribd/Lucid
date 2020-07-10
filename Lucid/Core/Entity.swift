@@ -17,10 +17,10 @@ public enum IdentifierValueType<LocalValueType, RemoteValueType>: DualHashable, 
     LocalValueType: Hashable,
     RemoteValueType: Comparable,
     RemoteValueType: Hashable {
-    
+
     case remote(RemoteValueType, LocalValueType?)
     case local(LocalValueType)
-    
+
     public var remoteValue: RemoteValueType? {
         switch self {
         case .remote(let value, _):
@@ -29,7 +29,7 @@ public enum IdentifierValueType<LocalValueType, RemoteValueType>: DualHashable, 
             return nil
         }
     }
-    
+
     public var localValue: LocalValueType? {
         switch self {
         case .remote(_, let value):
@@ -38,9 +38,9 @@ public enum IdentifierValueType<LocalValueType, RemoteValueType>: DualHashable, 
             return value
         }
     }
-    
+
     public mutating func merge(with otherIdentifier: IdentifierValueType<LocalValueType, RemoteValueType>) {
-        
+
         if let localValue = localValue, let otherLocalValue = otherIdentifier.localValue, localValue != otherLocalValue {
             Logger.log(.error, "\(IdentifierValueType.self): Cannot merge identifiers with two different local values: \(self) vs \(otherIdentifier).", assert: true)
             return
@@ -63,7 +63,7 @@ public enum IdentifierValueType<LocalValueType, RemoteValueType>: DualHashable, 
 }
 
 public extension IdentifierValueType where RemoteValueType: CoreDataValueType, LocalValueType: CoreDataValueType {
-    
+
     var coreDataIdentifierValue: CoreDataRelationshipIdentifierValueType {
         switch self {
         case .remote(let remoteValue, let localValue):
@@ -84,13 +84,13 @@ public extension CoreDataIdentifier {
 
 /// Identifier which can be represented by a raw value.
 public protocol RawIdentifiable: Comparable {
-    
+
     /// Local raw value type of the identifier.
     associatedtype LocalValueType: Hashable, Comparable, Codable
-    
+
     /// Remote raw value type of the identifier.
     associatedtype RemoteValueType: Hashable, Comparable, Codable
-    
+
     /// Raw value of the identifier.
     var value: IdentifierValueType<LocalValueType, RemoteValueType> { get }
 }
@@ -104,13 +104,13 @@ extension RawIdentifiable {
 // MARK: - Identifier
 
 public protocol IdentifierTypeIDConvertible {
-    
+
     /// Type of the entity this identifier comes from.
     var identifierTypeID: String { get }
 }
 
 public protocol EntityIdentifierTypeIDConvertible {
-    
+
     /// Type taken by identifiers built from this type.
     static var identifierTypeID: String { get }
 }
@@ -119,13 +119,13 @@ public protocol EntityTypeUIDConvertible {
 
     /// Unique type of an entity.
     static var entityTypeUID: String { get }
-    
+
     /// Unique type of an entity.
     var entityTypeUID: String { get }
 }
 
 extension EntityTypeUIDConvertible {
-    
+
     public var entityTypeUID: String {
         return Self.entityTypeUID
     }
@@ -151,14 +151,14 @@ extension EntityIdentifier {
 
 /// Identifier which can be used to build requests to a remote store.
 public protocol RemoteIdentifier: RawIdentifiable, EntityIdentifier where LocalValueType: CustomStringConvertible, RemoteValueType: CustomStringConvertible {
-    
+
     /// State of synchronization of identified entity with the remotes. Defaults to nil for non remote identifiers.
     var _remoteSynchronizationState: PropertyBox<RemoteSynchronizationState> { get }
 }
 
 extension RemoteIdentifier {
-    
-    public var remoteSynchronizationState: RemoteSynchronizationState {
+
+    public var remoteSynchronizationState: RemoteSynchronizationState? {
         return _remoteSynchronizationState.value
     }
 }
@@ -173,16 +173,16 @@ public protocol CoreDataIdentifier: RawIdentifiable, EntityIdentifier, PayloadId
     RemoteValueType: CustomStringConvertible,
     RemoteValueType: CoreDataPrimitiveValue,
     RemoteValueType: CoreDataValueType {
-    
+
     /// Key used to select the local identifier in a predicate.
     static var localPredicateString: String { get }
 
     /// Key used to select the remote identifier in a predicate.
     static var remotePredicateString: String { get }
-    
+
     /// Key used to select the entity type ID in a predicate.
     static var identifierTypeIDPredicateString: String { get }
-    
+
     init(value: IdentifierValueType<LocalValueType, RemoteValueType>,
          identifierTypeID: String?,
          remoteSynchronizationState: RemoteSynchronizationState?)
@@ -190,7 +190,7 @@ public protocol CoreDataIdentifier: RawIdentifiable, EntityIdentifier, PayloadId
 
 /// Value type which can be used to search in Core Data.
 public protocol CoreDataValueType {
-    
+
     /// Value used to search in a predicate.
     var predicateValue: Any { get }
 }
@@ -200,7 +200,7 @@ public enum CoreDataRelationshipIdentifierValueType {
     case remote(CoreDataValueType, CoreDataValueType?)
     case local(CoreDataValueType)
     case none
-    
+
     public var remoteValue: CoreDataValueType? {
         switch self {
         case .remote(let value, _):
@@ -210,7 +210,7 @@ public enum CoreDataRelationshipIdentifierValueType {
             return nil
         }
     }
-    
+
     public var localValue: CoreDataValueType? {
         switch self {
         case .remote(_, .some(let value)),
@@ -224,7 +224,7 @@ public enum CoreDataRelationshipIdentifierValueType {
 }
 
 public extension CoreDataIdentifier {
-    
+
     var identifier: Self {
         return self
     }
@@ -236,9 +236,9 @@ public extension CoreDataIdentifier {
     static var remotePredicateString: String {
         return "_identifier"
     }
-    
+
     static var identifierTypeIDPredicateString: String {
-        return "__typeUID"
+        return LucidConfiguration.useCoreDataLegacyNaming ? "__typeUID" : "__type_uid"
     }
 }
 
@@ -257,7 +257,7 @@ extension String: CoreDataValueType {
 // MARK: - RelationshipIdentifier
 
 public protocol AnyRelationshipIdentifierConvertible: IdentifierTypeIDConvertible, EntityTypeUIDConvertible, CustomStringConvertible {
-    
+
     func toRelationshipID<ID>() -> ID? where ID: EntityIdentifier
 }
 
@@ -281,19 +281,19 @@ public protocol AnyCoreDataSubtype: AnySubtype {
 // MARK: - Entity
 
 public protocol EntityIdentifiable {
-    
+
     /// Entity's identifier type.
     associatedtype Identifier: EntityIdentifier
-    
+
     /// Entity's identifier used for cache/storage indexation.
     var identifier: Identifier { get }
 }
 
 public protocol EntityIndexing {
-    
+
     /// Property descriptions which can be used to perform search queries.
-    associatedtype IndexName: Hashable
-    
+    associatedtype IndexName: Hashable, QueryResultConvertible
+
     /// Identifier type used for referencing any type of relationships.
     associatedtype RelationshipIdentifier: AnyRelationshipIdentifier
 
@@ -302,10 +302,10 @@ public protocol EntityIndexing {
 
     /// Retrieve the entity's relationships' index.
     var entityRelationshipIndices: [IndexName] { get }
-    
+
     /// Retrieve the entity's relationships' type UID.
     var entityRelationshipEntityTypeUIDs: [String] { get }
-    
+
     /// Retrieve an index's associated value.
     func entityIndexValue(for indexName: IndexName) -> EntityIndexValue<RelationshipIdentifier, Subtype>
 }
@@ -315,19 +315,39 @@ public protocol EntityIndexing {
 /// - Note: This is the central type of the `Lucid` architecture. Every `Store` and `CoreManager` are
 ///         derived from an `Entity` type.
 public protocol Entity: Equatable, EntityIdentifiable, EntityIdentifierTypeIDConvertible, EntityIndexing {
-    
+
     /// Entity's metadata type
     associatedtype Metadata: EntityMetadata
-    
+
     /// Any endpoint type used for parsing responses' body.
     associatedtype ResultPayload: ResultPayloadConvertible
 
+    /// Contextual information a store could need for retrieving the entities' data.
+    associatedtype QueryContext: Equatable
+
     /// Merge two entities and return the result. New properties overwrite existing ones, except for unrequested Extras.
     func merging(_ updated: Self) -> Self
+
+    /// Extras
+
+    /// Declare if this type should be validated. Returning false prevents O(n) filtering on results.
+    static var shouldValidate: Bool { get }
+
+    /// Determine if the entity meets the requirements of the query. Only called if `shouldValidate` returns true.
+    func isEntityValid(for query: Query<Self>) -> Bool
+}
+
+extension Entity {
+
+    public static var shouldValidate: Bool { return false }
+
+    public func isEntityValid(for query: Query<Self>) -> Bool {
+        return true
+    }
 }
 
 public protocol EntityConvertible: CustomStringConvertible {
-    
+
     init?<E>(_ entity: E) where E: Entity
 }
 
@@ -341,16 +361,17 @@ public protocol MutableEntity: Entity {
 
 // MARK: - EndpointResultPayloadRepresentable
 
-public protocol AnyResultPayloadConvertible { }
-
-/// Type convertible to any type of endpoint payload.
-public protocol ResultPayloadConvertible: AnyResultPayloadConvertible {
-    
-    /// Type representing any type of endpoint.
-    associatedtype Endpoint
+public protocol AnyResultPayloadConvertible {
 
     /// Metadata type representing the singular endpoint
     var metadata: EndpointResultMetadata { get }
+}
+
+/// Type convertible to any type of endpoint payload.
+public protocol ResultPayloadConvertible: AnyResultPayloadConvertible {
+
+    /// Type representing any type of endpoint.
+    associatedtype Endpoint
 
     /// Init from JSON data.
     ///
@@ -365,6 +386,21 @@ public protocol ResultPayloadConvertible: AnyResultPayloadConvertible {
     func allEntities<E>() -> AnySequence<E> where E: Entity
 }
 
+// MARK: - LocalEntity
+
+public protocol LocalEntity: Entity {
+
+    /// Determine if the entity is sufficiently different from the locally stored vesion. If `false`, the CacheStore will
+    /// ignore the change on a `set` action.
+    static func shouldOverwrite(_ updated: Self, _ stored: Self) -> Bool
+}
+
+extension LocalEntity {
+    public static func shouldOverwrite(_ updated: Self, _ stored: Self) -> Bool {
+        return updated != stored
+    }
+}
+
 // MARK: - RemoteEntity
 
 /// An `Entity` which can be used with a `RemoteStore`.
@@ -375,39 +411,32 @@ public protocol RemoteEntity: Entity where Identifier: RemoteIdentifier {
 
     /// Build a read request configuration associated to the combination CRUD method / application context.
     ///
-    /// - Parameters:
-    ///     - remotePath: CRUD method + parameters.
+    /// - Parameter remotePath: CRUD method + parameters.
+    /// - Returns: Request configuration to reach the remote's endpoint.
     static func requestConfig(for remotePath: RemotePath<Self>) -> APIRequestConfig?
 
-    /// Build a payload containing the endpoint's served data. The type of payload to build is chosen based
-    /// on the context.
+    /// Build a payload containing the endpoint's served data. The type of payload to build is chosen based on `remotePath`.
     ///
-    /// - Parameters:
-    ///     - data: data to build the payload from.
-    ///     - context: context in the application from which the request is attempted.
-    ///     - decoder: decoder used to convert the data into a payload.
-    /// - Returns: The endpoint if the context allows it, nil otherwise.
-    /// - Throws: `DecodingError` when the data invalid.
-    static var endpoint: ResultPayload.Endpoint? { get }
+    /// - Parameter remotePath: CRUD method + parameters.
+    /// - Returns: The endpoint the `remotePath` is supported, nil otherwise.
+    static func endpoint(for remotePath: RemotePath<Self>) -> ResultPayload.Endpoint?
 }
 
 public extension RemoteEntity {
 
     static func requestConfig(for remotePath: RemotePath<Self>) -> APIRequestConfig? {
-        Logger.log(.error, "\(Self.self) has not implemented the RemoteEntity function \(#function). Override and set this value.", assert: true)
         return nil
     }
 
-    static var endpoint: ResultPayload.Endpoint? {
-        Logger.log(.error, "\(Self.self) has not implemented the RemoteEntity function \(#function). Override and set this value.", assert: true)
+    static func endpoint(for remotePath: RemotePath<Self>) -> ResultPayload.Endpoint? {
         return nil
     }
 }
 
-public extension RemoteEntity {
+extension RemoteEntity {
 
-    static func unwrappedEndpoint() throws -> ResultPayload.Endpoint {
-        guard let value = endpoint else {
+    static func unwrappedEndpoint(for remotePath: RemotePath<Self>) throws -> ResultPayload.Endpoint {
+        guard let value = endpoint(for: remotePath) else {
             Logger.log(.error, "\(Self.self) has not implemented the RemoteEntity function \(#function). Override and set this value.", assert: true)
             throw StoreError.invalidContext
         }
@@ -428,16 +457,16 @@ public enum RemoteSynchronizationState: String {
 // MARK: - RemotePath
 
 /// Represent a CRUD method with its parameters.
-public enum RemotePath<E>: Equatable where E: Entity {
-    case get(E.Identifier)
-    case search(filter: Query<E>.Filter?)
+public enum RemotePath<E>: Equatable where E: RemoteEntity {
+    case get(E.Identifier, extras: [E.ExtrasIndexName]?)
+    case search(Query<E>)
     case set(RemoteSetPath<E>)
     case remove(E.Identifier)
-    case removeAll(filter: Query<E>.Filter?)
+    case removeAll(Query<E>)
 
     public func identifier<ID>() -> ID? where ID: RemoteIdentifier, ID == E.Identifier {
         switch self {
-        case .get(let identifier),
+        case .get(let identifier, _),
              .remove(let identifier):
             return identifier
 
@@ -468,11 +497,11 @@ public enum RemoteSetPath<E>: Equatable where E: Entity {
 // MARK: - CoreDataEntity
 
 /// An `Entity` which can be stored in `CoreData`.
-public protocol CoreDataEntity: Entity where IndexName: CoreDataIndexName, Identifier: CoreDataIdentifier, Subtype: AnyCoreDataSubtype, RelationshipIdentifier: AnyCoreDataRelationshipIdentifier {
-    
+public protocol CoreDataEntity: LocalEntity where IndexName: CoreDataIndexName, Identifier: CoreDataIdentifier, Subtype: AnyCoreDataSubtype, RelationshipIdentifier: AnyCoreDataRelationshipIdentifier {
+
     /// Associated type managed by `CoreData`.
     associatedtype CoreDataObject: NSManagedObject
-    
+
     /// Convert an associated managed object to an entity.
     ///
     /// - Parameters:
@@ -490,18 +519,18 @@ public protocol CoreDataEntity: Entity where IndexName: CoreDataIndexName, Ident
 
 /// A void type to represent an absence of identifier.
 public struct VoidEntityIdentifier: RemoteIdentifier, CoreDataIdentifier {
-    
+
     public let value: IdentifierValueType<Int, Int> = .local(0)
-    
+
     public typealias LocalValueType = Int
     public typealias RemoteValueType = Int
-    
+
     public static var entityTypeUID = "void"
 
     public let identifierTypeID = "void"
 
     public let _remoteSynchronizationState: PropertyBox<RemoteSynchronizationState>
-    
+
     public init(remoteSynchronizationState: RemoteSynchronizationState = .synced) {
         _remoteSynchronizationState = PropertyBox<RemoteSynchronizationState>(remoteSynchronizationState, atomic: true)
     }
@@ -513,7 +542,7 @@ public struct VoidEntityIdentifier: RemoteIdentifier, CoreDataIdentifier {
     public func hash(into hasher: inout DualHasher) {
         // no-op
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         // no-op
     }
@@ -523,7 +552,7 @@ public struct VoidEntityIdentifier: RemoteIdentifier, CoreDataIdentifier {
                 remoteSynchronizationState: RemoteSynchronizationState?) {
         self.init(remoteSynchronizationState: .synced)
     }
-    
+
     public init(from decoder: Decoder) throws {
         _remoteSynchronizationState = PropertyBox<RemoteSynchronizationState>(.synced, atomic: true)
     }
@@ -536,7 +565,7 @@ public protocol CoreDataIndexName: Hashable {
 
     /// Key used to select a regular index in a predicate
     var predicateString: String { get }
-    
+
     /// True if the index name correspond with a one to one relationship.
     var isOneToOneRelationship: Bool { get }
 
@@ -546,24 +575,24 @@ public protocol CoreDataIndexName: Hashable {
     ///     - Only called if `isOneToOneRelationship` is true.
     ///     - Default imlementation returns `"_" + predicateString`.
     var localRelationshipPredicateString: String { get }
-    
+
     /// Key used to select a remote relationship index in a predicate.
     ///
     /// - Note:
     ///     - Only called if `isOneToOneRelationship` is true.
     ///     - Default imlementation returns `predicateString`.
     var remoteRelationshipPredicateString: String { get }
-    
+
     /// Key used to select a relationship ID type UID in a predicate.
     var identifierTypeIDRelationshipPredicateString: String? { get }
 }
 
 public extension CoreDataIndexName {
-    
+
     var localRelationshipPredicateString: String {
         return "_\(predicateString)"
     }
-    
+
     var remoteRelationshipPredicateString: String {
         return predicateString
     }
@@ -584,10 +613,13 @@ public protocol BatchEntity: RemoteEntity where Identifier == VoidEntityIdentifi
 // MARK: - VoidIndexName
 
 /// A void type to represent an absence of index.
-public struct VoidIndexName: Hashable {}
+public struct VoidIndexName: Hashable, QueryResultConvertible {
+
+    public let requestValue: String = String()
+}
 
 public extension Entity where IndexName == VoidIndexName {
-    
+
     func entityIndexValue(for indexName: IndexName) -> EntityIndexValue<RelationshipIdentifier, Subtype> {
         return .void
     }
@@ -595,9 +627,24 @@ public extension Entity where IndexName == VoidIndexName {
     var entityRelationshipIndices: [IndexName] {
         return []
     }
-    
+
     var entityRelationshipEntityTypeUIDs: [String] {
         return []
+    }
+}
+
+extension VoidIndexName: CoreDataIndexName {
+
+    public var predicateString: String {
+        return String()
+    }
+
+    public var isOneToOneRelationship: Bool {
+        return false
+    }
+
+    public var identifierTypeIDRelationshipPredicateString: Optional<String> {
+        return nil
     }
 }
 
@@ -629,7 +676,7 @@ public struct VoidRelationshipIdentifier: AnyRelationshipIdentifier {
     public func toRelationshipID<ID>() -> ID? where ID: EntityIdentifier {
         return nil
     }
-    
+
     public static func < (lhs: VoidRelationshipIdentifier, rhs: VoidRelationshipIdentifier) -> Bool {
         return false
     }
@@ -637,11 +684,11 @@ public struct VoidRelationshipIdentifier: AnyRelationshipIdentifier {
     public func hash(into hasher: inout DualHasher) {
         // no-op
     }
-    
+
     public let identifierTypeID = "void"
-    
+
     public static let entityTypeUID = "void"
-    
+
     public let description = "\(VoidRelationshipIdentifier.self)"
 }
 
@@ -652,7 +699,7 @@ public struct VoidSubtype: AnyCoreDataSubtype, Comparable {
     public var predicateValue: Any? {
         return nil
     }
-    
+
     public static func < (lhs: VoidSubtype, rhs: VoidSubtype) -> Bool {
         return false
     }
@@ -665,7 +712,7 @@ public struct VoidRequestSupport: Hashable { }
 // MARK: - Comparable
 
 extension IdentifierValueType {
-    
+
     public static func < (lhs: IdentifierValueType<LocalValueType, RemoteValueType>, rhs: IdentifierValueType<LocalValueType, RemoteValueType>) -> Bool {
         switch (lhs, rhs) {
         case (.remote(let lhs, _), .remote(let rhs, _)):
@@ -683,7 +730,7 @@ extension IdentifierValueType {
 }
 
 extension IdentifierValueType where LocalValueType == RemoteValueType {
-    
+
     public static func < (lhs: IdentifierValueType<LocalValueType, RemoteValueType>, rhs: IdentifierValueType<LocalValueType, RemoteValueType>) -> Bool {
         switch (lhs, rhs) {
         case (.remote(let lhs, _), .remote(let rhs, _)):
@@ -703,7 +750,7 @@ extension IdentifierValueType where LocalValueType == RemoteValueType {
 // MARK: - Equatable
 
 extension IdentifierValueType {
-    
+
     public static func == (_ lhs: IdentifierValueType<LocalValueType, RemoteValueType>, _ rhs: IdentifierValueType<LocalValueType, RemoteValueType>) -> Bool {
         switch (lhs, rhs) {
         case (.remote(let lhs, _), .remote(let rhs, _)):
@@ -722,7 +769,7 @@ extension IdentifierValueType {
 // MARK: - DualHashable
 
 extension IdentifierValueType {
-    
+
     public func hash(into hasher: inout DualHasher) {
         switch self {
         case .remote(let remoteValue, .some(let localValue)):
@@ -739,12 +786,12 @@ extension IdentifierValueType {
 // MARK: - Codable
 
 extension IdentifierValueType: Codable where LocalValueType: Codable, RemoteValueType: Codable {
-    
+
     private enum Keys: String, CodingKey {
         case local
         case remote
     }
-    
+
     public init(from decoder: Decoder) throws {
         switch decoder.context {
         case .payload:
@@ -763,7 +810,7 @@ extension IdentifierValueType: Codable where LocalValueType: Codable, RemoteValu
             }
         }
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         switch encoder.context {
         case .payload:
@@ -787,7 +834,7 @@ extension IdentifierValueType: Codable where LocalValueType: Codable, RemoteValu
 // MARK: - CustomStringConvertible
 
 extension IdentifierValueType: CustomStringConvertible where LocalValueType: CustomStringConvertible, RemoteValueType: CustomStringConvertible {
-    
+
     public var description: String {
         switch self {
         case .local(let value):

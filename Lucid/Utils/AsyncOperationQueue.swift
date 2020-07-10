@@ -10,35 +10,35 @@ import Foundation
 
 /// Minimalistic asynchronous operation queue which ensures serial execution on a singe background queue.
 public final class AsyncOperationQueue: CustomDebugStringConvertible {
-    
-    public init() {
-        // no-op
+
+    private let dispatchQueue: DispatchQueue
+
+    public init(dispatchQueue: DispatchQueue = DispatchQueue(label: "\(AsyncOperationQueue.self):operations")) {
+        self.dispatchQueue = dispatchQueue
     }
-    
-    private let dispatchQueue = DispatchQueue(label: "\(AsyncOperationQueue.self):operations")
-    
+
     private var _operations = [AsyncOperation]()
-    
+
     private var _isRunning = false
     public var isRunning: Bool {
         return dispatchQueue.sync { _isRunning }
     }
-    
+
     public func run(operation: AsyncOperation) {
-        dispatchQueue.async {
+        dispatchQueue.async(flags: .barrier) {
             self._operations.append(operation)
             if self._operations.count == 1 && self._isRunning == false {
                 self._runNextOperation()
             }
         }
     }
-    
-    public func run(on dispatchQueue: DispatchQueue? = nil,
+
+    public func run(on operationQueue: DispatchQueue? = nil,
                     title: String,
                     barrier: Bool = true,
                     _ operation: @escaping AsyncOperation.Run) {
-        
-        let operation = AsyncOperation(on: dispatchQueue,
+
+        let operation = AsyncOperation(on: operationQueue,
                                        title: title,
                                        barrier: barrier,
                                        operation)
@@ -50,15 +50,15 @@ public final class AsyncOperationQueue: CustomDebugStringConvertible {
             _isRunning = false
             return
         }
-        
+
         let _nextBarrier = _operations.enumerated().first { index, operation in
             operation.barrier || index == _operations.count - 1
         }
-        
+
         if operation.barrier {
             _isRunning = true
             operation.run {
-                self.dispatchQueue.async {
+                self.dispatchQueue.async(flags: .barrier) {
                     self._operations.removeFirst()
                     self._runNextOperation()
                 }
@@ -70,14 +70,14 @@ public final class AsyncOperationQueue: CustomDebugStringConvertible {
             for _ in operations {
                 dispatchGroup.enter()
             }
-            
+
             _isRunning = true
             for operation in operations {
                 operation.run {
                     dispatchGroup.leave()
                 }
             }
-            
+
             dispatchGroup.notify(queue: dispatchQueue) {
                 self._operations.removeSubrange(0...nextBarrier.offset)
                 self._runNextOperation()
@@ -87,7 +87,7 @@ public final class AsyncOperationQueue: CustomDebugStringConvertible {
             _isRunning = false
         }
     }
-    
+
     public var debugDescription: String {
         return dispatchQueue.sync {
             """
@@ -96,21 +96,29 @@ public final class AsyncOperationQueue: CustomDebugStringConvertible {
             """
         }
     }
+
+    public var first: AsyncOperation? {
+        return dispatchQueue.sync { _operations.first }
+    }
+
+    public var last: AsyncOperation? {
+        return dispatchQueue.sync { _operations.last }
+    }
 }
 
 public struct AsyncOperation: CustomDebugStringConvertible {
-    
+
     public typealias Run = (_ completion: @escaping () -> Void) -> Void
     private let _run: Run
-    
+
     public let title: String
-    
+
     public let debugDescription: String
-    
+
     public let barrier: Bool
-    
+
     public let timeout: TimeInterval?
-    
+
     public init(on dispatchQueue: DispatchQueue? = nil,
                 title: String,
                 barrier: Bool = true,
@@ -119,7 +127,7 @@ public struct AsyncOperation: CustomDebugStringConvertible {
 
         if let dispatchQueue = dispatchQueue {
             _run = { completion in
-                dispatchQueue.async {
+                dispatchQueue.async(flags: .barrier) {
                     run(completion)
                 }
             }
@@ -132,7 +140,7 @@ public struct AsyncOperation: CustomDebugStringConvertible {
         self.barrier = barrier
         self.timeout = timeout
     }
-    
+
     fileprivate func run(_ completion: @escaping () -> Void) {
         let cancellationToken: CancellationToken?
         if let timeout = timeout {

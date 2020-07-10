@@ -27,6 +27,12 @@ private enum Defaults {
     static let matchExactKey = false
     static let platforms = Set<Platform>()
     static let lastRemoteRead = false
+    static let queryContext = false
+    static let clientQueueName = Entity.mainClientQueueName
+}
+
+extension Entity {
+    static let mainClientQueueName = "main"
 }
 
 // MARK: - Payloads
@@ -45,7 +51,7 @@ extension EndpointPayload: Decodable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
         
-        name = try container.decode(String.self, forKey: .name).camelCased(separators: "_/")
+        name = try container.decode(String.self, forKey: .name)
         baseKey = try container.decodeIfPresent(String.self, forKey: .baseKey)
         entity = try container.decode(EndpointPayloadEntity.self, forKey: .entity)
         entityVariations = try container.decodeIfPresent([EndpointPayloadEntityVariation].self, forKey: .entityVariations)
@@ -68,14 +74,14 @@ extension EndpointPayloadTest: Decodable {
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
-        name = try container.decode(String.self, forKey: .name).camelCased()
+        name = try container.decode(String.self, forKey: .name)
         url = try container.decode(URL.self, forKey: .url)
         httpMethod = (try? container.decode(HTTPMethod.self, forKey: .httpMethod)) ?? .get
         body = try? container.decode(String.self, forKey: .body)
         entities = try container.decode([Entity].self, forKey: .entities)
         // for parsing from previous versions
         do {
-            contexts = try container.decode([String].self, forKey: .contexts).map { $0.camelCased().variableCased }
+            contexts = try container.decode([String].self, forKey: .contexts)
             endpoints = []
         } catch {
             endpoints = try container.decode([String].self, forKey: .endpoints)
@@ -96,7 +102,7 @@ extension EndpointPayloadTest.Entity: Decodable {
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
-        name = try container.decode(String.self, forKey: .name).camelCased()
+        name = try container.decode(String.self, forKey: .name)
         count = try container.decodeIfPresent(Int.self, forKey: .count)
         isTarget = try container.decodeIfPresent(Bool.self, forKey: .isTarget) ?? Defaults.isTarget
     }
@@ -115,7 +121,7 @@ extension EndpointPayloadEntity: Decodable {
         let container = try decoder.container(keyedBy: Keys.self)
         
         entityKey = try container.decodeIfPresent(String.self, forKey: .entityKey)
-        entityName = try container.decode(String.self, forKey: .entityName).camelCased().versionedName()
+        entityName = try container.decode(String.self, forKey: .entityName)
         structure = try container.decode(Structure.self, forKey: .structure)
         optional = try container.decodeIfPresent(Bool.self, forKey: .optional) ?? Defaults.optional
     }
@@ -141,15 +147,17 @@ extension Entity: Decodable {
         case persistedName
         case platforms
         case lastRemoteRead
+        case queryContext
+        case clientQueueName
     }
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
         
-        let name = try container.decode(String.self, forKey: .name).camelCased().versionedName()
+        let name = try container.decode(String.self, forKey: .name)
         self.name = name
         remote = try container.decodeIfPresent(Bool.self, forKey: .remote) ?? Defaults.remote
-        previousName = try container.decodeIfPresent(String.self, forKey: .previousName).flatMap { try $0.camelCased().versionedName() }
+        previousName = try container.decodeIfPresent(String.self, forKey: .previousName)
         addedAtVersion = try container.decodeIfPresent(String.self, forKey: .addedAtVersion)
         persist = try container.decodeIfPresent(Bool.self, forKey: .persist) ?? Defaults.persist
         identifier = try container.decodeIfPresent(EntityIdentifier.self, forKey: .identifier) ?? Defaults.identifier
@@ -160,6 +168,8 @@ extension Entity: Decodable {
         persistedName = try container.decodeIfPresent(String.self, forKey: .persistedName)
         platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? Defaults.platforms
         lastRemoteRead = try container.decodeIfPresent(Bool.self, forKey: .lastRemoteRead) ?? Defaults.lastRemoteRead
+        queryContext = try container.decodeIfPresent(Bool.self, forKey: .queryContext) ?? Defaults.queryContext
+        clientQueueName = try container.decodeIfPresent(String.self, forKey: .clientQueueName) ?? Defaults.clientQueueName
     }
 }
 
@@ -175,9 +185,7 @@ extension ModelMapping: Decodable {
         let container = try decoder.container(keyedBy: Keys.self)
         from = try container.decode(String.self, forKey: .from)
         to = try container.decode(String.self, forKey: .to)
-        ignoreMigrationChecksOn = (try container.decodeIfPresent([String].self, forKey: .ignoreMigrationChecksOn) ?? []).map {
-            $0.camelCased().variableCased
-        }
+        ignoreMigrationChecksOn = (try container.decodeIfPresent([String].self, forKey: .ignoreMigrationChecksOn) ?? [])
     }
 }
 
@@ -191,8 +199,7 @@ extension EndpointPayloadEntityVariation: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
         
-        let snakeCaseEntityName = try container.decode(String.self, forKey: .entityName)
-        self.entityName = try snakeCaseEntityName.camelCased().versionedName()
+        self.entityName = try container.decode(String.self, forKey: .entityName)
         self.propertyRenames = try container.decodeIfPresent([Rename].self, forKey: .propertyRenames)
     }
 }
@@ -215,32 +222,29 @@ extension EntityIdentifier: Decodable {
         let lowerCaseType = try container.decode(String.self, forKey: .type)
         switch lowerCaseType {
         case "property":
-            let snakeCaseName = try container.decode(String.self, forKey: .propertyName)
-            identifierType = .property(snakeCaseName.camelCased().variableCased)
+            identifierType = .property(try container.decode(String.self, forKey: .propertyName))
         default:
             do {
                 let relationshipIDs: [EntityIdentifierType.RelationshipID] = try container
                     .decode([String].self, forKey: .derivedFromRelationships)
-                    .map { snakeCaseEntityName in
-                        let camelCaseName = snakeCaseEntityName.camelCased()
-                        return EntityIdentifierType.RelationshipID(variableName: camelCaseName.variableCased,
-                                                                   entityName: try camelCaseName.versionedName())
-                }
+                    .map { entityName in
+                        EntityIdentifierType.RelationshipID(variableName: entityName, entityName: entityName)
+                    }
                 
-                guard let scalarType = PropertyScalarType(lowerCaseType.capitalized) else {
+                guard let scalarType = PropertyScalarType(lowerCaseType) else {
                     throw DecodingError.dataCorruptedError(forKey: Keys.type, in: container, debugDescription: "Unknown value type \(lowerCaseType.capitalized).")
                 }
                 
                 identifierType = .relationships(scalarType, relationshipIDs)
             } catch {
-                guard let scalarType = PropertyScalarType(lowerCaseType.capitalized) else {
+                guard let scalarType = PropertyScalarType(lowerCaseType) else {
                     throw DecodingError.dataCorruptedError(forKey: Keys.type, in: container, debugDescription: "Unknown value type \(lowerCaseType.capitalized).")
                 }
                 identifierType = .scalarType(scalarType)
             }
         }
         
-        equivalentIdentifierName = try container.decodeIfPresent(String.self, forKey: .equivalentToIdentifierOf)?.camelCased().versionedName()
+        equivalentIdentifierName = try container.decodeIfPresent(String.self, forKey: .equivalentToIdentifierOf)
     }
 }
 
@@ -265,7 +269,7 @@ extension DefaultValue: Decodable {
             } else if value.starts(with: ".") {
                 var value = value
                 value.removeFirst()
-                self = .enumCase(value.camelCased().variableCased)
+                self = .enumCase(value)
             } else {
                 self = .string(value)
             }
@@ -287,11 +291,12 @@ extension MetadataProperty: Decodable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
         
-        name = try container.decode(String.self, forKey: .name).camelCased().variableCased
-        key = try container.decodeIfPresent(String.self, forKey: .key)?.camelCased().variableCased
-        
-        let value = try container.decode(String.self, forKey: .propertyType).capitalized.camelCased()
-        let propertyType: PropertyType = try PropertyScalarType(try value.arrayElementType()).flatMap { .scalar($0) } ?? .subtype(try value.versionedName())
+        name = try container.decode(String.self, forKey: .name)
+
+        let value = try container.decode(String.self, forKey: .propertyType)
+        let propertyType: PropertyType = PropertyScalarType(value.arrayElementType()).flatMap {
+            .scalar($0)
+        } ?? .subtype(value.arrayElementType())
         if value.isArray {
             self.propertyType = .array(propertyType)
         } else {
@@ -320,33 +325,26 @@ extension EntityProperty: Decodable {
         case extra
         case matchExactKey
         case platforms
+        case persistedName
     }
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
         
         name = try container.decode(String.self, forKey: .name)
-            .split(separator: ".")
-            .map { String($0).camelCased().variableCased }
-            .joined(separator: "_")
-        
-        previousName = try container.decodeIfPresent(String.self, forKey: .previousName)?
-            .split(separator: ".")
-            .map { String($0).camelCased().variableCased }
-            .joined(separator: "_")
-        
+        previousName = try container.decodeIfPresent(String.self, forKey: .previousName)
         addedAtVersion = try container.decodeIfPresent(String.self, forKey: .addedAtVersion)
         
         do {
             let relationship = try container.decode(EntityRelationship.self, forKey: .propertyType)
             propertyType = .relationship(relationship)
         } catch {
-            let value = try container.decode(String.self, forKey: .propertyType).capitalized.camelCased()
+            let value = try container.decode(String.self, forKey: .propertyType)
             let propertyType: PropertyType
-            if let scalarType = PropertyScalarType(try value.arrayElementType()) {
+            if let scalarType = PropertyScalarType(value.arrayElementType()) {
                 propertyType = .scalar(scalarType)
             } else {
-                propertyType = .subtype(try value.arrayElementType().versionedName())
+                propertyType = .subtype(value.arrayElementType())
             }
             if value.isArray {
                 self.propertyType = .array(propertyType)
@@ -366,6 +364,7 @@ extension EntityProperty: Decodable {
         unused = try container.decodeIfPresent(Bool.self, forKey: .unused) ?? Defaults.unused
         extra = try container.decodeIfPresent(Bool.self, forKey: .extra) ?? Defaults.extra
         platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? Defaults.platforms
+        persistedName = try container.decodeIfPresent(String.self, forKey: .persistedName)
     }
 }
 
@@ -382,8 +381,7 @@ extension EntityRelationship: Decodable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
         
-        let snakeCaseEntityName = try container.decode(String.self, forKey: .entityName)
-        self.entityName = try snakeCaseEntityName.camelCased().versionedName()
+        self.entityName = try container.decode(String.self, forKey: .entityName)
         self.association = try container.decode(Association.self, forKey: .association)
         self.idOnly = try container.decodeIfPresent(Bool.self, forKey: .idOnly) ?? Defaults.idOnly
         self.failableItems = try container.decodeIfPresent(Bool.self, forKey: .failableItems) ?? Defaults.failableItems
@@ -414,7 +412,7 @@ extension Subtype: Decodable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
        
-        name = try container.decode(String.self, forKey: .name).camelCased().versionedName()
+        name = try container.decode(String.self, forKey: .name)
         manualImplementations = Set(try container.decodeIfPresent([`Protocol`].self, forKey: .manualImplementations) ?? [])
         platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? Defaults.platforms
         
@@ -423,16 +421,16 @@ extension Subtype: Decodable {
             objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? Defaults.objcNoneCase
             let objcNoneCase = try container.decodeIfPresent(Bool.self, forKey: .objcNoneCase) ?? Defaults.objc
             items = .cases(
-                used: usedCases.map { $0.camelCased().variableCased }.sorted(),
-                unused: unusedCases.map { $0.camelCased().variableCased }.sorted(),
+                used: usedCases.sorted(),
+                unused: unusedCases.sorted(),
                 objcNoneCase: objcNoneCase
             )
         } else if let options = try container.decodeIfPresent([String].self, forKey: .options) {
             let unusedOptions = try container.decodeIfPresent([String].self, forKey: .unusedOptions) ?? []
             objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? Defaults.objc
             items = .options(
-                used: options.map { $0.camelCased().variableCased },
-                unused: unusedOptions.map { $0.camelCased().variableCased }
+                used: options,
+                unused: unusedOptions
             )
         } else if let properties = try container.decodeIfPresent([Property].self, forKey: .properties) {
             items = .properties(properties.filter { !$0.unused }.sorted { $0.name < $1.name })
@@ -463,7 +461,7 @@ extension Subtype.Property: Decodable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
       
-        name = try container.decode(String.self, forKey: .name).camelCased().variableCased
+        name = try container.decode(String.self, forKey: .name)
         key = try container.decodeIfPresent(String.self, forKey: .key)
         propertyType = try container.decode(PropertyType.self, forKey: .propertyType)
         objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? Defaults.objc
@@ -494,14 +492,7 @@ extension Subtype.Property.PropertyType: Decodable {
         if let scalarType = PropertyScalarType(value) {
             self = .scalar(scalarType)
         } else {
-            self = .custom(try value.camelCased().versionedName())
-        }
-    }
-    
-    var stringRepresentation: String {
-        switch self {
-        case .scalar(let type): return type.rawValue
-        case .custom(let value): return value
+            self = .custom(value)
         }
     }
 }

@@ -10,11 +10,11 @@ import ReactiveKit
 
 /// A wrapper which acts like a future.
 ///
-/// - Note: This is a purely for declaration practicality and shouldn't include any custom logic.
+/// - Note: This is purely for declaration practicality and shouldn't include any custom logic.
 struct FutureSubject<Element, Error> where Error: Swift.Error {
 
     private let subject: ReplayOneSubject<Element, Error>
-    
+
     init(_ attemptToFulfill: @escaping (@escaping (Result<Element, Error>) -> Void) -> Void) {
         let subject = ReplayOneSubject<Element, Error>()
         self.subject = subject
@@ -29,7 +29,7 @@ struct FutureSubject<Element, Error> where Error: Swift.Error {
             }
         }
     }
-    
+
     func toSignal() -> Signal<Element, Error> {
         return subject.toSignal()
     }
@@ -40,13 +40,13 @@ final class CoreManagerSubject<Element, Error>: ReactiveKit.Subject<Element, Err
 
     var willAddFirstObserver: (() -> Void)?
     var willRemoveLastObserver: (() -> Void)?
-    
+
     private let superLock = NSRecursiveLock(name: "\(CoreManagerSubject.self):super_lock")
     private let observerCountDispatchQueue = DispatchQueue(label: "\(CoreManagerSubject.self):observer_count")
     private var _observerCount = 0
 
     override func observe(with observer: @escaping (ReactiveKit.Signal<Element, Error>.Event) -> Void) -> Disposable {
-        
+
         // `willAddFirstObserver` is expected to be called synchronously by `preparePropertiesForSearchUpdate`.
         observerCountDispatchQueue.sync {
             self._observerCount += 1
@@ -54,10 +54,10 @@ final class CoreManagerSubject<Element, Error>: ReactiveKit.Subject<Element, Err
                 self.willAddFirstObserver?()
             }
         }
-        
+
         let disposeBag = DisposeBag()
         disposeBag.add(disposable: superObserve(with: observer))
-        
+
         disposeBag.add(disposable: BlockDisposable {
             self.observerCountDispatchQueue.async(flags: .barrier) {
                 self._observerCount -= 1
@@ -66,20 +66,20 @@ final class CoreManagerSubject<Element, Error>: ReactiveKit.Subject<Element, Err
                 }
             }
         })
-        
+
         return disposeBag
     }
-        
+
     override func on(_ event: ReactiveKit.Signal<Element, Error>.Event) {
         superOn(event)
     }
-    
+
     private func superObserve(with observer: @escaping (ReactiveKit.Signal<Element, Error>.Event) -> Void) -> Disposable {
         superLock.lock()
         defer { superLock.unlock() }
         return super.observe(with: observer)
     }
-    
+
     private func superOn(_ event: ReactiveKit.Signal<Element, Error>.Event) {
         superLock.lock()
         defer { superLock.unlock() }

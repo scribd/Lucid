@@ -8,8 +8,8 @@
 
 import XCTest
 
-@testable import Lucid
-@testable import LucidTestKit
+@testable import Lucid_ReactiveKit
+@testable import LucidTestKit_ReactiveKit
 
 final class DiskCacheTests: XCTestCase {
 
@@ -30,7 +30,7 @@ final class DiskCacheTests: XCTestCase {
         do {
             try fileManager.removeItem(at: basePath)
         } catch {
-            Logger.shared?.log(.warning, "Could not delete the folder \(basePath)", domain: "test")
+            Logger.log(.warning, "Could not delete the folder \(basePath)", domain: "test")
         }
         fileManager = nil
         diskCache = nil

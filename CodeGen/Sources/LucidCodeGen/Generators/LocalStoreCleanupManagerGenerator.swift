@@ -16,19 +16,23 @@ public final class LocalStoreCleanupManagerGenerator: Generator {
 
     private let filename = "LocalStoreCleanupManager.swift"
 
-    public init(descriptions: Descriptions) {
+    private let reactiveKit: Bool
+
+    public init(descriptions: Descriptions, reactiveKit: Bool) {
         self.descriptions = descriptions
+        self.reactiveKit = reactiveKit
     }
 
     public func generate(for element: Description, in directory: Path) throws -> File? {
         guard element == .all else { return nil }
 
         let header = MetaHeader(filename: filename)
-        let localStoreCleanup = MetaLocalStoreCleanupManager(descriptions: descriptions)
+        let localStoreCleanup = MetaLocalStoreCleanupManager(descriptions: descriptions, reactiveKit: reactiveKit)
 
         return Meta.File(name: filename)
             .with(header: header.meta)
-            .adding(import: .lucid())
+            .adding(import: .lucid(reactiveKit: reactiveKit))
+            .adding(import: reactiveKit ? .reactiveKit : .combine)
             .with(body: [try localStoreCleanup.meta()])
             .swiftFile(in: directory)
     }

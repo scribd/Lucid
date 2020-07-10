@@ -11,13 +11,20 @@ import Foundation
 // MARK: - RemoteEntity
 
 public extension RemoteEntity {
-    
-    static func request(for remotePath: RemotePath<Self>, jsonCoderConfig: APIJSONCoderConfig) -> APIRequest<Data>? {
-        guard let config = Self.requestConfig(for: remotePath) else {
-            Logger.log(.error, "\(Self.self): ReadPath: \(remotePath)is not supported.")
+
+    static func request(for remotePath: RemotePath<Self>,
+                        jsonCoderConfig: APIJSONCoderConfig,
+                        or cachedRequest: APIRequestConfig?) -> APIRequest<Data>? {
+
+        switch (Self.requestConfig(for: remotePath), cachedRequest) {
+        case (.some(let config), _),
+             (nil, .some(let config)):
+            return APIRequest<Data>(config, jsonCoderConfig: jsonCoderConfig)
+
+        default:
+            Logger.log(.error, "\(Self.self): ReadPath: \(remotePath) is not supported.")
             return nil
         }
-        return APIRequest<Data>(config, jsonCoderConfig: jsonCoderConfig)
     }
 }
 
@@ -25,36 +32,41 @@ public extension RemoteEntity {
 
 // swiftlint:disable type_body_length
 public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
-    
+
     // MARK: - Dependencies
-    
+
     public let level: StoreLevel = .remote
-    
+
     private let clientQueue: APIClientQueuing & APIClientQueueFlushing
-    
+
     private let client: APIClient
-    
+
     // MARK: - Inits
-    
+
     public init(client: APIClient,
                 clientQueue: APIClientQueuing & APIClientQueueFlushing) {
-        
+
         self.client = client
         self.clientQueue = clientQueue
     }
-    
+
     // MARK: - API
-    
-    public func get(byID identifier: E.Identifier, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+
+    public func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+
+        guard let identifier = query.identifier else {
+            completion(.failure(.identifierNotFound))
+            return
+        }
 
         let request: APIRequest<Data>
         let hasCachedResponse: Bool
 
-        let path = RemotePath<E>.get(identifier)
+        let path = RemotePath<E>.get(identifier, extras: query.extras)
 
         switch context.dataSource {
         case ._remote(.derivedFromEntityType, _, _, _):
-            guard let newRequest = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig()) else {
+            guard let newRequest = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig(), or: context.remoteStoreCache.payloadRequest) else {
                 Logger.log(.error, "\(Self.self): Remote store could not build valid API request from context \(context)", assert: true)
                 completion(.failure(.invalidContext))
                 return
@@ -93,10 +105,10 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             case .success(let payload):
                 Logger.log(.error, "\(RemoteStore.self): Could not convert \(type(of: payload)) to \(E.ResultPayload.self).", assert: true)
                 completion(.failure(.invalidContext))
-                
+
             case .failure(.api(httpStatusCode: 404, _)):
                 completion(.success(.empty()))
-                
+
             case .failure(let error):
                 let error = StoreError.api(error)
                 Logger.log(.error, "\(RemoteStore.self): Error occurred for request path: \(request.config.path): \(error)")
@@ -106,8 +118,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
         guard hasCachedResponse == false else { return }
 
-        client.send(request: request) { result in
-            
+        let requestCompletion: (Result<APIClientResponse<Data>, APIError>) -> Void = { result in
             switch result {
             case .success(let response):
 
@@ -120,10 +131,10 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                                                           endpoint: endpoint,
                                                           decoder: response.jsonCoderConfig.decoder)
                         context.set(payloadResult: .success(payload), source: source, for: request.config)
-                        
+
                     case ._remote(.derivedFromEntityType, _, _, _):
                         let payload = try E.ResultPayload(from: response.data,
-                                                          endpoint: try E.unwrappedEndpoint(),
+                                                          endpoint: try E.unwrappedEndpoint(for: path),
                                                           decoder: response.jsonCoderConfig.decoder)
                         context.set(payloadResult: .success(payload), source: source, for: request.config)
 
@@ -133,17 +144,24 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                         Logger.log(.error, "\(Self.self): Remote store should not be attempting to handle data source \(context.dataSource).", assert: true)
                         return
                     }
-                    
+
                 } catch {
                     context.set(payloadResult: .failure(.deserialization(error)), source: source, for: request.config)
                 }
-                
+
             case .failure(let error):
                 context.set(payloadResult: .failure(error), source: nil, for: request.config)
             }
         }
+
+        let identifiers = query.identifiers?.array ?? []
+        let clientQueueRequest = APIClientQueueRequest(wrapping: request, identifiers: identifiers)
+        completeOnClientQueueResponse(for: [clientQueueRequest]) { result in
+            requestCompletion(result)
+        }
+        clientQueue.append(clientQueueRequest)
     }
-    
+
     private func coreSearch(withQuery query: Query<E>,
                             in context: ReadContext<E>,
                             completion: @escaping (Result<(result: QueryResult<E>, isFromCache: Bool), StoreError>) -> Void) {
@@ -153,8 +171,8 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
         switch context.dataSource {
         case ._remote(.derivedFromEntityType, _, _, _):
-            let path = RemotePath<E>.search(filter: query.filter)
-            guard let newRequest = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig()) else {
+            let path = RemotePath<E>.search(query)
+            guard let newRequest = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig(), or: context.remoteStoreCache.payloadRequest) else {
                 Logger.log(.error, "\(Self.self): could not build valid request.", assert: true)
                 completion(.failure(.invalidContext))
                 return
@@ -166,7 +184,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
         case ._remote(.request(let requestConfig, _), _, _, _):
             request = APIRequest<Data>(requestConfig, jsonCoderConfig: client.jsonCoderConfig())
             hasCachedResponse = context.hasCachedResponse(for: request.config)
-            
+
         case .local,
              .localOr,
              .localThen:
@@ -179,13 +197,18 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             switch result {
             case .success(let payload as E.ResultPayload):
                 let entities: AnySequence<E>
-                let alreadyOrdered: Bool = context.trustRemoteFiltering && hasCachedResponse == false
-                if alreadyOrdered {
+                let alreadyFiltered: Bool = context.trustRemoteFiltering && hasCachedResponse == false
+                if alreadyFiltered {
                     entities = payload.allEntities()
                 } else {
                     entities = payload.allEntities().filter(with: query.filter)
                 }
-                let searchResult = QueryResult(from: entities, for: query, metadata: Metadata<E>(payload.metadata))
+                let searchResult = QueryResult(
+                    from: entities,
+                    for: query,
+                    alreadyPaginated: alreadyFiltered,
+                    metadata: Metadata<E>(payload.metadata)
+                )
                 completion(.success((searchResult, hasCachedResponse)))
 
             case .success(let payload):
@@ -206,7 +229,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             return
         }
 
-        client.send(request: request) { result in
+        let requestCompletion: (Result<APIClientResponse<Data>, APIError>) -> Void = { result in
             switch result {
             case .success(let response):
 
@@ -219,10 +242,11 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                                                           endpoint: endpoint,
                                                           decoder: response.jsonCoderConfig.decoder)
                         context.set(payloadResult: .success(payload), source: source, for: request.config)
-                        
+
                     case ._remote(.derivedFromEntityType, _, _, _):
+                        let path = RemotePath<E>.search(query)
                         let payload = try E.ResultPayload(from: response.data,
-                                                          endpoint: try E.unwrappedEndpoint(),
+                                                          endpoint: try E.unwrappedEndpoint(for: path),
                                                           decoder: response.jsonCoderConfig.decoder)
                         context.set(payloadResult: .success(payload), source: source, for: request.config)
 
@@ -240,23 +264,30 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                 context.set(payloadResult: .failure(error), source: nil, for: request.config)
             }
         }
+
+        let identifiers = query.identifiers?.array ?? []
+        let clientQueueRequest = APIClientQueueRequest(wrapping: request, identifiers: identifiers)
+        completeOnClientQueueResponse(for: [clientQueueRequest]) { result in
+            requestCompletion(result)
+        }
+        clientQueue.append(clientQueueRequest)
     }
-    
+
     public func search(withQuery query: Query<E>,
                        in context: ReadContext<E>,
                        completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
-    
+
         // Some payloads need to filter out entities which aren't meant to be at their root level.
         // This is due to the fact that payloads made of a tree structure get their data automatically flattened.
         coreSearch(withQuery: query, in: context) { result in
             switch result {
             case .success(let queryResult, let isFromCache):
-                
+
                 guard let allItems = queryResult.metadata?.allItems else {
                     completion(.success(queryResult))
                     return
                 }
-                
+
                 let rootIdentifiers = DualHashSet<E.Identifier>(allItems.lazy.compactMap { $0.entityIdentifier() })
                 guard rootIdentifiers.isEmpty == false else {
                     completion(.success(queryResult))
@@ -269,8 +300,8 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                 }
 
                 let filteredEntities = queryResult.filter { rootIdentifiers.contains($0.identifier) }
-                
-                completion(.success(QueryResult<E>(fromOrderedEntities: filteredEntities,
+
+                completion(.success(QueryResult<E>(fromProcessedEntities: filteredEntities,
                                                    for: query,
                                                    metadata: queryResult.metadata)))
 
@@ -290,7 +321,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             switch context.dataTarget {
             case .localAndRemote(.derivedFromEntityType),
                  .remote(.derivedFromEntityType):
-                if let request = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig()) {
+                if let request = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig(), or: nil) {
                     return APIClientQueueRequest(wrapping: request, identifiers: [entity.identifier])
                 } else {
                     countMismatch = true
@@ -319,40 +350,40 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                 return nil
             }
         }
-        
+
         guard countMismatch == false else {
             completion(.failure(.notSupported))
             return
         }
-        
+
         for entity in entities {
             entity.identifier.willBePushedToClientQueue()
         }
-        
-        completeOnClientQueueResponse(for: requests) {
+
+        completeOnClientQueueResponse(for: requests) { _ in
             completion(nil)
         }
-        
+
         for request in requests {
             clientQueue.append(request)
         }
     }
-    
+
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void) {
 
-        let path = RemotePath<E>.removeAll(filter: query.filter)
-        let identifiers = query.filter?.extractOrIdentifiers?.array ?? []
+        let path = RemotePath<E>.removeAll(query)
+        let identifiers = query.identifiers?.array ?? []
         let clientQueueRequest: APIClientQueueRequest
 
         switch context.dataTarget {
         case .localAndRemote(.derivedFromEntityType),
              .remote(.derivedFromEntityType):
-            guard let request = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig()) else {
+            guard let request = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig(), or: nil) else {
                 completion(.failure(.notSupported))
                 return
             }
 
-            let identifiers = query.filter?.extractOrIdentifiers?.array ?? []
+            let identifiers = query.identifiers?.array ?? []
             clientQueueRequest = APIClientQueueRequest(wrapping: request, identifiers: identifiers)
 
         case .localAndRemote(.derivedFromPath),
@@ -370,13 +401,13 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             return
         }
 
-        completeOnClientQueueResponse(for: [clientQueueRequest]) {
+        completeOnClientQueueResponse(for: [clientQueueRequest]) { _ in
             completion(nil)
         }
-        
+
         clientQueue.append(clientQueueRequest)
     }
-    
+
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
 
         var countMismatch = false
@@ -386,7 +417,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             switch context.dataTarget {
             case .localAndRemote(.derivedFromEntityType),
                  .remote(.derivedFromEntityType):
-                if let request = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig()) {
+                if let request = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig(), or: nil) {
                     return APIClientQueueRequest(wrapping: request, identifiers: [identifier])
                 } else {
                     countMismatch = true
@@ -411,13 +442,13 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                 return nil
             }
         }
-        
+
         guard countMismatch == false else {
             completion(.failure(.notSupported))
             return
         }
-        
-        completeOnClientQueueResponse(for: requests) {
+
+        completeOnClientQueueResponse(for: requests) { _ in
             completion(nil)
         }
 
@@ -430,7 +461,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 // MARK: - Utils
 
 private extension Query {
-    
+
     var emptyResult: QueryResult<E> {
         if groupedBy != nil {
             return .groups(DualHashDictionary())
@@ -441,7 +472,7 @@ private extension Query {
 }
 
 extension APIClientQueueRequest {
-    
+
     init<I>(wrapping request: APIRequest<Data>, identifiers: [I]) where I: Encodable {
         do {
             let jsonEncoder = JSONEncoder()
@@ -457,43 +488,43 @@ extension APIClientQueueRequest {
 // MARK: - ClientQueueResponseHandler
 
 private extension RemoteStore {
-    
+
     final class ClientQueueResponseHandler: APIClientQueueResponseHandler {
-        
+
         private let requestTokensQueue = DispatchQueue(label: "\(ClientQueueResponseHandler.self)_requests")
         private var _requestTokens: Set<UUID>
-        
-        private let completion: () -> Void
-        
-        init<S>(_ requests: S, _ completion: @escaping () -> Void) where S: Sequence, S.Element == APIClientQueueRequest {
+
+        private let resultHandler: (Result<APIClientResponse<Data>, APIError>) -> Void
+
+        init<S>(_ requests: S, _ resultHandler: @escaping (Result<APIClientResponse<Data>, APIError>) -> Void) where S: Sequence, S.Element == APIClientQueueRequest {
             _requestTokens = Set(requests.lazy.map { $0.token })
-            self.completion = completion
+            self.resultHandler = resultHandler
         }
-        
+
         func clientQueue(_ clientQueue: APIClientQueuing,
-                         didReceiveResponse result: Result<Data, APIError>,
+                         didReceiveResponse result: Result<APIClientResponse<Data>, APIError>,
                          for request: APIClientQueueRequest,
                          completion: @escaping () -> Void) {
-            
+
             requestTokensQueue.async {
                 defer { completion() }
                 guard self._requestTokens.contains(request.token) else { return }
                 self._requestTokens.remove(request.token)
-                
+
                 if self._requestTokens.isEmpty {
-                    self.completion()
+                    self.resultHandler(result)
                 }
             }
         }
     }
-    
-    func completeOnClientQueueResponse<S>(for requests: S, completion: @escaping () -> Void) where S: Sequence, S.Element == APIClientQueueRequest {
+
+    func completeOnClientQueueResponse<S>(for requests: S, completion: @escaping (Result<APIClientResponse<Data>, APIError>) -> Void) where S: Sequence, S.Element == APIClientQueueRequest {
         var responseHandlerToken: APIClientQueueResponseHandlerToken?
-        responseHandlerToken = clientQueue.register(ClientQueueResponseHandler(requests) {
+        responseHandlerToken = clientQueue.register(ClientQueueResponseHandler(requests) { result in
             if let token = responseHandlerToken {
                 self.clientQueue.unregister(token)
             }
-            completion()
+            completion(result)
         })
     }
 }
@@ -501,7 +532,7 @@ private extension RemoteStore {
 // MARK: - Synchronization State
 
 private extension RemoteIdentifier {
-    
+
     var hasBeenPushedToClientQueue: Bool {
         switch _remoteSynchronizationState.value {
         case .pending,
@@ -511,7 +542,7 @@ private extension RemoteIdentifier {
             return false
         }
     }
-    
+
     func willBePushedToClientQueue() {
         guard hasBeenPushedToClientQueue == false else { return }
         _remoteSynchronizationState.value = .pending
@@ -531,9 +562,9 @@ private extension APIRequestConfig.QueryValue {
         switch self {
         case .identifier:
             return true
-        case .value:
+        case ._value:
             return false
-        case .array(let values):
+        case ._array(let values):
             return values.contains { $0.hasUnsyncedIdentifiers }
         }
     }

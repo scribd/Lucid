@@ -22,10 +22,10 @@ public protocol PayloadIdentifierDecodableKeyProvider: PayloadIdentifiable {
 // MARK: - Convertable
 
 public protocol PayloadConvertable {
-    
+
     associatedtype PayloadType
     var rootPayload: PayloadType { get }
-    
+
     associatedtype MetadataPayloadType
     var entityMetadata: MetadataPayloadType { get }
 }
@@ -35,7 +35,7 @@ public protocol PayloadConvertable {
 public enum PayloadRelationship<P> where P: PayloadIdentifierDecodableKeyProvider {
     case identifier(P.Identifier)
     case value(P)
-    
+
     public var identifier: P.Identifier {
         switch self {
         case .identifier(let identifier):
@@ -44,7 +44,7 @@ public enum PayloadRelationship<P> where P: PayloadIdentifierDecodableKeyProvide
             return value.identifier
         }
     }
-    
+
     public var value: P? {
         switch self {
         case .identifier:
@@ -60,10 +60,10 @@ extension PayloadRelationship: PayloadIdentifiable where P: PayloadIdentifiable 
 // MARK: - FailableValue
 
 public enum FailableValue<T> {
-    
+
     case value(T)
     case error(Error)
-    
+
     public func value(logError: Bool = true) -> T? {
         switch self {
         case .value(let value):
@@ -214,33 +214,33 @@ extension Extra: Equatable where T: Equatable { }
 public protocol ArrayConvertable {}
 
 public extension ArrayConvertable {
-    
+
     func values() -> AnySequence<Self> {
         return [self].lazy.any
     }
 }
 
 extension PayloadRelationship: ArrayConvertable where P: ArrayConvertable {
-    
+
     public func values() -> AnySequence<P> {
         return (value.flatMap { [$0] } ?? []).lazy.any
     }
 }
 
 public extension Sequence where Element: ArrayConvertable {
-    
+
     func values<O>() -> AnySequence<O> where O: PayloadIdentifiable, Element == PayloadRelationship<O> {
         return lazy.compactMap { $0.value }.any
     }
-    
+
     func values<O>() -> AnySequence<O.Identifier> where O: PayloadIdentifiable, Element == PayloadRelationship<O> {
         return lazy.map { $0.identifier }.any
     }
-    
+
     func values<O, P>() -> DualHashDictionary<O.Identifier, O> where
         O: EntityIdentifiable, Element == PayloadRelationship<P>,
         P: PayloadConvertable, P.MetadataPayloadType == O?, P: PayloadIdentifiable {
-        
+
         return DualHashDictionary(lazy.compactMap {
             guard let value = $0.value?.entityMetadata else { return nil }
             return (value.identifier, value)
@@ -252,36 +252,35 @@ extension Array: ArrayConvertable where Element: ArrayConvertable {}
 extension AnySequence: ArrayConvertable where Element: ArrayConvertable {}
 
 public extension Optional where Wrapped: ArrayConvertable {
-    
+
     func values<O>() -> AnySequence<O> where Wrapped: Sequence, Wrapped.Element == O {
         return self?.lazy.any ?? .empty
     }
-    
+
     func values<O>() -> AnySequence<O> where O: PayloadIdentifiable, Wrapped: Sequence, Wrapped.Element == PayloadRelationship<O>, O: ArrayConvertable {
         return values().values()
     }
-    
+
     func values<O>() -> AnySequence<O.Identifier> where O: PayloadIdentifiable, Wrapped: Sequence, Wrapped.Element == PayloadRelationship<O>, O: ArrayConvertable {
         return values().values()
     }
-    
+
     func values() -> AnySequence<Wrapped> {
         return (flatMap { [$0] } ?? []).lazy.any
     }
-    
+
     func values<O>() -> AnySequence<O> where O: PayloadIdentifiable, Wrapped == PayloadRelationship<O> {
         return values().lazy.compactMap { $0.value }.any
     }
-    
+
     func values<O>() -> AnySequence<O.Identifier> where O: PayloadIdentifiable, Wrapped == PayloadRelationship<O> {
         return values().lazy.map { $0.identifier }.any
     }
-    
+
     func values<O, P>() -> DualHashDictionary<O.Identifier, O>? where
         O: EntityIdentifiable, Wrapped: Sequence, Wrapped.Element == PayloadRelationship<P>,
         P: PayloadConvertable, P.MetadataPayloadType == O?, P: PayloadIdentifiable, P: ArrayConvertable {
-    
+
         return self?.values()
     }
 }
-

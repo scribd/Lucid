@@ -8,8 +8,8 @@
 
 import XCTest
 
-@testable import Lucid
-@testable import LucidTestKit
+@testable import Lucid_ReactiveKit
+@testable import LucidTestKit_ReactiveKit
 
 final class RecoverableStoreTests: StoreTests {
 

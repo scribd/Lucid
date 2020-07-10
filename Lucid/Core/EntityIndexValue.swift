@@ -12,7 +12,7 @@ import AVFoundation
 
 /// Represents the values which can be associated to an `Entity.IndexName`
 public enum EntityIndexValue<RelationshipIdentifier, Subtype>: DualHashable, Comparable where RelationshipIdentifier: AnyRelationshipIdentifier, Subtype: Hashable, Subtype: Comparable {
-    
+
     case string(String)
     case int(Int)
     case double(Double)
@@ -27,17 +27,17 @@ public enum EntityIndexValue<RelationshipIdentifier, Subtype>: DualHashable, Com
     case url(URL)
     case color(Color)
     case none
-    
+
     indirect case array(AnySequence<EntityIndexValue>)
-    
+
     public static func optional(_ value: EntityIndexValue?) -> EntityIndexValue {
         return value ?? .none
     }
-    
+
     public static func milliseconds(_ value: Milliseconds) -> EntityIndexValue {
         return .time(value)
     }
-    
+
     public static func seconds(_ value: Seconds) -> EntityIndexValue {
         return .time(value)
     }
@@ -87,7 +87,7 @@ extension EntityIndexValue {
 // MARK: - Comparable
 
 extension EntityIndexValue {
-    
+
     public static func < (lhs: EntityIndexValue<RelationshipIdentifier, Subtype>, rhs: EntityIndexValue<RelationshipIdentifier, Subtype>) -> Bool {
         switch (lhs, rhs) {
         case (.string(let lhs), .string(let rhs)):
@@ -144,7 +144,7 @@ extension EntityIndexValue {
 // MARK: - CMTime + Hashable
 
 extension CMTime: Hashable {
-    
+
     public func hash(into hasher: inout Hasher) {
         hasher.combine(seconds.hashValue)
     }

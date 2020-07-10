@@ -10,9 +10,29 @@ import Meta
 
 extension String {
     
-    public func camelCased(separators: String = "_", strict: Bool = false) -> String {
-        let words = components(separatedBy: CharacterSet(charactersIn: separators))
-        return words.enumerated().reduce(String()) { $0 + ($1.offset == 0 && strict ? $1.element : $1.element.capitalized) }
+    public enum Configuration {
+
+        fileprivate static var _lexicon = [String: String]()
+        public static func setLexicon(_ lexicon: [String]) {
+            _lexicon = [:]
+            for word in lexicon {
+                _lexicon[word.lowercased()] = word
+            }
+        }
+        
+        public static var entitySuffix = ""
+    }
+    
+    public func camelCased(separators: String = "_", ignoreLexicon: Bool = false) -> String {
+        return components(separatedBy: CharacterSet(charactersIn: separators))
+            .reduce(into: String()) { string, word in
+                if ignoreLexicon == false, let wordFromLexicon = Configuration._lexicon[word.lowercased()] {
+                    string += wordFromLexicon
+                } else {
+                    string += word.capitalized
+                }
+            }
+            .trimmingCharacters(in: CharacterSet(charactersIn: separators))
     }
 
     private static let snakeCasedRegex: NSRegularExpression = {
@@ -26,11 +46,17 @@ extension String {
 
     var snakeCased: String {
         let range = NSRange(location: 0, length: count)
-        return String.snakeCasedRegex.stringByReplacingMatches(in: self, options: [], range: range, withTemplate: "$1_$2").lowercased()
+        return String
+            .snakeCasedRegex
+            .stringByReplacingMatches(in: self, options: [], range: range, withTemplate: "$1_$2")
+            .lowercased()
     }
-    
-    var variableCased: String {
+
+    func variableCased(ignoreLexicon: Bool = false) -> String {
         return split(separator: ".").map { string in
+            if let wordFromLexicon = Configuration._lexicon[string.lowercased()] {
+                return ignoreLexicon ? string.lowercased() : wordFromLexicon
+            }
             var prefix = string.prefix { String($0) == String($0).uppercased() }
             if prefix.count > 1 && prefix.count < count {
                 prefix.removeLast()
@@ -40,6 +66,10 @@ extension String {
     }
     
     var pluralName: String {
+        if let wordFromLexicon = Configuration._lexicon[lowercased()] {
+            return wordFromLexicon + "s"
+        }
+
         let suffixMap: [(String, String)] = [
             ("y", "ies"),
             ("ed", "ed"),
@@ -47,44 +77,34 @@ extension String {
             ("s", "s"),
         ]
         
-        for map in suffixMap where hasSuffix(map.0) {
-            return self.dropLast(map.0.count) + map.1
-        }
-        
-        return self + "s"
+        return suffixMap
+            .first { hasSuffix($0.0) }
+            .flatMap { dropLast($0.0.count) + $0.1 } ?? self + "s"
     }
     
-    func versionedName() throws -> String {
+    public func suffixedName() -> String {
         if isArray {
-            return "[\(try arrayElementType())V2]"
+            return "[\(arrayElementType())\(String.Configuration.entitySuffix)]"
         }
-        return self + "V2"
-    }
-    
-    var unversionedName: String {
-        if hasSuffix("V2") {
-            return String(self[startIndex..<index(endIndex, offsetBy: -2)])
-        } else {
-            return self
-        }
+        return self + String.Configuration.entitySuffix
     }
     
     var isArray: Bool {
         return hasPrefix("[") && hasSuffix("]")
     }
     
-    func arrayElementType() throws -> String {
+    func arrayElementType() -> String {
         guard isArray else { return self }
         var string = self
         string.removeLast()
         string.removeFirst()
         guard string.isArray == false else {
-            throw CodeGenError.unsupportedType(self)
+            fatalError(CodeGenError.unsupportedType(self).description)
         }
         return string
     }
     
     var reference: Reference {
-        return .named(variableCased)
+        return .named(variableCased())
     }
 }

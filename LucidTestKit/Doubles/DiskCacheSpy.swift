@@ -6,7 +6,11 @@
 //  Copyright © 2018 Scribd. All rights reserved.
 //
 
+#if LUCID_REACTIVE_KIT
+@testable import Lucid_ReactiveKit
+#else
 @testable import Lucid
+#endif
 
 final class DiskCacheSpy<DataType: Codable> {
 

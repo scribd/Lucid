@@ -20,35 +20,61 @@ struct SwiftCommandConfiguration {
     
     private(set) var targets: TargetConfigurations
     
-    // Description files location.
+    /// Description files location.
     let _inputPath: Path
     var inputPath: Path {
         return _inputPath.isRelative ? _workingPath + _inputPath : _inputPath
     }
 
-    // Cache files location (defaults to /usr/local/share/lucid/cache).
+    /// Cache files location (defaults to /usr/local/share/lucid/cache).
     private var _cachePath: Path
     var cachePath: Path {
         return _cachePath.isRelative ? _workingPath + _cachePath : _cachePath
     }
 
-    // Current application version (defaults to 1.0.0).
+    /// Current application version (defaults to 1.0.0).
     var currentVersion: String
     
-    // Git remote to use for checking out tags (defaults to nil).
+    /// Git remote to use for checking out tags (defaults to nil).
     let gitRemote: String?
 
-    // Skips repository updates for data model changes checks.
+    /// Skips repository updates for data model changes checks.
     var noRepoUpdate: Bool
 
-    // Attempt to build the DataModel regardless of changes.
-    var forceBuildModel: Bool
+    /// Build a new Database Model regardless of changes.
+    var forceBuildNewDBModel: Bool
+
+    /// Build a new Database Model regardless of changes for selected versions only.
+    var forceBuildNewDBModelForVersions: Set<String>
+
+    /// Name of the function building `CoreManagerContainerClientQueueResponseHandler`.
+    let responseHandlerFunction: String?
+    
+    /// Name of the function building `[CoreDataManager.Migration]`
+    let coreDataMigrationsFunction: String?
+
+    /// - Warning: This option requires to manually set `LucidConfiguration.useCoreDataLegacyNaming` to `true`
+    ///            before using any `CoreManager`. Failing to do so could lead to unexpected behaviors.
+    let useCoreDataLegacyNaming: Bool
+
+    /// Weither to use ReactiveKit's API.
+    var reactiveKit: Bool
+
+    /// List of words for which no transformation (capitalization) should be applied.
+    let lexicon: [String]
+
+    /// Suffix to apply to entity names.
+    let entitySuffix: String
 
     static func make(with configPath: String,
                      currentVersion: String?,
                      cachePath: String?,
                      noRepoUpdate: Bool?,
-                     forceBuildModel: Bool?) throws -> SwiftCommandConfiguration {
+                     forceBuildNewDBModel: Bool?,
+                     forceBuildNewDBModelForVersions: Set<String>?,
+                     selectedTargets: Set<String>,
+                     reactiveKit: Bool?,
+                     logger: Logger) throws -> SwiftCommandConfiguration {
 
         let configPath = Path(configPath)
         var configuration = try YAMLDecoder().decode(SwiftCommandConfiguration.self,
@@ -58,11 +84,21 @@ struct SwiftCommandConfiguration {
         configuration.targets._app._workingPath = configuration._workingPath
         configuration.targets._appTests._workingPath = configuration._workingPath
         configuration.targets._appTestSupport._workingPath = configuration._workingPath
+        
+        configuration.targets.select(with: try selectedTargets.map { targetString in
+            guard let target = TargetName(rawValue: targetString) else {
+                try logger.throwError("Invalid target name: '\(targetString)'")
+            }
+            return target
+        })
 
         configuration.currentVersion = currentVersion ?? configuration.currentVersion
         configuration._cachePath = cachePath.flatMap { Path($0) } ?? configuration._cachePath
         configuration.noRepoUpdate = noRepoUpdate ?? configuration.noRepoUpdate
-        configuration.forceBuildModel = forceBuildModel ?? configuration.forceBuildModel
+        configuration.forceBuildNewDBModel = forceBuildNewDBModel ?? configuration.forceBuildNewDBModel
+        configuration.forceBuildNewDBModelForVersions = forceBuildNewDBModelForVersions ?? configuration.forceBuildNewDBModelForVersions
+        configuration.reactiveKit = reactiveKit ?? configuration.reactiveKit
+        
         return configuration
     }
 }
@@ -89,6 +125,26 @@ struct TargetConfigurations: Targets {
         _appTests = TargetConfiguration(.appTests)
         _appTestSupport = TargetConfiguration(.appTestSupport)
     }
+    
+    mutating fileprivate func select(with selectedTargets: [TargetName]) {
+
+        if selectedTargets.isEmpty == false {
+            _app.isSelected = false
+            _appTests.isSelected = false
+            _appTestSupport.isSelected = false
+        }
+        
+        for target in selectedTargets {
+            switch target {
+            case .app:
+                _app.isSelected = true
+            case .appTests:
+                _appTests.isSelected = true
+            case .appTestSupport:
+                _appTestSupport.isSelected = true
+            }
+        }
+    }
 }
 
 struct TargetConfiguration: Target {
@@ -101,6 +157,8 @@ struct TargetConfiguration: Target {
     fileprivate(set) var moduleName: String
     
     fileprivate var _workingPath = Path()
+    
+    fileprivate(set) var isSelected: Bool
 
     /// Where to generate the boilerplate code.
     var outputPath: Path {
@@ -111,6 +169,7 @@ struct TargetConfiguration: Target {
         self.name = name
         moduleName = name.rawValue.camelCased()
         _outputPath = Path()
+        isSelected = true
     }
 }
 
@@ -121,7 +180,12 @@ private enum Defaults {
     static let cachePath = Path("/usr/local/share/lucid/cache")
     static let gitRemote: String? = nil
     static let noRepoUpdate = false
-    static let forceBuildModel = false
+    static let forceBuildNewDBModel = true
+    static let forceBuildNewDBModelForVersions = Set<String>()
+    static let lexicon = [String]()
+    static let entitySuffix = ""
+    static let reactiveKit = false
+    static let useCoreDataLegacyNaming = false
 }
 
 // MARK: - Decodable
@@ -135,19 +199,39 @@ extension SwiftCommandConfiguration: Decodable {
         case currentVersion = "current_version"
         case lastReleaseTag = "last_release_tag"
         case gitRemote = "git_remote"
-        case forceBuildModel = "force_build_model"
+        case forceBuildNewDBModel = "force_build_new_db_model"
+        case forceBuildNewDBModelForVersions = "force_build_new_db_model_for_versions"
         case noRepoUpdate = "no_repo_update"
+        case lexicon = "lexicon"
+        case activeTargets = "active_targets"
+        case responseHandlerFunction = "response_handler_function"
+        case coreDataMigrationsFunction = "core_data_migrations_function"
+        case entitySuffix = "entity_suffix"
+        case reactiveKit = "reactive_kit"
+        case useCoreDataLegacyNaming = "use_core_data_legacy_naming"
     }
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
-        targets = try container.decode(TargetConfigurations.self, forKey: .targets)
+        
+        var targets = try container.decode(TargetConfigurations.self, forKey: .targets)
+        let activeTargets = try container.decodeIfPresent([TargetName].self, forKey: .activeTargets) ?? []
+        targets.select(with: activeTargets)
+        self.targets = targets
+        
         _inputPath = try container.decode(Path.self, forKey: .inputPath)
         _cachePath = try container.decodeIfPresent(Path.self, forKey: .cachePath) ?? Defaults.cachePath
         currentVersion = try container.decodeIfPresent(String.self, forKey: .currentVersion) ?? Defaults.currentVersion
         gitRemote = try container.decodeIfPresent(String.self, forKey: .gitRemote) ?? Defaults.gitRemote
-        forceBuildModel = try container.decodeIfPresent(Bool.self, forKey: .forceBuildModel) ?? Defaults.forceBuildModel
+        forceBuildNewDBModel = try container.decodeIfPresent(Bool.self, forKey: .forceBuildNewDBModel) ?? Defaults.forceBuildNewDBModel
+        forceBuildNewDBModelForVersions = try container.decodeIfPresent(Set<String>.self, forKey: .forceBuildNewDBModelForVersions) ?? Defaults.forceBuildNewDBModelForVersions
         noRepoUpdate = try container.decodeIfPresent(Bool.self, forKey: .noRepoUpdate) ?? Defaults.noRepoUpdate
+        responseHandlerFunction = try container.decodeIfPresent(String.self, forKey: .responseHandlerFunction)
+        coreDataMigrationsFunction = try container.decodeIfPresent(String.self, forKey: .coreDataMigrationsFunction)
+        useCoreDataLegacyNaming = try container.decodeIfPresent(Bool.self, forKey: .useCoreDataLegacyNaming) ?? Defaults.useCoreDataLegacyNaming
+        reactiveKit = try container.decodeIfPresent(Bool.self, forKey: .reactiveKit) ?? Defaults.reactiveKit
+        lexicon = try container.decodeIfPresent([String].self, forKey: .lexicon) ?? Defaults.lexicon
+        entitySuffix = try container.decodeIfPresent(String.self, forKey: .entitySuffix) ?? Defaults.entitySuffix
     }
 }
 
@@ -170,16 +254,18 @@ extension TargetConfigurations: Decodable {
         }
 
         _appTests.name = .appTests
+        _appTests.isSelected = false
         if _appTests.moduleName.isEmpty {
-            _appTests.moduleName = TargetName.appTests.rawValue.camelCased()
+            _appTests.moduleName = TargetName.appTests.rawValue.camelCased(ignoreLexicon: true)
         }
         if _appTests._outputPath.string.isEmpty {
             _appTests._outputPath = Path("\(_appTests.moduleName)/Generated")
         }
 
         _appTestSupport.name = .appTestSupport
+        _appTestSupport.isSelected = false
         if _appTestSupport.moduleName.isEmpty {
-            _appTestSupport.moduleName = TargetName.appTestSupport.rawValue.camelCased()
+            _appTestSupport.moduleName = TargetName.appTestSupport.rawValue.camelCased(ignoreLexicon: true)
         }
         if _appTestSupport._outputPath.string.isEmpty {
             _appTestSupport._outputPath = Path("\(_appTestSupport.moduleName)/Generated")
@@ -199,6 +285,7 @@ extension TargetConfiguration: Decodable {
         _outputPath = try container.decodeIfPresent(Path.self, forKey: .outputPath) ?? Path()
         moduleName = try container.decodeIfPresent(String.self, forKey: .moduleName) ?? String()
         name = .app
+        isSelected = true
     }
 }
 

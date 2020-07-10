@@ -12,11 +12,11 @@ import AVFoundation
 // MARK: - Error
 
 public enum DecodingErrorWrapper: Error {
-    
+
     case decodingOfUnusedProperty(DecodingError)
     case decodingOfUsedProperty(DecodingError)
     case unknown(Error)
-    
+
     init(_ error: Error) {
         switch error {
         case let error as DecodingErrorWrapper:
@@ -27,7 +27,7 @@ public enum DecodingErrorWrapper: Error {
             self = .unknown(error)
         }
     }
-    
+
     func log(_ message: String) {
         switch self {
         case .decodingOfUsedProperty(let error as Error),
@@ -45,7 +45,7 @@ public enum CodingContext {
     case payload
     case coreDataRelationship
     case clientQueueRequest
-    
+
     fileprivate static let key = CodingUserInfoKey(rawValue: "context")
 }
 
@@ -87,7 +87,7 @@ public extension Encoder {
 
 // MARK: - Decodable Types
 
-public final class Seconds: Time, Decodable {
+public final class Seconds: Time, Codable {
 
     public convenience init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -96,8 +96,8 @@ public final class Seconds: Time, Decodable {
     }
 }
 
-public final class Milliseconds: Time, Decodable {
-    
+public final class Milliseconds: Time, Codable {
+
     public convenience init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let milliseconds = try container.decode(Double.self)
@@ -105,22 +105,27 @@ public final class Milliseconds: Time, Decodable {
     }
 }
 
-extension Color: Decodable {
-    
+extension Color: Codable {
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         hex = try container.decode(String.self)
     }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(hex)
+    }
 }
 
 public struct PermissiveBool: Decodable {
-    
+
     public let value: Bool
-    
+
     public init(_ value: Bool) {
         self.value = value
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let boolValue = try? container.decode(Bool.self) {
@@ -150,7 +155,7 @@ public struct PermissiveBool: Decodable {
 }
 
 extension FailableValue: Decodable where T: Decodable {
-    
+
     public init(from decoder: Decoder) throws {
         do {
             let container = try decoder.singleValueContainer()
@@ -163,20 +168,20 @@ extension FailableValue: Decodable where T: Decodable {
 }
 
 extension PayloadRelationship: Decodable where P: Decodable {
-    
+
     private struct CustomKey: CodingKey {
         let stringValue: String
         var intValue: Int?
-        
+
         init?(intValue: Int) {
             return nil
         }
-        
+
         init(stringValue: String) {
             self.stringValue = stringValue
         }
     }
-    
+
     public init(from decoder: Decoder) throws {
         do {
             let container = try decoder.singleValueContainer()
@@ -202,6 +207,20 @@ extension Extra: Decodable where T: Decodable {
         let container = try decoder.singleValueContainer()
         let value = try container.decode(T.self)
         self = .requested(value)
+    }
+}
+
+extension Extra: Encodable where T: Encodable {
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+
+        switch self {
+        case .requested(let value):
+            try container.encode(value)
+        case .unrequested:
+            return
+        }
     }
 }
 
@@ -236,14 +255,14 @@ public extension KeyedDecodingContainer {
                 DecodingError.Context(codingPath: keys, debugDescription: "At least one key is needed to decode.")
             )
         }
-        
+
         return keys.first(where: { contains($0) }) ?? lastKey
     }
 
     func decode<O>(_ type: O.Type, forKey key: Key, defaultValue: O? = nil, logError: Bool) throws -> O where O: Decodable {
         return try decode(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
     }
-        
+
     func decode<O>(_ type: O.Type, forKeys keys: [Key], defaultValue: O? = nil, logError: Bool) throws -> O where O: Decodable {
         let key = try resolveKey(from: keys)
         if let defaultValue = defaultValue {
@@ -274,14 +293,14 @@ public extension KeyedDecodingContainer {
         }
     }
 
-    func decode<O>(_ type: AnySequence<O>.Type, forKey key: Key, defaultValue: [O]? = nil, logError: Bool) throws -> AnySequence<O> where O: Decodable {
-        return try decode(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, defaultValue: [O]? = nil, logError: Bool) throws -> AnySequence<O> where O: Decodable {
+        return try decodeSequence(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
     }
-    
-    func decode<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> AnySequence<O> where O: Decodable {
+
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> AnySequence<O> where O: Decodable {
         let key = try resolveKey(from: keys)
         if let defaultValue = defaultValue {
-            return try decode(type, forKey: key, defaultValue: defaultValue, logError: logError) ?? defaultValue.lazy.any
+            return try decodeSequence(type, forKey: key, defaultValue: defaultValue, logError: logError) ?? defaultValue.lazy.any
         } else {
             return try decode([FailableValue<O>].self, forKey: key).lazy.compactMap {
                 $0.value(logError: logError)
@@ -289,11 +308,11 @@ public extension KeyedDecodingContainer {
         }
     }
 
-    func decode<O>(_ type: AnySequence<O>.Type, forKey key: Key, defaultValue: [O]? = nil, logError: Bool) throws -> AnySequence<O>? where O: Decodable {
-        return try decode(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, defaultValue: [O]? = nil, logError: Bool) throws -> AnySequence<O>? where O: Decodable {
+        return try decodeSequence(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
     }
 
-    func decode<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> AnySequence<O>? where O: Decodable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> AnySequence<O>? where O: Decodable {
         let key = try resolveKey(from: keys)
         do {
             guard let values = try decodeIfPresent([FailableValue<O>].self, forKey: key) else {
@@ -312,14 +331,14 @@ public extension KeyedDecodingContainer {
             return defaultValue?.lazy.any
         }
     }
-    
+
     func decode<O>(_ type: DualHashDictionary<O.Identifier, O>.Type,
                    forKey key: Key,
                    defaultValue: DualHashDictionary<O.Identifier, O>? = nil,
                    logError: Bool) throws -> DualHashDictionary<O.Identifier, O> where O: Decodable, O: EntityIdentifiable {
         return try decode(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
     }
-    
+
     func decode<O>(_ type: DualHashDictionary<O.Identifier, O>.Type,
                    forKeys keys: [Key],
                    defaultValue: DualHashDictionary<O.Identifier, O>? = nil,
@@ -334,14 +353,14 @@ public extension KeyedDecodingContainer {
             })
         }
     }
-    
+
     func decode<O>(_ type: DualHashDictionary<O.Identifier, O>.Type,
                    forKey key: Key,
                    defaultValue: DualHashDictionary<O.Identifier, O>? = nil,
                    logError: Bool) throws -> DualHashDictionary<O.Identifier, O>? where O: Decodable, O: EntityIdentifiable {
         return try decode(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
     }
-    
+
     func decode<O>(_ type: DualHashDictionary<O.Identifier, O>.Type,
                    forKeys keys: [Key],
                    defaultValue: DualHashDictionary<O.Identifier, O>? = nil,
@@ -367,13 +386,13 @@ public extension KeyedDecodingContainer {
             return defaultValue
         }
     }
-    
+
     // MARK: - PayloadType
 
     func decode<O>(_ type: O.Type, forKey key: Key, logError: Bool) throws -> O.PayloadType where O: Decodable, O: PayloadConvertable {
         return try decode(type, forKeys: [key], logError: logError)
     }
-    
+
     func decode<O>(_ type: O.Type, forKeys keys: [Key], logError: Bool) throws -> O.PayloadType where O: Decodable, O: PayloadConvertable {
         let key = try resolveKey(from: keys)
         return try decode(O.self, forKey: key).rootPayload
@@ -382,7 +401,7 @@ public extension KeyedDecodingContainer {
     func decode<O>(_ type: O.Type, forKey key: Key, logError: Bool) throws -> O.PayloadType? where O: Decodable, O: PayloadConvertable {
         return try decode(type, forKeys: [key], logError: logError)
     }
-    
+
     func decode<O>(_ type: O.Type, forKeys keys: [Key], logError: Bool) throws -> O.PayloadType? where O: Decodable, O: PayloadConvertable {
         let key = try resolveKey(from: keys)
         do {
@@ -395,22 +414,22 @@ public extension KeyedDecodingContainer {
         }
     }
 
-    func decode<O>(_ type: AnySequence<O>.Type, forKey key: Key, logError: Bool) throws -> AnySequence<O.PayloadType> where O: Decodable, O: PayloadConvertable {
-        return try decode(type, forKeys: [key], logError: logError)
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, logError: Bool) throws -> AnySequence<O.PayloadType> where O: Decodable, O: PayloadConvertable {
+        return try decodeSequence(type, forKeys: [key], logError: logError)
     }
-    
-    func decode<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> AnySequence<O.PayloadType> where O: Decodable, O: PayloadConvertable {
+
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> AnySequence<O.PayloadType> where O: Decodable, O: PayloadConvertable {
         let key = try resolveKey(from: keys)
         return try decode([FailableValue<O>].self, forKey: key).lazy.compactMap {
             $0.value(logError: logError)?.rootPayload
         }.any
     }
 
-    func decode<O>(_ type: AnySequence<O>.Type, forKey key: Key, logError: Bool) throws -> AnySequence<O.PayloadType>? where O: Decodable, O: PayloadConvertable {
-        return try decode(type, forKeys: [key], logError: logError)
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, logError: Bool) throws -> AnySequence<O.PayloadType>? where O: Decodable, O: PayloadConvertable {
+        return try decodeSequence(type, forKeys: [key], logError: logError)
     }
 
-    func decode<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> AnySequence<O.PayloadType>? where O: Decodable, O: PayloadConvertable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> AnySequence<O.PayloadType>? where O: Decodable, O: PayloadConvertable {
         let key = try resolveKey(from: keys)
         do {
             guard let values = try decodeIfPresent([FailableValue<O>].self, forKey: key) else { return nil }
@@ -428,7 +447,7 @@ public extension KeyedDecodingContainer {
     func decode<O>(_ type: O.Type, forKey key: Key, logError: Bool) throws -> PayloadRelationship<O> where O: Decodable {
         return try decode(type, forKeys: [key], logError: logError)
     }
-    
+
     func decode<O>(_ type: O.Type, forKeys keys: [Key], logError: Bool) throws -> PayloadRelationship<O> where O: Decodable {
         let key = try resolveKey(from: keys)
         return try decode(PayloadRelationship<O>.self, forKey: key)
@@ -437,7 +456,7 @@ public extension KeyedDecodingContainer {
     func decode<O>(_ type: O.Type, forKey key: Key, logError: Bool) throws -> PayloadRelationship<O>? where O: Decodable {
         return try decode(type, forKeys: [key], logError: logError)
     }
-    
+
     func decode<O>(_ type: O.Type, forKeys keys: [Key], logError: Bool) throws -> PayloadRelationship<O>? where O: Decodable {
         let key = try resolveKey(from: keys)
         do {
@@ -450,20 +469,20 @@ public extension KeyedDecodingContainer {
         }
     }
 
-    func decode<O>(_ type: AnySequence<O>.Type, forKey key: Key, logError: Bool) throws -> AnySequence<PayloadRelationship<O>> where O: Decodable {
-        return try decode(type, forKeys: [key], logError: logError)
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, logError: Bool) throws -> AnySequence<PayloadRelationship<O>> where O: Decodable {
+        return try decodeSequence(type, forKeys: [key], logError: logError)
     }
 
-    func decode<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> AnySequence<PayloadRelationship<O>> where O: Decodable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> AnySequence<PayloadRelationship<O>> where O: Decodable {
         let key = try resolveKey(from: keys)
         return try decode([PayloadRelationship<O>].self, forKey: key).lazy.any
     }
 
-    func decode<O>(_ type: AnySequence<O>.Type, forKey key: Key, logError: Bool) throws -> AnySequence<PayloadRelationship<O>>? where O: Decodable {
-        return try decode(type, forKeys: [key], logError: logError)
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, logError: Bool) throws -> AnySequence<PayloadRelationship<O>>? where O: Decodable {
+        return try decodeSequence(type, forKeys: [key], logError: logError)
     }
-    
-    func decode<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> AnySequence<PayloadRelationship<O>>? where O: Decodable {
+
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> AnySequence<PayloadRelationship<O>>? where O: Decodable {
         let key = try resolveKey(from: keys)
         do {
             guard let values = try decodeIfPresent([PayloadRelationship<O>].self, forKey: key) else { return nil }
@@ -475,14 +494,14 @@ public extension KeyedDecodingContainer {
             return nil
         }
     }
-    
+
     // MARK: NestedContainer
-    
+
     func nestedContainer(forKeyChain keyChain: [Key]) throws -> KeyedDecodingContainer {
         guard let key = keyChain.first else { return self }
         return try nestedContainer(keyedBy: K.self, forKey: key).nestedContainer(forKeyChain: Array(keyChain.dropFirst()))
     }
-    
+
     // MARK: - Time
 
     func decode(_ type: Seconds.Type, forKey key: Key, defaultValue: Double? = nil, logError: Bool) throws -> Seconds {
@@ -498,7 +517,7 @@ public extension KeyedDecodingContainer {
             return try decode(Seconds.self, forKey: key)
         }
     }
-    
+
     func decode(_ type: Milliseconds.Type, forKey key: Key, defaultValue: Double? = nil, logError: Bool) throws -> Milliseconds {
         return try decode(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
     }
@@ -524,7 +543,7 @@ public extension KeyedDecodingContainer {
         } else if let defaultValue = defaultValue {
             return .requested(defaultValue)
         } else {
-            return .unrequested
+            return try decode(Extra<O>.self, forKey: key)
         }
     }
 
@@ -549,11 +568,11 @@ public extension KeyedDecodingContainer {
         return try decode(O?.self, forKeys: keys, defaultValue: defaultValue, logError: logError)
     }
 
-    func decode<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> Extra<AnySequence<O>> where O: Decodable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> Extra<AnySequence<O>> where O: Decodable {
         return try decode([O].self, forKeys: keys, defaultValue: defaultValue, logError: logError).lazyAny()
     }
 
-    func decode<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> Extra<AnySequence<O>?> where O: Decodable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> Extra<AnySequence<O>?> where O: Decodable {
         return try decode([O]?.self, forKeys: keys, defaultValue: defaultValue, logError: logError).lazyAny()
     }
 
@@ -565,11 +584,24 @@ public extension KeyedDecodingContainer {
         return try decode(PayloadRelationship<O>?.self, forKeys: keys, defaultValue: nil, logError: logError)
     }
 
-    func decode<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> Extra<AnySequence<PayloadRelationship<O>>> where O: Decodable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> Extra<AnySequence<PayloadRelationship<O>>> where O: Decodable {
         return try decode([PayloadRelationship<O>].self, forKeys: keys, defaultValue: nil, logError: logError).lazyAny()
     }
 
-    func decode<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> Extra<AnySequence<PayloadRelationship<O>>?> where O: Decodable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> Extra<AnySequence<PayloadRelationship<O>>?> where O: Decodable {
         return try decode([PayloadRelationship<O>]?.self, forKeys: keys, defaultValue: nil, logError: logError).lazyAny()
+    }
+}
+
+extension AnySequence: Codable where Element: Codable {
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self = try container.decode([Element].self).any
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(self.array)
     }
 }

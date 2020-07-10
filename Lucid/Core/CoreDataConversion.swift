@@ -18,7 +18,7 @@ private enum Coders {
         encoder.set(context: .coreDataRelationship)
         return encoder
     }()
-    
+
     static let decoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.set(context: .coreDataRelationship)
@@ -43,24 +43,24 @@ extension Double: CoreDataPrimitiveValue {}
 // MARK: - NSManagedObject Utils
 
 public extension NSManagedObject {
-    
+
     func setProperty<T>(_ name: String, value: T?) {
         willChangeValue(forKey: name)
         defer { didChangeValue(forKey: name) }
-        
+
         guard let value = value else {
             setPrimitiveValue(nil, forKey: name)
             return
         }
         setPrimitiveValue(value, forKey: name)
     }
-    
+
     func propertyValue<T>(for name: String) -> T? where T: CoreDataPrimitiveValue {
         willAccessValue(forKey: name)
         defer { didAccessValue(forKey: name) }
         return (primitiveValue(forKey: name) as? T)
     }
-    
+
     func propertyValue<T>(for name: String) throws -> T where T: CoreDataPrimitiveValue {
         guard let value: T = propertyValue(for: name) else {
             throw CoreDataConversionError.corruptedProperty(name: name)
@@ -75,7 +75,7 @@ public extension Data {
     func decodedValue<T>(_ type: T.Type) throws -> T where T: Decodable {
         return try Coders.decoder.decode(T.self, from: self)
     }
-    
+
     func decodedValue<T>(_ type: T.Type) -> T? where T: Decodable {
         do {
             return try decodedValue(type) as T
@@ -102,7 +102,7 @@ public extension Sequence where Element: Encodable {
     func coreDataValue() throws -> Data {
         return try Coders.encoder.encode(Array(self))
     }
-    
+
     func coreDataValue() -> Data? {
         do {
             return try coreDataValue() as Data
@@ -178,7 +178,7 @@ public extension Optional where Wrapped: CoreDataIdentifier, Wrapped.RemoteValue
 // MARK: - IdentifierValueType
 
 public extension NSManagedObject {
-    
+
     func identifierValueType<I>(_ identifierType: I.Type, propertyName: String? = nil) throws -> IdentifierValueType<I.LocalValueType, I.RemoteValueType> where I: CoreDataIdentifier {
         return try IdentifierValueType(
             remoteValue: propertyValue(for: propertyName ?? I.remotePredicateString),
@@ -186,7 +186,7 @@ public extension NSManagedObject {
             propertyName: propertyName
         )
     }
-    
+
     func identifierValueType<I>(_ identifierType: I.Type, identifierTypeID: String?, propertyName: String? = nil) throws -> I where I: CoreDataIdentifier {
         return I(value: try identifierValueType(I.self, propertyName: propertyName),
                  identifierTypeID: identifierTypeID,
@@ -198,7 +198,7 @@ public extension NSManagedObject {
                  identifierTypeID: identifierTypeID,
                  remoteSynchronizationState: remoteSynchronizationState)
     }
-    
+
     func identifierValueType<I>(_ identifierType: I.Type, identifierTypeID: String? = nil, propertyName: String? = nil) -> I? where I: CoreDataIdentifier {
         do {
             return try identifierValueType(I.self, identifierTypeID: identifierTypeID, propertyName: propertyName) as I
@@ -225,7 +225,7 @@ public extension Data {
     func identifierValueTypeArrayValue<I>(_ identifierType: I.Type) -> AnySequence<IdentifierValueType<I.LocalValueType, I.RemoteValueType>>? where I: CoreDataIdentifier {
         return decodedValue([IdentifierValueType<I.LocalValueType, I.RemoteValueType>].self)?.lazy.any
     }
-    
+
     func identifierValueTypeArrayValue<I>(_ identifierType: I.Type) throws -> AnySequence<IdentifierValueType<I.LocalValueType, I.RemoteValueType>> where I: CoreDataIdentifier {
         return try decodedValue([IdentifierValueType<I.LocalValueType, I.RemoteValueType>].self).lazy.any
     }
@@ -237,7 +237,7 @@ public extension String {
     func coreDataValue() -> String {
         return self
     }
-    
+
     func stringValue() -> String {
         return self
     }
@@ -247,11 +247,11 @@ public extension Optional where Wrapped == String {
     func coreDataValue() -> String? {
         return self?.coreDataValue()
     }
-    
+
     func stringValue() -> String? {
         return self
     }
-    
+
     func stringValue(propertyName: String) throws -> String {
         guard let value = self else {
             throw CoreDataConversionError.corruptedProperty(name: propertyName)
@@ -334,7 +334,7 @@ public extension NSManagedObject {
     func intValue(propertyName: String) -> Int? {
         return propertyValue(for: propertyName)
     }
-    
+
     func intValue(propertyName: String) throws -> Int {
         return try propertyValue(for: propertyName)
     }
@@ -344,7 +344,7 @@ public extension Data {
     func intArrayValue() -> [Int]? {
         return decodedValue([Int].self)
     }
-    
+
     func intArrayValue() throws -> [Int] {
         return try decodedValue([Int].self)
     }
@@ -356,7 +356,7 @@ public extension Float {
     func coreDataValue() -> Float {
         return self
     }
-    
+
     func floatValue() -> Float {
         return self
     }
@@ -366,7 +366,7 @@ public extension Optional where Wrapped == Float {
     func coreDataValue() -> Float? {
         return self?.coreDataValue()
     }
-    
+
     func floatValue() -> Float? {
         return self
     }
@@ -376,7 +376,7 @@ public extension NSManagedObject {
     func floatValue(propertyName: String) -> Float? {
         return propertyValue(for: propertyName)
     }
-    
+
     func floatValue(propertyName: String) throws -> Float {
         return try propertyValue(for: propertyName)
     }
@@ -388,7 +388,7 @@ public extension Double {
     func coreDataValue() -> Double {
         return self
     }
-    
+
     func doubleValue() -> Double {
         return self
     }
@@ -398,7 +398,7 @@ public extension Optional where Wrapped == Double {
     func coreDataValue() -> Double? {
         return self?.coreDataValue()
     }
-    
+
     func doubleValue() -> Double? {
         return self
     }
@@ -408,7 +408,7 @@ public extension NSManagedObject {
     func doubleValue(propertyName: String) -> Double? {
         return propertyValue(for: propertyName)
     }
-    
+
     func doubleValue(propertyName: String) throws -> Double {
         return try propertyValue(for: propertyName)
     }
@@ -438,7 +438,7 @@ public extension Optional where Wrapped == Date {
     func dateValue() -> Date? {
         return self?.dateValue()
     }
-    
+
     func dateValue(propertyName: String) throws -> Date {
         guard let date = self else {
             throw CoreDataConversionError.corruptedProperty(name: propertyName)
@@ -465,7 +465,7 @@ public extension Int64 {
     func boolValue() -> Bool {
         return self == 0 ? false : true
     }
-    
+
     func boolValue() -> FailableValue<Bool> {
         return .value(boolValue())
     }
@@ -481,7 +481,7 @@ public extension NSManagedObject {
     func boolValue(propertyName: String) -> Bool? {
         return intValue(propertyName: propertyName).flatMap { $0 == 0 ? false : true }
     }
-    
+
     func boolValue(propertyName: String) throws -> Bool {
         guard let value: Bool = boolValue(propertyName: propertyName) else {
             throw CoreDataConversionError.corruptedProperty(name: propertyName)
@@ -514,7 +514,7 @@ public extension Optional where Wrapped == String {
     func colorValue() -> Color? {
         return self?.colorValue()
     }
-    
+
     func colorValue(propertyName: String) throws -> Color {
         guard let value = self?.colorValue() else {
             throw CoreDataConversionError.corruptedProperty(name: propertyName)
@@ -539,9 +539,9 @@ public extension Optional where Wrapped == Time {
 
 public extension Double {
     func millisecondsValue() -> Milliseconds {
-        return Milliseconds(seconds: self / 1000, preferredTimescale: 1000)
+        return Milliseconds(seconds: self, preferredTimescale: 1000)
     }
-    
+
     func secondsValue() -> Seconds {
         return Seconds(seconds: self, preferredTimescale: 1000)
     }
@@ -551,7 +551,7 @@ public extension NSManagedObject {
     func timeValue(propertyName: String) -> Time? {
         return doubleValue(propertyName: propertyName).flatMap { Time(seconds: $0) }
     }
-    
+
     func timeValue(propertyName: String) throws -> Time {
         guard let value: Time = timeValue(propertyName: propertyName) else {
             throw CoreDataConversionError.corruptedProperty(name: propertyName)
@@ -657,7 +657,7 @@ public extension Extra {
 // MARK: - RemoteSynchronizationState
 
 public extension String {
-    
+
     var synchronizationStateValue: RemoteSynchronizationState? {
         return RemoteSynchronizationState(rawValue: self)
     }

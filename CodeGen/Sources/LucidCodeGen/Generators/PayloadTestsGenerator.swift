@@ -13,19 +13,23 @@ public final class PayloadTestsGenerator: Generator {
     public let name = "payload tests"
     
     private let descriptions: Descriptions
+
+    private let reactiveKit: Bool
     
-    public init(descriptions: Descriptions) {
+    public init(descriptions: Descriptions, reactiveKit: Bool) {
         self.descriptions = descriptions
+        self.reactiveKit = reactiveKit
     }
     
     public func generate(for element: Description, in directory: Path) throws -> File? {
         guard let endpointName = element.endpointName else { return nil }
         
-        let filename = "\(endpointName)PayloadsTests.swift"
+        let filename = "\(endpointName.camelCased(separators: "/_").suffixedName())PayloadsTests.swift"
         
         let header = MetaHeader(filename: filename)
         let endpointPayloadTests = MetaEndpointPayloadTests(endpointName: endpointName,
-                                                            descriptions: descriptions)
+                                                            descriptions: descriptions,
+                                                            reactiveKit: reactiveKit)
 
         return Meta.File(name: filename)
             .with(header: header.meta)

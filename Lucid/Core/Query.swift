@@ -28,9 +28,9 @@
 /// let _ = Query<Document>(filter: .identifier ~= .string(".*super book.*"))
 /// ```
 public struct Query<E>: Equatable where E: Entity {
-    
+
     // MARK: - Filter
-    
+
     /// Filter expression representation.
     ///
     /// E.g. search a rating by document identifier.
@@ -44,7 +44,7 @@ public struct Query<E>: Equatable where E: Entity {
         case negated(Filter)
         case binary(Filter, Operator, Filter)
     }
-    
+
     // MARK: - Operator
 
     public enum Operator: Equatable {
@@ -58,7 +58,7 @@ public struct Query<E>: Equatable where E: Entity {
         case lessThan
         case lessThanOrEqual
     }
-    
+
     // MARK: - Value
 
     public enum Value: DualHashable, Comparable {
@@ -73,9 +73,9 @@ public struct Query<E>: Equatable where E: Entity {
         case identifier
         case index(E.IndexName)
     }
-    
+
     // MARK: - Order
-    
+
     /// Order representation used for sorting.
     ///
     /// - Cases:
@@ -89,28 +89,37 @@ public struct Query<E>: Equatable where E: Entity {
         case natural
         case identifiers(AnySequence<E.Identifier>)
     }
-    
+
     // MARK: - Dependencies
-    
+
     public var filter: Filter?
     public var groupedBy: E.IndexName?
     public var uniquely: Bool
     public var order: [Order]
-    
+    public var offset: Int?
+    public var limit: Int?
+    public var context: E.QueryContext?
+
     // MARK: - Init
-    
+
     public init(filter: Filter? = nil,
                 groupedBy: E.IndexName? = nil,
                 uniquely: Bool = false,
-                order: [Order] = [.asc(by: .identifier)]) {
+                order: [Order] = [.asc(by: .identifier)],
+                offset: Int? = nil,
+                limit: Int? = nil,
+                context: E.QueryContext? = nil) {
         self.filter = filter
         self.groupedBy = groupedBy
         self.uniquely = uniquely
         self.order = order
+        self.offset = offset
+        self.limit = limit
+        self.context = context
     }
-    
-    // MARK: - Convenience
-    
+
+    // MARK: - Get Convenience
+
     public static func identifier(_ identifier: E.Identifier) -> Query {
         return Query(filter: .binary(
             .property(.identifier),
@@ -118,28 +127,102 @@ public struct Query<E>: Equatable where E: Entity {
             .value(.identifier(identifier))
         ))
     }
-    
+
+    var identifier: E.Identifier? {
+        return filter?.extractOrIdentifiers?.first
+    }
+
+    var identifiers: AnySequence<E.Identifier>? {
+        return filter?.extractOrIdentifiers
+    }
+
+    // MARK: - Search Convenience
+
     public static func filter(_ filter: Filter?) -> Query {
         return Query(filter: filter)
     }
-        
+
     public static func order<S>(_ order: S) -> Query where S: Sequence, S.Element == Order {
         return Query(order: order.array)
     }
-    
+
     public func order<S>(_ order: S) -> Query where S: Sequence, S.Element == Order {
         var query = self
         query.order = order.array
         return query
     }
-    
+
     public func grouped(by indexName: E.IndexName?) -> Query {
         var query = self
         query.groupedBy = indexName
         return query
     }
-    
+
     public static var all: Query { return Query(filter: .all) }
+
+    // MARK: Private RemoteEntity Addition
+
+    private var _extras: AnyEquatable?
+}
+
+extension Query where E: RemoteEntity {
+
+    public init(filter: Filter? = nil,
+                groupedBy: E.IndexName? = nil,
+                uniquely: Bool = false,
+                order: [Order] = [.asc(by: .identifier)],
+                offset: Int? = nil,
+                limit: Int? = nil,
+                context: E.QueryContext? = nil,
+                extras: [E.ExtrasIndexName] = []) {
+        self.filter = filter
+        self.groupedBy = groupedBy
+        self.uniquely = uniquely
+        self.order = order
+        self.offset = offset
+        self.limit = limit
+        self.context = context
+        self._extras = AnyEquatable(typedTarget: extras)
+    }
+
+    public static func allWithExtras(_ extras: [E.ExtrasIndexName]) -> Query {
+        return Query(filter: .all, extras: extras)
+    }
+
+    public static func identifier(_ identifier: E.Identifier, extras: [E.ExtrasIndexName]) -> Query {
+        return Query(
+            filter: .binary(
+                .property(.identifier),
+                .equalTo,
+                .value(.identifier(identifier))
+            ),
+            extras: extras
+        )
+    }
+
+    public func extras<S>(_ extras: S) -> Query where S: Sequence, S.Element == E.ExtrasIndexName {
+        var query = self
+        query._extras = AnyEquatable(typedTarget: extras.array)
+        return query
+    }
+
+    public var extras: [E.ExtrasIndexName]? {
+        return _extras?.target as? [E.ExtrasIndexName]
+    }
+}
+
+// MARK: - QueryResultConvertible
+
+extension Query.Property: QueryResultConvertible {
+
+    public var requestValue: String {
+        switch self {
+        case .identifier:
+            return "identifier"
+        case .index(let index):
+            return index.requestValue
+        }
+    }
 }
 
 // MARK: - Result
@@ -156,11 +239,11 @@ public struct QueryResult<E>: QueryResultInterface where E: Entity {
         case entitiesSequence(AnySequence<E>)
         case entitiesArray([E])
     }
-    
+
     private(set) var data: Data
-    
+
     // MARK: - O(n) operations the first time only
-    
+
     /// Convert to an array of entities
     ///
     /// - Note: O(n) the first time, then O(1).
@@ -175,9 +258,9 @@ public struct QueryResult<E>: QueryResultInterface where E: Entity {
         }
         return self
     }
-    
+
     // MARK: - O(n) operations before materialization, O(1) after.
-    
+
     public var materialized: QueryResult<E> {
         switch data {
         case .entitiesSequence(let entities):
@@ -187,7 +270,7 @@ public struct QueryResult<E>: QueryResultInterface where E: Entity {
             return self
         }
     }
-    
+
     public var count: Int {
         return array.count
     }
@@ -202,7 +285,7 @@ public struct QueryResult<E>: QueryResultInterface where E: Entity {
             return entities.any
         }
     }
-    
+
     public var array: [E] {
         switch data {
         case .groups(let groups):
@@ -227,24 +310,24 @@ public struct QueryResult<E>: QueryResultInterface where E: Entity {
             return DualHashDictionary()
         }
     }
-    
+
     // MARK: - O(1) operations
-    
+
     public var isEmpty: Bool {
         return any.isEmpty
     }
-    
+
     public var entity: E? {
         return any.first
     }
-    
+
     public var first: E? {
         return entity
     }
-    
+
     // MARK: Private RemoteEntity Addition
 
-    private var _metadata: Metadata<E>?
+    fileprivate var _metadata: Metadata<E>?
 }
 
 public protocol QueryResultInterface: Equatable {
@@ -252,21 +335,21 @@ public protocol QueryResultInterface: Equatable {
 
     @discardableResult
     mutating func materialize() -> QueryResult<E>
-    
+
     var materialized: QueryResult<E> { get }
-    
+
     var count: Int { get }
-    
+
     var any: AnySequence<E> { get }
-    
+
     var array: [E] { get }
-    
+
     var groups: DualHashDictionary<EntityIndexValue<E.RelationshipIdentifier, E.Subtype>?, [E]> { get }
-    
+
     var isEmpty: Bool { get }
-    
+
     var entity: E? { get }
-    
+
     var first: E? { get }
 }
 
@@ -282,7 +365,7 @@ public extension QueryResult where E: RemoteEntity {
 // MARK: - Equatable
 
 extension QueryResult {
-    
+
     public static func == (_ lhs: QueryResult<E>, _ rhs: QueryResult<E>) -> Bool {
         switch (lhs.data, rhs.data) {
         case (.groups(let lhs), .groups(let rhs)):
@@ -312,18 +395,19 @@ public extension QueryResult {
     init(from entitiesByID: DualHashDictionary<E.Identifier, E>, for query: Query<E>) {
         self.init(from: entitiesByID.values.any, for: query, entitiesByID: entitiesByID)
     }
-    
-    init<S>(fromOrderedEntities entities: S, for query: Query<E>) where S: Sequence, S.Element == E {
-        self.init(from: entities, for: query, alreadyOrdered: true)
+
+    init<S>(fromProcessedEntities entities: S, for query: Query<E>) where S: Sequence, S.Element == E {
+        self.init(from: entities, for: query, alreadyOrdered: true, alreadyPaginated: true)
     }
-    
+
     init<S>(from entities: S,
             for query: Query<E>,
             entitiesByID: DualHashDictionary<E.Identifier, E>? = nil,
-            alreadyOrdered: Bool = false) where S: Sequence, S.Element == E {
-        
+            alreadyOrdered: Bool = false,
+            alreadyPaginated: Bool = false) where S: Sequence, S.Element == E {
+
         var entities = entities.any
-        
+
         if query.uniquely {
             var identifiers = DualHashSet<E.Identifier>()
             entities = entities.filter { entity in
@@ -331,11 +415,21 @@ public extension QueryResult {
                 return identifiers.contains(entity.identifier)
             }.any
         }
-        
+
         if alreadyOrdered == false {
             entities = entities.order(with: query.order, elementsByID: entitiesByID).any
         }
-        
+
+        if alreadyPaginated == false {
+            if let offset = query.offset {
+                entities = entities.dropFirst(offset)
+            }
+
+            if let limit = query.limit {
+                entities = entities.prefix(limit)
+            }
+        }
+
         if let index = query.groupedBy {
             data = .groups(entities.reduce(into: DualHashDictionary<EntityIndexValue, [E]>()) { groups, entity in
                 let indexValue = entity.entityIndexValue(for: index)
@@ -357,10 +451,11 @@ public extension QueryResult {
     init(from entities: [E],
          for query: Query<E>,
          entitiesByID: DualHashDictionary<E.Identifier, E>? = nil,
-         alreadyOrdered: Bool = false) {
+         alreadyOrdered: Bool = false,
+         alreadyPaginated: Bool = false) {
 
         var entities = entities
-        
+
         if query.uniquely {
             var identifiers = DualHashSet<E.Identifier>()
             entities = entities.filter { entity in
@@ -368,11 +463,21 @@ public extension QueryResult {
                 return identifiers.contains(entity.identifier)
             }
         }
-        
+
         if alreadyOrdered == false {
             entities = entities.order(with: query.order, elementsByID: entitiesByID)
         }
-        
+
+        if alreadyPaginated == false {
+            if let offset = query.offset {
+                entities = Array(entities.dropFirst(offset))
+            }
+
+            if let limit = query.limit {
+                entities = Array(entities.prefix(limit))
+            }
+        }
+
         if let index = query.groupedBy {
             data = .groups(entities.reduce(into: DualHashDictionary<EntityIndexValue, [E]>()) { groups, entity in
                 let indexValue = entity.entityIndexValue(for: index)
@@ -384,23 +489,23 @@ public extension QueryResult {
             data = .entitiesArray(entities)
         }
     }
-    
+
     static func empty() -> QueryResult<E> {
         return QueryResult(data: .entitiesArray([]))
     }
-    
+
     static func entity(_ entity: E?) -> QueryResult<E> {
         return QueryResult(data: .entitiesArray(entity.flatMap { [$0] } ?? []))
     }
-    
+
     static func entities<S>(_ entities: S) -> QueryResult<E> where S: Sequence, S.Element == E {
         return QueryResult(data: .entitiesSequence(entities.any))
     }
-    
+
     static func entities(_ entities: [E]) -> QueryResult<E> {
         return QueryResult(data: .entitiesArray(entities))
     }
-    
+
     static func groups(_ groups: DualHashDictionary<EntityIndexValue<E.RelationshipIdentifier, E.Subtype>, [E]>) -> QueryResult<E> {
         return QueryResult(data: .groups(groups))
     }
@@ -416,12 +521,13 @@ public extension QueryResult where E: RemoteEntity {
                   metadata: metadata)
     }
 
-    init<S>(fromOrderedEntities entities: S,
+    init<S>(fromProcessedEntities entities: S,
             for query: Query<E>,
             metadata: Metadata<E>?) where S: Sequence, S.Element == E {
         self.init(from: entities,
                   for: query,
                   alreadyOrdered: true,
+                  alreadyPaginated: true,
                   metadata: metadata)
     }
 
@@ -429,12 +535,14 @@ public extension QueryResult where E: RemoteEntity {
             for query: Query<E>,
             entitiesByID: DualHashDictionary<E.Identifier, E>? = nil,
             alreadyOrdered: Bool = false,
+            alreadyPaginated: Bool = false,
             metadata: Metadata<E>?) where S: Sequence, S.Element == E {
 
         self.init(from: entities,
                   for: query,
                   entitiesByID: entitiesByID,
-                  alreadyOrdered: alreadyOrdered)
+                  alreadyOrdered: alreadyOrdered,
+                  alreadyPaginated: alreadyPaginated)
 
         self._metadata = metadata
     }
@@ -453,7 +561,7 @@ public extension Sequence where Element: Entity {
         }
         return mutableEntities
     }
-    
+
     func update(byReplacingOrAdding newEntities: DualHashDictionary<Element.Identifier, Element>) -> [Element] {
         let entitiesByIdentifier = self
             .reduce(into: DualHashDictionary<Element.Identifier, Element>()) { $0[$1.identifier] = $1 }
@@ -463,15 +571,15 @@ public extension Sequence where Element: Entity {
 }
 
 public extension Query.Filter {
-    
+
     static var all: Query.Filter? { return nil }
-    
+
     func extractOrRelationshipIDs<ID: EntityIdentifier>(named relationshipName: E.IndexName) -> AnySequence<ID> {
         switch self {
         case .binary(.property(.index(let indexName)), .equalTo, .value(.index(.relationship(let value)))) where indexName == relationshipName,
              .binary(.value(.index(.relationship(let value))), .equalTo, .property(.index(let indexName))) where indexName == relationshipName:
             return [value.toRelationshipID()].compactMap { $0 }.any
-            
+
         case .binary(.property(.index(let indexName)), .containedIn, .values(let values)) where indexName == relationshipName,
              .binary(.values(let values), .containedIn, .property(.index(let indexName))) where indexName == relationshipName:
             return values.lazy.compactMap { $0.relationshipIdentifier?.toRelationshipID() }.any
@@ -480,7 +588,7 @@ public extension Query.Filter {
             let leftIDs: AnySequence<ID> = lhs.extractOrRelationshipIDs(named: relationshipName)
             let rightIDs: AnySequence<ID> = rhs.extractOrRelationshipIDs(named: relationshipName)
             return [leftIDs, rightIDs].joined().any
-            
+
         case .negated,
              .binary,
              .property,
@@ -489,7 +597,7 @@ public extension Query.Filter {
             return .empty
         }
     }
-    
+
     var extractOrIdentifiers: AnySequence<E.Identifier>? {
         switch self {
         case .binary(.property(.identifier), .equalTo, .value(.identifier(let identifier))),
@@ -510,7 +618,7 @@ public extension Query.Filter {
             } else {
                 return nil
             }
-            
+
         case .binary,
              .negated,
              .property,
@@ -533,7 +641,7 @@ extension Query.Order {
             return false
         }
     }
-    
+
     var isDeterministic: Bool {
         switch self {
         case .asc,
@@ -558,7 +666,7 @@ extension Query.Order {
 }
 
 extension Query.Value {
-    
+
     var identifier: E.Identifier? {
         switch self {
         case .identifier(let identifier):
@@ -568,11 +676,11 @@ extension Query.Value {
             return nil
         }
     }
-    
+
     var isIdentifier: Bool {
         return identifier != nil
     }
-    
+
     var relationshipIdentifier: E.RelationshipIdentifier? {
         switch self {
         case .index(.relationship(let identifier)):
@@ -583,11 +691,11 @@ extension Query.Value {
             return nil
         }
     }
-    
+
     var isRelationshipIdentifier: Bool {
         return relationshipIdentifier != nil
     }
-    
+
     var boolValue: Bool {
         switch self {
         case .bool(let value):
@@ -596,6 +704,35 @@ extension Query.Value {
              .index:
             return true
         }
+    }
+}
+
+// MARK: - Extras Support
+
+extension QueryResult {
+
+    func validatingExtras(with query: Query<E>) -> QueryResult {
+
+        guard E.shouldValidate else { return self }
+
+        var queryResult: QueryResult
+
+        switch data {   
+        case .groups(var dictionary):
+            dictionary.forEach { index, entities in
+                dictionary[index] = entities.filter { $0.isEntityValid(for: query) }
+            }
+            queryResult = QueryResult(data: .groups(dictionary))
+
+        case .entitiesSequence(let sequence):
+            queryResult = QueryResult(data: .entitiesSequence(sequence.filter { $0.isEntityValid(for: query) }.any))
+
+        case .entitiesArray(let entities):
+            queryResult = QueryResult(data: .entitiesArray(entities.filter { $0.isEntityValid(for: query) }))
+        }
+
+        queryResult._metadata = _metadata
+        return queryResult
     }
 }
 
@@ -766,7 +903,7 @@ public func && <E: Entity>(lhs: Query<E>.Filter, rhs: Query<E>.Filter) -> Query<
 // MARK: - DualHashable
 
 extension Query.Value {
-    
+
     public func hash(into hasher: inout DualHasher) {
         switch self {
         case .bool(let value):
@@ -782,7 +919,7 @@ extension Query.Value {
 // MARK: - Comparable
 
 extension Query.Value {
-    
+
     public static func < (lhs: Query.Value, rhs: Query.Value) -> Bool {
         switch (lhs, rhs) {
         case (.bool(false), .bool(true)):

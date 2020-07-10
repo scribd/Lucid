@@ -56,7 +56,7 @@ struct MetaSubtype {
             return type
                 .with(kind: .enum(indirect: false))
                 .adding(inheritedType: .caseIterable)
-                .adding(members: usedCases.map { Case(name: $0) })
+                .adding(members: usedCases.map { Case(name: $0.camelCased().variableCased()) })
             
         case .options(let allOptions, let unusedOptions):
             let unusedOptions = Set(unusedOptions)
@@ -81,7 +81,7 @@ struct MetaSubtype {
                     guard unusedOptions.contains(option) == false else {
                         return nil
                     }
-                    return Property(variable: Variable(name: option)
+                    return Property(variable: Variable(name: option.camelCased().variableCased())
                         .with(static: true))
                         .with(accessLevel: .public)
                         .with(value: subtype.typeID().reference | .call(Tuple()
@@ -94,7 +94,7 @@ struct MetaSubtype {
                 .with(kind: .struct)
                 .adding(member: EmptyLine())
                 .adding(members: properties.map { property in
-                    Property(variable: Variable(name: property.name)
+                    Property(variable: Variable(name: property.name.camelCased().variableCased(ignoreLexicon: true))
                         .with(type: property.typeID()))
                         .with(accessLevel: .public)
                 })
@@ -102,13 +102,13 @@ struct MetaSubtype {
                 .adding(member: Function(kind: .`init`)
                     .with(accessLevel: .public)
                     .adding(parameters: properties.map { property in
-                        FunctionParameter(name: property.name, type: property.typeID())
+                        FunctionParameter(name: property.name.camelCased().variableCased(ignoreLexicon: true), type: property.typeID())
                             .with(defaultValue: property.defaultValue?.variableValue)
                     })
                     .adding(members: properties.map { property in
                         Assignment(
-                            variable: Reference.named(.`self`) + .named(property.name),
-                            value: Reference.named(property.name)
+                            variable: Reference.named(.`self`) + .named(property.name.camelCased().variableCased(ignoreLexicon: true)),
+                            value: Reference.named(property.name.camelCased().variableCased(ignoreLexicon: true))
                         )
                     })
                 )
@@ -129,10 +129,10 @@ struct MetaSubtype {
                     .adding(member: Switch(reference: .named("rawValue"))
                         .adding(cases: usedCases.map { name in
                             SwitchCase()
-                                .adding(value: Value.string(name.snakeCased))
+                                .adding(value: Value.string(name))
                                 .adding(member: Assignment(
                                     variable: Reference.named(.`self`),
-                                    value: +.named(name))
+                                    value: +.named(name.camelCased().variableCased()))
                                 )
                         })
                         .adding(case: SwitchCase(name: .default)
@@ -156,24 +156,23 @@ struct MetaSubtype {
                     .adding(member: Switch(reference: .named("rawValue"))
                         .adding(cases: usedCases.map { name in
                             SwitchCase()
-                                .adding(value: Value.string(name.snakeCased))
+                                .adding(value: Value.string(name))
                                 .adding(member: Assignment(
                                     variable: Reference.named(.`self`),
-                                    value: +.named(name))
+                                    value: +.named(name.camelCased().variableCased()))
                             )
                         })
                         .adding(cases: unusedCases.map { name in
                             SwitchCase()
-                                .adding(value: Value.string(name.snakeCased))
+                                .adding(value: Value.string(name))
                                 .adding(member: .throw | .named("DecodingErrorWrapper") + .named("decodingOfUnusedProperty") | .call(Tuple()
                                     .adding(parameter: TupleParameter(value: +Reference.named("dataCorrupted") | .call(Tuple()
                                         .adding(parameter: TupleParameter(value: .named("DecodingError") + .named("Context") | .call(Tuple()
                                             .adding(parameter: TupleParameter(name: "codingPath", value: Value.array([])))
                                             .adding(parameter: TupleParameter(name: "debugDescription", value: Value.string("Unused raw value \\(rawValue).")))
-                                            )))
                                         )))
-                                    )
-                                )
+                                    )))
+                                ))
                         })
                         .adding(case: SwitchCase(name: .default)
                             .adding(member: .throw | .named("DecodingError") + .named("dataCorrupted") | .call(Tuple()
@@ -192,7 +191,7 @@ struct MetaSubtype {
                     .with(accessLevel: .public)
                     .adding(member: Switch(reference: .named(.`self`))
                         .adding(cases: usedCases.map {
-                            SwitchCase(name: $0).adding(member: Return(value: Value.string($0.snakeCased)))
+                            SwitchCase(name: $0.camelCased().variableCased()).adding(member: Return(value: Value.string($0)))
                         })
                     )
                 )
@@ -233,10 +232,11 @@ struct MetaSubtype {
                     .adding(inheritedType: .string)
                     .adding(inheritedType: .codingKey)
                     .adding(members: properties.map {
+                        let _case = Case(name: $0.name.camelCased(ignoreLexicon: true).variableCased(ignoreLexicon: true))
                         if let key = $0.key {
-                            return Case(name: $0.name).with(value: Value.string(key))
+                            return _case.with(value: Value.string(key))
                         } else {
-                            return Case(name: $0.name)
+                            return _case
                         }
                     })
                 )
@@ -246,26 +246,49 @@ struct MetaSubtype {
                     .adding(member: Assignment(
                         variable: Variable(name: "container"),
                         value: .try | .named("decoder") + .named("container") | .call(Tuple()
-                            .adding(parameter: TupleParameter(name: "keyedBy", value: Reference.named("Keys") + .named(.`self`)))
+                            .adding(parameter: TupleParameter(name: "keyedBy", value: .named("Keys") + .named(.`self`)))
                         )
                     ))
                     .adding(members: properties.map { property in
                         return Assignment(
-                            variable: property.name.reference,
+                            variable: Reference.named(property.name.camelCased().variableCased(ignoreLexicon: true)),
                             value: .try | .named("container") + .named("decode") | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: property.typeID().wrappedOrSelf.reference + .named(.`self`)))
-                                .adding(parameter: TupleParameter(name: "forKey", value: +property.name.reference))
+                                .adding(parameter: TupleParameter(
+                                    name: "forKey",
+                                    value: +.named(property.name.camelCased(ignoreLexicon: true).variableCased(ignoreLexicon: true))
+                                ))
                                 .adding(parameter: TupleParameter(name: "defaultValue", value: property.defaultValue?.variableValue ?? Value.nil))
                                 .adding(parameter: TupleParameter(name: "logError", value: Value.bool(property.logError)))
                             )
                         )
                     })
-            )
+                )
+                .adding(member: EmptyLine())
+                .adding(member: Function.encode
+                    .with(accessLevel: .public)
+                    .adding(member: Assignment(
+                        variable: Variable(name: "container").with(immutable: false),
+                        value: .named("encoder") + .named("container") | .call(Tuple()
+                            .adding(parameter: TupleParameter(name: "keyedBy", value: .named("Keys") + .named(.`self`))
+                        )
+                    )))
+                    .adding(members: properties.map { property in
+                        .try | .named("container") + .named("encode") | .call(Tuple()
+                            .adding(parameter: TupleParameter(value: Reference.named(property.name.camelCased().variableCased(ignoreLexicon: true))))
+                            .adding(parameter: TupleParameter(
+                                name: "forKey",
+                                value: +.named(property.name.camelCased(ignoreLexicon: true).variableCased(ignoreLexicon: true))
+                            ))
+                        )
+                    })
+                )
         }
     }
     
     private func coreDataConveniences() throws -> [FileBodyMember] {
         let subtype = try descriptions.subtype(for: subtypeName)
+        let subtypeVariableName = subtype.name.camelCased().variableCased()
 
         switch subtype.items {
         case .cases:
@@ -305,7 +328,7 @@ struct MetaSubtype {
                     ),
                 EmptyLine(),
                 Extension(type: .string)
-                    .adding(member: Function(kind: .named("\(subtype.name.variableCased)Value"))
+                    .adding(member: Function(kind: .named("\(subtypeVariableName)Value"))
                         .with(resultType: .optional(wrapped: subtype.typeID()))
                         .adding(member: Return(value: subtype.typeID().reference | .call(Tuple()
                             .adding(parameter: TupleParameter(name: "rawValue", value: Reference.named(.`self`)))
@@ -314,30 +337,30 @@ struct MetaSubtype {
                 EmptyLine(),
                 Extension(type: .optional())
                     .adding(constraint: .named("Wrapped") == TypeIdentifier.string.reference)
-                    .adding(member: Function(kind: .named("\(subtype.name.variableCased)Value"))
+                    .adding(member: Function(kind: .named("\(subtypeVariableName)Value"))
                         .with(resultType: .optional(wrapped: subtype.typeID()))
-                        .adding(member: Return(value: .named(.`self`) | .unwrap + .named("\(subtype.name.variableCased)Value") | .call()))
+                        .adding(member: Return(value: .named(.`self`) | .unwrap + .named("\(subtypeVariableName)Value") | .call()))
                     )
                     .adding(member: EmptyLine())
-                    .adding(member: Function(kind: .named("\(subtype.name.variableCased)Value"))
+                    .adding(member: Function(kind: .named("\(subtypeVariableName)Value"))
                         .adding(parameter: FunctionParameter(name: "propertyName", type: .string))
                         .with(throws: true)
                         .with(resultType: subtype.typeID())
                         .adding(member: Guard(assignment: Assignment(
                             variable: Variable(name: "value"),
-                            value: .named(.`self`) | .unwrap + .named("\(subtype.name.variableCased)Value") | .call()
+                            value: .named(.`self`) | .unwrap + .named("\(subtypeVariableName)Value") | .call()
                         )).adding(member: .throw | TypeIdentifier.coreDataConversionError.reference + .named("corruptedProperty") | .call(Tuple()
                             .adding(parameter: TupleParameter(name: "name", value: Reference.named("propertyName")))
                         )))
                         .adding(member: Return(value: Reference.named("value")))
                     )
                     .adding(member: EmptyLine())
-                    .adding(member: Function(kind: .named("\(subtype.name.variableCased)Value"))
+                    .adding(member: Function(kind: .named("\(subtypeVariableName)Value"))
                         .adding(parameter: FunctionParameter(name: "propertyName", type: .string))
                         .with(resultType: .failableValue(of: subtype.typeID()))
                         .adding(member: Guard(assignment: Assignment(
                             variable: Variable(name: "value"),
-                            value: .named(.`self`) | .unwrap + .named("\(subtype.name.variableCased)Value") | .call()
+                            value: .named(.`self`) | .unwrap + .named("\(subtypeVariableName)Value") | .call()
                         )).adding(member: Return(value: +Reference.named("error") | .call(Tuple()
                             .adding(parameter: TupleParameter(value: TypeIdentifier.coreDataConversionError.reference + .named("corruptedProperty") | .call(Tuple()
                                 .adding(parameter: TupleParameter(name: "name", value: Reference.named("propertyName")))
@@ -349,7 +372,7 @@ struct MetaSubtype {
                     ),
                 EmptyLine(),
                 Extension(type: .data)
-                    .adding(member: Function(kind: .named("\(subtype.name.variableCased)ArrayValue"))
+                    .adding(member: Function(kind: .named("\(subtypeVariableName)ArrayValue"))
                         .with(resultType: .optional(wrapped: .anySequence(element: subtype.typeID())))
                         .adding(member: Return(value: Reference.named("stringArrayValue") | .call() | .unwrap + .named("lazy") + .named(.compactMap) | .block(FunctionBody()
                             .adding(member: subtype.typeID().reference | .call(Tuple()
@@ -360,16 +383,16 @@ struct MetaSubtype {
                 EmptyLine(),
                 Extension(type: .optional())
                     .adding(constraint: Reference.named("Wrapped") == TypeIdentifier.data.reference)
-                    .adding(member: Function(kind: .named("\(subtype.name.variableCased)ArrayValue"))
+                    .adding(member: Function(kind: .named("\(subtypeVariableName)ArrayValue"))
                         .with(resultType: .optional(wrapped: .anySequence(element: subtype.typeID())))
-                        .adding(member: Return(value: Reference.named(.`self`) | .unwrap + .named("\(subtype.name.variableCased)ArrayValue") | .call()))
+                        .adding(member: Return(value: Reference.named(.`self`) | .unwrap + .named("\(subtypeVariableName)ArrayValue") | .call()))
                     )
             ]
 
         case .options:
             return [
                 Extension(type: .int64)
-                    .adding(member: Function(kind: .named("\(subtype.name.variableCased)Value"))
+                    .adding(member: Function(kind: .named("\(subtypeVariableName)Value"))
                         .with(resultType: subtype.typeID())
                         .adding(member: Return(value: subtype.typeID().reference | .call(Tuple()
                             .adding(parameter: TupleParameter(name: "rawValue", value: TypeIdentifier.int.reference | .call(Tuple()
@@ -379,16 +402,16 @@ struct MetaSubtype {
                 EmptyLine(),
                 Extension(type: .optional())
                     .adding(constraint: .named("Wrapped") == TypeIdentifier.int64.reference)
-                    .adding(member: Function(kind: .named("\(subtype.name.variableCased)Value"))
+                    .adding(member: Function(kind: .named("\(subtypeVariableName)Value"))
                         .with(resultType: .optional(wrapped: subtype.typeID()))
-                        .adding(member: Return(value: Reference.named(.`self`) | .unwrap + .named("\(subtype.name.variableCased)Value") | .call()))
+                        .adding(member: Return(value: Reference.named(.`self`) | .unwrap + .named("\(subtypeVariableName)Value") | .call()))
                     )
             ]
             
         case .properties:
             return [
                 Extension(type: .data)
-                    .adding(member: Function(kind: .named("\(subtype.name.variableCased)Value"))
+                    .adding(member: Function(kind: .named("\(subtypeVariableName)Value"))
                         .with(resultType: .optional(wrapped: subtype.typeID()))
                         .adding(member: Do(body: [
                             Return(value: .try | TypeIdentifier.jsonDecoder.reference | .call() + .named("decode") | .call(Tuple()
@@ -397,13 +420,13 @@ struct MetaSubtype {
                             ))
                         ], catch: Catch()
                             .adding(member: Reference.logError(from: subtype.typeID(),
-                                                               message: "Could not encode: \\(error)",
+                                                               message: "Could not decode: \\(error)",
                                                                assert: true))
                             .adding(member: Return(value: Value.nil))
                         ))
                     )
                     .adding(member: EmptyLine())
-                    .adding(member: Function(kind: .named("\(subtype.name.variableCased)ArrayValue"))
+                    .adding(member: Function(kind: .named("\(subtypeVariableName)ArrayValue"))
                         .with(resultType: .optional(wrapped: .anySequence(element: subtype.typeID())))
                         .adding(member: Do(body: [
                             Return(value: .try | TypeIdentifier.jsonDecoder.reference | .call() + .named("decode") | .call(Tuple()
@@ -411,7 +434,7 @@ struct MetaSubtype {
                                 .adding(parameter: TupleParameter(name: "from", value: Reference.named(.`self`)))
                             ) + .named("lazy") + .named("any"))], catch: Catch()
                                 .adding(member: Reference.logError(from: subtype.typeID(),
-                                                                   message: "Could not encode: \\(error)",
+                                                                   message: "Could not decode: \\(error)",
                                                                    assert: true))
                                 .adding(member: Return(value: Value.nil))
                         ))
@@ -419,36 +442,36 @@ struct MetaSubtype {
                 EmptyLine(),
                 Extension(type: .optional())
                     .adding(constraint: .named("Wrapped") == TypeIdentifier.data.reference)
-                    .adding(member: Function(kind: .named("\(subtype.name.variableCased)Value"))
+                    .adding(member: Function(kind: .named("\(subtypeVariableName)Value"))
                         .with(resultType: .optional(wrapped: subtype.typeID()))
-                        .adding(member: Return(value: .named(.`self`) | .unwrap + .named("\(subtype.name.variableCased)Value") | .call()))
+                        .adding(member: Return(value: .named(.`self`) | .unwrap + .named("\(subtypeVariableName)Value") | .call()))
                     )
                     .adding(member: EmptyLine())
-                    .adding(member: Function(kind: .named("\(subtype.name.variableCased)Value"))
+                    .adding(member: Function(kind: .named("\(subtypeVariableName)Value"))
                         .adding(parameter: FunctionParameter(name: "propertyName", type: .string))
                         .with(throws: true)
                         .with(resultType: subtype.typeID())
                         .adding(member: Guard(assignment: Assignment(
                             variable: Variable(name: "value"),
-                            value: .named(.`self`) | .unwrap + .named("\(subtype.name.variableCased)Value") | .call()
+                            value: .named(.`self`) | .unwrap + .named("\(subtypeVariableName)Value") | .call()
                         )).adding(member: .throw | TypeIdentifier.coreDataConversionError.reference + .named("corruptedProperty") | .call(Tuple()
                             .adding(parameter: TupleParameter(name: "name", value: Reference.named("propertyName")))
                         )))
                         .adding(member: Return(value: Reference.named("value")))
                     )
                     .adding(member: EmptyLine())
-                    .adding(member: Function(kind: .named("\(subtype.name.variableCased)ArrayValue"))
+                    .adding(member: Function(kind: .named("\(subtypeVariableName)ArrayValue"))
                         .with(resultType: .optional(wrapped: .anySequence(element: subtype.typeID())))
-                        .adding(member: Return(value: .named(.`self`) | .unwrap + .named("\(subtype.name.variableCased)ArrayValue") | .call()))
+                        .adding(member: Return(value: .named(.`self`) | .unwrap + .named("\(subtypeVariableName)ArrayValue") | .call()))
                     )
                     .adding(member: EmptyLine())
-                    .adding(member: Function(kind: .named("\(subtype.name.variableCased)ArrayValue"))
+                    .adding(member: Function(kind: .named("\(subtypeVariableName)ArrayValue"))
                         .with(throws: true)
                         .with(resultType: .anySequence(element: subtype.typeID()))
                         .adding(parameter: FunctionParameter(name: "propertyName", type: .string))
                         .adding(member: Guard(assignment: Assignment(
                             variable: Variable(name: "value"),
-                            value: .named(.`self`) | .unwrap + .named("\(subtype.name.variableCased)ArrayValue") | .call()
+                            value: .named(.`self`) | .unwrap + .named("\(subtypeVariableName)ArrayValue") | .call()
                         )).adding(member: .throw | TypeIdentifier.coreDataConversionError.reference + .named("corruptedProperty") | .call(Tuple()
                             .adding(parameter: TupleParameter(name: "name", value: Reference.named("propertyName")))
                         )))

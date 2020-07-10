@@ -13,9 +13,12 @@ public final class CoreDataTestsGenerator: Generator {
     public let name = "core data tests"
     
     private let descriptions: Descriptions
+
+    private let reactiveKit: Bool
     
-    public init(descriptions: Descriptions) {
+    public init(descriptions: Descriptions, reactiveKit: Bool) {
         self.descriptions = descriptions
+        self.reactiveKit = reactiveKit
     }
     
     public func generate(for element: Description, in directory: Path) throws -> File? {
@@ -24,10 +27,12 @@ public final class CoreDataTestsGenerator: Generator {
         let entity = try descriptions.entity(for: entityName)
         guard entity.persist else { return nil }
         
-        let filename = "\(entityName)CoreDataTests.swift"
+        let filename = "\(entityName.camelCased().suffixedName())CoreDataTests.swift"
         
         let header = MetaHeader(filename: filename)
-        let entityCoreDataTests = MetaEntityCoreDataTests(entityName: entityName, descriptions: descriptions)
+        let entityCoreDataTests = MetaEntityCoreDataTests(entityName: entityName,
+                                                          descriptions: descriptions,
+                                                          reactiveKit: reactiveKit)
         
         return Meta.File(name: filename)
             .with(header: header.meta)

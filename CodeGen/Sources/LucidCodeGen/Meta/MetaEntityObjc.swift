@@ -89,7 +89,7 @@ struct MetaEntityObjc {
             .adding(members: try entity.usedProperties.filter { $0.objc }.flatMap { property -> [TypeBodyMember] in
                 return [
                     EmptyLine(),
-                    ComputedProperty(variable: Variable(name: property.name)
+                    ComputedProperty(variable: property.variable
                         .with(type: try property.valueTypeID(descriptions, objc: true)))
                         .with(objc: true)
                         .with(accessLevel: .public)

@@ -49,8 +49,8 @@ final class Descriptions: LucidCodeGen.Descriptions {
     
     fileprivate convenience init(_ parser: DescriptionsParser, _ targets: Targets) throws {
         let subtypes: [Subtype] = try parser.parseDescription(.subtypes).sorted { $0.name < $1.name }
-        let entities: [Entity] = try (parser.parseDescription(.entities) + parser.parseDescription(.localEntities) + parser.parseDescription(.compositeEntities)).sorted { $0.name < $1.name }
-        let endpoints: [EndpointPayload] = try (parser.parseDescription(.endpointPayloads) + parser.parseDescription(.alternateEndpointPayloads)).sorted { $0.name < $1.name }
+        let entities: [Entity] = try parser.parseDescription(.entities).sorted { $0.name < $1.name }
+        let endpoints: [EndpointPayload] = try parser.parseDescription(.endpointPayloads).sorted { $0.name < $1.name }
 
         self.init(subtypes: subtypes, entities: entities, endpoints: endpoints, targets: targets)
     }
@@ -183,7 +183,8 @@ final class DescriptionsParser {
         logger.moveToChild("Parsing \(directory.string).")
         
         let files = (inputPath + directory)
-            .glob("*.json")
+            .iterateChildren()
+            .filter { $0.string.hasSuffix(".json") }
             .sorted { $0.string < $1.string }
         
         let descriptions: [D] = try files.map { file in

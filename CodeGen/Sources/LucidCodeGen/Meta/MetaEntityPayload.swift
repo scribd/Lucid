@@ -74,7 +74,10 @@ struct MetaEntityPayload {
                 [Assignment(variable: .named(.`self`) + .named("id"), value: Reference.named("id"))]
             } ?? [])
             .adding(members: entity.valuesThenRelationships.map { property in
-                Assignment(variable: .named(.`self`) + property.payloadName.reference, value: property.payloadName.reference)
+                Assignment(
+                    variable: .named(.`self`) + .named(property.payloadName.variableCased(ignoreLexicon: true)),
+                    value: Reference.named(property.payloadName.variableCased(ignoreLexicon: true))
+                )
             })
     }
     
@@ -129,16 +132,16 @@ struct MetaEntityPayload {
         ] + metadataIdentifier()
     }
     
-    private func metadataDirectProperties() throws -> [Property] {
+    private func metadataDirectProperties(ignoreLexicon: Bool = false) throws -> [Property] {
         let entity = try descriptions.entity(for: entityName)
         return [
             entity.hasPayloadIdentifier ? [
-                Property(variable: try entity.identifier.payloadVariable()
+                Property(variable: try entity.identifier.payloadVariable(ignoreLexicon: ignoreLexicon)
                     .with(type: try entity.remoteIdentifierValueTypeID(descriptions)))
                     .with(accessLevel: .public)
                 ] : [],
             entity.metadata?.map { property in
-                Property(variable: property.variable
+                Property(variable: property.variable(ignoreLexicon: ignoreLexicon)
                     .with(type: property.typeID))
                     .with(accessLevel: .public)
                 } ?? []
@@ -149,7 +152,7 @@ struct MetaEntityPayload {
         let entity = try descriptions.entity(for: entityName)
         return try entity.relationships.compactMap { (property: EntityProperty) in
             guard let metadataTypeID = try property.metadataTypeID(descriptions) else { return nil }
-            return Property(variable: Variable(name: property.name)
+            return Property(variable: property.variable
                 .with(immutable: false)
                 .with(type: metadataTypeID))
                 .with(accessLevel: .composite(.public, .fileprivateSet))
@@ -163,7 +166,7 @@ struct MetaEntityPayload {
     
     private func metadataIdentifier() throws -> [FileBodyMember] {
         let entity = try descriptions.entity(for: entityName)
-        
+
         guard let identifier = try entity.metadataIdentifierReference() else {
             return []
         }
@@ -184,7 +187,7 @@ struct MetaEntityPayload {
     }
     
     private func metadataCodingKeys() throws -> Type? {
-        let metadataProperties = try self.metadataDirectProperties()
+        let metadataProperties = try self.metadataDirectProperties(ignoreLexicon: true)
         guard metadataProperties.isEmpty == false else { return nil }
         return Type(identifier: TypeIdentifier(name: "Keys"))
             .with(accessLevel: .private)
@@ -196,6 +199,7 @@ struct MetaEntityPayload {
     }
 
     private func metadataDecoding() throws -> Function? {
+        let metadataPropertyKeys = try self.metadataDirectProperties(ignoreLexicon: true)
         let metadataProperties = try self.metadataDirectProperties()
         guard metadataProperties.isEmpty == false else { return nil }
 
@@ -207,13 +211,14 @@ struct MetaEntityPayload {
                     .adding(parameter: TupleParameter(name: "keyedBy", value: .named("Keys") + .named(.`self`)))
                 ))
             )
-            .adding(members: metadataProperties.compactMap { property in
+            .adding(members: metadataProperties.enumerated().compactMap { index, property in
                 guard let type = property.variable.type?.wrappedOrSelf else { return nil }
+                let propertyKey = metadataPropertyKeys[index]
                 return Assignment(
                     variable: Reference.named(property.variable.name),
                     value: .try | .named("container") + .named("decode") | .call(Tuple()
                         .adding(parameter: TupleParameter(value: type.reference + .named(.`self`)))
-                        .adding(parameter: TupleParameter(name: "forKey", value: +.named(property.variable.name)))
+                        .adding(parameter: TupleParameter(name: "forKey", value: +.named(propertyKey.variable.name)))
                         .adding(parameter: TupleParameter(name: "defaultValue", value: Value.nil))
                         .adding(parameter: TupleParameter(name: "logError", value: Value.bool(true)))
                     )
@@ -251,7 +256,7 @@ struct MetaEntityPayload {
     private func defaultEndpointPayloadKeys() throws -> Type {
         let entity = try descriptions.entity(for: entityName)
 
-        let identifierCase: [Case] = entity.identifier.payloadVariable().flatMap {
+        let identifierCase: [Case] = entity.identifier.payloadVariable(ignoreLexicon: true).flatMap {
             entity.payloadIdentifierTypeID != nil ? [Case(name: $0.name)] : []
         } ?? []
 
@@ -324,13 +329,13 @@ struct MetaEntityPayload {
                              .array:
                             
                             let valueTypeID = try property.valueTypeID(descriptions, includeExtra: false).wrappedOrSelf
-                            let value = .try | container.reference + .named("decode") | .call(Tuple()
+                            let value = .try | container.reference + .named(property.isArray ? "decodeSequence" : "decode") | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: valueTypeID.reference + .named(.`self`)))
                                 .adding(parameter: TupleParameter(name: "forKeys", value: Value.array(container.lastKeys.map { .reference(+.named($0)) })))
                                 .adding(parameter: TupleParameter(name: "defaultValue", value: property.defaultValue?.variableValue ?? Value.nil))
                                 .adding(parameter: TupleParameter(name: "logError", value: Value.bool(property.logError)))
                             )
-                            return TupleParameter(name: property.name, value: value)
+                            return TupleParameter(name: property.transformedName(), value: value)
                             
                         case .relationship(let relationship):
                             let relationshipEntity = try descriptions.entity(for: relationship.entityName)
@@ -341,7 +346,7 @@ struct MetaEntityPayload {
                                 decodableType = .anySequence(element: decodableType)
                             }
 
-                            let value = .try | container.reference + .named("decode") | .call(Tuple()
+                            let value = .try | container.reference + .named(property.isArray ? "decodeSequence" : "decode") | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: decodableType.reference + .named(.`self`)))
                                 .adding(parameter: TupleParameter(name: "forKeys", value: Value.array(container.lastKeys.map { .reference(+.named($0)) })))
                                 .adding(parameter: TupleParameter(name: "logError", value: Value.bool(property.logError)))

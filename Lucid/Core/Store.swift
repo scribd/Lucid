@@ -22,6 +22,7 @@ public indirect enum StoreError: Error, Equatable {
     case coreData(NSError)
     case invalidContext
     case identifierNotSynced
+    case identifierNotFound
 }
 
 // MARK: - StoreLevel
@@ -37,11 +38,11 @@ public enum StoreLevel: Int, Comparable {
     case memory = 0
     case disk = 1
     case remote = 2
-    
+
     public static func < (lhs: StoreLevel, rhs: StoreLevel) -> Bool {
         return lhs.rawValue < rhs.rawValue
     }
-    
+
     var isLocal: Bool {
         switch self {
         case .memory,
@@ -51,7 +52,7 @@ public enum StoreLevel: Int, Comparable {
             return false
         }
     }
-    
+
     var isRemote: Bool {
         return isLocal == false
     }
@@ -65,23 +66,23 @@ public enum StoreLevel: Int, Comparable {
 ///
 /// - Requires: Thread-safety
 public protocol StoringConvertible: AnyObject {
-    
+
     /// Entity type.
     associatedtype E: Entity
-    
+
     /// Interface type of a `Store`.
     var storing: Storing<E> { get }
-    
+
     /// Level at which a `Store` is placed in a `StoreStack`.
     var level: StoreLevel { get }
-    
+
     /// Retrieve an entity based on its identifier.
     ///
     /// - Parameters:
-    ///     - identifier: Entity's identifier.
+    ///     - query: `Query` to run. Create with Query.identifier().
     ///     - context: Details how to access the data.
     ///     - completion: Block to be called with either an `Entity` or a `StoreError`.
-    func get(byID identifier: E.Identifier, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void)
+    func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void)
 
     /// Run a search query resulting with a filtered/ordered set of entities.
     ///
@@ -98,7 +99,7 @@ public protocol StoringConvertible: AnyObject {
     ///     - context: Details how to store the data.
     ///     - completion: Block to be called with optional result of the written `Entity` or `StoreError`. A response of `nil` means the response should be ignored.
     func set(_ entity: E, in context: WriteContext<E>, completion: @escaping (Result<E, StoreError>?) -> Void)
-    
+
     /// Bulk write an array of entities to the `Store`.
     ///
     /// - Parameters:
@@ -114,7 +115,7 @@ public protocol StoringConvertible: AnyObject {
     ///     - context: Details how to store the data.
     ///     - completion: Block to be called with optional result `[E.Identifier]` or `StoreError`. A response of `nil` means the response should be ignored.
     func removeAll(withQuery query: Query<E>, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void)
-    
+
     /// Delete an `Entity` based on its identifier.
     ///
     /// - Parameters:
@@ -122,7 +123,7 @@ public protocol StoringConvertible: AnyObject {
     ///     - context: Details how to store the data.
     ///     - completion: Block to be called with optional result `Void` or `StoreError`. A response of `nil` means the response should be ignored.
     func remove(atID identifier: E.Identifier, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void)
-    
+
     /// Bulk delete an `Entity` based on its identifier.
     ///
     /// - Parameters:
@@ -133,10 +134,10 @@ public protocol StoringConvertible: AnyObject {
 }
 
 public extension StoringConvertible {
-    
+
     var storing: Storing<E> {
         return Storing(level: level,
-                       getEntity: { self.get(byID: $0, in: $1, completion: $2) },
+                       getEntity: { self.get(withQuery: $0, in: $1, completion: $2) },
                        searchEntities: { self.search(withQuery: $0, in: $1, completion: $2) },
                        setEntity: { self.set($0, in: $1, completion: $2) },
                        setEntities: { self.set($0, in: $1, completion: $2) },
@@ -144,7 +145,11 @@ public extension StoringConvertible {
                        removeEntity: { self.remove(atID: $0, in: $1, completion: $2) },
                        removeEntities: { self.remove($0, in: $1, completion: $2) })
     }
-    
+
+    func get(byID identifier: E.Identifier, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+        get(withQuery: Query.identifier(identifier), in: context, completion: completion)
+    }
+
     func set(_ entity: E, in context: WriteContext<E>, completion: @escaping (Result<E, StoreError>?) -> Void) {
         set([entity], in: context) { result in
             switch result {
@@ -164,7 +169,7 @@ public extension StoringConvertible {
             }
         }
     }
-    
+
     func remove(atID identifier: E.Identifier, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) {
         remove([identifier], in: context, completion: completion)
     }
@@ -177,17 +182,17 @@ public extension StoringConvertible {
 /// - Note: A struct is used as a protocol in order to be able to carry the `Entity` type `E`
 ///         without the limitation of using an `associatedtype`.
 public struct Storing<E: Entity> {
-    
+
     let level: StoreLevel
-    
+
     // MARK: - Method Types
-    
+
     fileprivate typealias GetEntity = (
-        _ identifier: E.Identifier,
+        _ query: Query<E>,
         _ context: ReadContext<E>,
         _ completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void
     ) -> Void
-    
+
     fileprivate typealias SearchEntities = (
         _ query: Query<E>,
         _ context: ReadContext<E>,
@@ -199,7 +204,7 @@ public struct Storing<E: Entity> {
         _ context: WriteContext<E>,
         _ completion: @escaping (Result<E, StoreError>?) -> Void
     ) -> Void
-    
+
     fileprivate typealias SetEntities = (
         _ entities: AnySequence<E>,
         _ context: WriteContext<E>,
@@ -217,15 +222,15 @@ public struct Storing<E: Entity> {
         _ context: WriteContext<E>,
         _ completion: @escaping (Result<Void, StoreError>?) -> Void
     ) -> Void
-    
+
     fileprivate typealias RemoveEntities = (
         _ identifiers: AnySequence<E.Identifier>,
         _ context: WriteContext<E>,
         _ completion: @escaping (Result<Void, StoreError>?) -> Void
     ) -> Void
-    
+
     // MARK: - Methods
-    
+
     fileprivate let getEntity: GetEntity
     fileprivate let searchEntities: SearchEntities
     fileprivate let setEntity: SetEntity
@@ -235,9 +240,9 @@ public struct Storing<E: Entity> {
     fileprivate let removeEntities: RemoveEntities
 
     // MARK: - API
-    
-    public func get(byID identifier: E.Identifier, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
-        getEntity(identifier, context, completion)
+
+    public func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+        getEntity(query, context, completion)
     }
 
     public func search(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
@@ -247,7 +252,7 @@ public struct Storing<E: Entity> {
     public func set(_ entity: E, in context: WriteContext<E>, completion: @escaping (Result<E, StoreError>?) -> Void) {
         setEntity(entity, context, completion)
     }
-    
+
     public func set<S>(_ entities: S, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void) where S: Sequence, S.Element == E {
         setEntities(entities.any, context, completion)
     }
@@ -259,9 +264,16 @@ public struct Storing<E: Entity> {
     public func remove(atID identifier: E.Identifier, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) {
         removeEntity(identifier, context, completion)
     }
-    
+
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
         removeEntities(identifiers.any, context, completion)
+    }
+}
+
+public extension Storing {
+
+    func get(byID identifier: E.Identifier, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+        getEntity(Query.identifier(identifier), context, completion)
     }
 }
 
@@ -273,37 +285,37 @@ public struct Storing<E: Entity> {
 ///         performed in parrallele.
 /// - Note: Fully threadsafe.
 final class StoreStack<E: Entity> {
-    
+
     private let readWriteQueue: DispatchQueue
     private let writeResultsQueue: DispatchQueue
 
     private let stores: [Storing<E>]
-    
+
     // MARK: - Init
-    
+
     init(stores: [Storing<E>], queues: StoreStackQueues<E>) {
         self.stores = stores
         self.readWriteQueue = queues.readWriteQueue
         self.writeResultsQueue = queues.writeResultsQueue
     }
-    
+
     // MARK: - Get
-    
-    func get(byID identifier: E.Identifier,
+
+    func get(withQuery query: Query<E>,
              in context: ReadContext<E>,
              completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
 
-        get(byID: identifier, in: context, stores: stores, completion: completion)
+        get(withQuery: query, in: context, stores: stores, completion: completion)
     }
-    
-    private func get(byID identifier: E.Identifier,
+
+    private func get(withQuery query: Query<E>,
                      in context: ReadContext<E>,
                      stores: [Storing<E>],
                      error: StoreError? = nil,
                      completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
-        
+
         var stores = stores
-        
+
         guard let store = stores.first else {
             readWriteQueue.async {
                 if let error = error {
@@ -314,26 +326,27 @@ final class StoreStack<E: Entity> {
             }
             return
         }
-        
+
         stores.removeFirst()
-        
-        store.get(byID: identifier, in: context) { result in
+
+        store.get(withQuery: query, in: context) { result in
             switch result {
-            case .success(let queryResult):
+            case .success(var queryResult):
+                queryResult = queryResult.validatingExtras(with: query)
                 if queryResult.entity != nil {
                     self.readWriteQueue.async {
                         completion(.success(queryResult))
                     }
                 } else {
-                    self.get(byID: identifier, in: context, stores: stores, error: error, completion: completion)
+                    self.get(withQuery: query, in: context, stores: stores, error: error, completion: completion)
                 }
             case .failure(let currentError):
                 let error = currentError.compose(with: error)
-                self.get(byID: identifier, in: context, stores: stores, error: error, completion: completion)
+                self.get(withQuery: query, in: context, stores: stores, error: error, completion: completion)
             }
         }
     }
-    
+
     // MARK: - Search
 
     func search(withQuery query: Query<E>,
@@ -382,9 +395,10 @@ final class StoreStack<E: Entity> {
 
         store.search(withQuery: query, in: context) { result in
             switch result {
-            case .success(let results):
+            case .success(var queryResult):
+                queryResult = queryResult.validatingExtras(with: query)
                 self.readWriteQueue.async {
-                    completion(.success(results))
+                    completion(.success(queryResult))
                 }
 
             case .failure(let currentError):
@@ -395,29 +409,29 @@ final class StoreStack<E: Entity> {
     }
 
     // MARK: - Set
-    
+
     func set(_ entity: E,
              in context: WriteContext<E>,
              localStoresCompletion: @escaping (Result<E, StoreError>?) -> Void = { _ in },
              allStoresCompletion: @escaping (Result<E, StoreError>?) -> Void) {
-        
+
         guard stores.isEmpty == false else {
             writeResultsQueue.async {
                 allStoresCompletion(.success(entity))
             }
             return
         }
-        
+
         runInParallel(handler: { $0.set(entity, in: context, completion: $1) },
                       localStoresCompletion: localStoresCompletion,
                       allStoresCompletion: allStoresCompletion)
     }
-    
+
     func set<S>(_ entities: S,
                 in context: WriteContext<E>,
                 localStoresCompletion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void = { _ in },
                 allStoresCompletion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void) where S: Sequence, S.Element == E {
-        
+
         guard stores.isEmpty == false else {
             writeResultsQueue.async {
                 allStoresCompletion(.success(entities.any))
@@ -429,14 +443,14 @@ final class StoreStack<E: Entity> {
                       localStoresCompletion: localStoresCompletion,
                       allStoresCompletion: allStoresCompletion)
     }
-    
+
     // MARK: - Remove
 
     func removeAll(withQuery query: Query<E>,
                    in context: WriteContext<E>,
                    localStoresCompletion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void = { _ in },
                    allStoresCompletion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void) {
-        
+
         guard stores.isEmpty == false else {
             writeResultsQueue.async {
                 allStoresCompletion(.success(.empty))
@@ -453,7 +467,7 @@ final class StoreStack<E: Entity> {
                 in context: WriteContext<E>,
                 localStoresCompletion: @escaping (Result<Void, StoreError>?) -> Void = { _ in },
                 allStoresCompletion: @escaping (Result<Void, StoreError>?) -> Void) {
-        
+
         guard stores.isEmpty == false else {
             writeResultsQueue.async(flags: .barrier) {
                 allStoresCompletion(.success(()))
@@ -465,12 +479,12 @@ final class StoreStack<E: Entity> {
                       localStoresCompletion: localStoresCompletion,
                       allStoresCompletion: allStoresCompletion)
     }
-    
+
     func remove<S>(_ identifiers: S,
                    in context: WriteContext<E>,
                    localStoresCompletion: @escaping (Result<Void, StoreError>?) -> Void = { _ in },
                    allStoresCompletion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
-        
+
         guard stores.isEmpty == false else {
             writeResultsQueue.async {
                 allStoresCompletion(.success(()))
@@ -484,33 +498,40 @@ final class StoreStack<E: Entity> {
     }
 }
 
+extension StoreStack {
+
+    func get(byID identifier: E.Identifier, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+        get(withQuery: Query.identifier(identifier), in: context, completion: completion)
+    }
+}
+
 // MARK: - Utils
 
 private extension StoreStack {
-    
+
     func runInParallel<Output>(handler: @escaping (Storing<E>, @escaping (Result<Output, StoreError>?) -> Void) -> Void,
                                localStoresCompletion: @escaping (Result<Output, StoreError>?) -> Void,
                                allStoresCompletion: @escaping (Result<Output, StoreError>?) -> Void) {
-        
+
         guard stores.isEmpty == false else {
             readWriteQueue.async {
                 allStoresCompletion(.failure(.emptyStack))
             }
             return
         }
-        
+
         let allStoresDispatchGroup = DispatchGroup()
         let localStoresDispatchGroup = DispatchGroup()
-        
+
         for store in stores {
             if store.level.isLocal {
                 localStoresDispatchGroup.enter()
             }
             allStoresDispatchGroup.enter()
         }
-        
+
         var results = [Int: Result<Output, StoreError>?]()
-        
+
         for (index, store) in stores.enumerated() {
             handler(store, { result in
                 self.readWriteQueue.async(flags: .barrier) {
@@ -522,7 +543,7 @@ private extension StoreStack {
                 }
             })
         }
-        
+
         localStoresDispatchGroup.notify(queue: writeResultsQueue) {
             let results = self.stores.enumerated().compactMap { (index, store) -> Result<Output, StoreError>?? in
                 store.level.isLocal ? results[index] : nil
@@ -530,13 +551,13 @@ private extension StoreStack {
             guard results.isEmpty == false else { return }
             localStoresCompletion(self.collectResult(from: results))
         }
-        
+
         allStoresDispatchGroup.notify(queue: writeResultsQueue) {
             let results = self.stores.enumerated().compactMap { (index, _) in results[index] }
             allStoresCompletion(self.collectResult(from: results))
         }
     }
-    
+
     private func collectResult<Output>(from results: [Result<Output, StoreError>?]) -> Result<Output, StoreError>? {
 
         let error: StoreError? = results.reduce(nil) {
@@ -548,7 +569,7 @@ private extension StoreStack {
                 return $0
             }
         }
-        
+
         if let _error = error {
             return .failure(_error)
         } else {
@@ -561,7 +582,7 @@ private extension StoreStack {
                     return nil
                 }
             }.first
-            
+
             if let _newValue = newValue {
                 return .success(_newValue)
             } else {

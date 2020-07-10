@@ -1,6 +1,6 @@
 //
 //  LRUStoreTests.swift
-//  APITests
+//  LucidTests
 //
 //  Created by Théophane Rupin on 12/13/18.
 //  Copyright © 2018 Scribd. All rights reserved.
@@ -8,41 +8,41 @@
 
 import XCTest
 
-@testable import Lucid
-@testable import LucidTestKit
+@testable import Lucid_ReactiveKit
+@testable import LucidTestKit_ReactiveKit
 
 final class LRUStoreTests: XCTestCase {
-    
+
     private var context: ReadContext<EntitySpy>!
-    
+
     private var storeSpy: StoreSpy<EntitySpy>!
-    
+
     private var store: LRUStore<EntitySpy>!
-    
+
     override func setUp() {
         super.setUp()
-        
+
         Logger.shared = LoggerMock()
-        
+
         context = ReadContext<EntitySpy>()
         storeSpy = StoreSpy()
         store = LRUStore(store: storeSpy.storing, limit: 5)
     }
-    
+
     override func tearDown() {
         defer { super.tearDown() }
-        
+
         context = nil
         storeSpy = nil
         store = nil
     }
-    
+
     func test_store_should_keep_5_entities_out_of_10() {
-        
+
         storeSpy.removeResultStub = .success(())
-        
+
         let entities = (0..<10).map { EntitySpy(idValue: .remote($0, nil)) }
-        
+
         let dispatchGroup = DispatchGroup()
         for entity in entities {
             dispatchGroup.enter()
@@ -62,7 +62,7 @@ final class LRUStoreTests: XCTestCase {
                 dispatchGroup.leave()
             }
         }
-        
+
         let expectation = self.expectation(description: "entities")
         dispatchGroup.notify(queue: .main) {
             XCTAssertEqual(self.storeSpy.setCallCount, 10)
@@ -70,15 +70,15 @@ final class LRUStoreTests: XCTestCase {
             XCTAssertEqual(self.storeSpy.identifierRecords.map { $0.value.remoteValue }, [0, 1, 2, 3, 4])
             expectation.fulfill()
         }
-        
+
         wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_keep_5_entities_out_of_11_and_save_those_which_where_accessed_last_scenario_one() {
-        
+
         storeSpy.removeResultStub = .success(())
         storeSpy.getResultStub = .success(QueryResult(from: EntitySpy()))
-        
+
         let dispatchGroup = DispatchGroup()
         let entities = (0..<10).map { EntitySpy(idValue: .remote($0, nil)) }
         for entity in entities {
@@ -93,7 +93,7 @@ final class LRUStoreTests: XCTestCase {
                 dispatchGroup.leave()
             }
         }
-        
+
         let expectation = self.expectation(description: "entities")
         dispatchGroup.notify(queue: .main) {
             self.store.get(byID: EntitySpyIdentifier(value: .remote(5, nil)), in: self.context) { result in
@@ -119,7 +119,7 @@ final class LRUStoreTests: XCTestCase {
                             XCTAssertEqual(self.storeSpy.removeCallCount, 6)
                             XCTAssertEqual(self.storeSpy.getCallCount, 1)
                             XCTAssertEqual(self.storeSpy.identifierRecords.map { $0.value.remoteValue }, [0, 1, 2, 3, 4, 5, 6])
-                            
+
                         case .failure(let error):
                             XCTFail("Unexpected error: \(error)")
                         }
@@ -130,15 +130,15 @@ final class LRUStoreTests: XCTestCase {
                 }
             }
         }
-        
+
         wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_keep_5_entities_out_of_11_and_save_those_which_where_accessed_last_scenario_two() {
-        
+
         storeSpy.removeResultStub = .success(())
         storeSpy.getResultStub = .success(QueryResult(from: EntitySpy()))
-        
+
         let dispatchGroup = DispatchGroup()
         let entities = (0..<10).map { EntitySpy(idValue: .remote($0, nil)) }
         for entity in entities {
@@ -153,7 +153,7 @@ final class LRUStoreTests: XCTestCase {
                 dispatchGroup.leave()
             }
         }
-        
+
         let expectation = self.expectation(description: "entities")
         dispatchGroup.notify(queue: .main) {
             self.store.get(byID: EntitySpyIdentifier(value: .remote(2, nil)), in: self.context) { result in
@@ -178,7 +178,7 @@ final class LRUStoreTests: XCTestCase {
                             XCTAssertEqual(self.storeSpy.removeCallCount, 5)
                             XCTAssertEqual(self.storeSpy.getCallCount, 1)
                             XCTAssertEqual(self.storeSpy.identifierRecords.map { $0.value.remoteValue }, [0, 1, 2, 3, 4, 2])
-                            
+
                         case .failure(let error):
                             XCTFail("Unexpected error: \(error)")
                         }
@@ -189,15 +189,15 @@ final class LRUStoreTests: XCTestCase {
                 }
             }
         }
-        
+
         wait(for: [expectation], timeout: 1)
     }
-    
+
     func test_store_should_store_10_entities_and_remove_10_entities() {
-        
+
         storeSpy.removeResultStub = .success(())
         storeSpy.getResultStub = .success(QueryResult(from: EntitySpy()))
-        
+
         let dispatchGroup = DispatchGroup()
         let entities = (0..<10).map { EntitySpy(idValue: .remote($0, nil)) }
         for entity in entities {
@@ -212,7 +212,7 @@ final class LRUStoreTests: XCTestCase {
                 dispatchGroup.leave()
             }
         }
-        
+
         let expectation = self.expectation(description: "entities")
         dispatchGroup.notify(queue: .main) {
             let dispatchGroup = DispatchGroup()
@@ -232,7 +232,7 @@ final class LRUStoreTests: XCTestCase {
                 expectation.fulfill()
             }
         }
-        
+
         wait(for: [expectation], timeout: 1)
     }
 }

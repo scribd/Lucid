@@ -9,7 +9,11 @@
 import Foundation
 import XCTest
 
+#if LUCID_REACTIVE_KIT
+@testable import Lucid_ReactiveKit
+#else
 @testable import Lucid
+#endif
 
 final class GraphStub: MutableGraph {
 
@@ -24,7 +28,7 @@ final class GraphStub: MutableGraph {
     init() {
         rootEntities = []
     }
-    
+
     func insert<S>(_ entities: S) where S: Sequence, AnyEntitySpy == S.Element {
         for entity in entities {
             switch entity {
@@ -35,11 +39,11 @@ final class GraphStub: MutableGraph {
             }
         }
     }
-    
+
     func setRoot<S>(_ entities: S) where S: Sequence, AnyEntitySpy == S.Element {
         rootEntities = entities.array
     }
-    
+
     func contains(_ identifier: AnyRelationshipIdentifierConvertible) -> Bool {
         guard let identifier = identifier as? EntityRelationshipSpyIdentifier else {
             XCTFail("Expected an identifier of type \(EntityRelationshipSpyIdentifier.self)")
@@ -47,7 +51,7 @@ final class GraphStub: MutableGraph {
         }
         return entityRelationshipSpies[identifier] != nil
     }
-    
+
     var entities: [AnyEntitySpy] {
         return [
             entitySpies.values.map { .entitySpy($0) },

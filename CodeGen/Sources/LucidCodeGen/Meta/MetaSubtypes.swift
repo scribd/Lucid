@@ -49,7 +49,7 @@ struct MetaSubtypes {
             .with(kind: .enum(indirect: false))
             .with(accessLevel: .public)
             .adding(members: descriptions.entities.map { entity in
-                Case(name: entity.name.variableCased).adding(parameter: CaseParameter(type: entity.identifierTypeID()))
+                Case(name: entity.transformedName.variableCased()).adding(parameter: CaseParameter(type: entity.identifierTypeID()))
             })
     }
     
@@ -68,10 +68,10 @@ struct MetaSubtypes {
                 ))
                     .adding(cases: descriptions.entities.map { entity in
                         SwitchCase()
-                            .adding(value: +.named(entity.name.variableCased) | .tuple(Tuple()
+                            .adding(value: +.named(entity.transformedName.variableCased()) | .tuple(Tuple()
                                 .adding(parameter: TupleParameter(variable: Variable(name: "lhs")))
                             ))
-                            .adding(value: +.named(entity.name.variableCased) | .tuple(Tuple()
+                            .adding(value: +.named(entity.transformedName.variableCased()) | .tuple(Tuple()
                                 .adding(parameter: TupleParameter(variable: Variable(name: "rhs")))
                             ))
                             .adding(member: Return(value: .named("lhs") < .named("rhs")))
@@ -92,7 +92,7 @@ struct MetaSubtypes {
                 .adding(member: Switch(reference: .named(.`self`))
                     .adding(cases: descriptions.entities.map { entity in
                         SwitchCase()
-                            .adding(value: +.named(entity.name.variableCased) | .tuple(Tuple()
+                            .adding(value: +.named(entity.transformedName.variableCased()) | .tuple(Tuple()
                                 .adding(parameter: TupleParameter(variable: Variable(name: "identifier")))
                             ))
                             .adding(member: .named("hasher") + .named("combine") | .call(Tuple()
@@ -116,14 +116,14 @@ struct MetaSubtypes {
                 .adding(member: Switch(reference: .named(.`self`)).with(cases: descriptions.entities.flatMap { entity in
                     [
                         SwitchCase()
-                            .adding(value: +.named(entity.name.variableCased) | .tuple(Tuple()
-                                .adding(parameter: TupleParameter(variable: Variable(name: entity.name.variableCased)
+                            .adding(value: +.named(entity.transformedName.variableCased()) | .tuple(Tuple()
+                                .adding(parameter: TupleParameter(variable: Variable(name: entity.transformedName.variableCased())
                                     .with(as: true)
                                     .with(type: TypeIdentifier(name: "ID"))
                                 ))
                             ))
-                            .adding(member: Return(value: Reference.named(entity.name.variableCased))),
-                        SwitchCase(name: entity.name.variableCased).adding(member: Return(value: Value.nil))
+                            .adding(member: Return(value: Reference.named(entity.transformedName.variableCased()))),
+                        SwitchCase(name: entity.transformedName.variableCased()).adding(member: Return(value: Value.nil))
                     ]
                 }))
             )
@@ -134,15 +134,15 @@ struct MetaSubtypes {
                 .adding(member: Switch(reference: .named(.`self`))
                     .with(cases: descriptions.entities.filter { $0.persist }.map { entity in
                         SwitchCase()
-                            .adding(value: +.named(entity.name.variableCased) | .tuple(Tuple()
-                                .adding(parameter: TupleParameter(variable: Variable(name: entity.name.variableCased)))
+                            .adding(value: +.named(entity.transformedName.variableCased()) | .tuple(Tuple()
+                                .adding(parameter: TupleParameter(variable: Variable(name: entity.transformedName.variableCased())))
                             ))
-                            .adding(member: Return(value: Reference.named(entity.name.variableCased) + .named("coreDataIdentifierValue")))
+                            .adding(member: Return(value: Reference.named(entity.transformedName.variableCased()) + .named("coreDataIdentifierValue")))
                     }
                 )
                 .adding(cases: descriptions.entities.filter { $0.persist == false }.map { entity in
                     SwitchCase()
-                        .adding(value: +.named(entity.name.variableCased))
+                        .adding(value: +.named(entity.transformedName.variableCased()))
                         .adding(member: Return(value: Reference.named(".none")))
                     })
                 )
@@ -154,10 +154,10 @@ struct MetaSubtypes {
                 .adding(member: Switch(reference: .named(.`self`))
                     .with(cases: descriptions.entities.map { entity in
                         SwitchCase()
-                            .adding(value: +.named(entity.name.variableCased) | .tuple(Tuple()
-                                .adding(parameter: TupleParameter(variable: Variable(name: entity.name.variableCased)))
+                            .adding(value: +.named(entity.transformedName.variableCased()) | .tuple(Tuple()
+                                .adding(parameter: TupleParameter(variable: Variable(name: entity.transformedName.variableCased())))
                             ))
-                            .adding(member: Return(value: Reference.named(entity.name.variableCased) + .named("identifierTypeID")))
+                            .adding(member: Return(value: Reference.named(entity.transformedName.variableCased()) + .named("identifierTypeID")))
                     })
                 )
             )
@@ -174,10 +174,10 @@ struct MetaSubtypes {
                 .adding(member: Switch(reference: .named(.`self`))
                     .with(cases: descriptions.entities.map { entity in
                         SwitchCase()
-                            .adding(value: +.named(entity.name.variableCased) | .tuple(Tuple()
-                                .adding(parameter: TupleParameter(variable: Variable(name: entity.name.variableCased)))
+                            .adding(value: +.named(entity.transformedName.variableCased()) | .tuple(Tuple()
+                                .adding(parameter: TupleParameter(variable: Variable(name: entity.transformedName.variableCased())))
                             ))
-                            .adding(member: Return(value: Reference.named(entity.name.variableCased) + .named("entityTypeUID")))
+                            .adding(member: Return(value: Reference.named(entity.transformedName.variableCased()) + .named("entityTypeUID")))
                     })
                 )
             )
@@ -188,10 +188,10 @@ struct MetaSubtypes {
                 .adding(member: Switch(reference: .named(.`self`))
                     .with(cases: descriptions.entities.map { entity in
                         SwitchCase()
-                            .adding(value: +.named(entity.name.variableCased) | .tuple(Tuple()
-                                .adding(parameter: TupleParameter(variable: Variable(name: entity.name.variableCased)))
+                            .adding(value: +.named(entity.transformedName.variableCased()) | .tuple(Tuple()
+                                .adding(parameter: TupleParameter(variable: Variable(name: entity.transformedName.variableCased())))
                             ))
-                            .adding(member: Return(value: Reference.named(entity.name.variableCased) + .named("description")))
+                            .adding(member: Return(value: Reference.named(entity.transformedName.variableCased()) + .named("description")))
                     })
                 )
             )
@@ -203,7 +203,7 @@ struct MetaSubtypes {
             .adding(inheritedType: .anyCoreDataSubtype)
             .with(kind: .enum(indirect: false))
             .adding(members: descriptions.subtypes.map { subtype in
-                Case(name: subtype.name.variableCased).adding(parameter: CaseParameter(type: subtype.typeID()))
+                Case(name: subtype.name.camelCased().suffixedName().variableCased()).adding(parameter: CaseParameter(type: subtype.typeID()))
             })
     }
     
@@ -216,7 +216,7 @@ struct MetaSubtypes {
                 .adding(member: Switch(reference: Reference.named(.`self`))
                     .adding(cases: descriptions.subtypes.map { subtype in
                         SwitchCase()
-                            .adding(value: +.named(subtype.name.variableCased) |
+                            .adding(value: +.named(subtype.name.camelCased().suffixedName().variableCased()) |
                                 (subtype.isStruct ? .none : .tuple(Tuple()
                                     .adding(parameter: TupleParameter(variable: Variable(name: "subtype")))
                                 ))
@@ -248,10 +248,10 @@ struct MetaSubtypes {
                         ))
                         .adding(cases: descriptions.subtypes.map { entity in
                             SwitchCase()
-                                .adding(value: +.named(entity.name.variableCased) | .tuple(Tuple()
+                                .adding(value: +.named(entity.name.camelCased().suffixedName().variableCased()) | .tuple(Tuple()
                                     .adding(parameter: TupleParameter(variable: Variable(name: "lhs")))
                                 ))
-                                .adding(value: +.named(entity.name.variableCased) | .tuple(Tuple()
+                                .adding(value: +.named(entity.name.camelCased().suffixedName().variableCased()) | .tuple(Tuple()
                                     .adding(parameter: TupleParameter(variable: Variable(name: "rhs")))
                                 ))
                                 .adding(member: Return(value: .named("lhs") < .named("rhs")))

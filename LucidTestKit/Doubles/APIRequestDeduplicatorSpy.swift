@@ -8,7 +8,11 @@
 
 import XCTest
 
+#if LUCID_REACTIVE_KIT
+@testable import Lucid_ReactiveKit
+#else
 @testable import Lucid
+#endif
 
 final class APIRequestDeduplicatorSpy: APIRequestDeduplicating {
 

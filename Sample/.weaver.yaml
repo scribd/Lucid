@@ -1,0 +1,3 @@
+main_output_path: Generated/Weaver
+input_paths: 
+  - Source

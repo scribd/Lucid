@@ -33,6 +33,20 @@ extension Descriptions {
             $0.modelMappingHistory?.flatMap { [$0.from, $0.to] } ?? []
         })
     }
+
+    public var clientQueueNames: [String] {
+        var names = Set(entities.map { $0.clientQueueName })
+        names.insert(Entity.mainClientQueueName)
+        return names.sorted { lhs, rhs in
+                if lhs == Entity.mainClientQueueName {
+                    return true
+                } else if rhs == Entity.mainClientQueueName {
+                    return false
+                } else {
+                    return lhs < rhs
+                }
+        }
+    }
 }
 
 extension Entity {
@@ -96,13 +110,19 @@ extension Entity {
         return identifier.objc || properties.contains { $0.objc }
     }
     
-    func coreDataName(for version: String?) throws -> String {
+    func coreDataName(for version: String?, useCoreDataLegacyNaming: Bool = false) throws -> String {
         guard let version = version ?? addedAtVersion else {
             throw CodeGenError.entityAddedAtVersionNotFound(name)
         }
-        return "\(persistedName ?? name)_\(version.replacingOccurrences(of: ".", with: "_"))"
+        let name: String
+        if useCoreDataLegacyNaming {
+            name = self.name.camelCased(ignoreLexicon: true).suffixedName()
+        } else {
+            name = persistedName?.suffixedName() ?? self.name
+        }
+        return "\(name)_\(version.replacingOccurrences(of: ".", with: "_"))"
     }
-    
+
     var ignoredVersionRangesByPropertyName: [String: [(from: String, to: String)]] {
         return (modelMappingHistory ?? []).reduce(into: [:]) {
             for propertyName in $1.ignoreMigrationChecksOn {
@@ -111,6 +131,10 @@ extension Entity {
                 $0[propertyName] = ranges
             }
         }
+    }
+
+    public var previousSearchableName: String? {
+        return previousName?.snakeCased
     }
 }
 
@@ -196,9 +220,21 @@ extension EntityProperty {
     
     var keysPathComponents: [[String]] {
         return [key].map { key in
-            let components = key.split(separator: ".").map { String($0).camelCased(strict: matchExactKey) }
-            guard matchExactKey == false else { return components }
-            return components.map { $0.variableCased }
+            key.split(separator: ".").map {
+                String($0).camelCased(ignoreLexicon: true).variableCased(ignoreLexicon: true)
+            }
+        }
+    }
+
+    public var previousSearchableName: String? {
+        return previousName?.snakeCased.camelCased().variableCased()
+    }
+
+    func coreDataName(useCoreDataLegacyNaming: Bool) -> String {
+        if useCoreDataLegacyNaming {
+            return persistedName ?? name.camelCased(ignoreLexicon: true).variableCased(ignoreLexicon: true)
+        } else {
+            return persistedName ?? name
         }
     }
 }
@@ -335,7 +371,7 @@ extension EndpointPayloadEntity.Structure {
 extension EndpointPayload {
 
     enum InitializerType {
-        case initFromRoot
+        case initFromRoot(_ subkey: String?)
         case initFromKey(_ key: String)
         case initFromSubkey(key: String, subkey: String)
         case mapFromSubstruct(key: String, subkey: String)
@@ -354,7 +390,7 @@ extension EndpointPayload {
         } else if let key = baseKey {
             return .initFromKey(key)
         } else {
-            return .initFromRoot
+            return .initFromRoot(entity.entityKey)
         }
     }
 }

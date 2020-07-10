@@ -1,0 +1,9 @@
+{
+    "name": "/genre/movie/list",
+    "entity": {
+        "entity_key": "genres",
+        "entity_name": "genre",
+        "structure": "array"
+    }
+}
+

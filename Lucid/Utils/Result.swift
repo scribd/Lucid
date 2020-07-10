@@ -7,7 +7,7 @@
 //
 
 public extension Result {
-    
+
     var error: Failure? {
         switch self {
         case .failure(let error):
@@ -16,7 +16,7 @@ public extension Result {
             return nil
         }
     }
-    
+
     var value: Value? {
         switch self {
         case .success(let value):
@@ -25,7 +25,7 @@ public extension Result {
             return nil
         }
     }
-    
+
     init(value: Value) {
         self = .success(value)
     }
@@ -33,7 +33,7 @@ public extension Result {
     init(error: Error) {
         self = .failure(error)
     }
-    
+
     func analysis<U>(_ ifSuccess: (Value) -> U, ifFailure: (Error) -> U) -> U {
         switch self {
         case let .success(value):

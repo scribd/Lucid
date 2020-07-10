@@ -10,13 +10,10 @@ import PathKit
 
 enum OutputDirectory {
     case entities
-    case localEntities
-    case compositeEntities
     case payloads
     case endpointPayloads
-    case alternateEndpointPayloads
     case subtypes
-    case additional
+    case support
     case factories
     case doubles
     case coreDataModel(version: String)
@@ -31,28 +28,22 @@ enum OutputDirectory {
         switch self {
         case .entities:
             return Path("Entities")
-        case .localEntities:
-            return Path("LocalEntities")
-        case .compositeEntities:
-            return Path("CompositeEntities")
         case .payloads:
             return Path("Payloads")
         case .endpointPayloads:
             return Path("EndpointPayloads")
-        case .alternateEndpointPayloads:
-            return Path("AlternateEndpointPayloads")
         case .subtypes:
             return Path("Subtypes")
-        case .additional:
-            return Path("AdditionalFiles")
+        case .support:
+            return Path("Support")
         case .factories:
             return Path("Factories")
         case .doubles:
             return Path("Doubles")
         case .coreDataModel(let version):
-            return OutputDirectory.additional.path(appModuleName: appModuleName) + "\(appModuleName).xcdatamodeld" + "\(appModuleName)_\(version).xcdatamodel"
+            return OutputDirectory.support.path(appModuleName: appModuleName) + "\(appModuleName).xcdatamodeld" + "\(appModuleName)_\(version).xcdatamodel"
         case .coreDataModelVersion:
-            return OutputDirectory.additional.path(appModuleName: appModuleName) + "\(appModuleName).xcdatamodeld"
+            return OutputDirectory.support.path(appModuleName: appModuleName) + "\(appModuleName).xcdatamodeld"
         case .jsonPayloads(let endpointName):
             return Path("JSONPayloads") + endpointName
         case .payloadTests:

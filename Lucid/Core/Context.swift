@@ -71,8 +71,8 @@ public final class _ReadContext<ResultPayload> where ResultPayload: ResultPayloa
         case local
         indirect case localThen(DataSource)
         indirect case localOr(DataSource)
-        
-        public static func remote(endpoint: Endpoint,
+
+        public static func remote(endpoint: Endpoint = .derivedFromEntityType,
                                   persistenceStrategy: PersistenceStrategy = .persist(.retainExtraLocalData),
                                   trustRemoteFiltering: Bool = false) -> DataSource {
             return ._remote(endpoint: endpoint,
@@ -80,8 +80,7 @@ public final class _ReadContext<ResultPayload> where ResultPayload: ResultPayloa
                             orLocal: false,
                             trustRemoteFiltering: trustRemoteFiltering)
         }
-        
-        public static func remoteOrLocal(endpoint: Endpoint,
+        public static func remoteOrLocal(endpoint: Endpoint = .derivedFromEntityType,
                                          persistenceStrategy: PersistenceStrategy = .persist(.retainExtraLocalData),
                                          trustRemoteFiltering: Bool = false) -> DataSource {
             return ._remote(endpoint: endpoint,
@@ -90,7 +89,7 @@ public final class _ReadContext<ResultPayload> where ResultPayload: ResultPayloa
                             trustRemoteFiltering: trustRemoteFiltering)
         }
     }
-    
+
     public let dataSource: DataSource
 
     public let accessValidator: UserAccessValidating?
@@ -113,9 +112,9 @@ public final class _ReadContext<ResultPayload> where ResultPayload: ResultPayloa
                   accessValidator: accessValidator,
                   remoteStoreCache: RemoteStoreCache())
     }
-    
+
     // RemoteCache Accessors
-    
+
     /// Check to see if a request already has a cached response, this is dependent on the existence of a cached entry.
     ///
     /// - Parameters:
@@ -124,7 +123,7 @@ public final class _ReadContext<ResultPayload> where ResultPayload: ResultPayloa
         guard let request = request else { return false }
         return remoteStoreCache.hasCachedResponse(for: request)
     }
-    
+
     /// Add a listener to notify each time a payload with a matching request is set.
     ///
     /// - Parameters:
@@ -133,7 +132,7 @@ public final class _ReadContext<ResultPayload> where ResultPayload: ResultPayloa
     func addListener(for request: APIRequestConfig, listener: @escaping EndpointResponseListener) {
         remoteStoreCache.addListener(for: request, listener: listener)
     }
-    
+
     /// Write a payload in the cache for a request.
     ///
     /// - Parameters:
@@ -142,17 +141,31 @@ public final class _ReadContext<ResultPayload> where ResultPayload: ResultPayloa
     func set(payloadResult: Result<AnyResultPayloadConvertible, APIError>,
              source: RemoteResponseSource?,
              for request: APIRequestConfig) {
-        
+
         remoteStoreCache.set(payloadResult: payloadResult, source: source, for: request)
     }
-    
+
     /// Erase all entries from the cache.
     func clearCache() {
         remoteStoreCache.clear()
     }
-    
+
     public var persistenceStrategy: PersistenceStrategy {
         return dataSource.persistenceStrategy
+    }
+
+    public var responseHeader: APIResponseHeader? {
+        switch remoteStoreCache.remoteResponseSource {
+        case .some(.server(let header)),
+             .some(.urlCache(let header)):
+            return header
+        case .none:
+            return nil
+        }
+    }
+
+    public var endpointResultMetadata: EndpointResultMetadata? {
+        return remoteStoreCache.resultPayload?.metadata
     }
 }
 
@@ -166,7 +179,7 @@ extension _ReadContext: CustomDebugStringConvertible {
 }
 
 extension _ReadContext.DataSource: CustomDebugStringConvertible {
-    
+
     public var debugDescription: String {
         switch self {
         case ._remote(.request(let request, let payload), let persistenceStrategy, let orLocal, let trustRemoteFiltering):
@@ -183,8 +196,10 @@ extension _ReadContext.DataSource: CustomDebugStringConvertible {
     }
 }
 
+// MARK: - Persistence
+
 extension PersistenceStrategy: CustomDebugStringConvertible {
-    
+
     public var debugDescription: String {
         switch self {
         case .doNotPersist:
@@ -214,7 +229,7 @@ extension _ReadContext {
             return self
         }
     }
-    
+
     public func updatingDataSource(_ dataSource: DataSource) -> _ReadContext {
         return _ReadContext(dataSource: dataSource,
                             accessValidator: accessValidator,
@@ -262,7 +277,7 @@ public final class WriteContext<E: Entity> {
 // MARK: - CoreManager Helpers
 
 extension _ReadContext {
-    
+
     var remoteContextAfterMakingLocalRequest: _ReadContext? {
         switch dataSource {
         case .localThen(let remoteDataSource),
@@ -326,13 +341,13 @@ extension _ReadContext.DataSource {
                 Logger.log(.error, "\(_ReadContext.DataSource.self): Invalid data source \(self). Ignoring unecessary 'then' / 'or'.")
                 return dataSource.validating()
             }
-            
+
         case ._remote,
              .local:
             return self
         }
     }
-    
+
     var persistenceStrategy: PersistenceStrategy {
         switch self {
         case ._remote(_, let persistenceStrategy, _, _):
@@ -347,10 +362,9 @@ extension _ReadContext.DataSource {
 
     var returnsCompleteResultSet: Bool {
         switch self {
-        case ._remote(.derivedFromEntityType, _, _, _),
-             .local:
+        case .local:
             return true
-        case ._remote(.request, .persist(.discardExtraLocalData), _, _):
+        case ._remote(_, .persist(.discardExtraLocalData), _, _):
             return true
         case ._remote:
             return false
@@ -527,7 +541,11 @@ final class RemoteStoreCache {
     private let dispatchQueue: DispatchQueue = DispatchQueue(label: "\(RemoteStoreCache.self)_dispatch_queue")
     private let broadcastQueue: DispatchQueue = DispatchQueue(label: "\(RemoteStoreCache.self)_broadcast_queue")
 
-    private var payloadRequest: APIRequestConfig?
+    private var _payloadRequest: APIRequestConfig?
+    var payloadRequest: APIRequestConfig? {
+        return dispatchQueue.sync { _payloadRequest }
+    }
+
     private var payload: Payload?
     private var listeners = [EndpointResponseListener]()
 
@@ -537,7 +555,7 @@ final class RemoteStoreCache {
     ///     - request: The APIRequestConfig returned from a previous request.
     fileprivate func hasCachedResponse(for request: APIRequestConfig) -> Bool {
         return dispatchQueue.sync {
-            return payloadRequest == request
+            return _payloadRequest == request
         }
     }
 
@@ -548,14 +566,14 @@ final class RemoteStoreCache {
     ///     - listener: Block being stored and called when writing to cache for the given key.
     fileprivate func addListener(for request: APIRequestConfig, listener: @escaping EndpointResponseListener) {
         dispatchQueue.async {
-            guard self.payloadRequest == nil || self.payloadRequest == request else {
+            guard self._payloadRequest == nil || self._payloadRequest == request else {
                 Logger.log(.error, "\(RemoteStoreCache.self) attempting to add listener for mismatched token.", assert: true)
                 listener(.failure(.emptyBodyResponse))
                 return
             }
 
-            if self.payloadRequest == nil {
-                self.payloadRequest = request
+            if self._payloadRequest == nil {
+                self._payloadRequest = request
             }
 
             if let payloadResult = self.payload?.result {
@@ -576,18 +594,18 @@ final class RemoteStoreCache {
     fileprivate func set(payloadResult: Result<AnyResultPayloadConvertible, APIError>,
                          source: RemoteResponseSource?,
                          for request: APIRequestConfig) {
-        
+
         dispatchQueue.async {
             guard self.payload == nil else {
                 Logger.log(.error, "\(RemoteStoreCache.self) a cached payload already exists. You are attempting to use a single context for multiple remote calls.", assert: true)
                 return
             }
 
-            if self.payloadRequest != nil && self.payloadRequest != request {
+            if self._payloadRequest != nil && self._payloadRequest != request {
                 Logger.log(.error, "\(RemoteStoreCache.self) a listener has been previously added for a mismatched token. The response will never be sent.", assert: true)
             }
 
-            self.payloadRequest = request
+            self._payloadRequest = request
             self.payload = Payload(result: payloadResult, source: source)
             let existingListeners = self.listeners
             self.listeners = []
@@ -610,4 +628,15 @@ final class RemoteStoreCache {
         return dispatchQueue.sync { payload?.source }
     }
 
+    fileprivate var resultPayload: AnyResultPayloadConvertible? {
+        return dispatchQueue.sync {
+            switch payload?.result {
+            case .some(.success(let payloadResult)):
+                return payloadResult
+            case .some(.failure),
+                 .none:
+                return nil
+            }
+        }
+    }
 }

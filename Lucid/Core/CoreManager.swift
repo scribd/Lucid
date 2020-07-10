@@ -9,6 +9,10 @@
 import Foundation
 import ReactiveKit
 
+#if !LUCID_REACTIVE_KIT
+import Combine
+#endif
+
 // MARK: - Error
 
 public enum ManagerError: Error, Equatable {
@@ -18,8 +22,6 @@ public enum ManagerError: Error, Equatable {
     case logicalError(description: String?) // CoreManager encountered a logical conflict, e.g. missing or broken data where no error was raised.
     case userAccessInvalid // Operation requires correct user permission.
 }
-
-extension Array: Error where Element: Error { }
 
 // MARK: - CoreManaging
 
@@ -45,46 +47,95 @@ extension Array: Error where Element: Error { }
 /// - Note: A struct is used as a protocol in order to be able to carry the `Entity` type `E`
 ///         without the limitation of using an `associatedtype`.
 public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType: EntityConvertible {
-    
+
     // MARK: - Method Types
 
+    #if LUCID_REACTIVE_KIT
     typealias GetEntity = (
-        _ identifier: E.Identifier,
+        _ query: Query<E>,
         _ context: ReadContext<E>
     ) -> Signal<QueryResult<E>, ManagerError>
+    #else
+    typealias GetEntity = (
+        _ query: Query<E>,
+        _ context: ReadContext<E>
+    ) -> AnyPublisher<QueryResult<E>, ManagerError>
+    #endif
 
+    #if LUCID_REACTIVE_KIT
     typealias SearchEntities = (
         _ query: Query<E>,
         _ context: ReadContext<E>
     ) -> (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>)
+    #else
+    typealias SearchEntities = (
+        _ query: Query<E>,
+        _ context: ReadContext<E>
+    ) -> (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>)
+    #endif
 
+    #if LUCID_REACTIVE_KIT
     typealias SetEntity = (
         _ entity: E,
         _ context: WriteContext<E>
     ) -> Signal<E, ManagerError>
-    
+    #else
+    typealias SetEntity = (
+        _ entity: E,
+        _ context: WriteContext<E>
+    ) -> AnyPublisher<E, ManagerError>
+    #endif
+
+    #if LUCID_REACTIVE_KIT
     typealias SetEntities = (
         _ entities: AnySequence<E>,
         _ context: WriteContext<E>
     ) -> Signal<AnySequence<E>, ManagerError>
+    #else
+    typealias SetEntities = (
+        _ entities: AnySequence<E>,
+        _ context: WriteContext<E>
+    ) -> AnyPublisher<AnySequence<E>, ManagerError>
+    #endif
 
+    #if LUCID_REACTIVE_KIT
     typealias RemoveAllEntities = (
         _ query: Query<E>,
         _ context: WriteContext<E>
     ) -> Signal<AnySequence<E.Identifier>, ManagerError>
+    #else
+    typealias RemoveAllEntities = (
+        _ query: Query<E>,
+        _ context: WriteContext<E>
+    ) -> AnyPublisher<AnySequence<E.Identifier>, ManagerError>
+    #endif
 
+    #if LUCID_REACTIVE_KIT
     typealias RemoveEntity = (
         _ identifier: E.Identifier,
         _ context: WriteContext<E>
     ) -> Signal<Void, ManagerError>
+    #else
+    typealias RemoveEntity = (
+        _ identifier: E.Identifier,
+        _ context: WriteContext<E>
+    ) -> AnyPublisher<Void, ManagerError>
+    #endif
 
+    #if LUCID_REACTIVE_KIT
     typealias RemoveEntities = (
         _ identifiers: AnySequence<E.Identifier>,
         _ context: WriteContext<E>
     ) -> Signal<Void, ManagerError>
+    #else
+    typealias RemoveEntities = (
+        _ identifiers: AnySequence<E.Identifier>,
+        _ context: WriteContext<E>
+    ) -> AnyPublisher<Void, ManagerError>
+    #endif
 
     // MARK: - Methods
-    
+
     private let getEntity: GetEntity
     private let searchEntities: SearchEntities
     private let setEntity: SetEntity
@@ -112,7 +163,7 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
         self.removeEntities = removeEntities
         self.relationshipManager = relationshipManager
     }
-    
+
     // MARK: - API
 
     /// Retrieve an entity based on its identifier.
@@ -126,10 +177,19 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     ///
     /// - Note: If a new or updated `Entity` is retrieved, elected providers are notified.
     /// - Note: The signal response can be called from a different thread than main.
+    #if LUCID_REACTIVE_KIT
     public func get(byID identifier: E.Identifier,
                     in context: ReadContext<E> = ReadContext<E>()) -> Signal<QueryResult<E>, ManagerError> {
-        return getEntity(identifier, context)
+        let query = Query<E>.identifier(identifier)
+        return getEntity(query, context)
     }
+    #else
+    public func get(byID identifier: E.Identifier,
+                    in context: ReadContext<E> = ReadContext<E>()) -> AnyPublisher<QueryResult<E>, ManagerError> {
+        let query = Query<E>.identifier(identifier)
+        return getEntity(query, context)
+    }
+    #endif
 
     /// Run a search query resulting with a filtered/ordered set of entities.
     ///
@@ -145,10 +205,17 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     ///
     /// - Note: For any new or updated retrieved `Entity`, elected providers are notified.
     /// - Note: The signal response can be called from a different thread than main.
+    #if LUCID_REACTIVE_KIT
     public func search(withQuery query: Query<E>,
                        in context: ReadContext<E> = ReadContext<E>()) -> (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>) {
         return searchEntities(query, context)
     }
+    #else
+    public func search(withQuery query: Query<E>,
+                       in context: ReadContext<E> = ReadContext<E>()) -> (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>) {
+        return searchEntities(query, context)
+    }
+    #endif
 
     /// Write an `Entity` to the `Store`.
     ///
@@ -161,11 +228,19 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     ///
     /// - Note: If the given entity is new or updated, elected providers are notified.
     /// - Note: The signal response can be called from a different thread than main.
+    #if LUCID_REACTIVE_KIT
     @discardableResult
     public func set(_ entity: E,
                     in context: WriteContext<E>) -> Signal<E, ManagerError> {
         return setEntity(entity, context)
     }
+    #else
+    @discardableResult
+    public func set(_ entity: E,
+                    in context: WriteContext<E>) -> AnyPublisher<E, ManagerError> {
+        return setEntity(entity, context)
+    }
+    #endif
 
     /// Bulk write an array of entities to the `Store`.
     ///
@@ -177,11 +252,19 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     ///     - A Signal to be observed. It will return a single response of either `[Entity]` or `ManagerError`.
     ///
     /// - Note: The signal response can be called from a different thread than main.
+    #if LUCID_REACTIVE_KIT
     @discardableResult
     public func set<S>(_ entities: S,
                        in context: WriteContext<E>) -> Signal<AnySequence<E>, ManagerError> where S: Sequence, S.Element == E {
         return setEntities(entities.any, context)
     }
+    #else
+    @discardableResult
+    public func set<S>(_ entities: S,
+                       in context: WriteContext<E>) -> AnyPublisher<AnySequence<E>, ManagerError> where S: Sequence, S.Element == E {
+        return setEntities(entities.any, context)
+    }
+    #endif
 
     /// Delete all `Entity` objects that match the query.
     ///
@@ -197,11 +280,19 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     ///
     /// - Warning: `removeAll` needs to perform additional operations in order to ensure the stores' integrity.
     ///            Using `remove(_:in:options:)` is usually preferable.
+    #if LUCID_REACTIVE_KIT
     @discardableResult
     public func removeAll(withQuery query: Query<E>,
                           in context: WriteContext<E>) -> Signal<AnySequence<E.Identifier>, ManagerError> {
         return removeAllEntities(query, context)
     }
+    #else
+    @discardableResult
+    public func removeAll(withQuery query: Query<E>,
+                          in context: WriteContext<E>) -> AnyPublisher<AnySequence<E.Identifier>, ManagerError> {
+        return removeAllEntities(query, context)
+    }
+    #endif
 
     /// Delete an `Entity` based on its identifier.
     ///
@@ -214,12 +305,20 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     ///
     /// - Note: When succeeding, elected providers are notified.
     /// - Note: The signal response can be called from a different thread than main.
+    #if LUCID_REACTIVE_KIT
     @discardableResult
     public func remove(atID identifier: E.Identifier,
                        in context: WriteContext<E>) -> Signal<Void, ManagerError> {
         return removeEntity(identifier, context)
     }
-    
+    #else
+    @discardableResult
+    public func remove(atID identifier: E.Identifier,
+                       in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> {
+        return removeEntity(identifier, context)
+    }
+    #endif
+
     /// Bulk delete an `Entity` based on its identifier.
     ///
     /// - Parameters:
@@ -230,15 +329,23 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     ///     - A Signal to be observed. It will return a single response of either `Void` or `ManagerError`.
     ///
     /// - Note: The signal response can be called from a different thread than main.
+    #if LUCID_REACTIVE_KIT
     @discardableResult
     public func remove<S>(_ identifiers: S,
                           in context: WriteContext<E>) -> Signal<Void, ManagerError> where S: Sequence, S.Element == E.Identifier {
         return removeEntities(identifiers.any, context)
     }
+    #else
+    @discardableResult
+    public func remove<S>(_ identifiers: S,
+                          in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> where S: Sequence, S.Element == E.Identifier {
+        return removeEntities(identifiers.any, context)
+    }
+    #endif
 }
 
 public extension CoreManaging {
-    
+
     /// Retrieve entities from the core manager based on a given query.
     ///
     /// - Parameters:
@@ -246,10 +353,16 @@ public extension CoreManaging {
     ///
     /// - Returns:
     ///     - A Signal to be observed. It will return a single response of either `[Entity]` or `ManagerError`.
-    func all(in context: ReadContext<E>) -> Signal<QueryResult<E>, ManagerError> {
+    #if LUCID_REACTIVE_KIT
+    func all(in context: ReadContext<E> = ReadContext<E>()) -> Signal<QueryResult<E>, ManagerError> {
         return search(withQuery: .all, in: context).once
     }
-    
+    #else
+    func all(in context: ReadContext<E> = ReadContext<E>()) -> AnyPublisher<QueryResult<E>, ManagerError> {
+        return search(withQuery: .all, in: context).once
+    }
+    #endif
+
     /// Retrieve the first entity found from the core manager based on a given query.
     ///
     /// - Parameters:
@@ -258,16 +371,22 @@ public extension CoreManaging {
     ///
     /// - Returns:
     ///     - A Signal to be observed. It will return a single response of either `Entity` or `ManagerError`.
+    #if LUCID_REACTIVE_KIT
     func first(for query: Query<E> = .all,
                in context: ReadContext<E> = ReadContext<E>()) -> Signal<E?, ManagerError> {
-        
         return search(withQuery: query, in: context).once.map { $0.first }
     }
-    
+    #else
+    func first(for query: Query<E> = .all,
+               in context: ReadContext<E> = ReadContext<E>()) -> AnyPublisher<E?, ManagerError> {
+        return search(withQuery: query, in: context).once.map { $0.first }.eraseToAnyPublisher()
+    }
+    #endif
+
     /// Retrieve entities that match one of the given identifiers.
     ///
     /// - Parameters:
-    ///     - identifiers: List of identifiers used to build a OR query.
+    ///     - identifiers: List of identifiers used to build an OR query.
     ///     - context: Context associated to the query.
     ///
     /// - Returns:
@@ -275,14 +394,25 @@ public extension CoreManaging {
     ///     - `once` will return a single response of either `QueryResult<Entity>` or `ManagerError`.
     ///     - `continuous` will return a response of either `[Entity]` or `ManagerError` every time changes occur that
     ///        match the query. It will never be completed and will be retained until you release the dispose bag.
+    #if LUCID_REACTIVE_KIT
     func get<S>(byIDs identifiers: S,
-                in context: ReadContext<E>) -> (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>)
+                in context: ReadContext<E> = ReadContext<E>()) -> (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>)
         where S: Sequence, S.Element == E.Identifier {
 
             let query = Query<E>.filter(.identifier >> identifiers).order([.identifiers(identifiers.any)])
 
             return search(withQuery: query, in: context)
     }
+    #else
+    func get<S>(byIDs identifiers: S,
+                in context: ReadContext<E> = ReadContext<E>()) -> (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>)
+        where S: Sequence, S.Element == E.Identifier {
+
+            let query = Query<E>.filter(.identifier >> identifiers).order([.identifiers(identifiers.any)])
+
+            return search(withQuery: query, in: context)
+    }
+    #endif
 }
 
 public extension CoreManaging where E: RemoteEntity {
@@ -295,8 +425,9 @@ public extension CoreManaging where E: RemoteEntity {
     ///
     /// - Returns:
     ///     - A Signal to be observed. It will return a single response of either `(Entity, Metadata)` or `ManagerError`.
+    #if LUCID_REACTIVE_KIT
     func firstWithMetadata(for query: Query<E>? = .all,
-                           in context: ReadContext<E>) -> Signal<QueryResult<E>, ManagerError> {
+                           in context: ReadContext<E> = ReadContext<E>()) -> Signal<QueryResult<E>, ManagerError> {
 
         let signals = search(withQuery: query ?? .all, in: context)
         return signals.once.map { result -> QueryResult<E> in
@@ -304,11 +435,48 @@ public extension CoreManaging where E: RemoteEntity {
             return QueryResult<E>(from: entity, metadata: metadata)
         }
     }
-    
+    #else
+    func firstWithMetadata(for query: Query<E>? = .all,
+                           in context: ReadContext<E> = ReadContext<E>()) -> AnyPublisher<QueryResult<E>, ManagerError> {
+
+        let signals = search(withQuery: query ?? .all, in: context)
+        return signals.once.map { result -> QueryResult<E> in
+            guard let entity = result.entity, let metadata = result.metadata else { return .empty() }
+            return QueryResult<E>(from: entity, metadata: metadata)
+        }.eraseToAnyPublisher()
+    }
+    #endif
+
+    /// Retrieve entity that matches the given identifier.
+    ///
+    /// - Parameters:
+    ///     - identifier: Identifiers used to build an OR query.
+    ///     - extras: Any extras you require on the entity.
+    ///     - context: Context associated to the query.
+    ///
+    /// - Returns:
+    ///     - A Signal to be observed. It will return a single response of either `QueryResult<Entity>` or `ManagerError`.
+    #if LUCID_REACTIVE_KIT
+    func get(byID identifier: E.Identifier,
+             extras: [E.ExtrasIndexName],
+             in context: ReadContext<E> = ReadContext<E>()) -> Signal<QueryResult<E>, ManagerError> {
+        let query = Query<E>.identifier(identifier, extras: extras)
+        return getEntity(query, context)
+    }
+    #else
+    func get(byID identifier: E.Identifier,
+             extras: [E.ExtrasIndexName],
+             in context: ReadContext<E> = ReadContext<E>()) -> AnyPublisher<QueryResult<E>, ManagerError> {
+        let query = Query<E>.identifier(identifier, extras: extras)
+        return getEntity(query, context)
+    }
+    #endif
+
     /// Retrieve entities that match one of the given identifiers.
     ///
     /// - Parameters:
     ///     - identifiers: List of identifiers used to build a OR query.
+    ///     - extras: Any extras you require on the entity.
     ///     - context: Context associated to the query.
     ///
     /// - Returns:
@@ -316,52 +484,72 @@ public extension CoreManaging where E: RemoteEntity {
     ///     - `once` will return a single response of either `QueryResult<Entity>` or `ManagerError`.
     ///     - `continuous` will return a response of either `[Entity]` or `ManagerError` every time changes occur that
     ///        match the query. It will never be completed and will be retained until you release the dispose bag.
+    #if LUCID_REACTIVE_KIT
     func get<S>(byIDs identifiers: S,
-                in context: ReadContext<E>) -> (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>)
+                extras: [E.ExtrasIndexName],
+                in context: ReadContext<E> = ReadContext<E>()) -> (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>)
         where S: Sequence, S.Element == E.Identifier {
-            
-            let query = Query<E>.filter(.identifier >> identifiers).order([.identifiers(identifiers.any)])
-            
+
+            let query = Query<E>.filter(.identifier >> identifiers).order([.identifiers(identifiers.any)]).extras(extras)
             return search(withQuery: query, in: context)
     }
+    #else
+    func get<S>(byIDs identifiers: S,
+                extras: [E.ExtrasIndexName],
+                in context: ReadContext<E> = ReadContext<E>()) -> (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>)
+        where S: Sequence, S.Element == E.Identifier {
+
+            let query = Query<E>.filter(.identifier >> identifiers).order([.identifiers(identifiers.any)]).extras(extras)
+            return search(withQuery: query, in: context)
+    }
+    #endif
 }
 
 public extension CoreManaging where E.Identifier == VoidEntityIdentifier {
-    
+
+    #if LUCID_REACTIVE_KIT
     func get(in context: ReadContext<E> = ReadContext<E>()) -> Signal<QueryResult<E>, ManagerError> {
-        return getEntity(VoidEntityIdentifier(), context)
+        return getEntity(Query.identifier(VoidEntityIdentifier()), context)
     }
+    #else
+    func get(in context: ReadContext<E> = ReadContext<E>()) -> AnyPublisher<QueryResult<E>, ManagerError> {
+        return getEntity(Query.identifier(VoidEntityIdentifier()), context)
+    }
+    #endif
 }
 
 // MARK: - CoreManager
 
 public final class CoreManager<E> where E: Entity {
-    
+
     // MARK: - Dependencies
-    
+
     private let stores: [Storing<E>]
     private let storeStackQueues = StoreStackQueues<E>()
     private let operationQueue = AsyncOperationQueue()
-    
+
     private let localStore: StoreStack<E>
-    
+
     private let propertiesQueue = DispatchQueue(label: "\(CoreManager.self):properties", attributes: .concurrent)
     private let raiseEventsQueue = DispatchQueue(label: "\(CoreManager.self):raise_events")
     private var _pendingProperties = [PropertyEntry]()
     private var _properties = [PropertyEntry]()
-    
+
     private let updatesMetadataQueue = DispatchQueue(label: "\(CoreManager.self):updates_metadata", attributes: .concurrent)
     private var _updatesMetadata = DualHashDictionary<E.Identifier, UpdateTime>()
 
+    private let disposeBag = DisposeBag()
+
     // MARK: - Inits
-    
+
     public init(stores: [Storing<E>]) {
         self.stores = stores
         localStore = StoreStack(stores: stores.local(), queues: storeStackQueues)
     }
 
     public func managing<AnyEntityType>(_ relationshipManager: CoreManaging<E, AnyEntityType>.RelationshipManager? = nil) -> CoreManaging<E, AnyEntityType> where AnyEntityType: EntityConvertible {
-        return CoreManaging(getEntity: { self.get(byID: $0, in: $1) },
+        #if LUCID_REACTIVE_KIT
+        return CoreManaging(getEntity: { self.get(withQuery: $0, in: $1) },
                             searchEntities: { self.search(withQuery: $0, in: $1) },
                             setEntity: { self.set($0, in: $1) },
                             setEntities: { self.set($0, in: $1) },
@@ -369,13 +557,29 @@ public final class CoreManager<E> where E: Entity {
                             removeEntity: { self.remove(atID: $0, in: $1)},
                             removeEntities: { self.remove($0, in: $1) },
                             relationshipManager: relationshipManager)
+        #else
+        return CoreManaging(getEntity: { self.get(withQuery: $0, in: $1).toPublisher().eraseToAnyPublisher() },
+                            searchEntities: {
+                                let signals = self.search(withQuery: $0, in: $1)
+                                return (
+                                    signals.once.toPublisher().eraseToAnyPublisher(),
+                                    signals.continuous.toPublisher().eraseToAnyPublisher()
+                                )
+                            },
+                            setEntity: { self.set($0, in: $1).toPublisher().eraseToAnyPublisher() },
+                            setEntities: { self.set($0, in: $1).toPublisher().eraseToAnyPublisher() },
+                            removeAllEntities: { self.removeAll(withQuery: $0, in: $1).toPublisher().eraseToAnyPublisher() },
+                            removeEntity: { self.remove(atID: $0, in: $1).toPublisher().eraseToAnyPublisher() },
+                            removeEntities: { self.remove($0, in: $1).toPublisher().eraseToAnyPublisher() },
+                            relationshipManager: relationshipManager)
+        #endif
     }
 }
 
-public extension CoreManager {
+private extension CoreManager {
 
     // MARK: - API
-    
+
     ///
     /// - Note: Performs a local/remote fetch depending on how the data source is configured.
     ///
@@ -385,28 +589,46 @@ public extension CoreManager {
     /// - `remote` -> Performs a remote fetch only.
     /// - `local` -> Performs a local fetch only.
     ///
-    func get(byID identifier: E.Identifier,
+    func get(withQuery query: Query<E>,
              in context: ReadContext<E>) -> Signal<QueryResult<E>, ManagerError> {
-        
+
+        let queryIdentifiers = query.identifiers?.array ?? []
+        if queryIdentifiers.count != 1 {
+            Logger.log(.error, "\(CoreManager.self) get must be called with a single identifier. Instead found \(queryIdentifiers.count)", assert: true)
+        }
+
+        guard let identifier = queryIdentifiers.first else {
+            Logger.log(.error, "\(CoreManager.self) can not perform get without valid identifier", assert: true)
+            return Signal.failed(.notSupported)
+        }
+
         if let remoteContext = context.remoteContextAfterMakingLocalRequest {
             let localContext = ReadContext<E>(dataSource: .local, accessValidator: context.accessValidator)
-            return get(byID: identifier, in: localContext)
+            return get(withQuery: query, in: localContext)
                 .flatMapError { _ -> Signal<QueryResult<E>, ManagerError> in
                     return Signal(just: .empty())
                 }
-                .flatMapLatest { result -> Signal<QueryResult<E>, ManagerError> in
-                    if result.entity != nil {
+                .flatMapLatest { localResult -> Signal<QueryResult<E>, ManagerError> in
+                    if localResult.entity != nil {
                         if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
-                            self.get(byID: identifier, in: remoteContext).discardResult()
+                            self.get(withQuery: query, in: remoteContext).observe { _ in }.dispose(in: self.disposeBag)
                         }
-                        return Signal(just: result)
+                        return Signal(just: localResult)
                     } else {
-                        return self.get(byID: identifier, in: remoteContext)
+                        return self.get(withQuery: query, in: remoteContext)
+                            .flatMapError { error -> Signal<QueryResult<E>, ManagerError> in
+                                if error.isNetworkConnectionFailure {
+                                    // if we can't reach the remote store, return local results
+                                    return Signal(just: localResult)
+                                } else {
+                                    return .failed(error)
+                                }
+                            }
                     }
                 }
 
         } else {
-            
+
             return FutureSubject { promise in
 
                 guard context.requestAllowedForAccessLevel else {
@@ -430,22 +652,23 @@ public extension CoreManager {
                     let time = UpdateTime()
                     let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
 
-                    storeStack.get(byID: identifier, in: context) { result in
+                    storeStack.get(withQuery: query, in: context) { result in
 
                         switch result {
                         case .success(let queryResult):
+
                             if context.shouldOverwriteInLocalStores {
                                 guard self.canUpdate(identifier: identifier, basedOn: time) else {
                                     guardedPromise(.success(queryResult))
                                     return
                                 }
                                 self.setUpdateTime(time, for: identifier)
-                                
+
                                 if let entity = queryResult.entity {
                                     self.localStore.set(entity, in: WriteContext(dataTarget: .local)) { result in
                                         switch result {
                                         case .failure(let error):
-                                            Logger.log(.error, "\(CoreManager.self): An error occurred while writing entity to local stores: \(error)", assert: true)
+                                            Logger.log(.error, "\(CoreManager.self): An error occurred while writing entity: \(error)", assert: true)
                                         case .success,
                                              .none:
                                             break
@@ -457,7 +680,7 @@ public extension CoreManager {
                                     self.localStore.remove(atID: identifier, in: WriteContext(dataTarget: .local)) { result in
                                         switch result {
                                         case .failure(let error):
-                                            Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entity from local stores: \(error)", assert: true)
+                                            Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entity: \(error)", assert: true)
                                         case .success,
                                              .none:
                                             break
@@ -469,9 +692,9 @@ public extension CoreManager {
                             } else {
                                 guardedPromise(.success(queryResult))
                             }
-                            
+
                         case .failure(let error):
-                            Logger.log(.error, "\(CoreManager.self): An error occurred while getting entity from local stores: \(error)")
+                            Logger.log(.error, "\(CoreManager.self): An error occurred while getting entity: \(error)")
                             guardedPromise(.failure(.store(error)))
                         }
                     }
@@ -500,40 +723,51 @@ public extension CoreManager {
             let dispatchQueue = DispatchQueue(label: "\(CoreManager.self)_search_prefer_cache_synchronization_queue")
             var overwriteSignal: Signal<QueryResult<E>, ManagerError>?
 
-            let overwriteSearch: () -> Signal<QueryResult<E>, ManagerError> = {
+            let overwriteSearch: (QueryResult<E>?) -> Signal<QueryResult<E>, ManagerError> = { localResult in
+                let mapNetworkErrorToLocalResult: ((ManagerError) -> Signal<QueryResult<E>, ManagerError>) = { error in
+                    if error.isNetworkConnectionFailure, let localResult = localResult {
+                        // if we can't reach the remote store, return local results
+                        return Signal(just: localResult)
+                    } else {
+                        return .failed(error)
+                    }
+                }
                 return dispatchQueue.sync {
                     if let overwriteSignal = overwriteSignal {
                         return overwriteSignal
+                            .flatMapError(mapNetworkErrorToLocalResult)
                     }
-                    let signal = self.search(withQuery: query, in: remoteContext).once
+                    let signal = self.search(withQuery: query, in: remoteContext)
+                        .once
                     overwriteSignal = signal
                     return signal
+                        .flatMapError(mapNetworkErrorToLocalResult)
                 }
             }
 
             if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
                 operationQueue.run(title: "\(CoreManager.self):search:1") { operationCompletion in
                     defer { operationCompletion() }
-                    overwriteSearch().discardResult()
+                    overwriteSearch(nil).observe { _ in }.dispose(in: self.disposeBag)
                 }
             }
 
             return (
                 once: cacheSearches.once
                     .flatMapError { _ -> Signal<QueryResult<E>, ManagerError> in
-                        return Signal(just: QueryResult<E>(fromOrderedEntities: [], for: query))
+                        return Signal(just: QueryResult<E>(fromProcessedEntities: [], for: query))
                     }
-                    .flatMapLatest { element -> Signal<QueryResult<E>, ManagerError> in
+                    .flatMapLatest { localResult -> Signal<QueryResult<E>, ManagerError> in
                         let searchIdentifierCount = query.filter?.extractOrIdentifiers?.map { $0 }.count ?? 0
-                        let entityResultCount = element.count
+                        let entityResultCount = localResult.count
 
                         let hasAllIdentifiersLocally = searchIdentifierCount > 0 && entityResultCount == searchIdentifierCount
                         let hasResultsForComplexSearch = searchIdentifierCount == 0 && entityResultCount > 0
 
                         if hasAllIdentifiersLocally || hasResultsForComplexSearch {
-                            return Signal(just: element)
+                            return Signal(just: localResult)
                         } else {
-                            return overwriteSearch()
+                            return overwriteSearch(localResult)
                         }
                 },
                 continuous: cacheSearches.continuous)
@@ -567,13 +801,14 @@ public extension CoreManager {
                 storeStack.search(withQuery: query, in: context) { result in
 
                     switch result {
-                    case .success(let results):
+                    case .success(let queryResult):
+
                         if context.shouldOverwriteInLocalStores {
                             self.localStore.search(withQuery: query, in: context) { localResult in
 
                                 switch localResult {
                                 case .success(let localResults):
-                                    let remoteResults = results.materialized
+                                    let remoteResults = queryResult.materialized
 
                                     var identifiersToDelete: [E.Identifier] = []
                                     if context.returnsCompleteResultSet {
@@ -597,7 +832,7 @@ public extension CoreManager {
                                         dispatchGroup.enter()
                                         self.localStore.set(entitiesToUpdate, in: WriteContext(dataTarget: .local)) { result in
                                             if let error = result?.error {
-                                                Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities to local stores: \(error)", assert: true)
+                                                Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
                                             }
                                             dispatchGroup.leave()
                                         }
@@ -607,7 +842,7 @@ public extension CoreManager {
                                         dispatchGroup.enter()
                                         self.localStore.remove(identifiersToDelete, in: WriteContext(dataTarget: .local)) { result in
                                             if let error = result?.error {
-                                                Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entities to local stores: \(error)", assert: true)
+                                                Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entities: \(error)", assert: true)
                                             }
                                             dispatchGroup.leave()
                                         }
@@ -619,31 +854,31 @@ public extension CoreManager {
                                     }
 
                                 case .failure(let error):
-                                    Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities from local stores: \(error)", assert: true)
+                                    Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities: \(error)", assert: true)
 
-                                    let entitiesToUpdate = self.filter(entities: results, basedOn: time).compactMap { $0 }
+                                    let entitiesToUpdate = self.filter(entities: queryResult, basedOn: time).compactMap { $0 }
                                     guard entitiesToUpdate.isEmpty == false else {
-                                        guardedPromise(.success(results))
+                                        guardedPromise(.success(queryResult))
                                         return
                                     }
                                     self.setUpdateTime(time, for: entitiesToUpdate.lazy.map { $0.identifier })
 
                                     self.localStore.set(entitiesToUpdate, in: WriteContext(dataTarget: .local)) { result in
                                         if let error = result?.error {
-                                            Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities to local stores: \(error)", assert: true)
+                                            Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
                                         }
-                                        guardedPromise(.success(results))
-                                        self.raiseUpdateEvents(withQuery: query, results: results, returnsCompleteResultSet: context.returnsCompleteResultSet)
+                                        guardedPromise(.success(queryResult))
+                                        self.raiseUpdateEvents(withQuery: query, results: queryResult, returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
                                 }
                             }
                         } else {
-                            guardedPromise(.success(results))
-                            property.update(with: results)
+                            guardedPromise(.success(queryResult))
+                            property.update(with: queryResult)
                         }
 
                     case .failure(let error):
-                        Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities from local stores: \(error)", assert: error.isNetworkConnectionFailure == false)
+                        Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities: \(error)", assert: error.isNetworkConnectionFailure == false)
                         guardedPromise(.failure(.store(error)))
                     }
                 }
@@ -658,7 +893,7 @@ public extension CoreManager {
 
     func set(_ entity: E,
              in context: WriteContext<E>) -> Signal<E, ManagerError> {
-        
+
         return FutureSubject { promise in
 
             guard context.requestAllowedForAccessLevel else {
@@ -678,10 +913,10 @@ public extension CoreManager {
 
             self.operationQueue.run(title: "\(CoreManager.self):set") { operationCompletion in
                 defer { operationCompletion() }
-                
+
                 let time = UpdateTime(timestamp: context.originTimestamp)
                 guard self.canUpdate(identifier: entity.identifier, basedOn: time) else {
-                    self.localStore.get(byID: entity.identifier, in: ReadContext<E>()) { result in
+                    self.localStore.get(withQuery: Query.identifier(entity.identifier), in: ReadContext<E>()) { result in
                         switch result {
                         case .success(let queryResult):
                             if let entity = queryResult.entity {
@@ -690,14 +925,14 @@ public extension CoreManager {
                                 guardedPromise(.failure(.conflict))
                             }
                         case .failure(let error):
-                            Logger.log(.error, "\(CoreManager.self): An error occurred while setting entity to local stores: \(error)")
+                            Logger.log(.error, "\(CoreManager.self): An error occurred while setting entity: \(error)")
                             guardedPromise(.failure(.store(error)))
                         }
                     }
                     return
                 }
                 self.setUpdateTime(time, for: entity.identifier)
-                
+
                 let raiseUpdateEventsBox = ProcessOnceEntityBox<E> { updatedEntity in
                     guard let updatedEntity = updatedEntity.first else { return }
                     self.raiseUpdateEvents(withQuery: .identifier(updatedEntity.identifier), results: .entities([updatedEntity]))
@@ -722,7 +957,7 @@ public extension CoreManager {
                             raiseUpdateEventsBox.process([entity])
 
                         case .failure(let error):
-                            Logger.log(.error, "\(CoreManager.self): An error occurred while setting entity to all stores: \(error)")
+                            Logger.log(.error, "\(CoreManager.self): An error occurred while setting entity: \(error)")
                             guardedPromise(.failure(.store(error)))
                         }
                     }
@@ -730,12 +965,12 @@ public extension CoreManager {
             }
         }.toSignal()
     }
-    
+
     func set<S>(_ entities: S,
                 in context: WriteContext<E>) -> Signal<AnySequence<E>, ManagerError> where S: Sequence, S.Element == E {
 
         let entities = Array(entities)
-        
+
         return FutureSubject { promise in
 
             guard context.requestAllowedForAccessLevel else {
@@ -755,7 +990,7 @@ public extension CoreManager {
 
             self.operationQueue.run(title: "\(CoreManager.self):bulk_set") { operationCompletion in
                 defer { operationCompletion() }
-                
+
                 let time = UpdateTime(timestamp: context.originTimestamp)
                 var entitiesToUpdate = OrderedDualHashDictionary(
                     self.updateTime(for: entities
@@ -775,9 +1010,9 @@ public extension CoreManager {
                     guardedPromise(.success(.empty))
                     return
                 }
-                
+
                 self.setUpdateTime(time, for: entitiesToUpdate.lazy.compactMap { $0.1?.identifier })
-                
+
                 let raiseUpdateEventsBox = ProcessOnceEntityBox<E> { updatedEntities in
                     self.raiseUpdateEvents(withQuery: .filter(.identifier >> updatedEntities.lazy.map { $0.identifier }),
                                            results: .entities(updatedEntities))
@@ -801,13 +1036,13 @@ public extension CoreManager {
                             }
                             guardedPromise(.success(entitiesToUpdate.lazy.compactMap { $0.1 }.any))
                             raiseUpdateEventsBox.process(updatedEntities)
-                        
+
                         case .none:
                             guardedPromise(.success(entities.any))
                             raiseUpdateEventsBox.process(entities)
 
                         case .failure(let error):
-                            Logger.log(.error, "\(CoreManager.self): An error occurred while setting entities to all stores: \(error)")
+                            Logger.log(.error, "\(CoreManager.self): An error occurred while setting entities: \(error)")
                             guardedPromise(.failure(.store(error)))
                         }
                     }
@@ -815,7 +1050,7 @@ public extension CoreManager {
             }
         }.toSignal()
     }
-    
+
     func removeAll(withQuery query: Query<E>,
                    in context: WriteContext<E>) -> Signal<AnySequence<E.Identifier>, ManagerError> {
 
@@ -853,7 +1088,7 @@ public extension CoreManager {
                         }
                         let identifiersToRemove = entitiesToRemove.lazy.map { $0.identifier }
                         self.setUpdateTime(time, for: identifiersToRemove)
-                        
+
                         let raiseDeleteEventsBox = ProcessOnceIdentifierBox<E.Identifier> { removedIdentifiers in
                             self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
                         }
@@ -871,14 +1106,14 @@ public extension CoreManager {
                                     case .success(let removedIdentifiers):
                                         guardedPromise(.success(removedIdentifiers))
                                         raiseDeleteEventsBox.process(removedIdentifiers)
-                                        
+
                                     case .none:
                                         let removedIdentifiers = entitiesToRemove.map { $0.identifier }.any
                                         guardedPromise(.success(removedIdentifiers))
                                         raiseDeleteEventsBox.process(removedIdentifiers)
 
                                     case .failure(let error):
-                                        Logger.log(.error, "\(CoreManager.self): An error occurred while removing all entities in query from all stores: \(error)")
+                                        Logger.log(.error, "\(CoreManager.self): An error occurred while removing all entities in query: \(error)")
                                         guardedPromise(.failure(.store(error)))
                                     }
                                 }
@@ -896,15 +1131,15 @@ public extension CoreManager {
                                     case .success, .none:
                                         guardedPromise(.success(identifiersToRemove.any))
                                         raiseDeleteEventsBox.process(identifiersToRemove)
-                                        
+
                                     case .failure(let error):
-                                        Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities for identifiers from all stores: \(error)")
+                                        Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities for identifiers: \(error)")
                                         guardedPromise(.failure(.store(error)))
                                     }
                             }
                             )
                         }
-                        
+
                     case .failure(let error):
                         Logger.log(.error, "\(CoreManager.self): An error occurred while searching for entities to remove all: \(error)")
                         guardedPromise(.failure(.store(error)))
@@ -913,10 +1148,10 @@ public extension CoreManager {
             }
         }.toSignal()
     }
-    
+
     func remove(atID identifier: E.Identifier,
                 in context: WriteContext<E>) -> Signal<Void, ManagerError> {
-        
+
         return FutureSubject { promise in
 
             guard context.requestAllowedForAccessLevel else {
@@ -943,7 +1178,7 @@ public extension CoreManager {
                     return
                 }
                 self.setUpdateTime(time, for: identifier)
-                
+
                 let raiseDeleteEventsBox = ProcessOnceIdentifierBox<E.Identifier> { removedIdentifiers in
                     guard let removedIdentifier = removedIdentifiers.first else { return }
                     self.raiseDeleteEvents(DualHashSet([removedIdentifier]))
@@ -962,9 +1197,9 @@ public extension CoreManager {
                              .none:
                             guardedPromise(.success(()))
                             raiseDeleteEventsBox.process([identifier])
-                            
+
                         case .failure(let error):
-                            Logger.log(.error, "\(CoreManager.self): An error occurred while removing entity from all stores: \(error)")
+                            Logger.log(.error, "\(CoreManager.self): An error occurred while removing entity: \(error)")
                             guardedPromise(.failure(.store(error)))
                         }
                     }
@@ -972,10 +1207,10 @@ public extension CoreManager {
             }
         }.toSignal()
     }
-    
+
     func remove<S>(_ identifiers: S,
                    in context: WriteContext<E>) -> Signal<Void, ManagerError> where S: Sequence, S.Element == E.Identifier {
-        
+
         return FutureSubject { promise in
 
             guard context.requestAllowedForAccessLevel else {
@@ -1003,7 +1238,7 @@ public extension CoreManager {
                     return
                 }
                 self.setUpdateTime(time, for: identifiersToRemove)
-                
+
                 let raiseDeleteEventsBox = ProcessOnceIdentifierBox<E.Identifier> { removedIdentifiers in
                     self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
                 }
@@ -1021,9 +1256,9 @@ public extension CoreManager {
                              .none:
                             guardedPromise(.success(()))
                             raiseDeleteEventsBox.process(identifiersToRemove)
-                            
+
                         case .failure(let error):
-                            Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities from all stores: \(error)")
+                            Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities: \(error)")
                             guardedPromise(.failure(.store(error)))
                         }
                     }
@@ -1037,62 +1272,84 @@ public extension CoreManager {
 
 extension CoreManaging where E: MutableEntity {
 
-    public func setAndUpdateIdentifierInLocalStores(_ entity: E, originTimestamp: UInt64) -> SafeSignal<Void> {
+    private func _setAndUpdateIdentifierInLocalStores(_ entity: E, originTimestamp: UInt64) -> SafeSignal<Void> {
         let context = WriteContext<E>(dataTarget: .local, remoteSyncState: .createResponse(originTimestamp))
         return set(entity, in: context)
+            .toSignal()
             .flatMapLatest { storedResult -> Signal<Void, ManagerError> in
                 storedResult.merge(identifier: entity.identifier)
                 let context = WriteContext<E>(dataTarget: .local, remoteSyncState: .mergeIdentifier)
-                return self.set(storedResult, in: context).map { _ in }
+                return self.set(storedResult, in: context).toSignal().map { _ in }
             }
             .replaceError(with: ())
     }
 
-    public func removeFromLocalStores(_ identifier: E.Identifier, originTimestamp: UInt64) -> SafeSignal<Void> {
+    #if LUCID_REACTIVE_KIT
+    public func setAndUpdateIdentifierInLocalStores(_ entity: E, originTimestamp: UInt64) -> SafeSignal<Void> {
+        return _setAndUpdateIdentifierInLocalStores(entity, originTimestamp: originTimestamp)
+    }
+    #else
+    public func setAndUpdateIdentifierInLocalStores(_ entity: E, originTimestamp: UInt64) -> AnyPublisher<Void, Never> {
+        return _setAndUpdateIdentifierInLocalStores(entity, originTimestamp: originTimestamp).toPublisher().eraseToAnyPublisher()
+    }
+    #endif
+
+    private func _removeFromLocalStores(_ identifier: E.Identifier, originTimestamp: UInt64) -> SafeSignal<Void> {
         let context = WriteContext<E>(dataTarget: .local, remoteSyncState: .createResponse(originTimestamp))
         return remove(atID: identifier, in: context)
+            .toSignal()
             .map { _ in }
             .replaceError(with: ())
     }
+
+    #if LUCID_REACTIVE_KIT
+    public func removeFromLocalStores(_ identifier: E.Identifier, originTimestamp: UInt64) -> SafeSignal<Void> {
+        return _removeFromLocalStores(identifier, originTimestamp: originTimestamp)
+    }
+    #else
+    public func removeFromLocalStores(_ identifier: E.Identifier, originTimestamp: UInt64) -> AnyPublisher<Void, Never> {
+        return _removeFromLocalStores(identifier, originTimestamp: originTimestamp).toPublisher().eraseToAnyPublisher()
+    }
+    #endif
 }
 
 // MARK: - Updates Synchronization
 
 private extension CoreManager {
-    
+
     struct UpdateTime {
         var timestamp: UInt64 = timestampInNanoseconds()
-        
+
         init(timestamp: UInt64? = nil) {
             self.timestamp = timestamp ?? timestampInNanoseconds()
         }
-        
+
         static func isChronological(_ previous: UpdateTime?, _ current: UpdateTime) -> Bool {
             guard let previous = previous else { return true }
             guard current.timestamp != .max, previous.timestamp != .max else { return true }
             return current.timestamp > previous.timestamp
         }
     }
-    
+
     func updateTime(for identifier: E.Identifier) -> UpdateTime? {
         return updatesMetadataQueue.sync { _updatesMetadata[identifier] }
     }
-    
+
     func updateTime<S>(for identifiers: S) -> [UpdateTime?] where S: Sequence, S.Element == E.Identifier {
         return updatesMetadataQueue.sync { identifiers.map { _updatesMetadata[$0] } }
     }
-    
+
     func canUpdate(identifier: E.Identifier, basedOn time: UpdateTime) -> Bool {
         return UpdateTime.isChronological(updateTime(for: identifier), time)
     }
-    
+
     func filter<S>(entities: S, basedOn time: UpdateTime) -> AnySequence<E?> where S: Sequence, S.Element == E {
         let entities = Array(entities)
         return filter(identifiers: entities.lazy.map { $0.identifier }, basedOn: time).lazy.enumerated().map { (index, identifier) in
             identifier == nil ? nil : entities[index]
         }.any
     }
-    
+
     func filter<S>(identifiers: S, basedOn time: UpdateTime) -> AnySequence<E.Identifier?> where S: Sequence, S.Element == E.Identifier {
         let identifiers = Array(identifiers)
         return updateTime(for: identifiers).lazy.enumerated().map { (index, updateTime) -> E.Identifier? in
@@ -1103,13 +1360,13 @@ private extension CoreManager {
             }
         }.any
     }
-    
+
     func setUpdateTime(_ updateTime: UpdateTime, for identifier: E.Identifier) {
         updatesMetadataQueue.async(flags: .barrier) {
             self._setUpdateTime(updateTime, for: identifier)
         }
     }
-    
+
     func setUpdateTime<S>(_ updateTime: UpdateTime, for identifiers: S) where S: Sequence, S.Element == E.Identifier {
         updatesMetadataQueue.async(flags: .barrier) {
             for identifier in identifiers {
@@ -1117,7 +1374,7 @@ private extension CoreManager {
             }
         }
     }
-    
+
     private func _setUpdateTime(_ updateTime: UpdateTime, for identifier: E.Identifier) {
         if let savedUpdateTime = self._updatesMetadata[identifier] {
             self._updatesMetadata[identifier] = savedUpdateTime.timestamp > updateTime.timestamp ? savedUpdateTime : updateTime
@@ -1130,20 +1387,20 @@ private extension CoreManager {
 // MARK: - PropertyEntry
 
 private extension CoreManager {
-    
+
     final class PropertyEntry {
-        
+
         let query: Query<E>
         let accessValidator: UserAccessValidating?
 
         private let propertyDispatchQueue = DispatchQueue(label: "\(PropertyEntry.self):property")
         private var _strongProperty: Property<QueryResult<E>?>?
         private weak var _weakProperty: Property<QueryResult<E>?>?
-        
+
         var property: Property<QueryResult<E>?>? {
             return propertyDispatchQueue.sync { _weakProperty ?? _strongProperty }
         }
-        
+
         init(_ query: Query<E>,
              property: Property<QueryResult<E>?>,
              accessValidator: UserAccessValidating?) {
@@ -1158,7 +1415,7 @@ private extension CoreManager {
                 self._strongProperty = property
             }
         }
-        
+
         func update(with value: QueryResult<E>) {
             let shouldAllowRequest = accessValidator?.userAccess.allowsStoreRequest ?? true
             if shouldAllowRequest {
@@ -1167,7 +1424,7 @@ private extension CoreManager {
                 property?.update(with: .entities([]))
             }
         }
-        
+
         func materialize() {
             guard let value = self.property?.value?.materialized else { return }
             property?.silentUpdate(value: value)
@@ -1188,7 +1445,7 @@ private extension CoreManager {
             self._pendingProperties.removeAll { $0.property == nil }
             self._pendingProperties.append(entry)
         }
-        
+
         // Because `willAddFirstObserver` is called synchronously when `property` gets observed,
         // `entry` can't get released before being retained by `strengthen`.
         // If nothing observes, it gets released immediately.
@@ -1212,7 +1469,7 @@ private extension CoreManager {
                 }
             }
         }
-        
+
         return property
     }
 }
@@ -1220,7 +1477,7 @@ private extension CoreManager {
 // MARK: - CacheStrategy
 
 private extension ReadContext {
-    
+
     func storeStack<E: Entity>(with stores: [Storing<E>], queues: StoreStackQueues<E>) -> StoreStack<E> {
         var filteredStores: [Storing<E>]
         switch dataSource {
@@ -1253,7 +1510,7 @@ private extension ReadContext {
 }
 
 private extension WriteContext {
-    
+
     func storeStack<E: Entity>(with stores: [Storing<E>], queues: StoreStackQueues<E>) -> StoreStack<E> {
         var filteredStores: [Storing<E>]
         switch dataTarget {
@@ -1262,7 +1519,7 @@ private extension WriteContext {
 
         case .localAndRemote:
             filteredStores = stores.sorted { $0.level > $1.level }
-            
+
         case .local:
             filteredStores = stores.local()
         }
@@ -1281,11 +1538,11 @@ private extension WriteContext {
 }
 
 private extension Array {
-    
+
     func local<E: Entity>() -> [Element] where Element == Storing<E> {
         return filter { $0.level.isLocal }
     }
-    
+
     func remote<E: Entity>() -> [Element] where Element == Storing<E> {
         return filter { $0.level.isRemote }
     }
@@ -1294,7 +1551,7 @@ private extension Array {
 // MARK: - Update Events
 
 private extension CoreManager {
-    
+
     /// Raises an update for the elected providers.
     ///
     /// - Note:
@@ -1308,12 +1565,13 @@ private extension CoreManager {
     ///     - The search results has more entities than before, ONLY when the order IS DETERMINISTIC.
     func raiseUpdateEvents(withQuery query: Query<E>, results: QueryResult<E>, returnsCompleteResultSet: Bool = true) {
         raiseEventsQueue.async {
+
             let properties = self.propertiesQueue.sync { self._properties + self._pendingProperties }
             for element in properties {
                 if element.query != query, let filter = element.query.filter {
                     let newEntitiesUnion = results.lazy.filter(with: filter)
                     let newEntitiesUnionsByID = newEntitiesUnion.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
-                    
+
                     var newEntities: AnySequence<E>
                     if let previousPropertyValue = element.property?.value {
                         newEntities = previousPropertyValue.update(byReplacingOrAdding: newEntitiesUnionsByID).any
@@ -1323,12 +1581,12 @@ private extension CoreManager {
                     } else {
                         newEntities = newEntitiesUnion
                     }
-                    
+
                     let newEntityIDsExclusion = results.lazy.filter(with: !filter).map { $0.identifier }
                     newEntities = newEntities.lazy.filter(with: !(.identifier >> newEntityIDsExclusion))
-                    
-                    let newValue = QueryResult(fromOrderedEntities: newEntities, for: element.query)
-                    element.update(with: newValue)
+
+                    let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)
+                    element.update(with: newValue.validatingExtras(with: element.query))
                 } else if element.query == query || query.filter == .all {
                     if returnsCompleteResultSet == false,
                         let propertyValue = element.property?.value {
@@ -1337,32 +1595,32 @@ private extension CoreManager {
                         if query.order.contains(where: { $0.isDeterministic }) {
                             newEntities = newEntities.order(with: query.order)
                         }
-                        let newValue = QueryResult(fromOrderedEntities: newEntities, for: query)
-                        element.update(with: newValue)
+                        let newValue = QueryResult(fromProcessedEntities: newEntities, for: query)
+                        element.update(with: newValue.validatingExtras(with: element.query))
                     } else if element.query.order != query.order,
                         element.query.order.contains(where: { $0.isDeterministic }) {
                         let orderedEntities = results.order(with: element.query.order)
-                        let orderedResults = QueryResult(fromOrderedEntities: orderedEntities, for: element.query)
-                        element.update(with: orderedResults)
+                        let orderedResults = QueryResult(fromProcessedEntities: orderedEntities, for: element.query)
+                        element.update(with: orderedResults.validatingExtras(with: element.query))
                     } else {
-                        element.update(with: results)
+                        element.update(with: results.validatingExtras(with: element.query))
                     }
                 } else if let propertyValue = element.property?.value {
                     let newEntitiesByID = results.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
                     var newEntities = element.query.filter == .all ?
                         propertyValue.update(byReplacingOrAdding: newEntitiesByID) :
                         propertyValue.update(byReplacing: newEntitiesByID)
-                    
+
                     if element.query.order.contains(where: { $0.isDeterministic }) {
                         newEntities = newEntities.order(with: element.query.order)
                     }
-                    let newValue = QueryResult(fromOrderedEntities: newEntities, for: element.query)
-                    element.update(with: newValue)
+                    let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)
+                    element.update(with: newValue.validatingExtras(with: element.query))
                 }
             }
         }
     }
-    
+
     func raiseDeleteEvents(_ deletedIDs: DualHashSet<E.Identifier>) {
         raiseEventsQueue.async {
             let properties = self.propertiesQueue.sync { self._properties + self._pendingProperties }
@@ -1371,7 +1629,7 @@ private extension CoreManager {
                 if let propertyValue = element.property?.value {
                     let newEntities = propertyValue.filter { deletedIDs.contains($0.identifier) == false }
                     guard propertyValue.count != newEntities.count else { continue }
-                    let newValue = QueryResult(fromOrderedEntities: newEntities, for: element.query)
+                    let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)
                     element.update(with: newValue)
                 }
             }
@@ -1380,7 +1638,7 @@ private extension CoreManager {
 }
 
 private extension Property where Element: Equatable {
-    
+
     func update(with value: Element) {
         if value != self.value {
             self.value = value
@@ -1391,11 +1649,11 @@ private extension Property where Element: Equatable {
 // MARK: - ProcessOnceBox
 
 private final class ProcessOnceBox<Identifier, Object> where Identifier: EntityIdentifier {
-    
+
     private let operation: (AnySequence<Object>) -> Void
     private var _processedSet = DualHashSet<Identifier>()
     private let dataQueue = DispatchQueue(label: "\(ProcessOnceBox<Identifier, Object>.self)_data_queue")
-    
+
     init(operation: @escaping (AnySequence<Object>) -> Void) {
         self.operation = operation
     }
@@ -1415,14 +1673,14 @@ private typealias ProcessOnceIdentifierBox<I: EntityIdentifier> = ProcessOnceBox
 private typealias ProcessOnceEntityBox<E: Entity> = ProcessOnceBox<E.Identifier, E>
 
 private extension ProcessOnceBox where Identifier == Object {
-    
+
     func process<S>(_ identifiers: S) where S: Sequence, S.Element == Identifier {
         process(identifiers, identifiers)
     }
 }
 
 private extension ProcessOnceBox where Object: Entity, Object.Identifier == Identifier {
-    
+
     func process<S>(_ objects: S) where S: Sequence, S.Element == Object {
         process(objects, objects.lazy.map { $0.identifier })
     }
@@ -1435,17 +1693,25 @@ public extension CoreManaging {
     final class RelationshipManager: RelationshipCoreManaging {
 
         public typealias ResultPayload = E.ResultPayload
-                
+
         public typealias AnyEntity = AnyEntityType
 
+        #if LUCID_REACTIVE_KIT
         public typealias GetByIDs = (
             _ identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
             _ entityType: String,
             _ context: _ReadContext<ResultPayload>
         ) -> Signal<AnySequence<AnyEntity>, ManagerError>
-        
+        #else
+        public typealias GetByIDs = (
+            _ identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
+            _ entityType: String,
+            _ context: _ReadContext<ResultPayload>
+        ) -> AnyPublisher<AnySequence<AnyEntity>, ManagerError>
+        #endif
+
         private let getByIDs: GetByIDs
-        
+
         public init<CoreManager>(_ coreManager: CoreManager)
             where CoreManager: RelationshipCoreManaging, CoreManager.AnyEntity == AnyEntity, CoreManager.ResultPayload == ResultPayload {
 
@@ -1453,23 +1719,29 @@ public extension CoreManaging {
                 return coreManager.get(byIDs: identifiers, entityType: entityType, in: context)
             }
         }
-        
+
+        #if LUCID_REACTIVE_KIT
         public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>, entityType: String, in context: _ReadContext<ResultPayload>) -> Signal<AnySequence<AnyEntity>, ManagerError> {
             return getByIDs(identifiers, entityType, context)
         }
+        #else
+        public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>, entityType: String, in context: _ReadContext<ResultPayload>) -> AnyPublisher<AnySequence<AnyEntity>, ManagerError> {
+            return getByIDs(identifiers, entityType, context)
+        }
+        #endif
     }
-    
+
     func rootEntity<Graph>(byID identifier: E.Identifier,
                            in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery
         where Graph: MutableGraph, Graph.AnyEntity == RelationshipManager.AnyEntity {
-            
+
             return get(byID: identifier, in: context).relationships(from: relationshipManager, in: context)
     }
-    
+
     func rootEntities<S, Graph>(for identifiers: S,
                                 in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery
         where S: Sequence, S.Element == E.Identifier, Graph: MutableGraph, Graph.AnyEntity == RelationshipManager.AnyEntity {
-            
+
             return RelationshipController.RelationshipQuery(rootEntities: get(byIDs: identifiers, in: context),
                                                             in: context,
                                                             relationshipManager: relationshipManager)
@@ -1480,6 +1752,27 @@ public extension CoreManaging {
         where Graph: MutableGraph, Graph.AnyEntity == RelationshipManager.AnyEntity {
 
             return RelationshipController.RelationshipQuery(rootEntities: search(withQuery: query, in: context),
+                                                            in: context,
+                                                            relationshipManager: relationshipManager)
+    }
+}
+
+public extension CoreManaging where E: RemoteEntity {
+
+    func rootEntity<Graph>(byID identifier: E.Identifier,
+                           extras: [E.ExtrasIndexName],
+                           in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery
+        where Graph: MutableGraph, Graph.AnyEntity == RelationshipManager.AnyEntity {
+
+            return get(byID: identifier, extras: extras, in: context).relationships(from: relationshipManager, in: context)
+    }
+
+    func rootEntities<S, Graph>(for identifiers: S,
+                                extras: [E.ExtrasIndexName],
+                                in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery
+        where S: Sequence, S.Element == E.Identifier, Graph: MutableGraph, Graph.AnyEntity == RelationshipManager.AnyEntity {
+
+            return RelationshipController.RelationshipQuery(rootEntities: get(byIDs: identifiers, extras: extras, in: context),
                                                             in: context,
                                                             relationshipManager: relationshipManager)
     }

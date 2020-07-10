@@ -10,6 +10,10 @@ import Meta
 struct MetaEntityGraph {
     
     let descriptions: Descriptions
+
+    let reactiveKit: Bool
+
+    let useCoreDataLegacyNaming: Bool
     
     func meta() -> [FileBodyMember] {
         return [
@@ -23,7 +27,7 @@ struct MetaEntityGraph {
             EmptyLine(),
             entityGraph(),
             EmptyLine(),
-            relationshipQueryUtils()
+            relationshipQueryUtils(),
         ]
     }
     
@@ -34,7 +38,7 @@ struct MetaEntityGraph {
             .adding(inheritedType: .entityIndexing)
             .adding(inheritedType: .entityConvertible)
             .adding(members: descriptions.entities.map { entity in
-                Case(name: entity.name.unversionedName.variableCased)
+                Case(name: entity.name.camelCased().variableCased())
                     .adding(parameter: CaseParameter(type: entity.typeID()))
             })
             .adding(member: EmptyLine())
@@ -66,11 +70,17 @@ struct MetaEntityGraph {
     }
     
     private func relationshipQueryUtils() -> PlainCode {
+        let streamType = reactiveKit ? "Signal" : "AnyPublisher"
+        let streamsName = reactiveKit ? "signals" : "publishers"
+        let eraseToAnyPublisher = reactiveKit ? "" : ".eraseToAnyPublisher()"
         return PlainCode(code: """
         extension RelationshipController.RelationshipQuery where Graph == EntityGraph {
-            func perform() -> (once: Signal<EntityGraph, ManagerError>, continuous: Signal<EntityGraph, ManagerError>) {
-                let signals = perform(EntityGraph.self)
-                return (signals.once.map { $0 as EntityGraph }, signals.continuous.map { $0 as EntityGraph })
+            func perform() -> (once: \(streamType)<EntityGraph, ManagerError>, continuous: \(streamType)<EntityGraph, ManagerError>) {
+                let \(streamsName) = perform(EntityGraph.self)
+                return (
+                    \(streamsName).once.map { $0 as EntityGraph }\(eraseToAnyPublisher),
+                    \(streamsName).continuous.map { $0 as EntityGraph }\(eraseToAnyPublisher)
+                )
             }
         }
         """)
@@ -82,10 +92,10 @@ struct MetaEntityGraph {
             .with(accessLevel: .public)
             .adding(member: Switch(reference: .named(.`self`))
                 .adding(cases: descriptions.entities.map { entity in
-                    SwitchCase(name: entity.name.unversionedName.variableCased)
+                    SwitchCase(name: entity.name.camelCased().variableCased())
                         .adding(value: Reference.named("let entity"))
                         .adding(member: Return(value: .named("entity") + .named("entityRelationshipIndices") + .named(.map) | .block(FunctionBody()
-                            .adding(member: +.named(entity.name.unversionedName.variableCased) | .call(Tuple()
+                            .adding(member: +.named(entity.name.camelCased().variableCased()) | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: Reference.named("$0")))
                             ))
                         )))
@@ -99,7 +109,7 @@ struct MetaEntityGraph {
             .with(accessLevel: .public)
             .adding(member: Switch(reference: .named(.`self`))
                 .adding(cases: descriptions.entities.map { entity in
-                    SwitchCase(name: entity.name.unversionedName.variableCased)
+                    SwitchCase(name: entity.name.camelCased().variableCased())
                         .adding(value: Reference.named("let entity"))
                         .adding(member: Return(value: .named("entity") + .named("entityRelationshipEntityTypeUIDs")))
                 })
@@ -115,7 +125,7 @@ struct MetaEntityGraph {
             switch (self, indexName) {
             \(descriptions.entities.map { entity in
                 return """
-                case (.\(entity.name.unversionedName.variableCased)(let entity), .\(entity.name.unversionedName.variableCased)(let indexName)):
+                case (.\(entity.name.camelCased().variableCased())(let entity), .\(entity.name.camelCased().variableCased())(let indexName)):
                     return entity.entityIndexValue(for: indexName)
                 """
             }.joined(separator: "\n"))
@@ -136,7 +146,7 @@ struct MetaEntityGraph {
             \(descriptions.entities.map { entity in
                 return """
                 case let entity as \(entity.typeID().swiftString):
-                    self = .\(entity.name.unversionedName.variableCased)(entity)
+                    self = .\(entity.name.camelCased().variableCased())(entity)
                 """
             }.joined(separator: "\n"))
             default:
@@ -154,7 +164,7 @@ struct MetaEntityGraph {
             switch self {
             \(descriptions.entities.map { entity in
                 return """
-                case .\(entity.name.unversionedName.variableCased)(let entity):
+                case .\(entity.name.camelCased().variableCased())(let entity):
                     return entity.identifier.description
                 """
             }.joined(separator: "\n"))
@@ -167,10 +177,27 @@ struct MetaEntityGraph {
             .with(kind: .enum(indirect: false))
             .with(accessLevel: .public)
             .adding(inheritedType: .hashable)
+            .adding(inheritedType: .queryResultConvertible)
             .adding(members: descriptions.entities.map { entity in
-                Case(name: entity.name.unversionedName.variableCased)
-                    .adding(parameter: CaseParameter(type: TypeIdentifier(name: "\(entity.name).IndexName")))
+                Case(name: entity.name.camelCased().variableCased())
+                    .adding(parameter: CaseParameter(type: TypeIdentifier(name: "\(entity.transformedName).IndexName")))
             })
+            .adding(member: EmptyLine())
+            .adding(member:
+                ComputedProperty(variable: Variable(name: "requestValue")
+                    .with(type: .string))
+                    .with(accessLevel: .public)
+                    .adding(member: PlainCode(code: """
+                    switch self {
+                    \(descriptions.entities.map { entity in
+                        return """
+                        case .\(entity.name.camelCased().variableCased(ignoreLexicon: false))(let index):
+                            return index.requestValue
+                        """
+                    }.joined(separator: "\n"))
+                    }
+                    """))
+            )
     }
     
     private func entityGraph() -> Type {
@@ -213,7 +240,7 @@ struct MetaEntityGraph {
                 type = TypeIdentifier.dualHashDictionary(key: entity.identifierTypeID(), value: entity.typeID())
             }
             
-            return Property(variable: Variable(name: entity.name.unversionedName.variableCased.pluralName)
+            return Property(variable: Variable(name: entity.name.camelCased().variableCased().pluralName)
                 .with(immutable: false))
                 .with(accessLevel: .privateSet)
                 .with(value: type.reference | .call())
@@ -237,7 +264,7 @@ struct MetaEntityGraph {
             .adding(member: .named("entities") + .named("forEach") | .block(FunctionBody()
                 .adding(member: Switch(reference: .named("$0"))
                     .adding(cases: descriptions.entities.map { entity in
-                        SwitchCase(name: entity.name.unversionedName.variableCased)
+                        SwitchCase(name: entity.name.camelCased().variableCased())
                             .adding(value: Reference.named("let entity"))
                             .adding(member: PlainCode(code: assignment(for: entity)))
                     })
@@ -260,11 +287,11 @@ struct MetaEntityGraph {
     private func assignment(for entity: Entity) -> String {
         switch entity.identifier.identifierType {
         case .void:
-            return "\(entity.name.unversionedName.variableCased.pluralName).append(entity)"
+            return "\(entity.name.camelCased().variableCased().pluralName).append(entity)"
         case .property,
              .relationships,
              .scalarType:
-            return "\(entity.name.unversionedName.variableCased.pluralName)[entity.identifier] = entity"
+            return "\(entity.name.camelCased().variableCased().pluralName)[entity.identifier] = entity"
         }
     }
     
@@ -276,15 +303,15 @@ struct MetaEntityGraph {
                 .adding(cases: descriptions.entities.map { entity in
                     switch entity.identifier.identifierType {
                     case .void:
-                        return SwitchCase(name: entity.name.variableCased)
-                            .adding(member: Return(value: .value(.named(entity.name.unversionedName.variableCased.pluralName) + .named("isEmpty")) == .value(Value.bool(false))))
+                        return SwitchCase(name: entity.transformedName.variableCased())
+                            .adding(member: Return(value: .value(.named(entity.name.camelCased().variableCased().pluralName) + .named("isEmpty")) == .value(Value.bool(false))))
 
                     case .property,
                          .relationships,
                          .scalarType:
-                        return SwitchCase(name: entity.name.variableCased)
+                        return SwitchCase(name: entity.transformedName.variableCased())
                             .adding(value: Reference.named("let identifier"))
-                            .adding(member: PlainCode(code: "return \(entity.name.unversionedName.variableCased.pluralName)[identifier] != nil"))
+                            .adding(member: PlainCode(code: "return \(entity.name.camelCased().variableCased().pluralName)[identifier] != nil"))
                     }
                 })
                 .adding(case: SwitchCase(name: "none")
@@ -298,11 +325,11 @@ struct MetaEntityGraph {
             .with(type: .anySequence(element: .appAnyEntity)))
             .adding(members: descriptions.entities.map { entity in
 
-                var value: Reference = .named(.`self`) + .named(entity.name.unversionedName.pluralName.variableCased) + .named("lazy")
+                var value: Reference = .named(.`self`) + .named(entity.name.camelCased().pluralName.variableCased()) + .named("lazy")
                 switch entity.identifier.identifierType {
                 case .void:
                     value = value + .named(.map) | .block(FunctionBody()
-                        .adding(member: TypeIdentifier.appAnyEntity.reference + .named(entity.name.unversionedName.variableCased) | .call(Tuple()
+                        .adding(member: TypeIdentifier.appAnyEntity.reference + .named(entity.name.camelCased().variableCased()) | .call(Tuple()
                             .adding(parameter: TupleParameter(value: Reference.named("$0")))
                         ))
                     )
@@ -310,19 +337,19 @@ struct MetaEntityGraph {
                      .relationships,
                      .scalarType:
                     value = value + .named("elements") + .named(.map) | .block(FunctionBody()
-                        .adding(member: TypeIdentifier.appAnyEntity.reference + .named(entity.name.unversionedName.variableCased) | .call(Tuple()
+                        .adding(member: TypeIdentifier.appAnyEntity.reference + .named(entity.name.camelCased().variableCased()) | .call(Tuple()
                             .adding(parameter: TupleParameter(value: .named("$0") + .named("1")))
                         ))
                     )
                 }
 
                 return Assignment(
-                    variable: Variable(name: entity.name.unversionedName.pluralName.variableCased),
+                    variable: Variable(name: entity.name.camelCased().pluralName.variableCased()),
                     value: value + .named("any")
                 )
             })
             .adding(member: Return(value: Reference.array(with: descriptions.entities.map { entity in
-                Reference.named(entity.name.unversionedName.pluralName.variableCased)
+                Reference.named(entity.name.camelCased().pluralName.variableCased())
             }) + .named("joined") | .call() + .named("any")))
     }
 

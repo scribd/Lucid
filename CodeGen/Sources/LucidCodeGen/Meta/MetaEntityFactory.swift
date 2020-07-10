@@ -13,10 +13,12 @@ struct MetaEntityFactory {
     
     let descriptions: Descriptions
 
+    let reactiveKit: Bool
+
     func imports() -> [Import] {
         return [
             .app(descriptions, testable: true),
-            .lucid(testable: true)
+            .lucid(reactiveKit: reactiveKit, testable: true)
         ]
     }
     
@@ -29,7 +31,6 @@ struct MetaEntityFactory {
             .adding(member: EmptyLine())
             .adding(member: try lastRemoteReadProperty())
             .adding(members: try properties())
-            .adding(member: EmptyLine())
             .adding(member: try initializerFunction())
             .adding(member: EmptyLine())
             .adding(member: try entityComputedProperty())
@@ -94,8 +95,8 @@ struct MetaEntityFactory {
     
     private func properties() throws -> [TypeBodyMember] {
         let entity = try descriptions.entity(for: entityName)
-        return try entity.valuesThenRelationships.map { property in
-            
+        var result: [TypeBodyMember] = try entity.valuesThenRelationships.map { property in
+
             var typeID: TypeIdentifier
             switch property.propertyType {
             case .subtype(let name),
@@ -117,11 +118,16 @@ struct MetaEntityFactory {
                 typeID = try property.valueTypeID(descriptions)
             }
             
-            return Property(variable: Variable(name: property.name)
+            return Property(variable: Variable(name: property.transformedName(ignoreLexicon: true))
                 .with(type: typeID)
                 .with(immutable: false))
                 .with(accessLevel: .public)
         }
+
+        if result.isEmpty == false {
+            result.append(EmptyLine())
+        }
+        return result
     }
     
     private func initializerFunction() throws -> Function {
@@ -134,7 +140,7 @@ struct MetaEntityFactory {
                 .adding(members: try entity.valuesThenRelationships.map { property in
                     let value = try property.defaultValue(identifier: .named("voidIdentifierValue"), descriptions: descriptions)
                     return Assignment(
-                        variable: Reference.named(property.name),
+                        variable: Reference.named(property.transformedName(ignoreLexicon: true)),
                         value: value
                     )
                 })
@@ -165,7 +171,7 @@ struct MetaEntityFactory {
                 }()
 
                 return Assignment(
-                    variable: Reference.named(property.name),
+                    variable: Reference.named(property.transformedName(ignoreLexicon: true)),
                     value: propertyValue
                 )
             })
@@ -188,16 +194,16 @@ struct MetaEntityFactory {
                         switch subtype.items {
                         case .cases,
                              .options:
-                            value = property.reference
+                            value = .named(property.transformedName(ignoreLexicon: true))
                         case .properties:
-                            value = property.reference + .named("subtype")
+                            value = .named(property.transformedName(ignoreLexicon: true)) + .named("subtype")
                         }
                     case .array,
                          .relationship,
                          .scalar:
-                        value = property.reference
+                        value = .named(property.transformedName(ignoreLexicon: true))
                     }
-                    return TupleParameter(name: property.name, value: value)
+                    return TupleParameter(name: property.transformedName(ignoreLexicon: true), value: value)
                 })
             )))
     }

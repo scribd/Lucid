@@ -20,8 +20,17 @@ final class SwiftCodeGenerator {
          appVersion: String,
          shouldGenerateDataModel: Bool,
          descriptionsHash: String,
+         responseHandlerFunction: String?,
+         coreDataMigrationsFunction: String?,
+         reactiveKit: Bool,
+         useCoreDataLegacyNaming: Bool,
+         lexicon: [String],
+         entitySuffix: String,
          logger: Logger) {
-        
+
+        String.Configuration.setLexicon(lexicon)
+        String.Configuration.entitySuffix = entitySuffix
+
         let platforms = Set(descriptions.flatMap { $0.value.platforms }).sorted()
         let descriptionVariants: [(Platform?, [String: Descriptions])]
         
@@ -40,6 +49,10 @@ final class SwiftCodeGenerator {
                                        shouldGenerateDataModel: shouldGenerateDataModel,
                                        descriptionsHash: descriptionsHash,
                                        platform: $0,
+                                       responseHandlerFunction: responseHandlerFunction,
+                                       coreDataMigrationsFunction: coreDataMigrationsFunction,
+                                       reactiveKit: reactiveKit,
+                                       useCoreDataLegacyNaming: useCoreDataLegacyNaming,
                                        logger: logger)
         }
     }
@@ -59,6 +72,10 @@ private final class InternalSwiftCodeGenerator {
     private let shouldGenerateDataModel: Bool
     private let descriptionsHash: String
     private let platform: Platform?
+    private let responseHandlerFunction: String?
+    private let coreDataMigrationsFunction: String?
+    private let reactiveKit: Bool
+    private let useCoreDataLegacyNaming: Bool
     
     private let logger: Logger
     
@@ -85,6 +102,10 @@ private final class InternalSwiftCodeGenerator {
          shouldGenerateDataModel: Bool,
          descriptionsHash: String,
          platform: Platform?,
+         responseHandlerFunction: String?,
+         coreDataMigrationsFunction: String?,
+         reactiveKit: Bool,
+         useCoreDataLegacyNaming: Bool,
          logger: Logger) {
         
         self.target = target
@@ -93,6 +114,10 @@ private final class InternalSwiftCodeGenerator {
         self.shouldGenerateDataModel = shouldGenerateDataModel
         self.descriptionsHash = descriptionsHash
         self.platform = platform
+        self.responseHandlerFunction = responseHandlerFunction
+        self.coreDataMigrationsFunction = coreDataMigrationsFunction
+        self.reactiveKit = reactiveKit
+        self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
         self.logger = logger
     }
     
@@ -102,47 +127,56 @@ private final class InternalSwiftCodeGenerator {
         
         // App Target
         
-        try generate(with: SubtypesGenerator(descriptions: currentDescriptions),
+        try generate(with: SubtypesGenerator(descriptions: currentDescriptions, reactiveKit: reactiveKit),
                      in: .subtypes,
                      for: .app,
                      deleteExtraFiles: true)
         
-        try generate(with: EntitiesGenerator(descriptions: currentDescriptions, appVersion: appVersion),
+        try generate(with: EntitiesGenerator(descriptions: currentDescriptions,
+                                             reactiveKit: reactiveKit,
+                                             useCoreDataLegacyNaming: useCoreDataLegacyNaming),
                      in: .entities,
                      for: .app,
                      deleteExtraFiles: true)
         
-        try generate(with: EndpointPayloadsGenerator(descriptions: currentDescriptions),
+        try generate(with: EndpointPayloadsGenerator(descriptions: currentDescriptions, reactiveKit: reactiveKit),
                      in: .payloads,
                      for: .app,
                      deleteExtraFiles: true)
         
-        try generate(with: CoreManagerContainersGenerator(descriptions: currentDescriptions),
-                     in: .additional,
+        try generate(with: CoreManagerContainersGenerator(descriptions: currentDescriptions,
+                                                          responseHandlerFunction: responseHandlerFunction,
+                                                          coreDataMigrationsFunction: coreDataMigrationsFunction,
+                                                          reactiveKit: reactiveKit),
+                     in: .support,
                      for: .app)
 
-        try generate(with: LocalStoreCleanupManagerGenerator(descriptions: currentDescriptions),
-                     in: .additional,
+        try generate(with: LocalStoreCleanupManagerGenerator(descriptions: currentDescriptions, reactiveKit: reactiveKit),
+                     in: .support,
                      for: .app)
         
-        try generate(with: EntityGraphGenerator(descriptions: currentDescriptions),
-                     in: .additional,
+        try generate(with: EntityGraphGenerator(descriptions: currentDescriptions,
+                                                reactiveKit: reactiveKit,
+                                                useCoreDataLegacyNaming: useCoreDataLegacyNaming),
+                     in: .support,
                      for: .app)
 
         if shouldGenerateDataModel {
-            try generate(with: CoreDataXCDataModelGenerator(version: appVersion, descriptions: descriptions),
+            try generate(with: CoreDataXCDataModelGenerator(version: appVersion,
+                                                            useCoreDataLegacyNaming: useCoreDataLegacyNaming,
+                                                            descriptions: descriptions),
                          in: .coreDataModel(version: appVersion),
                          for: .app)
         }
         
         // App Tests Target
 
-        try generate(with: PayloadTestsGenerator(descriptions: currentDescriptions),
+        try generate(with: PayloadTestsGenerator(descriptions: currentDescriptions, reactiveKit: reactiveKit),
                      in: .payloadTests,
                      for: .appTests,
                      deleteExtraFiles: true)
         
-        try generate(with: CoreDataTestsGenerator(descriptions: currentDescriptions),
+        try generate(with: CoreDataTestsGenerator(descriptions: currentDescriptions, reactiveKit: reactiveKit),
                      in: .coreDataTests,
                      for: .appTests,
                      deleteExtraFiles: true)
@@ -151,26 +185,28 @@ private final class InternalSwiftCodeGenerator {
             try generate(with: ExportSQLiteFileTestGenerator(descriptions: currentDescriptions,
                                                              descriptionsHash: descriptionsHash,
                                                              sqliteFile: sqliteFile,
-                                                             platform: platform),
+                                                             platform: platform,
+                                                             reactiveKit: reactiveKit),
                          in: .coreDataMigrationTests,
                          for: .appTests)
 
             try generate(with: CoreDataMigrationTestsGenerator(descriptions: currentDescriptions,
                                                                sqliteFiles: sqliteFiles,
                                                                appVersion: appVersion,
-                                                               platform: platform),
+                                                               platform: platform,
+                                                               reactiveKit: reactiveKit),
                          in: .coreDataMigrationTests,
                          for: .appTests)
         }
 
         // App Test Support Target
         
-        try generate(with: FactoriesGenerator(descriptions: currentDescriptions),
+        try generate(with: FactoriesGenerator(descriptions: currentDescriptions, reactiveKit: reactiveKit),
                      in: .factories,
                      for: .appTestSupport,
                      deleteExtraFiles: true)
 
-        try generate(with: SpyGenerator(descriptions: currentDescriptions),
+        try generate(with: SpyGenerator(descriptions: currentDescriptions, reactiveKit: reactiveKit),
                      in: .doubles,
                      for: .appTestSupport,
                      deleteExtraFiles: true)
@@ -199,8 +235,8 @@ private final class InternalSwiftCodeGenerator {
             return _directory + directory.path(appModuleName: descriptions.targets.app.moduleName)
         }()
         
-        let preExistingFiles = Set(directory.glob("*.swift"))
-        var generatedFiles = Set<Path>()
+        let preExistingFiles = Set(directory.glob("*.swift").map { $0.string })
+        var generatedFiles = Set<String>()
         
         for element in descriptions {
             do {
@@ -209,7 +245,7 @@ private final class InternalSwiftCodeGenerator {
                 }
                 try file.path.parent().mkpath()
                 try file.path.write(file.content)
-                generatedFiles.insert(file.path)
+                generatedFiles.insert(file.path.string)
                 logger.done("Generated \(file.path).")
             } catch {
                 logger.error("Failed to generate '\(element)'.")
@@ -217,7 +253,7 @@ private final class InternalSwiftCodeGenerator {
             }
         }
 
-        let extraFiles = preExistingFiles.subtracting(generatedFiles)
+        let extraFiles = preExistingFiles.subtracting(generatedFiles).map { Path($0) }
         if deleteExtraFiles && extraFiles.isEmpty == false {
             logger.moveToChild("Deleting Extra Files...")
 
@@ -225,7 +261,7 @@ private final class InternalSwiftCodeGenerator {
                 try file.delete()
                 logger.done("Deleted \(file).")
             }
-            
+
             logger.moveToParent()
         }
         

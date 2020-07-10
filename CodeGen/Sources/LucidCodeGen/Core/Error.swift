@@ -23,6 +23,7 @@ public enum CodeGenError: Error, CustomStringConvertible {
     case cannotPersistIdentifier(String)
     case invalidSHASum
     case incompatiblePropertyKey(String)
+    case unsupportedCaseConvertion
 }
 
 // MARK: - Description
@@ -61,6 +62,8 @@ extension CodeGenError {
             return "Could not generate valid SHA sum."
         case .incompatiblePropertyKey(let key):
             return "Incompatible property key: \(key)."
+        case .unsupportedCaseConvertion:
+            return "Unsupported case convertion."
         }
     }
 }

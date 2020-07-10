@@ -90,3 +90,5 @@ fastlane/test_output
 iOSInjectionProject/
 
 *.xcodeproj/xcuserdata
+
+Carthage

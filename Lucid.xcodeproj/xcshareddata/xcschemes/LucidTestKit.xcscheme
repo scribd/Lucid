@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "196F9ADE24A148CE00B1866C"
-               BuildableName = "Lucid_ReactiveKit.framework"
-               BlueprintName = "Lucid-watchOS-ReactiveKit"
+               BlueprintIdentifier = "190ADCB22458D99600D22F6D"
+               BuildableName = "LucidTestKit.framework"
+               BlueprintName = "LucidTestKit"
                ReferencedContainer = "container:Lucid.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -42,7 +42,7 @@
       allowLocationSimulation = "YES">
    </LaunchAction>
    <ProfileAction
-      buildConfiguration = "Release_Enterprise"
+      buildConfiguration = "Release"
       shouldUseLaunchSchemeArgsEnv = "YES"
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
@@ -50,9 +50,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "196F9ADE24A148CE00B1866C"
-            BuildableName = "Lucid_ReactiveKit.framework"
-            BlueprintName = "Lucid-watchOS-ReactiveKit"
+            BlueprintIdentifier = "190ADCB22458D99600D22F6D"
+            BuildableName = "LucidTestKit.framework"
+            BlueprintName = "LucidTestKit"
             ReferencedContainer = "container:Lucid.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -61,7 +61,7 @@
       buildConfiguration = "Debug">
    </AnalyzeAction>
    <ArchiveAction
-      buildConfiguration = "Release"
+      buildConfiguration = "Debug"
       revealArchiveInOrganizer = "YES">
    </ArchiveAction>
 </Scheme>

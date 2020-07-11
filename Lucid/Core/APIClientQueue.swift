@@ -520,22 +520,44 @@ final class APIClientQueueProcessor {
 
     #elseif os(watchOS)
 
-    /// Initializer
-    ///
-    /// - Parameters:
-    ///     - client: `APIClient` used to run the requests from the queue.
-    ///     - scehduler: Shedulding object that tells the processor when to process the next request.
-    init(identifier: String,
-         client: APIClient,
+    init(client: APIClient,
          scheduler: APIClientQueueScheduling,
-         responseHandlers: [APIClientQueueProcessorResponseHandler] = []) {
+         diskCache: DiskCaching<APIClientQueueRequest>,
+         responseHandlers: [APIClientQueueProcessorResponseHandler],
+         processingQueue: DispatchQueue = DispatchQueue(label: "\(APIClientQueueProcessor.self)_processing_queue"),
+         operationQueue: AsyncOperationQueue = AsyncOperationQueue()) {
 
         self.client = client
         self.scheduler = scheduler
+        self.diskCache = diskCache
         self._responseHandlers = OrderedDictionary(responseHandlers.map { (UUID(), $0) })
-        self.diskCache = DiskCache<APIClientQueueRequest>(basePath: Constants.diskCacheBasePath(identifier),
-                                                          codingContext: .clientQueueRequest).caching
+        if processingQueue === DispatchQueue.main {
+            Logger.log(.error, "\(APIClientQueueProcessor.self) should not assign the main queue as the processing queue.", assert: true)
+        }
+        self.processingQueue = processingQueue
+        self.operationQueue = operationQueue
         self.scheduler.delegate = self
+    }
+
+    /// Initializer
+    ///
+    /// - Parameters:
+    ///     - identifier: A unique string value that will seed the cache file path.
+    ///     - client: `APIClient` used to run the requests from the queue.
+    ///     - scehduler: Scheduling object that tells the processor when to process the next request.
+    ///     - responseHandlers: Custom handlers that can respond to a successful APIClientQueueRequest.
+    convenience init(identifier: String,
+                     client: APIClient,
+                     scheduler: APIClientQueueScheduling,
+                     responseHandlers: [APIClientQueueProcessorResponseHandler] = []) {
+
+        let diskCache = DiskCache<APIClientQueueRequest>(basePath: Constants.diskCacheBasePath(identifier),
+                                                         codingContext: .clientQueueRequest)
+
+        self.init(client: client,
+                  scheduler: scheduler,
+                  diskCache: diskCache.caching,
+                  responseHandlers: responseHandlers)
     }
 
     #endif

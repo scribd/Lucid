@@ -6,6 +6,8 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 import XCTest
 
 #if LUCID_REACTIVE_KIT
@@ -37,3 +39,5 @@ final class APIRequestDeduplicatorSpy: APIRequestDeduplicating {
         applyResultToDuplicatesInvocations.append((request, result))
     }
 }
+
+#endif

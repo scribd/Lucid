@@ -6,6 +6,8 @@
 //  Copyright © 2018 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 import Foundation
 
 #if LUCID_REACTIVE_KIT
@@ -61,3 +63,5 @@ final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
         mapInvocations += 1
     }
 }
+
+#endif

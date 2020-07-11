@@ -2071,6 +2071,7 @@
 					"-weak_framework",
 					XCTest,
 					"-weak-lswiftXCTest",
+					"-DRELEASE",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.LucidTestKit;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
@@ -2144,6 +2145,7 @@
 					"-weak_framework",
 					XCTest,
 					"-weak-lswiftXCTest",
+					"-DRELEASE",
 				);
 				OTHER_SWIFT_FLAGS = "-D LUCID_REACTIVE_KIT";
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.LucidTestKit;

@@ -6,6 +6,8 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 import Foundation
 
 #if LUCID_REACTIVE_KIT
@@ -45,3 +47,5 @@ final class StubCoreDataManagerFactory {
                                                          persistentStoreURL: Defaults.persistentStoreURL,
                                                          dispatchQueue: stubDispatchQueue)
 }
+
+#endif

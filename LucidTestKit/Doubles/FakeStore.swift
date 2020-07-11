@@ -6,6 +6,8 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 #if LUCID_REACTIVE_KIT
 @testable import Lucid_ReactiveKit
 #else
@@ -86,3 +88,5 @@ private extension FakeStore {
                            entitiesByID: _cache).materialized
     }
 }
+
+#endif

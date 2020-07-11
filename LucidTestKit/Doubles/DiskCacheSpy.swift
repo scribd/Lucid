@@ -6,6 +6,8 @@
 //  Copyright © 2018 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 #if LUCID_REACTIVE_KIT
 @testable import Lucid_ReactiveKit
 #else
@@ -55,3 +57,5 @@ final class DiskCacheSpy<DataType: Codable> {
         })
     }
 }
+
+#endif

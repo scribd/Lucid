@@ -6,6 +6,8 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 #if LUCID_REACTIVE_KIT
 @testable import Lucid_ReactiveKit
 #else
@@ -23,3 +25,5 @@ final class UserAccessValidatorSpy: UserAccessValidating {
         return stub
     }
 }
+
+#endif

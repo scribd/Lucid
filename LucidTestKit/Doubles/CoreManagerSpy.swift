@@ -6,6 +6,8 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 import Foundation
 import XCTest
 
@@ -245,3 +247,5 @@ extension CoreManagerSpy {
                             relationshipManager: nil)
     }
 }
+
+#endif

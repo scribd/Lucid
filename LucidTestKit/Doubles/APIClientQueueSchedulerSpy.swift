@@ -6,6 +6,8 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 #if LUCID_REACTIVE_KIT
 @testable import Lucid_ReactiveKit
 #else
@@ -62,3 +64,5 @@ final class APIClientQueueSchedulerDelegateSpy: APIClientQueueSchedulerDelegate 
         return processNextStubs.first ?? .didNotProcess
     }
 }
+
+#endif

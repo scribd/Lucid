@@ -6,6 +6,8 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 import Foundation
 import XCTest
 
@@ -83,3 +85,5 @@ public enum AnyEntitySpy: EntityIndexing, EntityConvertible {
         }
     }
 }
+
+#endif

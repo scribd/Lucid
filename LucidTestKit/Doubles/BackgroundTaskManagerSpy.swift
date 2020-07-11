@@ -6,6 +6,8 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 import Foundation
 import UIKit
 
@@ -43,3 +45,5 @@ final class BackgroundTaskManagerSpy: BackgroundTaskManaging {
         endBackgroundTaskRecords.append(identifier)
     }
 }
+
+#endif

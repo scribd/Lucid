@@ -6,6 +6,8 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 import Foundation
 import XCTest
 
@@ -65,3 +67,5 @@ final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
     }
     #endif
 }
+
+#endif

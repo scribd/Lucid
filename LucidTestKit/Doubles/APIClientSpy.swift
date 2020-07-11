@@ -6,6 +6,8 @@
 //  Copyright © 2018 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 import XCTest
 
 #if LUCID_REACTIVE_KIT
@@ -103,3 +105,5 @@ final class APIClientSpy: APIClient {
         return nil
     }
 }
+
+#endif

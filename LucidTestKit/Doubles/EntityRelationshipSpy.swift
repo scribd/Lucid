@@ -6,6 +6,8 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 import Foundation
 
 #if LUCID_REACTIVE_KIT
@@ -342,3 +344,5 @@ private extension Optional where Wrapped == Data {
         return self?.entitySpyArrayValue() ?? .empty
     }
 }
+
+#endif

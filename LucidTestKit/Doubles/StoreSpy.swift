@@ -6,6 +6,8 @@
 //  Copyright © 2018 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 import Foundation
 import XCTest
 
@@ -156,3 +158,5 @@ open class StoreSpy<E: Entity>: StoringConvertible {
         }
     }
 }
+
+#endif

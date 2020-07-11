@@ -6,6 +6,8 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
+#if !RELEASE
+
 import Foundation
 import XCTest
 
@@ -59,3 +61,5 @@ final class GraphStub: MutableGraph {
         ].flatMap { $0 }
     }
 }
+
+#endif

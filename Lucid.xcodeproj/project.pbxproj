@@ -1672,7 +1672,6 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				LUCID_REACTIVE_KIT = YES;
 				OTHER_LDFLAGS = (
 					"-weak_framework",
 					XCTest,
@@ -1874,7 +1873,6 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				LUCID_REACTIVE_KIT = YES;
 				OTHER_SWIFT_FLAGS = "-D LUCID_REACTIVE_KIT";
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.Lucid;
 				PRODUCT_NAME = Lucid_ReactiveKit;
@@ -1903,7 +1901,6 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				LUCID_REACTIVE_KIT = YES;
 				OTHER_SWIFT_FLAGS = "-D LUCID_REACTIVE_KIT";
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.Lucid;
 				PRODUCT_NAME = Lucid_ReactiveKit;
@@ -2066,13 +2063,12 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				LUCID_REACTIVE_KIT = YES;
 				OTHER_LDFLAGS = (
 					"-weak_framework",
 					XCTest,
 					"-weak-lswiftXCTest",
-					"-DRELEASE",
 				);
+				OTHER_SWIFT_FLAGS = "-D RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.LucidTestKit;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
@@ -2103,7 +2099,6 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				LUCID_REACTIVE_KIT = YES;
 				OTHER_LDFLAGS = (
 					"-weak_framework",
 					XCTest,
@@ -2140,14 +2135,12 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				LUCID_REACTIVE_KIT = YES;
 				OTHER_LDFLAGS = (
 					"-weak_framework",
 					XCTest,
 					"-weak-lswiftXCTest",
-					"-DRELEASE",
 				);
-				OTHER_SWIFT_FLAGS = "-D LUCID_REACTIVE_KIT";
+				OTHER_SWIFT_FLAGS = "-D LUCID_REACTIVE_KIT -D RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.LucidTestKit;
 				PRODUCT_NAME = LucidTestKit_ReactiveKit;
 				SKIP_INSTALL = YES;

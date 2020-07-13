@@ -12,110 +12,466 @@ import XCTest
 
 final class AsyncOperationQueueTests: XCTestCase {
 
-    func test_operation_queue_should_add_several_operation_and_execute_them_serially() {
-        let queue = AsyncOperationQueue()
+    private var dispatchQueue: DispatchQueue!
 
-        var operationCounter = 0
-        let expectation = self.expectation(description: "operations")
-        expectation.expectedFulfillmentCount = 10
+    private var operationQueue: AsyncOperationQueue!
 
-        for i in 0..<expectation.expectedFulfillmentCount {
-            queue.run(title: "\(i)") { completion in
-                XCTAssertEqual(operationCounter, i)
-                operationCounter += 1
+    override func setUp() {
+        super.setUp()
+        dispatchQueue = DispatchQueue(label: "test_queue")
+        operationQueue = AsyncOperationQueue(dispatchQueue: dispatchQueue)
+    }
+
+    override func tearDown() {
+        defer { super.tearDown() }
+        dispatchQueue = nil
+        operationQueue = nil
+    }
+
+    // MARK: Adding to empty queue
+
+    func test_that_it_immediately_runs_a_concurrent_operation_added_to_an_empty_queue() {
+
+        var operationDidRun = false
+
+        let operation = AsyncOperation(title: "concurrent", barrier: false) { completion in
+            operationDidRun = true
+        }
+        operationQueue.run(operation: operation)
+
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(operationDidRun)
+    }
+
+    func test_that_it_immediately_runs_a_barrier_operation_added_to_an_empty_queue() {
+
+        var operationDidRun = false
+
+        let operation = AsyncOperation(title: "barrier", barrier: true) { completion in
+            operationDidRun = true
+        }
+        operationQueue.run(operation: operation)
+
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(operationDidRun)
+    }
+
+    // MARK: Adding to populated queue
+
+    func test_that_it_immediately_runs_a_concurrent_operation_added_to_queue_with_a_running_concurrent_operation() {
+
+        var firstOperationDidRun = false
+        var secondOperationDidRun = false
+
+        let operation1 = AsyncOperation(title: "concurren1", barrier: false) { completion in
+            firstOperationDidRun = true
+        }
+        operationQueue.run(operation: operation1)
+
+        let operation2 = AsyncOperation(title: "concurrent2", barrier: false) { completion in
+            secondOperationDidRun = true
+        }
+        operationQueue.run(operation: operation2)
+
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertTrue(secondOperationDidRun)
+    }
+
+    func test_that_it_immediately_runs_a_concurrent_operation_added_queue_with_an_existing_concurrent_operation_and_does_not_run_subsequently_added_barrier_operation() {
+
+        var firstOperationDidRun = false
+        var secondOperationDidRun = false
+        var thirdOperationDidRun = false
+        
+        let operation1 = AsyncOperation(title: "concurren1", barrier: false) { completion in
+            firstOperationDidRun = true
+        }
+        operationQueue.run(operation: operation1)
+
+        let operation2 = AsyncOperation(title: "concurrent2", barrier: false) { completion in
+            secondOperationDidRun = true
+        }
+        operationQueue.run(operation: operation2)
+
+        let operation3 = AsyncOperation(title: "barrier", barrier: true) { completion in
+            thirdOperationDidRun = true
+        }
+        operationQueue.run(operation: operation3)
+
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertTrue(secondOperationDidRun)
+        XCTAssertFalse(thirdOperationDidRun)
+    }
+
+    func test_that_it_immediately_runs_multiple_concurrent_operations_added_to_queue_with_an_existing_concurrent_operation() {
+
+        var firstOperationDidRun = false
+        var secondOperationDidRun = false
+        var thirdOperationDidRun = false
+        var fourthOperationDidRun = false
+
+        let operation1 = AsyncOperation(title: "concurren1", barrier: false) { completion in
+            firstOperationDidRun = true
+        }
+        operationQueue.run(operation: operation1)
+
+        let operation2 = AsyncOperation(title: "concurrent2", barrier: false) { completion in
+            secondOperationDidRun = true
+        }
+        operationQueue.run(operation: operation2)
+
+        let operation3 = AsyncOperation(title: "concurrent3", barrier: false) { completion in
+            thirdOperationDidRun = true
+        }
+        operationQueue.run(operation: operation3)
+
+        let operation4 = AsyncOperation(title: "concurrent4", barrier: false) { completion in
+            fourthOperationDidRun = true
+        }
+        operationQueue.run(operation: operation4)
+
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertTrue(secondOperationDidRun)
+        XCTAssertTrue(thirdOperationDidRun)
+        XCTAssertTrue(fourthOperationDidRun)
+    }
+
+    func test_that_it_does_not_immediately_run_a_concurrent_operation_added_to_queue_with_a_running_barrier_operation() {
+
+        var firstOperationDidRun = false
+        var secondOperationDidRun = false
+
+        let operation1 = AsyncOperation(title: "barrier", barrier: true) { completion in
+            firstOperationDidRun = true
+        }
+        operationQueue.run(operation: operation1)
+
+        let operation2 = AsyncOperation(title: "concurrent", barrier: false) { completion in
+            secondOperationDidRun = true
+        }
+        operationQueue.run(operation: operation2)
+
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertFalse(secondOperationDidRun)
+    }
+
+    func test_that_it_does_not_immediately_run_a_concurrent_operation_added_to_queue_with_a_barrier_operation_anywhere_in_the_queue() {
+
+        var firstOperationDidRun = false
+        var secondOperationDidRun = false
+        var thirdOperationDidRun = false
+
+        let operation1 = AsyncOperation(title: "concurrent1", barrier: false) { completion in
+            firstOperationDidRun = true
+        }
+        operationQueue.run(operation: operation1)
+
+        let operation2 = AsyncOperation(title: "barrier", barrier: true) { completion in
+            secondOperationDidRun = true
+        }
+        operationQueue.run(operation: operation2)
+
+        let operation3 = AsyncOperation(title: "concurrent2", barrier: false) { completion in
+            thirdOperationDidRun = true
+        }
+        operationQueue.run(operation: operation3)
+
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertFalse(secondOperationDidRun)
+        XCTAssertFalse(thirdOperationDidRun)
+    }
+
+    func test_that_it_does_not_immediately_run_a_barrier_operation_added_to_queue_with_a_running_concurrent_operation() {
+
+        var firstOperationDidRun = false
+        var secondOperationDidRun = false
+
+        let operation1 = AsyncOperation(title: "concurrent", barrier: false) { completion in
+            firstOperationDidRun = true
+        }
+        operationQueue.run(operation: operation1)
+
+        let operation2 = AsyncOperation(title: "barrier", barrier: true) { completion in
+            secondOperationDidRun = true
+        }
+        operationQueue.run(operation: operation2)
+
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertFalse(secondOperationDidRun)
+    }
+
+    func test_that_it_does_not_immediately_run_a_barrier_operation_added_to_queue_with_a_running_barrier_operation() {
+
+        var firstOperationDidRun = false
+        var secondOperationDidRun = false
+
+        let operation1 = AsyncOperation(title: "barrier1", barrier: true) { completion in
+            firstOperationDidRun = true
+        }
+        operationQueue.run(operation: operation1)
+
+        let operation2 = AsyncOperation(title: "barrier2", barrier: true) { completion in
+            secondOperationDidRun = true
+        }
+        operationQueue.run(operation: operation2)
+
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertFalse(secondOperationDidRun)
+    }
+
+    // MARK: Queue continuing on completion
+
+    func test_that_it_only_runs_the_subsequent_barrier_operation_when_completing_a_barrier_operation() {
+
+        let waitQueue = DispatchQueue(label: "wait_queue")
+
+        var firstOperationDidRun = false
+        var secondOperationDidRun = false
+        var thirdOperationDidRun = false
+
+        let firstOperationCompletedExpectation = self.expectation(description: "operation_completed_1")
+
+        let operation1 = AsyncOperation(title: "barrier1", barrier: true) { completion in
+            firstOperationDidRun = true
+            waitQueue.async {
+                self.wait(for: [firstOperationCompletedExpectation], timeout: 1)
                 completion()
-                expectation.fulfill()
             }
         }
+        operationQueue.run(operation: operation1)
 
-        waitForExpectations(timeout: 1)
-    }
-
-    func test_operation_queue_should_add_nested_operation_and_execute_them_serially() {
-        let queue = AsyncOperationQueue()
-        let expectation = self.expectation(description: "operations")
-
-        queue.run(title: "parent") { completion in
-            queue.run(title: "child") { completion in
-                completion()
-                expectation.fulfill()
-            }
-            completion()
+        let operation2 = AsyncOperation(title: "barrier2", barrier: true) { completion in
+            secondOperationDidRun = true
         }
+        operationQueue.run(operation: operation2)
 
-        waitForExpectations(timeout: 1)
+        let operation3 = AsyncOperation(title: "concurrent", barrier: false) { completion in
+            thirdOperationDidRun = true
+        }
+        operationQueue.run(operation: operation3)
+
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertFalse(secondOperationDidRun)
+        XCTAssertFalse(thirdOperationDidRun)
+
+        firstOperationCompletedExpectation.fulfill()
+
+        waitQueue.sync { }
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertTrue(secondOperationDidRun)
+        XCTAssertFalse(thirdOperationDidRun)
     }
 
-    func test_operation_queue_should_block_queue_until_barrier_is_executed() {
-        let queue = AsyncOperationQueue()
+    func test_that_it_only_runs_the_subsequent_N_concurrent_operations_when_completing_a_barrier_operation() {
 
-        let beforeBarrierExpectation = self.expectation(description: "before")
-        let barrierExpectation = self.expectation(description: "barrier")
-        let afterBarrierExpectation = self.expectation(description: "after")
+        let waitQueue = DispatchQueue(label: "wait_queue")
 
-        queue.run(operation: AsyncOperation(title: "before", barrier: false) { completion in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                beforeBarrierExpectation.fulfill()
+        var firstOperationDidRun = false
+        var secondOperationDidRun = false
+        var thirdOperationDidRun = false
+        var fourthOperationDidRun = false
+        var fifthOperationDidRun = false
+        var sixthOperationDidRun = false
+
+        let firstOperationCompletedExpectation = self.expectation(description: "operation_completed_1")
+
+        let operation1 = AsyncOperation(title: "barrier1", barrier: true) { completion in
+            firstOperationDidRun = true
+            waitQueue.async {
+                self.wait(for: [firstOperationCompletedExpectation], timeout: 1)
                 completion()
             }
-        })
+        }
+        operationQueue.run(operation: operation1)
 
-        queue.run(operation: AsyncOperation(title: "barrier", barrier: true) { completion in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                barrierExpectation.fulfill()
-                completion()
-            }
-        })
+        let operation2 = AsyncOperation(title: "concurrent1", barrier: false) { completion in
+            secondOperationDidRun = true
+        }
+        operationQueue.run(operation: operation2)
 
-        queue.run(operation: AsyncOperation(title: "after", barrier: false) { completion in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                afterBarrierExpectation.fulfill()
-                completion()
-            }
-        })
+        let operation3 = AsyncOperation(title: "concurrent2", barrier: false) { completion in
+            thirdOperationDidRun = true
+        }
+        operationQueue.run(operation: operation3)
 
-        wait(for: [beforeBarrierExpectation, barrierExpectation, afterBarrierExpectation],
-             timeout: 1,
-             enforceOrder: true)
+        let operation4 = AsyncOperation(title: "concurrent3", barrier: false) { completion in
+            fourthOperationDidRun = true
+        }
+        operationQueue.run(operation: operation4)
+
+        let operation5 = AsyncOperation(title: "concurrent4", barrier: false) { completion in
+            fifthOperationDidRun = true
+        }
+        operationQueue.run(operation: operation5)
+
+        let operation6 = AsyncOperation(title: "barrier2", barrier: true) { completion in
+            sixthOperationDidRun = true
+        }
+        operationQueue.run(operation: operation6)
+
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertFalse(secondOperationDidRun)
+        XCTAssertFalse(thirdOperationDidRun)
+        XCTAssertFalse(fourthOperationDidRun)
+        XCTAssertFalse(fifthOperationDidRun)
+        XCTAssertFalse(sixthOperationDidRun)
+
+        firstOperationCompletedExpectation.fulfill()
+
+        waitQueue.sync { }
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertTrue(secondOperationDidRun)
+        XCTAssertTrue(thirdOperationDidRun)
+        XCTAssertTrue(fourthOperationDidRun)
+        XCTAssertTrue(fifthOperationDidRun)
+        XCTAssertFalse(sixthOperationDidRun)
     }
 
-    func test_operation_queue_should_cancel_an_operation_after_a_given_delay() {
-        let queue = AsyncOperationQueue()
-        let longExpectation = self.expectation(description: "long")
-        let timeoutExpectation = self.expectation(description: "timout")
+    func test_that_it_doesnt_run_the_subsequent_barrier_operation_if_only_a_partial_set_of_running_concurrent_operations_are_completed() {
 
-        queue.run(operation: AsyncOperation(title: "long", barrier: true, timeout: 0.1) { completion in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                longExpectation.fulfill()
+        let waitQueue = DispatchQueue(label: "wait_queue")
+
+        var firstOperationDidRun = false
+        var secondOperationDidRun = false
+        var thirdOperationDidRun = false
+        var fourthOperationDidRun = false
+
+        let firstOperationCompletedExpectation = self.expectation(description: "operation_completed_1")
+        let secondOperationCompletedExpectation = self.expectation(description: "operation_completed_2")
+
+        let operation1 = AsyncOperation(title: "concurrent1", barrier: false) { completion in
+            firstOperationDidRun = true
+            waitQueue.async {
+                self.wait(for: [firstOperationCompletedExpectation], timeout: 1)
                 completion()
             }
-        })
+        }
+        operationQueue.run(operation: operation1)
 
-        queue.run(operation: AsyncOperation(title: "timeout", barrier: true) { completion in
-            timeoutExpectation.fulfill()
-            completion()
-        })
+        let operation2 = AsyncOperation(title: "concurrent2", barrier: false) { completion in
+            secondOperationDidRun = true
+            waitQueue.async {
+                self.wait(for: [secondOperationCompletedExpectation], timeout: 1)
+                completion()
+            }
+        }
+        operationQueue.run(operation: operation2)
 
-        wait(for: [timeoutExpectation, longExpectation], timeout: 1, enforceOrder: true)
+        let operation3 = AsyncOperation(title: "concurrent3", barrier: false) { completion in
+            thirdOperationDidRun = true
+        }
+        operationQueue.run(operation: operation3)
+
+        let operation4 = AsyncOperation(title: "barrier", barrier: true) { completion in
+            fourthOperationDidRun = true
+        }
+        operationQueue.run(operation: operation4)
+
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertTrue(secondOperationDidRun)
+        XCTAssertTrue(thirdOperationDidRun)
+        XCTAssertFalse(fourthOperationDidRun)
+
+        firstOperationCompletedExpectation.fulfill()
+        secondOperationCompletedExpectation.fulfill()
+
+        waitQueue.sync { }
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertTrue(secondOperationDidRun)
+        XCTAssertTrue(thirdOperationDidRun)
+        XCTAssertFalse(fourthOperationDidRun)
     }
 
-    func test_operation_queue_should_not_cancel_an_operation_after_it_already_completed() {
-        let queue = AsyncOperationQueue()
-        let shortExpectation = self.expectation(description: "short")
-        let timeoutExpectation = self.expectation(description: "timout")
+    func test_that_it_runs_the_subsequent_barrier_operation_once_all_running_concurrent_operations_are_completed() {
 
-        queue.run(operation: AsyncOperation(title: "short", barrier: true, timeout: 0.3) { completion in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                shortExpectation.fulfill()
+        let waitQueue = DispatchQueue(label: "wait_queue")
+
+        var firstOperationDidRun = false
+        var secondOperationDidRun = false
+        var thirdOperationDidRun = false
+        var fourthOperationDidRun = false
+
+        let firstOperationCompletedExpectation = self.expectation(description: "operation_completed_1")
+        let secondOperationCompletedExpectation = self.expectation(description: "operation_completed_2")
+        let thirdOperationCompletedExpectation = self.expectation(description: "operation_completed_3")
+
+        let operation1 = AsyncOperation(title: "concurrent1", barrier: false) { completion in
+            firstOperationDidRun = true
+            waitQueue.async {
+                self.wait(for: [firstOperationCompletedExpectation], timeout: 1)
                 completion()
             }
-        })
+        }
+        operationQueue.run(operation: operation1)
 
-        queue.run(operation: AsyncOperation(title: "timeout", barrier: true) { completion in
-            timeoutExpectation.fulfill()
-            completion()
-        })
+        let operation2 = AsyncOperation(title: "concurrent2", barrier: false) { completion in
+            secondOperationDidRun = true
+            waitQueue.async {
+                self.wait(for: [secondOperationCompletedExpectation], timeout: 1)
+                completion()
+            }
+        }
+        operationQueue.run(operation: operation2)
 
-        wait(for: [shortExpectation, timeoutExpectation], timeout: 1, enforceOrder: true)
+        let operation3 = AsyncOperation(title: "concurrent3", barrier: false) { completion in
+            thirdOperationDidRun = true
+            waitQueue.async {
+                self.wait(for: [thirdOperationCompletedExpectation], timeout: 1)
+                completion()
+            }
+        }
+        operationQueue.run(operation: operation3)
+
+        let operation4 = AsyncOperation(title: "barrier", barrier: true) { completion in
+            fourthOperationDidRun = true
+        }
+        operationQueue.run(operation: operation4)
+
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertTrue(secondOperationDidRun)
+        XCTAssertTrue(thirdOperationDidRun)
+        XCTAssertFalse(fourthOperationDidRun)
+
+        firstOperationCompletedExpectation.fulfill()
+        secondOperationCompletedExpectation.fulfill()
+        thirdOperationCompletedExpectation.fulfill()
+
+        waitQueue.sync { }
+        dispatchQueue.sync { }
+
+        XCTAssertTrue(firstOperationDidRun)
+        XCTAssertTrue(secondOperationDidRun)
+        XCTAssertTrue(thirdOperationDidRun)
+        XCTAssertTrue(fourthOperationDidRun)
     }
 }

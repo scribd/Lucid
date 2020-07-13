@@ -13,79 +13,52 @@ public final class AsyncOperationQueue: CustomDebugStringConvertible {
 
     private let dispatchQueue: DispatchQueue
 
+    private var _operations = [AsyncOperation]()
+
     public init(dispatchQueue: DispatchQueue = DispatchQueue(label: "\(AsyncOperationQueue.self):operations")) {
         self.dispatchQueue = dispatchQueue
     }
 
-    private var _operations = [AsyncOperation]()
+    // MARK: API
 
-    private var _isRunning = false
     public var isRunning: Bool {
         return dispatchQueue.sync { _isRunning }
     }
 
+    public var first: AsyncOperation? {
+        return dispatchQueue.sync { _operations.first }
+    }
+
+    public var last: AsyncOperation? {
+        return dispatchQueue.sync { _operations.last }
+    }
+
     public func run(operation: AsyncOperation) {
         dispatchQueue.async(flags: .barrier) {
+
+            let isRunning = self._isRunning
+            let containsBarrier = self._nextBarrier != nil
+
             self._operations.append(operation)
-            if self._operations.count == 1 && self._isRunning == false {
-                self._runNextOperation()
+
+            if (operation.barrier && isRunning) || containsBarrier {
+                return
             }
+
+            self._runOperation(operation)
         }
     }
 
-    public func run(on operationQueue: DispatchQueue? = nil,
+    public func run(on queue: DispatchQueue? = nil,
                     title: String,
                     barrier: Bool = true,
                     _ operation: @escaping AsyncOperation.Run) {
 
-        let operation = AsyncOperation(on: operationQueue,
+        let operation = AsyncOperation(on: queue,
                                        title: title,
                                        barrier: barrier,
                                        operation)
         run(operation: operation)
-    }
-
-    private func _runNextOperation() {
-        guard let operation = _operations.first else {
-            _isRunning = false
-            return
-        }
-
-        let _nextBarrier = _operations.enumerated().first { index, operation in
-            operation.barrier || index == _operations.count - 1
-        }
-
-        if operation.barrier {
-            _isRunning = true
-            operation.run {
-                self.dispatchQueue.async(flags: .barrier) {
-                    self._operations.removeFirst()
-                    self._runNextOperation()
-                }
-            }
-        } else if let nextBarrier = _nextBarrier {
-            let operations = _operations[0...nextBarrier.offset]
-
-            let dispatchGroup = DispatchGroup()
-            for _ in operations {
-                dispatchGroup.enter()
-            }
-
-            _isRunning = true
-            for operation in operations {
-                operation.run {
-                    dispatchGroup.leave()
-                }
-            }
-
-            dispatchGroup.notify(queue: dispatchQueue) {
-                self._operations.removeSubrange(0...nextBarrier.offset)
-                self._runNextOperation()
-            }
-        } else {
-            Logger.log(.error, "\(AsyncOperationQueue.self): The queue is broken. Please fix asap.", assert: true)
-            _isRunning = false
-        }
     }
 
     public var debugDescription: String {
@@ -96,15 +69,41 @@ public final class AsyncOperationQueue: CustomDebugStringConvertible {
             """
         }
     }
+}
 
-    public var first: AsyncOperation? {
-        return dispatchQueue.sync { _operations.first }
+// MARK: - DispatchQueue bound functions
+
+private extension AsyncOperationQueue {
+
+    var _isRunning: Bool {
+        return _operations.isEmpty == false
     }
 
-    public var last: AsyncOperation? {
-        return dispatchQueue.sync { _operations.last }
+    var _nextBarrier: AsyncOperation? {
+        return _operations.first { $0.barrier }
+    }
+
+    func _runOperation(_ operation: AsyncOperation) {
+        operation.run {
+            self.dispatchQueue.async(flags: .barrier) {
+                self._operations.removeFirst()
+                // always run the next operation if it's a barrier
+                if let nextOperation = self._operations.first, nextOperation.barrier {
+                    self._runOperation(nextOperation)
+                }
+                // otherwise, when a barrier operation completes, run all of the concurrent operations until the next barrier/end-of-queue
+                else if operation.barrier {
+                    let nextBarrier = self._nextBarrier
+                    for nextOperation in self._operations.prefix(while: { $0 != nextBarrier }) {
+                        self._runOperation(nextOperation)
+                    }
+                }
+            }
+        }
     }
 }
+
+// MARK: - AsyncOperation
 
 public struct AsyncOperation: CustomDebugStringConvertible {
 
@@ -118,6 +117,8 @@ public struct AsyncOperation: CustomDebugStringConvertible {
     public let barrier: Bool
 
     public let timeout: TimeInterval?
+
+    internal let uuid = UUID()
 
     public init(on dispatchQueue: DispatchQueue? = nil,
                 title: String,
@@ -153,5 +154,14 @@ public struct AsyncOperation: CustomDebugStringConvertible {
             if let cancellationToken = cancellationToken, cancellationToken.cancel() { return }
             completion()
         }
+    }
+}
+
+// MARK: Equatable
+
+extension AsyncOperation: Equatable {
+
+    public static func == (lhs: AsyncOperation, rhs: AsyncOperation) -> Bool {
+        return lhs.uuid == rhs.uuid
     }
 }

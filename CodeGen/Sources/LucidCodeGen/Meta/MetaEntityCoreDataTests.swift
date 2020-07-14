@@ -18,7 +18,7 @@ struct MetaEntityCoreDataTests {
     func imports() -> [Import] {
         return [
             .xcTest,
-            .lucid(reactiveKit: reactiveKit, testable: true),
+            .lucid(reactiveKit: reactiveKit),
             .app(descriptions, testable: true),
             .lucidTestKit(reactiveKit: reactiveKit),
             .appTestKit(descriptions)

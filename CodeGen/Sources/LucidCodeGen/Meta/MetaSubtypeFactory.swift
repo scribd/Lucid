@@ -18,7 +18,7 @@ struct MetaSubtypeFactory {
     func imports() -> [Import] {
         return [
             .app(descriptions, testable: true),
-            .lucid(reactiveKit: reactiveKit, testable: true)
+            .lucid(reactiveKit: reactiveKit)
         ]
     }
     

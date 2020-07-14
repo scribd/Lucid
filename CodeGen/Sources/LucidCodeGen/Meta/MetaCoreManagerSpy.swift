@@ -17,7 +17,7 @@ struct MetaCoreManagerSpy {
         return [
             .lucidTestKit(reactiveKit: reactiveKit),
             .app(descriptions, testable: true),
-            .lucid(reactiveKit: reactiveKit, testable: true)
+            .lucid(reactiveKit: reactiveKit)
         ]
     }
 

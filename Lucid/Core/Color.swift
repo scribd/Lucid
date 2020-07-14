@@ -54,6 +54,10 @@ private extension UIColor {
 public struct Color: Equatable, Hashable {
     let hex: String
 
+    public init(hex: String) {
+        self.hex = hex
+    }
+
     public var colorValue: UIColor {
         return UIColor(hex: hex)
     }

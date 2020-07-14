@@ -6,11 +6,11 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
-struct Version: Comparable, CustomStringConvertible {
+public struct Version: Comparable, CustomStringConvertible {
 
-    let major: Int
-    let minor: Int
-    let dot: Int?
+    public let major: Int
+    public let minor: Int
+    public let dot: Int?
 
     private init(major: Int, minor: Int, dot: Int?) {
         self.major = major
@@ -18,7 +18,7 @@ struct Version: Comparable, CustomStringConvertible {
         self.dot = dot
     }
 
-    init(_ versionString: String) throws {
+    public init(_ versionString: String) throws {
         var split: [Int] = try versionString.split(separator: ".").map { component in
             guard let value = Int(String(component)) else {
                 throw VersionError.couldNotFormFromString(versionString)
@@ -33,7 +33,7 @@ struct Version: Comparable, CustomStringConvertible {
         self.dot = split.popLast()
     }
 
-    static func < (lhs: Version, rhs: Version) -> Bool {
+    public static func < (lhs: Version, rhs: Version) -> Bool {
         if lhs.major < rhs.major { return true }
         guard lhs.major == rhs.major else { return false }
         if lhs.minor < rhs.minor { return true }
@@ -44,7 +44,7 @@ struct Version: Comparable, CustomStringConvertible {
 
     static var oldestVersion: Version { return Version(major: 9, minor: 5, dot: 0) }
 
-    var description: String {
+    public var description: String {
         if let dot = dot {
             return "\(major).\(minor).\(dot)"
         } else {
@@ -53,10 +53,10 @@ struct Version: Comparable, CustomStringConvertible {
     }
 }
 
-enum VersionError: Error, CustomStringConvertible {
+public enum VersionError: Error, CustomStringConvertible {
     case couldNotFormFromString(String)
 
-    var description: String {
+    public var description: String {
         switch self {
         case .couldNotFormFromString(let string):
             return "Could not form valid version from string '\(string)'"

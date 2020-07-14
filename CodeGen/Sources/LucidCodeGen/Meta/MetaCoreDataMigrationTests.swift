@@ -24,7 +24,7 @@ struct MetaCoreDataMigrationTests {
         return [
             .xcTest,
             .app(descriptions, testable: true),
-            .lucid(reactiveKit: reactiveKit, testable: true),
+            .lucid(reactiveKit: reactiveKit),
             .appTestKit(descriptions),
             .lucidTestKit(reactiveKit: reactiveKit)
         ]

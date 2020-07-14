@@ -128,11 +128,11 @@ public struct Query<E>: Equatable where E: Entity {
         ))
     }
 
-    var identifier: E.Identifier? {
+    public var identifier: E.Identifier? {
         return filter?.extractOrIdentifiers?.first
     }
 
-    var identifiers: AnySequence<E.Identifier>? {
+    public var identifiers: AnySequence<E.Identifier>? {
         return filter?.extractOrIdentifiers
     }
 

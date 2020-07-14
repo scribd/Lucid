@@ -53,17 +53,17 @@ public final class CoreDataManager: NSObject {
 
     // MARK: - Configuration
 
-    enum Configuration {
-        static let modelName = "Lucid"
-        static let bundle = Bundle(for: CoreDataManager.self)
-        static let forceMigration = false
-        static let storeType: StoreType = .sqlite
+    public enum Configuration {
+        public static let modelName = "Lucid"
+        public static let bundle = Bundle(for: CoreDataManager.self)
+        public static let forceMigration = false
+        public static let storeType: StoreType = .sqlite
 
-        static var stateDispatchQueue: DispatchQueue {
+        public static var stateDispatchQueue: DispatchQueue {
             return DispatchQueue(label: "\(CoreDataManager.self)")
         }
 
-        static var isTestTarget: Bool {
+        public static var isTestTarget: Bool {
             return NSClassFromString("XCTest") != nil
         }
     }
@@ -104,13 +104,13 @@ public final class CoreDataManager: NSObject {
     private let migrations: [Migration]
     private let storeType: StoreType
 
-    init(modelURL: URL,
-         persistentStoreURL: URL,
-         migrations: [Migration] = [],
-         storeType: StoreType = Configuration.storeType,
-         dispatchQueue: DispatchQueue = Configuration.stateDispatchQueue,
-         forceMigration: Bool = Configuration.forceMigration,
-         userDefaults: UserDefaults = .standard) {
+    public init(modelURL: URL,
+                persistentStoreURL: URL,
+                migrations: [Migration] = [],
+                storeType: StoreType = Configuration.storeType,
+                dispatchQueue: DispatchQueue = Configuration.stateDispatchQueue,
+                forceMigration: Bool = Configuration.forceMigration,
+                userDefaults: UserDefaults = .standard) {
 
         self.modelURL = modelURL
         self.persistentStoreURL = persistentStoreURL
@@ -157,7 +157,7 @@ public final class CoreDataManager: NSObject {
             .replacingOccurrences(of: ".mom", with: "")
     }
 
-    func backupPersistentStore(to destinationURL: URL, completion: @escaping (Bool) -> Void) {
+    public func backupPersistentStore(to destinationURL: URL, completion: @escaping (Bool) -> Void) {
         stateDispatchQueue.async {
             self._persistentContainer {
                 guard let (persistentContainer, _) = self._state.loadedValues else {
@@ -210,7 +210,7 @@ public final class CoreDataManager: NSObject {
         }
     }
 
-    func clearDatabase(_ completion: @escaping (Bool) -> Void) {
+    public func clearDatabase(_ completion: @escaping (Bool) -> Void) {
         makeContext { _ in
             guard let (persistentContainer, _) = self._state.loadedValues else {
                 completion(false)

@@ -299,21 +299,21 @@ public struct APIClientResponse<T> {
 
     public let jsonCoderConfig: APIJSONCoderConfig
 
-    init(data: T, cachedResponse: Bool, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
+    public init(data: T, cachedResponse: Bool, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
         self.data = data
         self.header = .empty
         self.cachedResponse = cachedResponse
         self.jsonCoderConfig = jsonCoderConfig
     }
 
-    init(data: T, urlResponse: HTTPURLResponse, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
+    public init(data: T, urlResponse: HTTPURLResponse, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
         self.data = data
         self.header = APIResponseHeader(with: urlResponse.allHeaderFields)
         self.cachedResponse = header.cachedResponse
         self.jsonCoderConfig = jsonCoderConfig
     }
 
-    func with<O>(data: O) -> APIClientResponse<O> {
+    public func with<O>(data: O) -> APIClientResponse<O> {
         return APIClientResponse<O>(data: data, cachedResponse: cachedResponse, jsonCoderConfig: jsonCoderConfig)
     }
 }

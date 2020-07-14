@@ -16,31 +16,31 @@ import XCTest
 @testable import Lucid
 #endif
 
-final class APIClientSpy: APIClient {
+public final class APIClientSpy: APIClient {
 
-    var deduplicator: APIRequestDeduplicating = APIRequestDeduplicatorSpy()
+    public var deduplicator: APIRequestDeduplicating = APIRequestDeduplicatorSpy()
 
     // MARK: - Stubs
 
-    var identifierStub = UUID().uuidString
+    public var identifierStub = UUID().uuidString
 
-    var hostStub = "http://fake_host/"
+    public var hostStub = "http://fake_host/"
 
-    var resultStubs = [APIRequestConfig: Any]()
+    public var resultStubs = [APIRequestConfig: Any]()
 
     // MARK: - Behavior
 
-    var requestWillComplete: Bool = true
+    public var requestWillComplete: Bool = true
 
-    var completionDelay: TimeInterval?
+    public var completionDelay: TimeInterval?
 
-    var willHandleResponse: Bool = true
+    public var willHandleResponse: Bool = true
 
     // MARK: - Records
 
-    private(set) var requestRecords = [Any]()
+    public private(set) var requestRecords = [Any]()
 
-    private(set) var shouldHandleResponseRecords = [(APIRequestConfig, (Bool) -> Void)]()
+    public private(set) var shouldHandleResponseRecords = [(APIRequestConfig, (Bool) -> Void)]()
 
     // MARK: - Implementation
 
@@ -48,19 +48,19 @@ final class APIClientSpy: APIClient {
         DiskCache<APIClientQueueRequest>(basePath: "\(identifierStub)_client_queue").clear()
     }
 
-    var identifier: String {
+    public var identifier: String {
         return identifierStub
     }
 
-    var host: String {
+    public var host: String {
         return hostStub
     }
 
-    var networkClient: NetworkClient {
+    public var networkClient: NetworkClient {
         return URLSession.shared
     }
 
-    func send(request: APIRequest<Data>, completion: @escaping (Result<APIClientResponse<Data>, APIError>) -> Void) {
+    public func send(request: APIRequest<Data>, completion: @escaping (Result<APIClientResponse<Data>, APIError>) -> Void) {
         requestRecords.append(request as Any)
         guard let resultStub = resultStubs[request.config] as? Result<APIClientResponse<Data>, APIError> else {
             completion(.failure(.api(httpStatusCode: 500, errorPayload: nil)))
@@ -78,7 +78,7 @@ final class APIClientSpy: APIClient {
         }
     }
 
-    func send<Model>(request: APIRequest<Model>, completion: @escaping (Result<Model, APIError>) -> Void) where Model: Decodable {
+    public func send<Model>(request: APIRequest<Model>, completion: @escaping (Result<Model, APIError>) -> Void) where Model: Decodable {
         requestRecords.append(request as Any)
         guard let resultStub = resultStubs[request.config] as? Result<Model, APIError> else {
             completion(.failure(.api(httpStatusCode: 500, errorPayload: nil)))
@@ -101,7 +101,7 @@ final class APIClientSpy: APIClient {
         completion(willHandleResponse)
     }
 
-    func errorPayload(from body: Data) -> APIErrorPayload? {
+    public func errorPayload(from body: Data) -> APIErrorPayload? {
         return nil
     }
 }

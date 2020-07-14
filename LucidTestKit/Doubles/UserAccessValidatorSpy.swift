@@ -14,13 +14,13 @@
 @testable import Lucid
 #endif
 
-final class UserAccessValidatorSpy: UserAccessValidating {
+public final class UserAccessValidatorSpy: UserAccessValidating {
 
-    var stub: UserAccess = .remoteAccess
+    public var stub: UserAccess = .remoteAccess
 
-    var userAccessInvocations: Int = 0
+    public var userAccessInvocations: Int = 0
 
-    var userAccess: UserAccess {
+    public var userAccess: UserAccess {
         userAccessInvocations += 1
         return stub
     }

@@ -17,22 +17,22 @@ import UIKit
 @testable import Lucid
 #endif
 
-final class BackgroundTaskManagerSpy: BackgroundTaskManaging {
+public final class BackgroundTaskManagerSpy: BackgroundTaskManaging {
 
     // MARK: - Records
 
-    private(set) var expirationHandlerRecords = [UIBackgroundTaskIdentifier: (() -> Void)]()
-    private(set) var beginBackgroundTaskCallCountRecord = 0
+    public private(set) var expirationHandlerRecords = [UIBackgroundTaskIdentifier: (() -> Void)]()
+    public private(set) var beginBackgroundTaskCallCountRecord = 0
 
-    private(set) var endBackgroundTaskRecords = [UIBackgroundTaskIdentifier]()
+    public private(set) var endBackgroundTaskRecords = [UIBackgroundTaskIdentifier]()
 
     // MARK: - Stubs
 
-    var backgroundTaskIDRawValueStub: Int = 123
+    public var backgroundTaskIDRawValueStub: Int = 123
 
     // MARK: - API
 
-    func beginBackgroundTask(expirationHandler: (() -> Void)?) -> UIBackgroundTaskIdentifier {
+    public func beginBackgroundTask(expirationHandler: (() -> Void)?) -> UIBackgroundTaskIdentifier {
         let identifier = UIBackgroundTaskIdentifier(rawValue: backgroundTaskIDRawValueStub)
         if let expirationHandler = expirationHandler {
             expirationHandlerRecords[identifier] = expirationHandler
@@ -41,7 +41,7 @@ final class BackgroundTaskManagerSpy: BackgroundTaskManaging {
         return identifier
     }
 
-    func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier) {
+    public func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier) {
         endBackgroundTaskRecords.append(identifier)
     }
 }

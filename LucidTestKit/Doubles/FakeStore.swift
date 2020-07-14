@@ -17,17 +17,17 @@
 /**
  * This is just a simplified version of the InMemoryStore, altered to allow a fake StoreLevel.
  */
-final class FakeStore<E: Entity>: StoringConvertible {
+public final class FakeStore<E: Entity>: StoringConvertible {
 
     private var _cache = DualHashDictionary<E.Identifier, E>()
 
-    let level: StoreLevel
+    public let level: StoreLevel
 
-    init(level: StoreLevel) {
+    public init(level: StoreLevel) {
         self.level = level
     }
 
-    func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+    public func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
         if let identifier = query.identifier {
             completion(.success(QueryResult(from: self._cache[identifier])))
         } else {
@@ -35,11 +35,11 @@ final class FakeStore<E: Entity>: StoringConvertible {
         }
     }
 
-    func search(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+    public func search(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
         completion(.success(self._collectEntities(for: query)))
     }
 
-    func set<S>(_ entities: S, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void) where S: Sequence, S.Element == E {
+    public func set<S>(_ entities: S, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void) where S: Sequence, S.Element == E {
         var mergedEntities: [E] = []
         for entity in entities {
             var mergedEntity = entity
@@ -52,7 +52,7 @@ final class FakeStore<E: Entity>: StoringConvertible {
         completion(.success(mergedEntities.any))
     }
 
-    func removeAll(withQuery query: Query<E>, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void) {
+    public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void) {
         let results = self._collectEntities(for: query)
         let identifiers = results.any.lazy.map { $0.identifier }
         self.remove(identifiers, in: context) { result in
@@ -67,7 +67,7 @@ final class FakeStore<E: Entity>: StoringConvertible {
         }
     }
 
-    func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
+    public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
         for identifier in identifiers {
             self._cache[identifier] = nil
         }

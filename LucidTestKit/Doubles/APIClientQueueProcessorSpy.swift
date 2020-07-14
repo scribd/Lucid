@@ -16,28 +16,28 @@ import Foundation
 @testable import Lucid
 #endif
 
-final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
+public final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
 
     // MARK: - Records
 
-    private(set) var didEnqueueNewRequestInvocations = 0
+    public private(set) var didEnqueueNewRequestInvocations = 0
 
-    private(set) var flushInvocations = 0
+    public private(set) var flushInvocations = 0
 
-    private(set) var getDelegateInvocations = 0
-    private(set) var setDelegateInvocations = [APIClientQueueProcessorDelegate?]()
+    public private(set) var getDelegateInvocations = 0
+    public private(set) var setDelegateInvocations = [APIClientQueueProcessorDelegate?]()
 
-    private(set) var registerInvocations = [APIClientQueueProcessorResponseHandler]()
+    public private(set) var registerInvocations = [APIClientQueueProcessorResponseHandler]()
 
-    private(set) var unregisterInvocations = [UUID]()
+    public private(set) var unregisterInvocations = [UUID]()
 
     // MARK: - Stubs
 
-    var tokenStub = UUID()
+    public var tokenStub = UUID()
 
     // MARK: - API
 
-    var delegate: APIClientQueueProcessorDelegate? {
+    public var delegate: APIClientQueueProcessorDelegate? {
         get {
             getDelegateInvocations += 1
             return nil
@@ -47,56 +47,56 @@ final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
         }
     }
 
-    func didEnqueueNewRequest() {
+    public func didEnqueueNewRequest() {
         didEnqueueNewRequestInvocations += 1
     }
 
-    func flush() {
+    public func flush() {
         flushInvocations += 1
     }
 
-    func register(_ handler: @escaping APIClientQueueProcessorResponseHandler) -> APIClientQueueResponseHandlerToken {
+    public func register(_ handler: @escaping APIClientQueueProcessorResponseHandler) -> APIClientQueueResponseHandlerToken {
         registerInvocations.append(handler)
         return tokenStub
     }
 
-    func unregister(_ token: APIClientQueueProcessorResponseHandlerToken) {
+    public func unregister(_ token: APIClientQueueProcessorResponseHandlerToken) {
         unregisterInvocations.append(token)
     }
 }
 
-final class APIClientQueueProcessorDelegateSpy: APIClientQueueProcessorDelegate {
+public final class APIClientQueueProcessorDelegateSpy: APIClientQueueProcessorDelegate {
 
     // MARK: - Stubs
 
-    var requestStub: APIClientQueueRequest?
+    public var requestStub: APIClientQueueRequest?
 
-    var removeRequestsStub: [APIClientQueueRequest] = []
+    public var removeRequestsStub: [APIClientQueueRequest] = []
 
     // MARK: - Records
 
-    private(set) var prependInvocations = [
+    public private(set) var prependInvocations = [
         APIClientQueueRequest
     ]()
 
-    private(set) var removeRequestsInvocations = [
+    public private(set) var removeRequestsInvocations = [
         (APIClientQueueRequest) -> Bool
     ]()
 
-    private(set) var nextRequestInvocations = 0
+    public private(set) var nextRequestInvocations = 0
 
     // MARK: - API
 
-    func prepend(_ request: APIClientQueueRequest) {
+    public func prepend(_ request: APIClientQueueRequest) {
         prependInvocations.append((request))
     }
 
-    func removeRequests(matching: @escaping (APIClientQueueRequest) -> Bool) -> [APIClientQueueRequest] {
+    public func removeRequests(matching: @escaping (APIClientQueueRequest) -> Bool) -> [APIClientQueueRequest] {
         removeRequestsInvocations.append(matching)
         return removeRequestsStub
     }
 
-    func nextRequest() -> APIClientQueueRequest? {
+    public func nextRequest() -> APIClientQueueRequest? {
         nextRequestInvocations += 1
         return requestStub
     }

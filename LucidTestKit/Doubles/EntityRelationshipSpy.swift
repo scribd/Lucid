@@ -18,8 +18,8 @@ import Foundation
 
 // MARK: - EntityRelationshipSpy
 
-struct EntityRelationshipSpyPayload: Codable {
-    let title: String
+public struct EntityRelationshipSpyPayload: Codable {
+    public let title: String
 }
 
 public final class EntityRelationshipSpyIdentifier: RemoteIdentifier, CoreDataIdentifier, AnyCoreDataRelationshipIdentifier {
@@ -140,9 +140,9 @@ public final class EntityRelationshipEndpointResultPayloadSpy: ResultPayloadConv
 
     private let decoder: JSONDecoder?
 
-    var stubEntities: [EntityRelationshipSpy]?
+    public var stubEntities: [EntityRelationshipSpy]?
 
-    init(stubEntities: [EntityRelationshipSpy]) {
+    public init(stubEntities: [EntityRelationshipSpy]) {
         self.data = nil
         self.endpoint = nil
         self.decoder = nil
@@ -189,21 +189,21 @@ public final class EntityRelationshipSpy: RemoteEntity {
 
     // MARK: - Records
 
-    static var remotePathRecords = [RemotePath<EntityRelationshipSpy>]()
+    public static var remotePathRecords = [RemotePath<EntityRelationshipSpy>]()
 
-    static var endpointInvocationCount: Int = 0
+    public static var endpointInvocationCount: Int = 0
 
-    static var indexNameRecords = [IndexName]()
+    public static var indexNameRecords = [IndexName]()
 
-    static var dataRecords = [Data]()
+    public static var dataRecords = [Data]()
 
-    static var endpointResultPayloadRecords = [EntityRelationshipEndpointResultPayloadSpy]()
+    public static var endpointResultPayloadRecords = [EntityRelationshipEndpointResultPayloadSpy]()
 
-    static var filterRecords = [Query<EntityRelationshipSpy>.Filter?]()
+    public static var filterRecords = [Query<EntityRelationshipSpy>.Filter?]()
 
-    static var identifierRecords = [Identifier]()
+    public static var identifierRecords = [Identifier]()
 
-    static func resetRecords() {
+    public static func resetRecords() {
         remotePathRecords.removeAll()
         endpointInvocationCount = 0
         indexNameRecords.removeAll()
@@ -219,12 +219,12 @@ public final class EntityRelationshipSpy: RemoteEntity {
     public typealias IndexName = EntityRelationshipSpyIndexName
 
     public let identifier: EntityRelationshipSpyIdentifier
-    let title: String
-    let relationships: [EntityRelationshipSpyIdentifier]
+    public let title: String
+    public let relationships: [EntityRelationshipSpyIdentifier]
 
-    init(identifier: EntityRelationshipSpyIdentifier,
-         title: String,
-         relationships: [EntityRelationshipSpyIdentifier] = []) {
+    public init(identifier: EntityRelationshipSpyIdentifier,
+                title: String,
+                relationships: [EntityRelationshipSpyIdentifier] = []) {
         self.identifier = identifier
         self.title = title
         self.relationships = relationships
@@ -318,7 +318,7 @@ extension EntityRelationshipSpy: CoreDataEntity {
     }
 }
 
-extension EntityRelationshipSpy {
+public extension EntityRelationshipSpy {
 
     convenience init(idValue: IdentifierValueType<String, Int> = .remote(1, nil),
                      title: String? = nil,

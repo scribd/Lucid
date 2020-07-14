@@ -176,7 +176,7 @@ public final class EntityEndpointResultPayloadSpy: ResultPayloadConvertible {
 
     // MARK: API
 
-    required init(stubEntities: [EntitySpy]?, stubEntityMetadata: [EntitySpyMetadata]?, stubEndpointMetadata: EndpointMetadata?) {
+    public required init(stubEntities: [EntitySpy]?, stubEntityMetadata: [EntitySpyMetadata]?, stubEndpointMetadata: EndpointMetadata?) {
         self.stubEntities = stubEntities?.any
         self.stubEntityMetadata = stubEntityMetadata?.any
         self.stubEndpointMetadata = stubEndpointMetadata
@@ -241,19 +241,19 @@ public final class EntitySpy: RemoteEntity {
 
     public static let identifierTypeID = "entity_spy"
 
-    static var stubEndpointData: EndpointStubData?
+    public static var stubEndpointData: EndpointStubData?
 
     // MARK: - Records
 
-    static var remotePathRecords = [RemotePath<EntitySpy>]()
+    public static var remotePathRecords = [RemotePath<EntitySpy>]()
 
-    static var endpointInvocationCount: Int = 0
+    public static var endpointInvocationCount: Int = 0
 
-    static var indexNameRecords = [IndexName]()
+    public static var indexNameRecords = [IndexName]()
 
-    static var mergingRecords = [EntitySpy]()
+    public static var mergingRecords = [EntitySpy]()
 
-    static func resetRecords() {
+    public static func resetRecords() {
         stubEndpointData = nil
         remotePathRecords.removeAll()
         endpointInvocationCount = 0
@@ -267,19 +267,19 @@ public final class EntitySpy: RemoteEntity {
     public typealias IndexName = EntitySpyIndexName
 
     public let identifier: EntitySpyIdentifier
-    let title: String
-    let subtitle: String
-    let extra: Extra<Int>
-    let oneRelationship: EntityRelationshipSpyIdentifier
+    public let title: String
+    public let subtitle: String
+    public let extra: Extra<Int>
+    public let oneRelationship: EntityRelationshipSpyIdentifier
 
-    let manyRelationships: AnySequence<EntityRelationshipSpyIdentifier>
+    public let manyRelationships: AnySequence<EntityRelationshipSpyIdentifier>
 
-    init<S>(identifier: EntitySpyIdentifier,
-            title: String,
-            subtitle: String,
-            extra: Extra<Int>,
-            oneRelationship: EntityRelationshipSpyIdentifier,
-            manyRelationships: S) where S: Sequence, S.Element == EntityRelationshipSpyIdentifier {
+    public init<S>(identifier: EntitySpyIdentifier,
+                   title: String,
+                   subtitle: String,
+                   extra: Extra<Int>,
+                   oneRelationship: EntityRelationshipSpyIdentifier,
+                   manyRelationships: S) where S: Sequence, S.Element == EntityRelationshipSpyIdentifier {
 
         self.identifier = identifier
         self.title = title
@@ -407,13 +407,13 @@ extension EntitySpy: CoreDataEntity {
 
 extension EntitySpy {
 
-    convenience init(idValue: IdentifierValueType<String, Int> = .remote(1, nil),
-                     remoteSynchronizationState: RemoteSynchronizationState = .outOfSync,
-                     title: String? = nil,
-                     subtitle: String? = nil,
-                     extra: Extra<Int> = .unrequested,
-                     oneRelationshipIdValue: IdentifierValueType<String, Int> = .remote(1, nil),
-                     manyRelationshipsIdValues: [IdentifierValueType<String, Int>] = []) {
+    public convenience init(idValue: IdentifierValueType<String, Int> = .remote(1, nil),
+                            remoteSynchronizationState: RemoteSynchronizationState = .outOfSync,
+                            title: String? = nil,
+                            subtitle: String? = nil,
+                            extra: Extra<Int> = .unrequested,
+                            oneRelationshipIdValue: IdentifierValueType<String, Int> = .remote(1, nil),
+                            manyRelationshipsIdValues: [IdentifierValueType<String, Int>] = []) {
 
         self.init(
             identifier: EntitySpyIdentifier(value: idValue, remoteSynchronizationState: remoteSynchronizationState),

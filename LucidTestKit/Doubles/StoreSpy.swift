@@ -21,43 +21,43 @@ open class StoreSpy<E: Entity>: StoringConvertible {
 
     // MARK: - Stubs
 
-    var levelStub: StoreLevel = .memory
+    public var levelStub: StoreLevel = .memory
 
-    var getResultStub: Result<QueryResult<E>, StoreError>?
+    public var getResultStub: Result<QueryResult<E>, StoreError>?
 
-    var searchResultStub: Result<QueryResult<E>, StoreError>?
+    public var searchResultStub: Result<QueryResult<E>, StoreError>?
 
-    var setResultStub: Result<[E], StoreError>?
+    public var setResultStub: Result<[E], StoreError>?
 
-    var removeAllResultStub: Result<[E.Identifier], StoreError>?
+    public var removeAllResultStub: Result<[E.Identifier], StoreError>?
 
-    var removeResultStub: Result<Void, StoreError>?
+    public var removeResultStub: Result<Void, StoreError>?
 
     // MARK: - Records
 
-    private(set) var getCallCount = 0
+    public private(set) var getCallCount = 0
 
-    private(set) var searchCallCount = 0
+    public private(set) var searchCallCount = 0
 
-    private(set) var setCallCount = 0
+    public private(set) var setCallCount = 0
 
-    private(set) var removeAllCallCount = 0
+    public private(set) var removeAllCallCount = 0
 
-    private(set) var removeCallCount = 0
+    public private(set) var removeCallCount = 0
 
-    private(set) var identifierRecords = [E.Identifier]()
+    public private(set) var identifierRecords = [E.Identifier]()
 
-    private(set) var readContextRecords = [ReadContext<E>]()
+    public private(set) var readContextRecords = [ReadContext<E>]()
 
-    private(set) var writeContextRecords = [WriteContext<E>]()
+    public private(set) var writeContextRecords = [WriteContext<E>]()
 
-    private(set) var entityRecords = [E]()
+    public private(set) var entityRecords = [E]()
 
-    private(set) var queryRecords = [Query<E>]()
+    public private(set) var queryRecords = [Query<E>]()
 
     // MARK: - Asynchronous Timing
 
-    var stubAsynchronousCompletionQueue: DispatchQueue?
+    public var stubAsynchronousCompletionQueue: DispatchQueue?
 
     // MARK: - API
 

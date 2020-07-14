@@ -16,26 +16,29 @@ import XCTest
 @testable import Lucid
 #endif
 
-final class APIRequestDeduplicatorSpy: APIRequestDeduplicating {
+public final class APIRequestDeduplicatorSpy: APIRequestDeduplicating {
 
-    var testForDuplicationPassthrough: Bool = true
-    private(set) var testForDuplicationInvocations = [(
+    public var testForDuplicationPassthrough: Bool = true
+
+    public private(set) var testForDuplicationInvocations = [(
         APIRequestConfig,
         (Result<APIClientResponse<Data>, APIError>) -> Void,
         (Bool) -> Void
     )]()
-    func testForDuplication(request: APIRequestConfig, handler: @escaping (Result<APIClientResponse<Data>, APIError>) -> Void, completion: @escaping (Bool) -> Void) {
+
+    public func testForDuplication(request: APIRequestConfig, handler: @escaping (Result<APIClientResponse<Data>, APIError>) -> Void, completion: @escaping (Bool) -> Void) {
         testForDuplicationInvocations.append((request, handler, completion))
         if testForDuplicationPassthrough {
             completion(false)
         }
     }
 
-    private(set) var applyResultToDuplicatesInvocations = [(
+    public private(set) var applyResultToDuplicatesInvocations = [(
         APIRequestConfig,
         Result<APIClientResponse<Data>, APIError>
     )]()
-    func applyResultToDuplicates(request: APIRequestConfig, result: Result<APIClientResponse<Data>, APIError>) {
+
+    public func applyResultToDuplicates(request: APIRequestConfig, result: Result<APIClientResponse<Data>, APIError>) {
         applyResultToDuplicatesInvocations.append((request, result))
     }
 }

@@ -16,29 +16,29 @@ import Foundation
 @testable import Lucid
 #endif
 
-final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
+public final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
 
     // MARK: - Records
 
-    private(set) var appendInvocations = [APIClientQueueRequest]()
+    public private(set) var appendInvocations = [APIClientQueueRequest]()
 
-    private(set) var flushInvocations = 0
+    public private(set) var flushInvocations = 0
 
-    private(set) var registerInvocations = [APIClientQueueResponseHandler]()
+    public private(set) var registerInvocations = [APIClientQueueResponseHandler]()
 
-    private(set) var mapInvocations = 0
+    public private(set) var mapInvocations = 0
 
-    private(set) var unregisterInvocations = [UUID]()
+    public private(set) var unregisterInvocations = [UUID]()
 
     // MARK: - Stubs
 
-    var tokenStub = UUID()
+    public var tokenStub = UUID()
 
-    var responseStubs: [APIRequestConfig: Result<APIClientResponse<Data>, APIError>] = [:]
+    public var responseStubs: [APIRequestConfig: Result<APIClientResponse<Data>, APIError>] = [:]
 
     // MARK: - API
 
-    func append(_ request: APIClientQueueRequest) {
+    public func append(_ request: APIClientQueueRequest) {
         appendInvocations.append(request)
         registerInvocations.forEach {
             guard let response = responseStubs[request.wrapped.config] else { return }
@@ -46,20 +46,20 @@ final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
         }
     }
 
-    func flush() {
+    public func flush() {
         flushInvocations += 1
     }
 
-    func register(_ handler: APIClientQueueResponseHandler) -> APIClientQueueProcessorResponseHandlerToken {
+    public func register(_ handler: APIClientQueueResponseHandler) -> APIClientQueueProcessorResponseHandlerToken {
         registerInvocations.append(handler)
         return tokenStub
     }
 
-    func unregister(_ token: APIClientQueueResponseHandlerToken) {
+    public func unregister(_ token: APIClientQueueResponseHandlerToken) {
         unregisterInvocations.append(token)
     }
 
-    func map(_ transform: (APIClientQueueRequest) -> APIClientQueueRequest) {
+    public func map(_ transform: (APIClientQueueRequest) -> APIClientQueueRequest) {
         mapInvocations += 1
     }
 }

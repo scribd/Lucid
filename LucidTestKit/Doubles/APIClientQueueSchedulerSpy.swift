@@ -14,51 +14,51 @@
 @testable import Lucid
 #endif
 
-final class APIClientQueueSchedulerSpy: APIClientQueueScheduling {
+public final class APIClientQueueSchedulerSpy: APIClientQueueScheduling {
 
     // MARK: - Records
 
-    private(set) var didInitializeCallCount = 0
+    public private(set) var didInitializeCallCount = 0
 
-    private(set) var didEnqueueNewRequestCallCount = 0
+    public private(set) var didEnqueueNewRequestCallCount = 0
 
-    private(set) var flushCallCount = 0
+    public private(set) var flushCallCount = 0
 
-    private(set) var requestDidSucceedCallCount = 0
+    public private(set) var requestDidSucceedCallCount = 0
 
-    private(set) var requestDidFailCallCount = 0
+    public private(set) var requestDidFailCallCount = 0
 
     // MARK: - API
 
-    weak var delegate: APIClientQueueSchedulerDelegate?
+    public weak var delegate: APIClientQueueSchedulerDelegate?
 
-    func didEnqueueNewRequest() {
+    public func didEnqueueNewRequest() {
         didEnqueueNewRequestCallCount += 1
     }
 
-    func flush() {
+    public func flush() {
         flushCallCount += 1
     }
 
-    func requestDidSucceed() {
+    public func requestDidSucceed() {
         requestDidSucceedCallCount += 1
     }
 
-    func requestDidFail() {
+    public func requestDidFail() {
         requestDidFailCallCount += 1
     }
 }
 
-final class APIClientQueueSchedulerDelegateSpy: APIClientQueueSchedulerDelegate {
+public final class APIClientQueueSchedulerDelegateSpy: APIClientQueueSchedulerDelegate {
 
-    var processNextStubs: [APIClientQueueSchedulerProcessNextResult] = []
+    public var processNextStubs: [APIClientQueueSchedulerProcessNextResult] = []
 
-    private(set) var processNextInvocations = [(
+    public private(set) var processNextInvocations = [(
         Void
     )]()
 
     @discardableResult
-    func processNext() -> APIClientQueueSchedulerProcessNextResult {
+    public func processNext() -> APIClientQueueSchedulerProcessNextResult {
         processNextInvocations.append(())
         defer { processNextStubs = processNextStubs.dropFirst().array }
         return processNextStubs.first ?? .didNotProcess

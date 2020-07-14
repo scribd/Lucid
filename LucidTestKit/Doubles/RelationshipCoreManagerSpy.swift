@@ -19,21 +19,20 @@ import Combine
 @testable import Lucid
 #endif
 
+public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
 
-final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
-
-    private(set) var getByIDsInstanciations = [(
+    public private(set) var getByIDsInstanciations = [(
         identifiers: [AnyRelationshipIdentifierConvertible],
         entityType: String,
         context: _ReadContext<EntityEndpointResultPayloadSpy>
     )]()
 
     #if LUCID_REACTIVE_KIT
-    var getByIDsStubs: [Signal<[AnyEntitySpy], ManagerError>] = [Signal(just: [])]
+    public var getByIDsStubs: [Signal<[AnyEntitySpy], ManagerError>] = [Signal(just: [])]
 
-    func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
-             entityType: String,
-             in context: _ReadContext<EntityEndpointResultPayloadSpy>) -> Signal<AnySequence<AnyEntitySpy>, ManagerError> {
+    public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
+                    entityType: String,
+                    in context: _ReadContext<EntityEndpointResultPayloadSpy>) -> Signal<AnySequence<AnyEntitySpy>, ManagerError> {
 
         getByIDsInstanciations.append((identifiers.array, entityType, context))
 
@@ -46,13 +45,13 @@ final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
     }
 
     #else
-    var getByIDsStubs: [AnyPublisher<[AnyEntitySpy], ManagerError>] = [
+    public var getByIDsStubs: [AnyPublisher<[AnyEntitySpy], ManagerError>] = [
         Just([]).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
     ]
 
-    func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
-             entityType: String,
-             in context: _ReadContext<EntityEndpointResultPayloadSpy>) -> AnyPublisher<AnySequence<AnyEntitySpy>, ManagerError> {
+    public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
+                    entityType: String,
+                    in context: _ReadContext<EntityEndpointResultPayloadSpy>) -> AnyPublisher<AnySequence<AnyEntitySpy>, ManagerError> {
 
         getByIDsInstanciations.append((identifiers.array, entityType, context))
 

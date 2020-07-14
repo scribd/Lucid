@@ -74,7 +74,7 @@ extension Import {
     }
     
     static func lucidTestKit(reactiveKit: Bool) -> Import {
-        return Import(name: "LucidTestKit\(reactiveKit ? "_ReactiveKit" : "")", testable: true)
+        return Import(name: "LucidTestKit\(reactiveKit ? "_ReactiveKit" : "")", testable: false)
     }
     
     static func app(_ descriptions: Descriptions, testable: Bool = false) -> Import {

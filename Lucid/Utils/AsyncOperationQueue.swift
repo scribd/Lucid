@@ -86,6 +86,7 @@ private extension AsyncOperationQueue {
     func _runOperation(_ operation: AsyncOperation) {
         operation.run {
             self.dispatchQueue.async(flags: .barrier) {
+                guard self._operations.isEmpty == false else { return }
                 self._operations.removeFirst()
                 // always run the next operation if it's a barrier
                 if let nextOperation = self._operations.first, nextOperation.barrier {

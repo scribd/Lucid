@@ -16,7 +16,7 @@ import Foundation
 @testable import Lucid
 #endif
 
-final class StubCoreDataManagerFactory {
+public final class StubCoreDataManagerFactory {
 
     private enum Defaults {
         private static let modelName = "StubCoreDataModel"
@@ -41,11 +41,11 @@ final class StubCoreDataManagerFactory {
         }
     }
 
-    static let stubDispatchQueue: DispatchQueue = Defaults.stubDispatchQueue
+    public static let stubDispatchQueue: DispatchQueue = Defaults.stubDispatchQueue
 
-    static let shared: CoreDataManager = CoreDataManager(modelURL: Defaults.modelURL,
-                                                         persistentStoreURL: Defaults.persistentStoreURL,
-                                                         dispatchQueue: stubDispatchQueue)
+    public static let shared: CoreDataManager = CoreDataManager(modelURL: Defaults.modelURL,
+                                                                persistentStoreURL: Defaults.persistentStoreURL,
+                                                                dispatchQueue: stubDispatchQueue)
 }
 
 #endif

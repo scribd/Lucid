@@ -17,24 +17,24 @@ import XCTest
 #endif
 
 @objc(SCLoggerMock)
-final class LoggerMock: NSObject, Logging {
+public final class LoggerMock: NSObject, Logging {
 
-    let shouldCauseFailures: Bool
+    public let shouldCauseFailures: Bool
 
-    let logLevel: LogType
+    public let logLevel: LogType
 
-    init(logLevel: LogType = .debug, shouldCauseFailures: Bool = true) {
+    public init(logLevel: LogType = .debug, shouldCauseFailures: Bool = true) {
         self.logLevel = logLevel
         self.shouldCauseFailures = shouldCauseFailures
     }
 
-    func log(_ type: LogType,
-             _ message: @autoclosure () -> String,
-             domain: String,
-             assert: Bool,
-             file: String,
-             function: String,
-             line: UInt) {
+    public func log(_ type: LogType,
+                    _ message: @autoclosure () -> String,
+                    domain: String,
+                    assert: Bool,
+                    file: String,
+                    function: String,
+                    line: UInt) {
 
         guard type.rawValue >= logLevel.rawValue else { return }
 
@@ -50,12 +50,12 @@ final class LoggerMock: NSObject, Logging {
         }
     }
 
-    func loggableErrorString(_ error: Error) -> String {
+    public func loggableErrorString(_ error: Error) -> String {
         let nsError = error as NSError
         return "\(nsError.domain):\(nsError.code):\(String(describing: nsError.userInfo[NSLocalizedDescriptionKey]))"
     }
 
-    func recordErrorOnCrashlytics(_ error: Error) {
+    public func recordErrorOnCrashlytics(_ error: Error) {
         // no-op
     }
 }

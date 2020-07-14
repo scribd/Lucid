@@ -14,31 +14,31 @@
 @testable import Lucid
 #endif
 
-final class DiskCacheSpy<DataType: Codable> {
+public final class DiskCacheSpy<DataType: Codable> {
 
     // MARK: - Stubs
 
-    var values = [String: DataType]()
+    public var values = [String: DataType]()
 
     // MARK: - Records
 
-    private(set) var getInvocations = [(
+    public private(set) var getInvocations = [(
         String
     )]()
 
-    private(set) var setInvocations = [(
+    public private(set) var setInvocations = [(
         String,
         DataType?
     )]()
 
-    private(set) var asyncSetInvocations = [(
+    public private(set) var asyncSetInvocations = [(
         String,
         DataType?
     )]()
 
     // MARK: - Implementation
 
-    var caching: DiskCaching<DataType> {
+    public var caching: DiskCaching<DataType> {
         return DiskCaching(get: {
             self.getInvocations.append(($0))
             return self.values[$0]

@@ -27,7 +27,7 @@ extension Movie {
                 method: .get,
                 path: .path("discover") / "movie",
                 query: [
-                    ("page", .value(query.page)),
+                    ("page", .value(query.page?.description)),
                     ("order", .value(query.order.first?.requestValue))
                 ]
             )

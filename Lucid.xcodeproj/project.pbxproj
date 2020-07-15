@@ -157,7 +157,6 @@
 		191F913624BFA8250050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F903E24BFA7F40050C7C6 /* ReactiveKit.framework */; };
 		191F913924BFA83B0050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F904224BFA7F40050C7C6 /* ReactiveKit.framework */; };
 		191F913A24BFA85B0050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F904224BFA7F40050C7C6 /* ReactiveKit.framework */; };
-		191F913C24BFA9200050C7C6 /* ReactiveKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 191F913B24BFA9200050C7C6 /* ReactiveKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		1965B2972493E4690007B6CE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1965B2962493E4690007B6CE /* AppDelegate.swift */; };
 		1965B2992493E4690007B6CE /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1965B2982493E4690007B6CE /* SceneDelegate.swift */; };
 		1965B29B2493E4690007B6CE /* MovieList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1965B29A2493E4690007B6CE /* MovieList.swift */; };
@@ -366,7 +365,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				191F913C24BFA9200050C7C6 /* ReactiveKit.framework in Embed Frameworks */,
 				1910671E2494128E00E65BA7 /* Lucid.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
@@ -2784,8 +2782,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_ASSET_PATHS = "\"Sample/Preview Content\"";
+				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/Carthage/Build/iOS";
 				INFOPLIST_FILE = Sample/Info.plist;
@@ -2796,6 +2796,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.lucid.Sample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -2834,10 +2835,12 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_ASSET_PATHS = "\"Sample/Preview Content\"";
+				DEVELOPMENT_TEAM = "";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -2860,6 +2863,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.lucid.Sample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";

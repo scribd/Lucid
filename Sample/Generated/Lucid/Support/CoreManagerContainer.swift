@@ -36,10 +36,10 @@ public final class CoreManagerContainer {
         return _responseHandler
     }
 
-    public let mainClientQueue: APIClientQueue
-    public let clientQueues: Set<APIClientQueue>
-
     public let coreDataManager: CoreDataManager
+
+    public let clientQueues: Set<APIClientQueue>
+    public let mainClientQueue: APIClientQueue
 
     private let _genreManager: CoreManager<Genre>
     private lazy var _genreRelationshipManager = CoreManaging<Genre, AppAnyEntity>.RelationshipManager(self)
@@ -57,20 +57,18 @@ public final class CoreManagerContainer {
                 client: APIClient,
                 coreDataManager: CoreDataManager = CoreDataManager(modelName: "Sample", in: Bundle(for: CoreManagerContainer.self), migrations: [])) {
 
+        self.coreDataManager = coreDataManager
+
+        var clientQueues = Set<APIClientQueue>()
+        var clientQueue: APIClientQueue
+
         let mainClientQueue = APIClientQueue.clientQueue(
             for: "\(CoreManagerContainer.self)_api_client_queue",
             client: client,
             scheduler: APIClientQueueDefaultScheduler()
         )
-        if let responseHandler = _responseHandler {
-            mainClientQueue.register(responseHandler)
-        }
-        self.mainClientQueue = mainClientQueue
-        self.coreDataManager = coreDataManager
 
-        var clientQueues = Set([mainClientQueue])
-        var clientQueue = mainClientQueue
-
+        clientQueue = mainClientQueue
         _genreManager = CoreManager(
             stores: Genre.stores(
                 with: client,
@@ -79,12 +77,9 @@ public final class CoreManagerContainer {
                 cacheLimit: cacheLimit
             )
         )
-        if clientQueues.contains(clientQueue) == false, let responseHandler = _responseHandler {
-            clientQueue.register(responseHandler)
-        }
         clientQueues.insert(clientQueue)
-        clientQueue = mainClientQueue
 
+        clientQueue = mainClientQueue
         _movieManager = CoreManager(
             stores: Movie.stores(
                 with: client,
@@ -93,13 +88,13 @@ public final class CoreManagerContainer {
                 cacheLimit: cacheLimit
             )
         )
-        if clientQueues.contains(clientQueue) == false, let responseHandler = _responseHandler {
-            clientQueue.register(responseHandler)
-        }
         clientQueues.insert(clientQueue)
-        clientQueue = mainClientQueue
 
+        if let responseHandler = _responseHandler {
+            clientQueues.forEach { $0.register(responseHandler) }
+        }
         self.clientQueues = clientQueues
+        self.mainClientQueue = mainClientQueue
 
         // Init of lazy vars for thread-safety.
         _ = _genreRelationshipManager
@@ -144,7 +139,7 @@ extension CoreManagerContainer: RelationshipCoreManaging {
 
 extension Entity {
     static func stores(with client: APIClient,
-                       clientQueue: APIClientQueue,
+                       clientQueue: inout APIClientQueue,
                        coreDataManager: CoreDataManager,
                        cacheLimit: Int) -> Array<Storing<Self>> {
         let localStore = LRUStore<Self>(store: InMemoryStore().storing, limit: cacheLimit)
@@ -154,7 +149,7 @@ extension Entity {
 
 extension CoreDataEntity {
     static func stores(with client: APIClient,
-                       clientQueue: APIClientQueue,
+                       clientQueue: inout APIClientQueue,
                        coreDataManager: CoreDataManager,
                        cacheLimit: Int) -> Array<Storing<Self>> {
         let localStore = CacheStore<Self>(
@@ -167,7 +162,7 @@ extension CoreDataEntity {
 
 extension RemoteEntity {
     static func stores(with client: APIClient,
-                       clientQueue: APIClientQueue,
+                       clientQueue: inout APIClientQueue,
                        coreDataManager: CoreDataManager,
                        cacheLimit: Int) -> Array<Storing<Self>> {
         let remoteStore = RemoteStore<Self>(client: client, clientQueue: clientQueue)
@@ -177,7 +172,7 @@ extension RemoteEntity {
 
 extension RemoteEntity where Self : CoreDataEntity {
     static func stores(with client: APIClient,
-                       clientQueue: APIClientQueue,
+                       clientQueue: inout APIClientQueue,
                        coreDataManager: CoreDataManager,
                        cacheLimit: Int) -> Array<Storing<Self>> {
         let remoteStore = RemoteStore<Self>(client: client, clientQueue: clientQueue)

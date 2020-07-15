@@ -291,7 +291,7 @@ extension Movie: CoreDataEntity {
             ),
             overview: try coreDataEntity._overview.stringValue(propertyName: "_overview"),
             popularity: coreDataEntity._popularity.doubleValue(),
-            posterPath: try coreDataEntity._poster_path.urlValue(propertyName: "_posterPath"),
+            posterPath: try coreDataEntity._poster_path.urlValue(propertyName: "_poster_path"),
             title: try coreDataEntity._title.stringValue(propertyName: "_title"),
             genres: try Extra(
                 value: coreDataEntity._genres.genreArrayValue(),

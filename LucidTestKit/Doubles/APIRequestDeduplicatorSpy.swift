@@ -18,6 +18,10 @@ import XCTest
 
 public final class APIRequestDeduplicatorSpy: APIRequestDeduplicating {
 
+    public init() {
+        // no-op
+    }
+
     public var testForDuplicationPassthrough: Bool = true
 
     public private(set) var testForDuplicationInvocations = [(

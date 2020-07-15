@@ -104,6 +104,10 @@ public final class CoreManagerSpy<E: Entity> {
 
     // MARK: API
 
+    public init() {
+        // no-op
+    }
+
     #if LUCID_REACTIVE_KIT
     public func get(withQuery query: Query<E>,
                     in context: ReadContext<E>) -> Signal<QueryResult<E>, ManagerError> {

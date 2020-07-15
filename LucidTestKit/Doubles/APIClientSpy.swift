@@ -44,6 +44,10 @@ public final class APIClientSpy: APIClient {
 
     // MARK: - Implementation
 
+    public init() {
+        // no-op
+    }
+
     deinit {
         DiskCache<APIClientQueueRequest>(basePath: "\(identifierStub)_client_queue").clear()
     }

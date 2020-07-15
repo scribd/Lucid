@@ -21,6 +21,10 @@ import Combine
 
 public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
 
+    public init() {
+        // no-op
+    }
+
     public private(set) var getByIDsInstanciations = [(
         identifiers: [AnyRelationshipIdentifierConvertible],
         entityType: String,

@@ -30,6 +30,10 @@ public final class APIClientQueueSchedulerSpy: APIClientQueueScheduling {
 
     // MARK: - API
 
+    public init() {
+        // no-op
+    }
+
     public weak var delegate: APIClientQueueSchedulerDelegate?
 
     public func didEnqueueNewRequest() {
@@ -51,11 +55,13 @@ public final class APIClientQueueSchedulerSpy: APIClientQueueScheduling {
 
 public final class APIClientQueueSchedulerDelegateSpy: APIClientQueueSchedulerDelegate {
 
+    public init() {
+        // no-op
+    }
+
     public var processNextStubs: [APIClientQueueSchedulerProcessNextResult] = []
 
-    public private(set) var processNextInvocations = [(
-        Void
-    )]()
+    public private(set) var processNextInvocations = [Void]()
 
     @discardableResult
     public func processNext() -> APIClientQueueSchedulerProcessNextResult {

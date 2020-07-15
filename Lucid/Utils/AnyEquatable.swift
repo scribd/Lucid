@@ -6,20 +6,20 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
-struct AnyEquatable: Equatable, CustomDebugStringConvertible, CustomStringConvertible {
+public struct AnyEquatable: Equatable, CustomDebugStringConvertible, CustomStringConvertible {
 
-    typealias Comparer = (Any, Any) -> Bool
+    public typealias Comparer = (Any, Any) -> Bool
 
     private let comparer: Comparer
 
-    let target: Any
+    public let target: Any
 
-    init(target: Any, comparer: @escaping Comparer) {
+    public init(target: Any, comparer: @escaping Comparer) {
         self.target = target
         self.comparer = comparer
     }
 
-    init<E: Equatable>(typedTarget: E) {
+    public init<E: Equatable>(typedTarget: E) {
         self.target = typedTarget
         self.comparer = { lhs, rhs in
             guard let typedLHS = lhs as? E,
@@ -30,15 +30,15 @@ struct AnyEquatable: Equatable, CustomDebugStringConvertible, CustomStringConver
         }
     }
 
-    static func == (lhs: AnyEquatable, rhs: AnyEquatable) -> Bool {
+    public static func == (lhs: AnyEquatable, rhs: AnyEquatable) -> Bool {
         return lhs.comparer(lhs.target, rhs.target)
     }
 
-    var description: String {
+    public var description: String {
         return "\(self.target)"
     }
 
-    var debugDescription: String {
+    public var debugDescription: String {
         return "\(self.target)"
     }
 }

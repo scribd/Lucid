@@ -38,6 +38,10 @@ public final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
 
     // MARK: - API
 
+    public init() {
+        // no-op
+    }
+
     public func append(_ request: APIClientQueueRequest) {
         appendInvocations.append(request)
         registerInvocations.forEach {

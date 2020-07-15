@@ -26,6 +26,10 @@ public final class APIClientQueueProcessorResponseHandlerSpy {
 
     // MARK: - API
 
+    public init() {
+        // no-op
+    }
+
     public var handler: APIClientQueueProcessorResponseHandler {
         return { result, request, completion in
             self.resultRecords.append(result)
@@ -44,6 +48,10 @@ public final class APIClientQueueResponseHandlerSpy: APIClientQueueResponseHandl
     public private(set) var requestRecords = [APIClientQueueRequest]()
 
     // MARK: - API
+
+    public init() {
+        // no-op
+    }
 
     public func clientQueue(_ clientQueue: APIClientQueuing,
                             didReceiveResponse result: Result<APIClientResponse<Data>, APIError>,

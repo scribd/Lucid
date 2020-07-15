@@ -16,6 +16,10 @@
 
 public final class UserAccessValidatorSpy: UserAccessValidating {
 
+    public init() {
+        // no-op
+    }
+
     public var stub: UserAccess = .remoteAccess
 
     public var userAccessInvocations: Int = 0

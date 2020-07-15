@@ -38,6 +38,10 @@ public final class DiskCacheSpy<DataType: Codable> {
 
     // MARK: - Implementation
 
+    public init() {
+        // no-op
+    }
+
     public var caching: DiskCaching<DataType> {
         return DiskCaching(get: {
             self.getInvocations.append(($0))

@@ -37,6 +37,10 @@ public final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
 
     // MARK: - API
 
+    public init() {
+        // no-op
+    }
+
     public var delegate: APIClientQueueProcessorDelegate? {
         get {
             getDelegateInvocations += 1
@@ -86,6 +90,10 @@ public final class APIClientQueueProcessorDelegateSpy: APIClientQueueProcessorDe
     public private(set) var nextRequestInvocations = 0
 
     // MARK: - API
+
+    public init() {
+        // no-op
+    }
 
     public func prepend(_ request: APIClientQueueRequest) {
         prependInvocations.append((request))

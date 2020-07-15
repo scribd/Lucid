@@ -61,6 +61,10 @@ open class StoreSpy<E: Entity>: StoringConvertible {
 
     // MARK: - API
 
+    public init() {
+        // no-op
+    }
+
     open var level: StoreLevel {
         return levelStub
     }

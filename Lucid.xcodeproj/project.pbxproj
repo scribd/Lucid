@@ -473,8 +473,6 @@
 		190ADCCF2458D9A500D22F6D /* AnyEntitySpy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnyEntitySpy.swift; sourceTree = "<group>"; };
 		190ADCD02458D9A500D22F6D /* APIClientQueueProcessorSpy.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = APIClientQueueProcessorSpy.swift; sourceTree = "<group>"; };
 		190ADD1A2458DA9B00D22F6D /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		190ADD1D2458DB8C00D22F6D /* ReactiveKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ReactiveKit.framework; path = ../Carthage/Build/iOS/ReactiveKit.framework; sourceTree = "<group>"; };
-		190ADD1F2458DBA200D22F6D /* ReactiveKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ReactiveKit.framework; path = ../Carthage/Build/watchOS/ReactiveKit.framework; sourceTree = "<group>"; };
 		1910673724942E6F00E65BA7 /* MovieDBClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieDBClient.swift; sourceTree = "<group>"; };
 		191F8FD024BFA7890050C7C6 /* ReactiveKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ReactiveKit.framework; path = Carthage/Build/iOS/ReactiveKit.framework; sourceTree = "<group>"; };
 		191F8FD424BFA79F0050C7C6 /* ReactiveKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ReactiveKit.framework; path = Carthage/Build/watchOS/ReactiveKit.framework; sourceTree = "<group>"; };
@@ -743,8 +741,6 @@
 		191F911E24BFA7F40050C7C6 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		191F911F24BFA7F40050C7C6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		191F912024BFA7F40050C7C6 /* .lucid.yaml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .lucid.yaml; sourceTree = "<group>"; };
-		191F913B24BFA9200050C7C6 /* ReactiveKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ReactiveKit.framework; path = Carthage/Build/iOS/ReactiveKit.framework; sourceTree = "<group>"; };
-		191F913D24BFA9850050C7C6 /* ReactiveKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ReactiveKit.framework; path = Carthage/Build/iOS/ReactiveKit.framework; sourceTree = "<group>"; };
 		1965B2942493E4690007B6CE /* Sample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1965B2962493E4690007B6CE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		1965B2982493E4690007B6CE /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -888,8 +884,6 @@
 		190ADBFE2458D71000D22F6D = {
 			isa = PBXGroup;
 			children = (
-				191F913B24BFA9200050C7C6 /* ReactiveKit.framework */,
-				191F913D24BFA9850050C7C6 /* ReactiveKit.framework */,
 				190ADC0A2458D71000D22F6D /* Lucid */,
 				190ADC852458D8DC00D22F6D /* LucidTests */,
 				190ADCB42458D99600D22F6D /* LucidTestKit */,
@@ -1088,8 +1082,6 @@
 				191F8FE124BFA7F40050C7C6 /* Lucid */,
 				191F8FD424BFA79F0050C7C6 /* ReactiveKit.framework */,
 				191F8FD024BFA7890050C7C6 /* ReactiveKit.framework */,
-				190ADD1F2458DBA200D22F6D /* ReactiveKit.framework */,
-				190ADD1D2458DB8C00D22F6D /* ReactiveKit.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";

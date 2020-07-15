@@ -201,26 +201,33 @@ extension PayloadRelationship: Decodable where P: Decodable {
 
 // MARK: - Extra
 
+private enum ExtraKeys: String, CodingKey {
+    case value
+    case requested
+}
+
 extension Extra: Decodable where T: Decodable {
 
     public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let value = try container.decode(T.self)
-        self = .requested(value)
+        do {
+            let container = try decoder.container(keyedBy: ExtraKeys.self)
+            let value = try container.decode(T?.self, forKey: .value)
+            let requested = try container.decode(Bool.self, forKey: .requested)
+            self = Extra<T>(value: value, requested: requested)
+        } catch {
+            let container = try decoder.singleValueContainer()
+            let value = try container.decode(T?.self)
+            self = Extra<T>(value: value, requested: true)
+        }
     }
 }
 
 extension Extra: Encodable where T: Encodable {
 
     public func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-
-        switch self {
-        case .requested(let value):
-            try container.encode(value)
-        case .unrequested:
-            return
-        }
+        var container = encoder.container(keyedBy: ExtraKeys.self)
+        try container.encode(extraValue(), forKey: .value)
+        try container.encode(wasRequested, forKey: .requested)
     }
 }
 

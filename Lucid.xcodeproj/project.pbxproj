@@ -285,6 +285,7 @@
 		19B70F4E24A2AF9B0092BB5A /* LucidTestKit_ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 19B70F3224A2A2950092BB5A /* LucidTestKit_ReactiveKit.framework */; };
 		19ED00952481C3960033B7BD /* DataStructuresTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ED00942481C3960033B7BD /* DataStructuresTests.swift */; };
 		19ED00972481C3D10033B7BD /* AsyncOperationQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */; };
+		DE8294BB24BFB2FA0011A915 /* DataTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE8294BA24BFB2FA0011A915 /* DataTypeTests.swift */; };
 		F405C35324A41844004E1BB3 /* APIClientQueueProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F405C35224A41844004E1BB3 /* APIClientQueueProcessorTests.swift */; };
 		F405C35424A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F405C35124A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift */; };
 		F405C35624A41844004E1BB3 /* APIClientQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F405C35024A41844004E1BB3 /* APIClientQueueTests.swift */; };
@@ -472,6 +473,7 @@
 		19B70F3224A2A2950092BB5A /* LucidTestKit_ReactiveKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LucidTestKit_ReactiveKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		19ED00942481C3960033B7BD /* DataStructuresTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataStructuresTests.swift; sourceTree = "<group>"; };
 		19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AsyncOperationQueueTests.swift; sourceTree = "<group>"; };
+		DE8294BA24BFB2FA0011A915 /* DataTypeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataTypeTests.swift; sourceTree = "<group>"; };
 		F405C35024A41844004E1BB3 /* APIClientQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueTests.swift; sourceTree = "<group>"; };
 		F405C35124A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueDefaultSchedulerTests.swift; sourceTree = "<group>"; };
 		F405C35224A41844004E1BB3 /* APIClientQueueProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueProcessorTests.swift; sourceTree = "<group>"; };
@@ -725,11 +727,12 @@
 		190ADC972458D8FE00D22F6D /* Core */ = {
 			isa = PBXGroup;
 			children = (
-				F405C35024A41844004E1BB3 /* APIClientQueueTests.swift */,
-				F405C35224A41844004E1BB3 /* APIClientQueueProcessorTests.swift */,
 				F405C35124A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift */,
-				190ADC9B2458D8FE00D22F6D /* CoreManagerTests.swift */,
+				F405C35224A41844004E1BB3 /* APIClientQueueProcessorTests.swift */,
+				F405C35024A41844004E1BB3 /* APIClientQueueTests.swift */,
 				F48C717624896F5400099980 /* CoreManagerExtrasTests.swift */,
+				190ADC9B2458D8FE00D22F6D /* CoreManagerTests.swift */,
+				DE8294BA24BFB2FA0011A915 /* DataTypeTests.swift */,
 				190ADC982458D8FE00D22F6D /* EntitySearchTests.swift */,
 				190ADC992458D8FE00D22F6D /* RelationshipControllerTests.swift */,
 				190ADC9A2458D8FE00D22F6D /* StoreStackTests.swift */,
@@ -1258,6 +1261,7 @@
 				190ADCAA2458D8FE00D22F6D /* CoreManagerTests.swift in Sources */,
 				F405C35424A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift in Sources */,
 				190ADCA22458D8FE00D22F6D /* CacheStoreTests.swift in Sources */,
+				DE8294BB24BFB2FA0011A915 /* DataTypeTests.swift in Sources */,
 				F405C35624A41844004E1BB3 /* APIClientQueueTests.swift in Sources */,
 				190ADCA02458D8FE00D22F6D /* RemoteStoreTests.swift in Sources */,
 				190ADCA92458D8FE00D22F6D /* StoreStackTests.swift in Sources */,

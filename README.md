@@ -1,3 +1,5 @@
+![Tests](https://github.com/scribd/Lucid/workflows/Run%20Tests/badge.svg)
+
 # Lucid
 
 ## Installation

@@ -9,6 +9,10 @@ import Foundation
 import LucidCodeGen
 import PathKit
 
+#if os(Linux)
+import FoundationNetworking
+#endif
+
 final class JSONPayloadsGenerator {
     
     private let outputPath: Path

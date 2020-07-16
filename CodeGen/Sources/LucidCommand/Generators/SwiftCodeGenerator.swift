@@ -9,7 +9,11 @@
 import Foundation
 import LucidCodeGen
 import PathKit
-import Darwin
+#if os(Linux)
+    import Glibc
+#else
+    import Darwin
+#endif
 
 final class SwiftCodeGenerator {
  

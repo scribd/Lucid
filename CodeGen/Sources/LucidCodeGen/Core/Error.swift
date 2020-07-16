@@ -21,7 +21,6 @@ public enum CodeGenError: Error, CustomStringConvertible {
     case couldNotFindTargetEntity
     case subtypeDoesNotHaveAnyCase(String)
     case cannotPersistIdentifier(String)
-    case invalidSHASum
     case incompatiblePropertyKey(String)
     case unsupportedCaseConvertion
 }
@@ -58,8 +57,6 @@ extension CodeGenError {
             return "Subtype named '\(name)' does not have any case."
         case .cannotPersistIdentifier(let name):
             return "Cannot persist identifier in entity: '\(name)'."
-        case .invalidSHASum:
-            return "Could not generate valid SHA sum."
         case .incompatiblePropertyKey(let key):
             return "Incompatible property key: \(key)."
         case .unsupportedCaseConvertion:

@@ -149,22 +149,20 @@ final class DescriptionsVersionManager {
         return try absoluteInputPath
             .recursiveChildren()
             .filter { $0.extension == "json" }
-            .reduce(Data()) { try $0 + $1.read() }
-            .sha256()
+            .reduce("") { try $0 + $1.read() }
+            .MD5()
     }
 }
 
-// MARK: - SHA
+// MARK: - MD5
 
-private extension Data {
-
-    func sha256() throws -> String {
-        let transform = SecDigestTransformCreate(kSecDigestSHA2, 256, nil)
-        SecTransformSetAttribute(transform, kSecTransformInputAttributeName, self as CFTypeRef, nil)
-        guard let shaSum = SecTransformExecute(transform, nil) as? Data else {
-            throw CodeGenError.invalidSHASum
-        }
-        return shaSum.base64EncodedString()
+private extension String {
+    func MD5() throws -> String {
+        let tmpFile = "\(NSTemporaryDirectory())md5.tmp"
+        try write(toFile: tmpFile, atomically: true, encoding: .utf8)
+        let result = try shellOut(to: "md5sum \(tmpFile)").components(separatedBy: " ")[0]
+        try FileManager.default.removeItem(atPath: tmpFile)
+        return result
     }
 }
 

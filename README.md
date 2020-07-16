@@ -1,4 +1,4 @@
-![Tests](https://github.com/scribd/Lucid/workflows/Run%20Tests/badge.svg)
+![Tests](https://github.com/scribd/Lucid/workflows/Tests/badge.svg) ![Code Coverage](https://s3.amazonaws.com/mobile.scribd.com/badges/Lucid/CodeGen.svg) 
 
 # Lucid
 

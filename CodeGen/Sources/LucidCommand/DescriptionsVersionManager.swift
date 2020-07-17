@@ -160,9 +160,13 @@ private extension String {
     func MD5() throws -> String {
         let tmpFile = "\(NSTemporaryDirectory())md5.tmp"
         try write(toFile: tmpFile, atomically: true, encoding: .utf8)
-        let result = try shellOut(to: "md5sum \(tmpFile)").components(separatedBy: " ")[0]
+        #if os(macOS)
+        let result = try shellOut(to: "md5 -q \(tmpFile)")
+        #else
+        let result = try shellOut(to: "md5sum \(tmpFile)")
+        #endif
         try FileManager.default.removeItem(atPath: tmpFile)
-        return result
+        return result.components(separatedBy: " ")[0]
     }
 }
 

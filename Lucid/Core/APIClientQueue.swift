@@ -647,6 +647,7 @@ private extension APIClientQueueProcessor {
 
         let requestDescription = client.description(for: request.wrapped.config)
         Logger.log(.info, "\(APIClientQueueProcessor.self): Processing request: \(requestDescription)...")
+
         client.send(request: request.wrapped) { result in
             self.lock.lock()
             defer { self.lock.unlock() }

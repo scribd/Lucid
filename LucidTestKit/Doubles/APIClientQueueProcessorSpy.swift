@@ -67,6 +67,8 @@ public final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
     public func unregister(_ token: APIClientQueueProcessorResponseHandlerToken) {
         unregisterInvocations.append(token)
     }
+
+    public var jsonCoderConfig = APIJSONCoderConfig()
 }
 
 public final class APIClientQueueProcessorDelegateSpy: APIClientQueueProcessorDelegate {

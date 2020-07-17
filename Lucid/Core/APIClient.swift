@@ -246,12 +246,8 @@ public struct APIRequest<Model>: Equatable {
     /// Request configurations.
     public var config: APIRequestConfig
 
-    /// JSON encoder/decoder to use for encoding/decoding bodies to post/server's responses.
-    public var jsonCoderConfig: APIJSONCoderConfig
-
-    public init(_ config: APIRequestConfig, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
+    public init(_ config: APIRequestConfig) {
         self.config = config
-        self.jsonCoderConfig = jsonCoderConfig
     }
 
     public init(method: HTTPMethod = .get,
@@ -272,11 +268,6 @@ public struct APIRequest<Model>: Equatable {
                                       tag: tag,
                                       queueingStrategy: queueingStrategy)
         self.init(config)
-    }
-
-    public static func == (lhs: APIRequest<Model>, rhs: APIRequest<Model>) -> Bool {
-        guard lhs.config == rhs.config else { return false }
-        return true
     }
 }
 
@@ -306,13 +297,6 @@ public struct APIClientResponse<T> {
 
     public let jsonCoderConfig: APIJSONCoderConfig
 
-    public init(data: T, cachedResponse: Bool, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
-        self.data = data
-        self.header = .empty
-        self.cachedResponse = cachedResponse
-        self.jsonCoderConfig = jsonCoderConfig
-    }
-
     public init(data: T, urlResponse: HTTPURLResponse, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
         self.data = data
         self.header = APIResponseHeader(with: urlResponse.allHeaderFields)
@@ -320,8 +304,19 @@ public struct APIClientResponse<T> {
         self.jsonCoderConfig = jsonCoderConfig
     }
 
+    public init(data: T, cachedResponse: Bool, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
+        self.data = data
+        self.header = .empty
+        self.cachedResponse = cachedResponse
+        self.jsonCoderConfig = jsonCoderConfig
+    }
+
     public func with<O>(data: O) -> APIClientResponse<O> {
-        return APIClientResponse<O>(data: data, cachedResponse: cachedResponse, jsonCoderConfig: jsonCoderConfig)
+        return APIClientResponse<O>(
+            data: data,
+            cachedResponse: cachedResponse,
+            jsonCoderConfig: jsonCoderConfig
+        )
     }
 }
 
@@ -501,9 +496,7 @@ extension APIClient {
                         }
 
                         Logger.log(.info, "\(Self.self): \(self.identifier): Request succeeded: \(requestDescription).")
-                        wrappedCompletion(.success(APIClientResponse(data: data,
-                                                                     urlResponse: response,
-                                                                     jsonCoderConfig: request.jsonCoderConfig)))
+                        wrappedCompletion(.success(APIClientResponse(data: data, urlResponse: response, jsonCoderConfig: self.jsonCoderConfig())))
                     }
                 }
 
@@ -523,7 +516,7 @@ extension APIClient {
             switch result {
             case .success(let response):
                 do {
-                    let model: Model = try self.response(from: response.data, with: request.jsonCoderConfig)
+                    let model: Model = try self.response(from: response.data, with: response.jsonCoderConfig)
                     completion(.success(response.with(data: model)))
                 } catch {
                     completion(.failure(.deserialization(error)))
@@ -697,7 +690,6 @@ extension APIRequest: Codable where Model: Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
         config = try container.decode(APIRequestConfig.self, forKey: .config)
-        jsonCoderConfig = APIJSONCoderConfig()
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -977,10 +969,10 @@ extension APIRequest {
         config.headers["Content-Type"] = contentType.rawValue
     }
 
-    public mutating func set<T: Encodable>(body data: T) {
+    public mutating func set<T: Encodable>(body data: T, jsonEncoder: JSONEncoder = APIJSONCoderConfig.defaultJSONEncoder) {
         do {
             set(contentType: .json)
-            config.body = .raw(try jsonCoderConfig.encoder.encode(data))
+            config.body = .raw(try jsonEncoder.encode(data))
         } catch {
             Logger.log(.error, "\(APIRequest.self): Could not encode body to JSON: \(data): \(error)", assert: true)
         }

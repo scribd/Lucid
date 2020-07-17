@@ -132,6 +132,7 @@ public struct APIRequestConfig: Codable, Hashable {
         var includeSessionKey: Bool
         var timeoutInterval: TimeInterval?
         var queueingStrategy: QueueingStrategy?
+        var background: Bool?
     }
 
     private var core: Core
@@ -170,6 +171,10 @@ public struct APIRequestConfig: Codable, Hashable {
         get { return core.queueingStrategy ?? core.method.defaultQueueingStrategy }
         set { core.queueingStrategy = newValue }
     }
+    public var background: Bool {
+        get { return core.background ?? core.method.defaultBackground }
+        set { core.background = newValue }
+    }
 
     public let deduplicate: Bool
     public let tag: String?
@@ -184,7 +189,8 @@ public struct APIRequestConfig: Codable, Hashable {
                 timeoutInterval: TimeInterval? = nil,
                 deduplicate: Bool? = nil,
                 tag: String? = nil,
-                queueingStrategy: QueueingStrategy? = nil) {
+                queueingStrategy: QueueingStrategy? = nil,
+                background: Bool? = nil) {
 
         self.core = Core(method: method,
                          host: host,
@@ -194,7 +200,8 @@ public struct APIRequestConfig: Codable, Hashable {
                          body: body,
                          includeSessionKey: includeSessionKey,
                          timeoutInterval: timeoutInterval,
-                         queueingStrategy: queueingStrategy)
+                         queueingStrategy: queueingStrategy,
+                         background: background)
         self.deduplicate = {
             if let deduplicate = deduplicate { return deduplicate }
             switch method {
@@ -1142,6 +1149,18 @@ public extension HTTPMethod {
              .post,
              .put:
             return APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: true)
+        }
+    }
+
+    var defaultBackground: Bool {
+        switch self {
+        case .get,
+             .head:
+            return false
+        case .delete,
+             .post,
+             .put:
+            return true
         }
     }
 }

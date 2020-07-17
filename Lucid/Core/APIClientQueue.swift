@@ -636,13 +636,13 @@ private extension APIClientQueueProcessor {
     func _process(_ request: APIClientQueueRequest, _ operationCompletion: @escaping () -> Void) {
 
         #if os(iOS)
-        let backgroundTaskID: Property<UIBackgroundTaskIdentifier> = _backgroundTaskManager.beginBackgroundTask(expirationHandler: {
+        let backgroundTaskID: Property<UIBackgroundTaskIdentifier> = request.wrapped.config.background ? _backgroundTaskManager.beginBackgroundTask(expirationHandler: {
             self.lock.lock()
             defer { self.lock.unlock() }
 
             Logger.log(.warning, "\(APIClientQueueProcessor.self): Background task expired.")
             self._complete(.backgroundSessionExpired(request), operationCompletion)
-        })
+        }) : Property(.invalid)
         #endif
 
         let requestDescription = client.description(for: request.wrapped.config)
@@ -652,10 +652,13 @@ private extension APIClientQueueProcessor {
             defer { self.lock.unlock() }
 
             #if os(iOS)
-            if backgroundTaskID.value != .invalid {
-                self._backgroundTaskManager.endBackgroundTask(backgroundTaskID.value)
-            } else {
-                Logger.log(.warning, "\(APIClientQueueProcessor.self): Received response from server after background task expired.")
+            if request.wrapped.config.background {
+                if backgroundTaskID.value != .invalid {
+                    self._backgroundTaskManager.endBackgroundTask(backgroundTaskID.value)
+                } else {
+                    Logger.log(.warning, "\(APIClientQueueProcessor.self): Received response from server after background task expired.")
+                    return
+                }
             }
             #endif
 

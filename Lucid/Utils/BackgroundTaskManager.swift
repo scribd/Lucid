@@ -23,13 +23,14 @@ extension BackgroundTaskManaging {
     func beginBackgroundTask(timeout: TimeInterval = 30, expirationHandler: @escaping () -> Void) -> Property<UIBackgroundTaskIdentifier> {
         let taskID = Property(UIBackgroundTaskIdentifier.invalid)
 
-        let timer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { timer in
+        let timer = Timer(timeInterval: timeout, repeats: false) { timer in
             timer.invalidate()
             if taskID.value != .invalid {
                 self.endBackgroundTask(taskID.value)
                 taskID.value = self.beginBackgroundTask(timeout: timeout, expirationHandler: expirationHandler).value
             }
         }
+        RunLoop.current.add(timer, forMode: .default)
 
         taskID.value = beginBackgroundTask {
             timer.invalidate()

@@ -8,6 +8,7 @@
 
 import Foundation
 import UIKit
+import ReactiveKit
 
 // MARK: - Constants
 
@@ -455,7 +456,6 @@ final class APIClientQueueProcessor {
 
     #if os(iOS)
     private let _backgroundTaskManager: BackgroundTaskManaging
-    private var _backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
     #endif
 
     weak var delegate: APIClientQueueProcessorDelegate? {
@@ -636,27 +636,30 @@ private extension APIClientQueueProcessor {
     func _process(_ request: APIClientQueueRequest, _ operationCompletion: @escaping () -> Void) {
 
         #if os(iOS)
-        _backgroundTaskID = _backgroundTaskManager.beginBackgroundTask(expirationHandler: {
+        let backgroundTaskID: Property<UIBackgroundTaskIdentifier> = request.wrapped.config.background ? _backgroundTaskManager.beginBackgroundTask(expirationHandler: {
             self.lock.lock()
             defer { self.lock.unlock() }
 
             Logger.log(.warning, "\(APIClientQueueProcessor.self): Background task expired.")
-            self._resetBackgroundTask()
             self._complete(.backgroundSessionExpired(request), operationCompletion)
-        })
+        }) : Property(.invalid)
         #endif
 
         let requestDescription = client.description(for: request.wrapped.config)
         Logger.log(.info, "\(APIClientQueueProcessor.self): Processing request: \(requestDescription)...")
+
         client.send(request: request.wrapped) { result in
             self.lock.lock()
             defer { self.lock.unlock() }
 
             #if os(iOS)
-            if self._backgroundTaskID != .invalid {
-                self._resetBackgroundTask()
-            } else {
-                Logger.log(.warning, "\(APIClientQueueProcessor.self): Received response from server after background task expired.")
+            if request.wrapped.config.background {
+                if backgroundTaskID.value != .invalid {
+                    self._backgroundTaskManager.endBackgroundTask(backgroundTaskID.value)
+                } else {
+                    Logger.log(.warning, "\(APIClientQueueProcessor.self): Received response from server after background task expired.")
+                    return
+                }
             }
             #endif
 
@@ -675,13 +678,6 @@ private extension APIClientQueueProcessor {
     func cacheRequest(_ request: APIClientQueueRequest) {
         diskCache[Constants.cacheKey] = request
     }
-
-    #if os(iOS)
-    private func _resetBackgroundTask() {
-        _backgroundTaskManager.endBackgroundTask(self._backgroundTaskID)
-        _backgroundTaskID = .invalid
-    }
-    #endif
 
     private enum ProcessingResult {
         case success(_ response: APIClientResponse<Data>, _ request: APIClientQueueRequest)

@@ -12,14 +12,12 @@ import Foundation
 
 public extension RemoteEntity {
 
-    static func request(for remotePath: RemotePath<Self>,
-                        jsonCoderConfig: APIJSONCoderConfig,
-                        or cachedRequest: APIRequestConfig?) -> APIRequest<Data>? {
+    static func request(for remotePath: RemotePath<Self>, or cachedRequest: APIRequestConfig?) -> APIRequest<Data>? {
 
         switch (Self.requestConfig(for: remotePath), cachedRequest) {
         case (.some(let config), _),
              (nil, .some(let config)):
-            return APIRequest<Data>(config, jsonCoderConfig: jsonCoderConfig)
+            return APIRequest<Data>(config)
 
         default:
             Logger.log(.error, "\(Self.self): ReadPath: \(remotePath) is not supported.")
@@ -66,7 +64,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
         switch context.dataSource {
         case ._remote(.derivedFromEntityType, _, _, _):
-            guard let newRequest = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig(), or: context.remoteStoreCache.payloadRequest) else {
+            guard let newRequest = E.request(for: path, or: context.remoteStoreCache.payloadRequest) else {
                 Logger.log(.error, "\(Self.self): Remote store could not build valid API request from context \(context)", assert: true)
                 completion(.failure(.invalidContext))
                 return
@@ -76,7 +74,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             hasCachedResponse = context.hasCachedResponse(for: request.config)
 
         case ._remote(.request(let requestConfig, _), _, _, _):
-            request = APIRequest<Data>(requestConfig, jsonCoderConfig: client.jsonCoderConfig())
+            request = APIRequest<Data>(requestConfig)
             hasCachedResponse = context.hasCachedResponse(for: request.config)
 
         case .local,
@@ -172,7 +170,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
         switch context.dataSource {
         case ._remote(.derivedFromEntityType, _, _, _):
             let path = RemotePath<E>.search(query)
-            guard let newRequest = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig(), or: context.remoteStoreCache.payloadRequest) else {
+            guard let newRequest = E.request(for: path, or: context.remoteStoreCache.payloadRequest) else {
                 Logger.log(.error, "\(Self.self): could not build valid request.", assert: true)
                 completion(.failure(.invalidContext))
                 return
@@ -182,7 +180,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             hasCachedResponse = context.hasCachedResponse(for: request.config)
 
         case ._remote(.request(let requestConfig, _), _, _, _):
-            request = APIRequest<Data>(requestConfig, jsonCoderConfig: client.jsonCoderConfig())
+            request = APIRequest<Data>(requestConfig)
             hasCachedResponse = context.hasCachedResponse(for: request.config)
 
         case .local,
@@ -321,7 +319,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             switch context.dataTarget {
             case .localAndRemote(.derivedFromEntityType),
                  .remote(.derivedFromEntityType):
-                if let request = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig(), or: nil) {
+                if let request = E.request(for: path, or: nil) {
                     return APIClientQueueRequest(wrapping: request, identifiers: [entity.identifier])
                 } else {
                     countMismatch = true
@@ -334,7 +332,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                     countMismatch = true
                     return nil
                 }
-                let request = APIRequest<Data>(config, jsonCoderConfig: client.jsonCoderConfig())
+                let request = APIRequest<Data>(config)
                 return APIClientQueueRequest(wrapping: request, identifiers: [entity.identifier])
 
             case .localAndRemote(.request(let config)),
@@ -342,7 +340,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                 if entities.array.count > 1 {
                     Logger.log(.error, "\(Self.self): Data target \(context.dataTarget) does not support multiple entities at once. Use .localAndRemoteDerivedFromEntityType or .localAndRemoteDerivedFromPath instead.", assert: true)
                 }
-                let request = APIRequest<Data>(config, jsonCoderConfig: client.jsonCoderConfig())
+                let request = APIRequest<Data>(config)
                 return APIClientQueueRequest(wrapping: request, identifiers: [entity.identifier])
 
             case .local:
@@ -378,7 +376,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
         switch context.dataTarget {
         case .localAndRemote(.derivedFromEntityType),
              .remote(.derivedFromEntityType):
-            guard let request = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig(), or: nil) else {
+            guard let request = E.request(for: path, or: nil) else {
                 completion(.failure(.notSupported))
                 return
             }
@@ -393,7 +391,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
         case .localAndRemote(.request(let config)),
              .remote(.request(let config)):
-            let request = APIRequest<Data>(config, jsonCoderConfig: client.jsonCoderConfig())
+            let request = APIRequest<Data>(config)
             clientQueueRequest = APIClientQueueRequest(wrapping: request, identifiers: identifiers)
 
         case .local:
@@ -417,7 +415,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             switch context.dataTarget {
             case .localAndRemote(.derivedFromEntityType),
                  .remote(.derivedFromEntityType):
-                if let request = E.request(for: path, jsonCoderConfig: client.jsonCoderConfig(), or: nil) {
+                if let request = E.request(for: path, or: nil) {
                     return APIClientQueueRequest(wrapping: request, identifiers: [identifier])
                 } else {
                     countMismatch = true
@@ -434,7 +432,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                 if identifiers.array.count > 1 {
                     Logger.log(.error, "\(Self.self): Data target \(context.dataTarget) does not support multiple entities at once. Use endpoint .derivedFromEntityType or .derivedFromPath instead.", assert: true)
                 }
-                let request = APIRequest<Data>(config, jsonCoderConfig: client.jsonCoderConfig())
+                let request = APIRequest<Data>(config)
                 return APIClientQueueRequest(wrapping: request, identifiers: [identifier])
 
             case .local:

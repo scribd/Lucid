@@ -8,11 +8,41 @@
 
 import Foundation
 import UIKit
+import ReactiveKit
 
 #if os(iOS)
+
 protocol BackgroundTaskManaging: AnyObject {
     func beginBackgroundTask(expirationHandler: (() -> Void)?) -> UIBackgroundTaskIdentifier
     func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier)
+}
+
+extension BackgroundTaskManaging {
+
+    /// Begin background task and renew it once it times out.
+    func beginBackgroundTask(timeout: TimeInterval = 30, expirationHandler: @escaping () -> Void) -> Property<UIBackgroundTaskIdentifier> {
+        let taskID = Property(UIBackgroundTaskIdentifier.invalid)
+
+        let timer = Timer(timeInterval: timeout, repeats: false) { timer in
+            timer.invalidate()
+            if taskID.value != .invalid {
+                self.endBackgroundTask(taskID.value)
+                taskID.value = self.beginBackgroundTask(timeout: timeout, expirationHandler: expirationHandler).value
+            }
+        }
+        RunLoop.current.add(timer, forMode: .default)
+
+        taskID.value = beginBackgroundTask {
+            timer.invalidate()
+            if taskID.value != .invalid {
+                self.endBackgroundTask(taskID.value)
+                taskID.value = .invalid
+            }
+            expirationHandler()
+        }
+
+        return taskID
+    }
 }
 
 extension UIApplication: BackgroundTaskManaging { }

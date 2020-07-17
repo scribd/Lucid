@@ -157,6 +157,7 @@
 		191F913624BFA8250050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F903E24BFA7F40050C7C6 /* ReactiveKit.framework */; };
 		191F913924BFA83B0050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F904224BFA7F40050C7C6 /* ReactiveKit.framework */; };
 		191F913A24BFA85B0050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F904224BFA7F40050C7C6 /* ReactiveKit.framework */; };
+		191F919424C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191F919324C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift */; };
 		1965B2972493E4690007B6CE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1965B2962493E4690007B6CE /* AppDelegate.swift */; };
 		1965B2992493E4690007B6CE /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1965B2982493E4690007B6CE /* SceneDelegate.swift */; };
 		1965B29B2493E4690007B6CE /* MovieList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1965B29A2493E4690007B6CE /* MovieList.swift */; };
@@ -741,6 +742,7 @@
 		191F911E24BFA7F40050C7C6 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		191F911F24BFA7F40050C7C6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		191F912024BFA7F40050C7C6 /* .lucid.yaml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .lucid.yaml; sourceTree = "<group>"; };
+		191F919324C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskManagerTests.swift; sourceTree = "<group>"; };
 		1965B2942493E4690007B6CE /* Sample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1965B2962493E4690007B6CE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		1965B2982493E4690007B6CE /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -1031,6 +1033,7 @@
 			isa = PBXGroup;
 			children = (
 				19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */,
+				191F919324C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift */,
 				19ED00942481C3960033B7BD /* DataStructuresTests.swift */,
 				190ADC9F2458D8FE00D22F6D /* DiskCacheTests.swift */,
 				190ADC9D2458D8FE00D22F6D /* DiskQueueTests.swift */,
@@ -2299,6 +2302,7 @@
 				190ADCAD2458D8FE00D22F6D /* DiskCacheTests.swift in Sources */,
 				190ADCA32458D8FE00D22F6D /* RecoverableStoreTests.swift in Sources */,
 				190ADCA62458D8FE00D22F6D /* BaseStoreTests.swift in Sources */,
+				191F919424C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift in Sources */,
 				190ADCA82458D8FE00D22F6D /* RelationshipControllerTests.swift in Sources */,
 				190ADCAA2458D8FE00D22F6D /* CoreManagerTests.swift in Sources */,
 				F405C35424A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift in Sources */,

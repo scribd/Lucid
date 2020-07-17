@@ -66,6 +66,8 @@ public final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
     public func map(_ transform: (APIClientQueueRequest) -> APIClientQueueRequest) {
         mapInvocations += 1
     }
+
+    public var jsonCoderConfig = APIJSONCoderConfig()
 }
 
 #endif

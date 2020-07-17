@@ -89,7 +89,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     // MARK: - Tests
 
     func test_processor_with_existing_cached_operation_prepends_to_client_queue() {
-        let request = APIRequest<Data>(method: .get, path: .path("fake_path"))
+        let request = APIRequest<Data>(method: .post, path: .path("fake_path"))
         let mockQueueRequest = APIClientQueueRequest(wrapping: request)
         diskCacheSpy.values = ["APIClientQueueProcessorCacheKey": mockQueueRequest]
 
@@ -102,7 +102,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_with_existing_cached_operation_does_not_process_at_setup() {
-        let request = APIRequest<Data>(method: .get, path: .path("fake_path"))
+        let request = APIRequest<Data>(method: .post, path: .path("fake_path"))
         let mockQueueRequest = APIClientQueueRequest(wrapping: request)
         diskCacheSpy.values = ["APIClientQueueProcessorCacheKey": mockQueueRequest]
 
@@ -159,7 +159,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_tells_scheduler_true_if_there_is_a_pending_request() {
-        let request = APIRequest<Data>(method: .get, path: .path("fake_path"))
+        let request = APIRequest<Data>(method: .post, path: .path("fake_path"))
         processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
         processor.delegate = processDelegateSpy
 
@@ -189,8 +189,8 @@ final class APIClientQueueProcessorTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_calls_background_task_manager_function_begin_background_task_if_there_is_a_pending_request() {
-        let request = APIRequest<Data>(method: .get, path: .path("fake_path"))
+    func test_processor_calls_background_task_manager_function_begin_background_task_if_there_is_a_pending_post_request() {
+        let request = APIRequest<Data>(method: .post, path: .path("fake_path"))
         processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
         processor.delegate = processDelegateSpy
 
@@ -215,9 +215,35 @@ final class APIClientQueueProcessorTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 
+    func test_processor_does_not_call_background_task_manager_function_begin_background_task_if_there_is_a_pending_get_request() {
+        let request = APIRequest<Data>(method: .get, path: .path("fake_path"))
+        processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
+        processor.delegate = processDelegateSpy
+
+        clientSpy.resultStubs[request.config] = Result<APIClientResponse<Data>, APIError>.success(
+            APIClientResponse(data: Data(), cachedResponse: false)
+        )
+
+        XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 0)
+        XCTAssertTrue(self.backgroundTaskManagerSpy.expirationHandlerRecords.isEmpty)
+        XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 0)
+
+        processor.processNext()
+
+        let expectation = self.expectation(description: "processor")
+        waitForAsyncQueues {
+            XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 0)
+            XCTAssertTrue(self.backgroundTaskManagerSpy.expirationHandlerRecords.isEmpty)
+            XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 1)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
+
     func test_processor_does_not_attempt_to_process_request_if_already_running_barrier_request() {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: false)
-        let request = APIRequest<Data>(method: .get, path: .path("fake_path"), queueingStrategy: queueingStrategy)
+        let request = APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy)
         processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
         processor.delegate = processDelegateSpy
 
@@ -242,7 +268,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
     func test_processor_does_attempt_to_process_request_if_already_running_concurrent_request() {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .concurrent, retryOnInternetConnectionFailure: false)
-        let request = APIRequest<Data>(method: .get, path: .path("fake_path"), queueingStrategy: queueingStrategy)
+        let request = APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy)
         processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
         processor.delegate = processDelegateSpy
 
@@ -266,8 +292,8 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_attempts_to_process_after_finished_running() {
-        let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path1")))
-        let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path2")))
+        let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path1")))
+        let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path2")))
         processor.delegate = processDelegateSpy
 
         clientSpy.resultStubs = [
@@ -304,7 +330,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_calls_client_function_send_if_there_is_a_pending_request() {
-        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
 
@@ -326,7 +352,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_tells_scheduler_request_succeeded_and_asks_for_next_request_for_result_success() {
-        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
 
@@ -352,7 +378,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     private func _testFailureStateWithAPIError(_ apiError: APIError) {
-        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
 
@@ -402,7 +428,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_tells_scheduler_request_failed_and_prepends_request_for_failure_with_error_no_internet_connection() {
-        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
 
@@ -429,7 +455,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_tells_scheduler_request_failed_and_prepends_request_for_failure_with_error_internet_connection_lost() {
-        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
 
@@ -456,7 +482,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_tells_scheduler_request_failed_and_prepends_request_for_failure_with_error_internet_connection_timed_out() {
-        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
 
@@ -483,7 +509,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_tells_scheduler_request_failed_and_prepends_request_for_background_session_expired() {
-        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
 
@@ -521,7 +547,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_tells_scheduler_request_does_not_failed_or_prepend_request_for_background_session_expired_if_request_is_already_processed() {
-        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
 
@@ -559,7 +585,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_should_call_response_handlers_after_process_is_complete_with_success() {
-        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
 
@@ -584,7 +610,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_should_call_response_handlers_after_process_is_complete_with_failure() {
-        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
 
@@ -610,7 +636,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
     func test_processor_should_not_call_response_handlers_after_process_is_complete_with_internet_connection_failure_for_request_with_retry_set_to_true() {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: true)
-        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path"), queueingStrategy: queueingStrategy))
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
 
@@ -634,7 +660,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
     func test_processor_calls_response_handlers_after_process_is_complete_with_internet_connection_failure_for_request_with_retry_set_to_false() {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: false)
-        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path"), queueingStrategy: queueingStrategy))
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
 
@@ -659,16 +685,16 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
     func test_processor_calls_all_response_handlers_for_requests_in_queue_after_process_is_complete_with_internet_connection_failure_for_requests_with_retry_set_to_false() {
         let queueingStrategy1 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: true)
-        let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path"), queueingStrategy: queueingStrategy1))
+        let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy1))
 
         let queueingStrategy2 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: false)
-        let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path"), queueingStrategy: queueingStrategy2))
+        let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy2))
 
         let queueingStrategy3 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: true)
-        let request3 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path"), queueingStrategy: queueingStrategy3))
+        let request3 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy3))
 
         let queueingStrategy4 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: false)
-        let request4 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path"), queueingStrategy: queueingStrategy4))
+        let request4 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy4))
 
         let requestQueue = [request2, request3, request4]
 

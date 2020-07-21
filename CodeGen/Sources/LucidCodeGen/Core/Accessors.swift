@@ -5,6 +5,8 @@
 //  Created by Théophane Rupin on 3/27/19.
 //
 
+import Foundation
+
 extension Descriptions {
     
     func subtype(for name: String) throws -> Subtype {
@@ -134,7 +136,30 @@ extension Entity {
     }
 
     public var previousSearchableName: String? {
-        return previousName?.snakeCased
+        guard let previousName = previousName else { return nil }
+
+        // Remove potential core data model version
+        var name: String = previousName
+            .split(separator: "_")
+            .reversed()
+            .reduce(into: (endCondition: false, words: [String]())) { data, word in
+                let word = String(word)
+                let isNumber = word.contains { $0.isNumber == false } == false
+                if isNumber == false || data.endCondition {
+                    data.words = [word] + data.words
+                    data.endCondition = true
+                }
+            }
+            .words
+            .joined(separator: "_")
+
+        // Remove potential suffix
+        if name.hasSuffix(String.Configuration.entitySuffix) {
+            let lowerBound = name.index(name.endIndex, offsetBy: -String.Configuration.entitySuffix.count)
+            name = name.replacingCharacters(in: lowerBound..<name.endIndex, with: String())
+        }
+
+        return name.snakeCased
     }
 }
 

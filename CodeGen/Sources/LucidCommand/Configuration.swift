@@ -98,7 +98,10 @@ struct SwiftCommandConfiguration {
         configuration.forceBuildNewDBModel = forceBuildNewDBModel ?? configuration.forceBuildNewDBModel
         configuration.forceBuildNewDBModelForVersions = forceBuildNewDBModelForVersions ?? configuration.forceBuildNewDBModelForVersions
         configuration.reactiveKit = reactiveKit ?? configuration.reactiveKit
-        
+
+        String.Configuration.entitySuffix = configuration.entitySuffix
+        String.Configuration.setLexicon(configuration.lexicon)
+
         return configuration
     }
 }

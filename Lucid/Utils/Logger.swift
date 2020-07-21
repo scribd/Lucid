@@ -50,8 +50,20 @@ extension Logging {
 
 @objc public final class Logger: NSObject {
 
+    private static var _shared: Logging? = DefaultLogger()
+    private static let dispatchQueue = DispatchQueue(label: "\(Logger.self):shared", attributes: .concurrent)
+
     @objc(sharedLogger)
-    public static var shared: Logging? = DefaultLogger()
+    public static var shared: Logging? {
+        get {
+            return dispatchQueue.sync { _shared }
+        }
+        set {
+            dispatchQueue.async(flags: .barrier) {
+                self._shared = newValue
+            }
+        }
+    }
 
     public static func log(_ type: LogType,
                            _ message: @autoclosure () -> String,

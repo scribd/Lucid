@@ -155,8 +155,8 @@ extension Entity {
 
         // Remove potential suffix
         if name.hasSuffix(String.Configuration.entitySuffix) {
-            let lowerBound = name.index(name.endIndex, offsetBy: -String.Configuration.entitySuffix.count)
-            name = name.replacingCharacters(in: lowerBound..<name.endIndex, with: String())
+            let higherBound = name.index(name.endIndex, offsetBy: -String.Configuration.entitySuffix.count)
+            name = String(name[name.startIndex..<higherBound])
         }
 
         return name.snakeCased

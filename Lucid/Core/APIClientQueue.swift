@@ -428,8 +428,8 @@ protocol APIClientQueueProcessing: AnyObject {
     var delegate: APIClientQueueProcessorDelegate? { get set }
 }
 
-typealias APIClientQueueProcessorResponseHandlerToken = UUID
-typealias APIClientQueueProcessorResponseHandler = (
+public typealias APIClientQueueProcessorResponseHandlerToken = UUID
+public typealias APIClientQueueProcessorResponseHandler = (
     _ result: Result<APIClientResponse<Data>, APIError>,
     _ request: APIClientQueueRequest,
     _ completion: @escaping () -> Void

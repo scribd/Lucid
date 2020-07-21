@@ -6,14 +6,12 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
-#if !RELEASE
-
-import XCTest
+import Foundation
 
 #if LUCID_REACTIVE_KIT
-@testable import Lucid_ReactiveKit
+import Lucid_ReactiveKit
 #else
-@testable import Lucid
+import Lucid
 #endif
 
 public final class APIRequestDeduplicatorSpy: APIRequestDeduplicating {
@@ -46,5 +44,3 @@ public final class APIRequestDeduplicatorSpy: APIRequestDeduplicating {
         applyResultToDuplicatesInvocations.append((request, result))
     }
 }
-
-#endif

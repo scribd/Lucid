@@ -51,84 +51,84 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     // MARK: - Method Types
 
     #if LUCID_REACTIVE_KIT
-    typealias GetEntity = (
+    public typealias GetEntity = (
         _ query: Query<E>,
         _ context: ReadContext<E>
     ) -> Signal<QueryResult<E>, ManagerError>
     #else
-    typealias GetEntity = (
+    public typealias GetEntity = (
         _ query: Query<E>,
         _ context: ReadContext<E>
     ) -> AnyPublisher<QueryResult<E>, ManagerError>
     #endif
 
     #if LUCID_REACTIVE_KIT
-    typealias SearchEntities = (
+    public typealias SearchEntities = (
         _ query: Query<E>,
         _ context: ReadContext<E>
     ) -> (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>)
     #else
-    typealias SearchEntities = (
+    public typealias SearchEntities = (
         _ query: Query<E>,
         _ context: ReadContext<E>
     ) -> (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>)
     #endif
 
     #if LUCID_REACTIVE_KIT
-    typealias SetEntity = (
+    public typealias SetEntity = (
         _ entity: E,
         _ context: WriteContext<E>
     ) -> Signal<E, ManagerError>
     #else
-    typealias SetEntity = (
+    public typealias SetEntity = (
         _ entity: E,
         _ context: WriteContext<E>
     ) -> AnyPublisher<E, ManagerError>
     #endif
 
     #if LUCID_REACTIVE_KIT
-    typealias SetEntities = (
+    public typealias SetEntities = (
         _ entities: AnySequence<E>,
         _ context: WriteContext<E>
     ) -> Signal<AnySequence<E>, ManagerError>
     #else
-    typealias SetEntities = (
+    public typealias SetEntities = (
         _ entities: AnySequence<E>,
         _ context: WriteContext<E>
     ) -> AnyPublisher<AnySequence<E>, ManagerError>
     #endif
 
     #if LUCID_REACTIVE_KIT
-    typealias RemoveAllEntities = (
+    public typealias RemoveAllEntities = (
         _ query: Query<E>,
         _ context: WriteContext<E>
     ) -> Signal<AnySequence<E.Identifier>, ManagerError>
     #else
-    typealias RemoveAllEntities = (
+    public typealias RemoveAllEntities = (
         _ query: Query<E>,
         _ context: WriteContext<E>
     ) -> AnyPublisher<AnySequence<E.Identifier>, ManagerError>
     #endif
 
     #if LUCID_REACTIVE_KIT
-    typealias RemoveEntity = (
+    public typealias RemoveEntity = (
         _ identifier: E.Identifier,
         _ context: WriteContext<E>
     ) -> Signal<Void, ManagerError>
     #else
-    typealias RemoveEntity = (
+    public typealias RemoveEntity = (
         _ identifier: E.Identifier,
         _ context: WriteContext<E>
     ) -> AnyPublisher<Void, ManagerError>
     #endif
 
     #if LUCID_REACTIVE_KIT
-    typealias RemoveEntities = (
+    public typealias RemoveEntities = (
         _ identifiers: AnySequence<E.Identifier>,
         _ context: WriteContext<E>
     ) -> Signal<Void, ManagerError>
     #else
-    typealias RemoveEntities = (
+    public typealias RemoveEntities = (
         _ identifiers: AnySequence<E.Identifier>,
         _ context: WriteContext<E>
     ) -> AnyPublisher<Void, ManagerError>
@@ -145,14 +145,14 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     private let removeEntities: RemoveEntities
     private weak var relationshipManager: RelationshipManager?
 
-    init(getEntity: @escaping GetEntity,
-         searchEntities: @escaping SearchEntities,
-         setEntity: @escaping SetEntity,
-         setEntities: @escaping SetEntities,
-         removeAllEntities: @escaping RemoveAllEntities,
-         removeEntity: @escaping RemoveEntity,
-         removeEntities: @escaping RemoveEntities,
-         relationshipManager: RelationshipManager?) {
+    public init(getEntity: @escaping GetEntity,
+                searchEntities: @escaping SearchEntities,
+                setEntity: @escaping SetEntity,
+                setEntities: @escaping SetEntities,
+                removeAllEntities: @escaping RemoveAllEntities,
+                removeEntity: @escaping RemoveEntity,
+                removeEntities: @escaping RemoveEntities,
+                relationshipManager: RelationshipManager?) {
 
         self.getEntity = getEntity
         self.searchEntities = searchEntities

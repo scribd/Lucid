@@ -6,15 +6,13 @@
 //  Copyright © 2018 Scribd. All rights reserved.
 //
 
-#if !RELEASE
-
 import Foundation
 import XCTest
 
 #if LUCID_REACTIVE_KIT
-@testable import Lucid_ReactiveKit
+import Lucid_ReactiveKit
 #else
-@testable import Lucid
+import Lucid
 #endif
 
 open class StoreSpy<E: Entity>: StoringConvertible {
@@ -162,5 +160,3 @@ open class StoreSpy<E: Entity>: StoringConvertible {
         }
     }
 }
-
-#endif

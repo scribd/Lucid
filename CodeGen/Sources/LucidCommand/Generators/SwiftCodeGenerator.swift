@@ -28,12 +28,7 @@ final class SwiftCodeGenerator {
          coreDataMigrationsFunction: String?,
          reactiveKit: Bool,
          useCoreDataLegacyNaming: Bool,
-         lexicon: [String],
-         entitySuffix: String,
          logger: Logger) {
-
-        String.Configuration.setLexicon(lexicon)
-        String.Configuration.entitySuffix = entitySuffix
 
         let platforms = Set(descriptions.flatMap { $0.value.platforms }).sorted()
         let descriptionVariants: [(Platform?, [String: Descriptions])]

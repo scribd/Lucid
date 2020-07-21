@@ -36,7 +36,7 @@ let main = Group {
                                                                selectedTargets: Set(selectedTargets),
                                                                reactiveKit: reactiveKit == "true" ? true : reactiveKit == "false" ? false : nil,
                                                                logger: logger)
-        
+
         let currentDescriptionsParser = DescriptionsParser(inputPath: configuration.inputPath,
                                                            targets: configuration.targets,
                                                            logger: logger)
@@ -101,8 +101,6 @@ let main = Group {
                                                coreDataMigrationsFunction: configuration.coreDataMigrationsFunction,
                                                reactiveKit: configuration.reactiveKit,
                                                useCoreDataLegacyNaming: configuration.useCoreDataLegacyNaming,
-                                               lexicon: configuration.lexicon,
-                                               entitySuffix: configuration.entitySuffix,
                                                logger: logger)
             try generator.generate()
         }

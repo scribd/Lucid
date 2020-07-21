@@ -80,7 +80,7 @@ struct MetaCoreDataMigrationTests {
                 
             override func setUp() {
                 super.setUp()
-            
+
                 Logger.shared = LoggerMock()
             }
             
@@ -103,13 +103,15 @@ struct MetaCoreDataMigrationTests {
             }
                 
             private func runTest(for sqliteFile: String, version: Version) throws {
-            
+
                 try buildVersionVariables()
-                
+
                 guard let appSupportDirectory = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory, .userDomainMask, true).first else {
                     XCTFail("Could not find app support directory")
                     return
                 }
+
+                var hasExpectations = false
 
                 let sourceURL = URL(fileURLWithPath: "\(appTestsOutputPath)/SQLite/\\(sqliteFile)")
                 let destinationURL = URL(fileURLWithPath: "\\(appSupportDirectory)/\\(sqliteFile)")
@@ -138,6 +140,7 @@ struct MetaCoreDataMigrationTests {
                 let testCode = PlainCode(code: """
                 
                 let \(entity.transformedName.variableCased())Expectation = self.expectation(description: "\(entity.transformedName)")
+                hasExpectations = true
                 let \(entity.transformedName.variableCased())CoreDataStore = \(MetaCode(meta: TypeIdentifier.coreDataStore(of: entity.typeID())))(coreDataManager: coreDataManager)
                 \(entity.transformedName.variableCased())CoreDataStore.get(byID: \(entity.transformedName)Factory\(entity.hasVoidIdentifier ? "()" : "(42)").entity.identifier, in: _ReadContext<EndpointResultPayload>()) { result in
                     defer { \(entity.transformedName.variableCased())Expectation.fulfill() }
@@ -185,7 +188,7 @@ struct MetaCoreDataMigrationTests {
                 }
                 """)
 
-                if entity.previousName == nil, let addedAtVersion = entity.addedAtVersion {
+                if let addedAtVersion = entity.addedAtVersion {
                     return If(condition:
                         .value(Reference.named("version")) >= .value(Reference.named("version\(variableFormatForVersion(addedAtVersion))"))
                     ).adding(member: testCode)
@@ -193,7 +196,9 @@ struct MetaCoreDataMigrationTests {
                     return testCode
                 }
             }))
-                
+
+                guard hasExpectations else { return }
+
                 waitForExpectations(timeout: 10) { (_: Error?) in
                     if self.fileManager.fileExists(atPath: destinationURL.path) {
                         try! self.fileManager.removeItem(at: destinationURL)

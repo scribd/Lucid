@@ -6,14 +6,12 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
-#if !RELEASE
-
 import Foundation
 
 #if LUCID_REACTIVE_KIT
-@testable import Lucid_ReactiveKit
+import Lucid_ReactiveKit
 #else
-@testable import Lucid
+import Lucid
 #endif
 
 public final class APIClientQueueProcessorResponseHandlerSpy {
@@ -63,5 +61,3 @@ public final class APIClientQueueResponseHandlerSpy: APIClientQueueResponseHandl
         completion()
     }
 }
-
-#endif

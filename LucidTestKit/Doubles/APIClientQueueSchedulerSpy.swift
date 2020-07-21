@@ -6,12 +6,10 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
-#if !RELEASE
-
 #if LUCID_REACTIVE_KIT
-@testable import Lucid_ReactiveKit
+import Lucid_ReactiveKit
 #else
-@testable import Lucid
+import Lucid
 #endif
 
 public final class APIClientQueueSchedulerSpy: APIClientQueueScheduling {
@@ -70,5 +68,3 @@ public final class APIClientQueueSchedulerDelegateSpy: APIClientQueueSchedulerDe
         return processNextStubs.first ?? .didNotProcess
     }
 }
-
-#endif

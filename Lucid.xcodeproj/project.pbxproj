@@ -86,7 +86,6 @@
 		190ADCB72458D99600D22F6D /* LucidTestKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 190ADCB52458D99600D22F6D /* LucidTestKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		190ADCD12458D9A500D22F6D /* RelationshipCoreManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBC2458D9A500D22F6D /* RelationshipCoreManagerSpy.swift */; };
 		190ADCD22458D9A500D22F6D /* StubCoreDataManagerFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBD2458D9A500D22F6D /* StubCoreDataManagerFactory.swift */; };
-		190ADCD32458D9A500D22F6D /* BackgroundTaskManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBE2458D9A500D22F6D /* BackgroundTaskManagerSpy.swift */; };
 		190ADCD42458D9A500D22F6D /* EntityRelationshipSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBF2458D9A500D22F6D /* EntityRelationshipSpy.swift */; };
 		190ADCD52458D9A500D22F6D /* APIClientQueueSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCC02458D9A500D22F6D /* APIClientQueueSpy.swift */; };
 		190ADCD62458D9A500D22F6D /* GraphStub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCC12458D9A500D22F6D /* GraphStub.swift */; };
@@ -100,9 +99,7 @@
 		190ADCDE2458D9A500D22F6D /* APIClientQueueSchedulerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCC92458D9A500D22F6D /* APIClientQueueSchedulerSpy.swift */; };
 		190ADCDF2458D9A500D22F6D /* FakeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCA2458D9A500D22F6D /* FakeStore.swift */; };
 		190ADCE12458D9A500D22F6D /* DiskCacheSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCD2458D9A500D22F6D /* DiskCacheSpy.swift */; };
-		190ADCE22458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
 		190ADCE32458D9A500D22F6D /* AnyEntitySpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCF2458D9A500D22F6D /* AnyEntitySpy.swift */; };
-		190ADCE42458D9A500D22F6D /* APIClientQueueProcessorSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCD02458D9A500D22F6D /* APIClientQueueProcessorSpy.swift */; };
 		190ADCE72458DA9B00D22F6D /* Lucid.h in Headers */ = {isa = PBXBuildFile; fileRef = 190ADC0B2458D71000D22F6D /* Lucid.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		190ADCE92458DA9B00D22F6D /* LRUStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC3F2458D89C00D22F6D /* LRUStore.swift */; };
 		190ADCEA2458DA9B00D22F6D /* ManagerResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC312458D89C00D22F6D /* ManagerResult.swift */; };
@@ -260,6 +257,8 @@
 		19830121249BDE4400DFC685 /* RequestConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19830120249BDE4400DFC685 /* RequestConfig.swift */; };
 		19830123249C1CAA00DFC685 /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19830122249C1CAA00DFC685 /* ImageManager.swift */; };
 		19830134249D417100DFC685 /* MovieDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19830133249D417000DFC685 /* MovieDetail.swift */; };
+		198CC31424C663D600E2F951 /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
+		198CC31524C663D700E2F951 /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
 		19B70F0C24A291D30092BB5A /* Lucid_ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 196F9ADC24A148B100B1866C /* Lucid_ReactiveKit.framework */; };
 		19B70F1324A2A2950092BB5A /* LucidTestKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 190ADCB52458D99600D22F6D /* LucidTestKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		19B70F1524A2A2950092BB5A /* StubCoreDataManagerFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBD2458D9A500D22F6D /* StubCoreDataManagerFactory.swift */; };
@@ -275,13 +274,12 @@
 		19B70F2024A2A2950092BB5A /* APIClientSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCC22458D9A500D22F6D /* APIClientSpy.swift */; };
 		19B70F2124A2A2950092BB5A /* APIClientQueueSchedulerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCC92458D9A500D22F6D /* APIClientQueueSchedulerSpy.swift */; };
 		19B70F2224A2A2950092BB5A /* APIClientQueueSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCC02458D9A500D22F6D /* APIClientQueueSpy.swift */; };
-		19B70F2324A2A2950092BB5A /* APIClientQueueProcessorSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCD02458D9A500D22F6D /* APIClientQueueProcessorSpy.swift */; };
 		19B70F2424A2A2950092BB5A /* RelationshipCoreManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBC2458D9A500D22F6D /* RelationshipCoreManagerSpy.swift */; };
 		19B70F2524A2A2950092BB5A /* APIRequestDeduplicatorSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCC72458D9A500D22F6D /* APIRequestDeduplicatorSpy.swift */; };
-		19B70F2624A2A2950092BB5A /* BackgroundTaskManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBE2458D9A500D22F6D /* BackgroundTaskManagerSpy.swift */; };
-		19B70F2724A2A2950092BB5A /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
 		19B70F2824A2A2950092BB5A /* EntitySpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCC52458D9A500D22F6D /* EntitySpy.swift */; };
 		19B70F4E24A2AF9B0092BB5A /* LucidTestKit_ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 19B70F3224A2A2950092BB5A /* LucidTestKit_ReactiveKit.framework */; };
+		19C117F324C64F7F00206D65 /* APIClientQueueProcessorSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCD02458D9A500D22F6D /* APIClientQueueProcessorSpy.swift */; };
+		19C117FA24C6508500206D65 /* BackgroundTaskManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBE2458D9A500D22F6D /* BackgroundTaskManagerSpy.swift */; };
 		19ED00952481C3960033B7BD /* DataStructuresTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ED00942481C3960033B7BD /* DataStructuresTests.swift */; };
 		19ED00972481C3D10033B7BD /* AsyncOperationQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */; };
 		DE8294BB24BFB2FA0011A915 /* DataTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE8294BA24BFB2FA0011A915 /* DataTypeTests.swift */; };
@@ -2295,11 +2293,13 @@
 				19ED00952481C3960033B7BD /* DataStructuresTests.swift in Sources */,
 				190ADCA42458D8FE00D22F6D /* CoreDataStoreTests.swift in Sources */,
 				F48C717724896F5400099980 /* CoreManagerExtrasTests.swift in Sources */,
+				19C117F324C64F7F00206D65 /* APIClientQueueProcessorSpy.swift in Sources */,
 				190ADCAB2458D8FE00D22F6D /* DiskQueueTests.swift in Sources */,
 				F405C35324A41844004E1BB3 /* APIClientQueueProcessorTests.swift in Sources */,
 				190ADCAC2458D8FE00D22F6D /* SignalTests.swift in Sources */,
 				190ADCA52458D8FE00D22F6D /* LRUStoreTests.swift in Sources */,
 				190ADCAD2458D8FE00D22F6D /* DiskCacheTests.swift in Sources */,
+				19C117FA24C6508500206D65 /* BackgroundTaskManagerSpy.swift in Sources */,
 				190ADCA32458D8FE00D22F6D /* RecoverableStoreTests.swift in Sources */,
 				190ADCA62458D8FE00D22F6D /* BaseStoreTests.swift in Sources */,
 				191F919424C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift in Sources */,
@@ -2332,12 +2332,10 @@
 				190ADCD72458D9A500D22F6D /* APIClientSpy.swift in Sources */,
 				190ADCDE2458D9A500D22F6D /* APIClientQueueSchedulerSpy.swift in Sources */,
 				190ADCD52458D9A500D22F6D /* APIClientQueueSpy.swift in Sources */,
-				190ADCE42458D9A500D22F6D /* APIClientQueueProcessorSpy.swift in Sources */,
 				190ADCD12458D9A500D22F6D /* RelationshipCoreManagerSpy.swift in Sources */,
 				190ADCDC2458D9A500D22F6D /* APIRequestDeduplicatorSpy.swift in Sources */,
 				F47E5EFB24AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld in Sources */,
-				190ADCD32458D9A500D22F6D /* BackgroundTaskManagerSpy.swift in Sources */,
-				190ADCE22458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift in Sources */,
+				198CC31424C663D600E2F951 /* APIClientQueueResponseHandlerSpy.swift in Sources */,
 				190ADCDA2458D9A500D22F6D /* EntitySpy.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2544,12 +2542,10 @@
 				19B70F2024A2A2950092BB5A /* APIClientSpy.swift in Sources */,
 				19B70F2124A2A2950092BB5A /* APIClientQueueSchedulerSpy.swift in Sources */,
 				19B70F2224A2A2950092BB5A /* APIClientQueueSpy.swift in Sources */,
-				19B70F2324A2A2950092BB5A /* APIClientQueueProcessorSpy.swift in Sources */,
 				19B70F2424A2A2950092BB5A /* RelationshipCoreManagerSpy.swift in Sources */,
 				19B70F2524A2A2950092BB5A /* APIRequestDeduplicatorSpy.swift in Sources */,
 				F479172F24AA5A3D001FF97F /* StubCoreDataModel.xcdatamodeld in Sources */,
-				19B70F2624A2A2950092BB5A /* BackgroundTaskManagerSpy.swift in Sources */,
-				19B70F2724A2A2950092BB5A /* APIClientQueueResponseHandlerSpy.swift in Sources */,
+				198CC31524C663D700E2F951 /* APIClientQueueResponseHandlerSpy.swift in Sources */,
 				19B70F2824A2A2950092BB5A /* EntitySpy.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -3140,7 +3136,6 @@
 					XCTest,
 					"-weak-lswiftXCTest",
 				);
-				OTHER_SWIFT_FLAGS = "-D RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.LucidTestKit;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
@@ -3212,7 +3207,7 @@
 					XCTest,
 					"-weak-lswiftXCTest",
 				);
-				OTHER_SWIFT_FLAGS = "-D LUCID_REACTIVE_KIT -D RELEASE";
+				OTHER_SWIFT_FLAGS = "-D LUCID_REACTIVE_KIT";
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.LucidTestKit;
 				PRODUCT_NAME = LucidTestKit_ReactiveKit;
 				SKIP_INSTALL = YES;

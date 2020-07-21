@@ -6,15 +6,8 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
-#if !RELEASE
-
 import Foundation
-
-#if LUCID_REACTIVE_KIT
 @testable import Lucid_ReactiveKit
-#else
-@testable import Lucid
-#endif
 
 public final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
 
@@ -111,5 +104,3 @@ public final class APIClientQueueProcessorDelegateSpy: APIClientQueueProcessorDe
         return requestStub
     }
 }
-
-#endif

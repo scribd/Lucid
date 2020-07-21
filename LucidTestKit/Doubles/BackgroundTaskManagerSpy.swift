@@ -6,16 +6,9 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
-#if !RELEASE
-
 import Foundation
 import UIKit
-
-#if LUCID_REACTIVE_KIT
 @testable import Lucid_ReactiveKit
-#else
-@testable import Lucid
-#endif
 
 public final class BackgroundTaskManagerSpy: BackgroundTaskManaging {
 
@@ -49,5 +42,3 @@ public final class BackgroundTaskManagerSpy: BackgroundTaskManaging {
         endBackgroundTaskRecords.append(identifier)
     }
 }
-
-#endif

@@ -6,17 +6,15 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
-#if !RELEASE
-
 import Foundation
 import XCTest
 
 #if LUCID_REACTIVE_KIT
 import ReactiveKit
-@testable import Lucid_ReactiveKit
+import Lucid_ReactiveKit
 #else
 import Combine
-@testable import Lucid
+import Lucid
 #endif
 
 public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
@@ -70,5 +68,3 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
     }
     #endif
 }
-
-#endif

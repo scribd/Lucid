@@ -32,11 +32,11 @@ public final class DiskCaching<DataType> {
     /// - Note: It is not thread-safe to call this at any time other than initialization
     let keysAtInitialization: Keys
 
-    init(get: @escaping Getter,
-         set: @escaping Setter,
-         asyncSet: @escaping AsyncSetter,
-         keys: @escaping Keys,
-         keysAtInitialization: @escaping Keys) {
+    public init(get: @escaping Getter,
+                set: @escaping Setter,
+                asyncSet: @escaping AsyncSetter,
+                keys: @escaping Keys,
+                keysAtInitialization: @escaping Keys) {
 
         self.get = get
         self.set = set

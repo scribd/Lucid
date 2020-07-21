@@ -6,17 +6,15 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
-#if !RELEASE
-
 import Foundation
 import XCTest
 
 #if LUCID_REACTIVE_KIT
 import ReactiveKit
-@testable import Lucid_ReactiveKit
+import Lucid_ReactiveKit
 #else
 import Combine
-@testable import Lucid
+import Lucid
 #endif
 
 public final class CoreManagerSpy<E: Entity> {
@@ -251,5 +249,3 @@ public extension CoreManagerSpy {
                             relationshipManager: nil)
     }
 }
-
-#endif

@@ -6,14 +6,12 @@
 //  Copyright © 2018 Scribd. All rights reserved.
 //
 
-#if !RELEASE
-
 import XCTest
 
 #if LUCID_REACTIVE_KIT
-@testable import Lucid_ReactiveKit
+import Lucid_ReactiveKit
 #else
-@testable import Lucid
+import Lucid
 #endif
 
 public final class APIClientSpy: APIClient {
@@ -109,5 +107,3 @@ public final class APIClientSpy: APIClient {
         return nil
     }
 }
-
-#endif

@@ -6,12 +6,10 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
-#if !RELEASE
-
 #if LUCID_REACTIVE_KIT
-@testable import Lucid_ReactiveKit
+import Lucid_ReactiveKit
 #else
-@testable import Lucid
+import Lucid
 #endif
 
 public final class UserAccessValidatorSpy: UserAccessValidating {
@@ -29,5 +27,3 @@ public final class UserAccessValidatorSpy: UserAccessValidating {
         return stub
     }
 }
-
-#endif

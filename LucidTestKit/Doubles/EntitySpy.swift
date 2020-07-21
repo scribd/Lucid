@@ -6,14 +6,12 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
-#if !RELEASE
-
 import Foundation
 
 #if LUCID_REACTIVE_KIT
-@testable import Lucid_ReactiveKit
+import Lucid_ReactiveKit
 #else
-@testable import Lucid
+import Lucid
 #endif
 
 // MARK: - EntitySpy
@@ -371,7 +369,7 @@ extension EntitySpy: CoreDataEntity {
         do {
             return try EntitySpy(coreDataEntity: coreDataEntity)
         } catch {
-            Logger.log(.error, "\(EntitySpy.self): \(error)", assert: true)
+            Logger.log(.error, "\(EntitySpy.self): \(error)", domain: "Tests", assert: true)
             return nil
         }
     }
@@ -440,5 +438,3 @@ extension Optional where Wrapped == Data {
         return self?.entityRelationshipSpyArrayValue() ?? .empty
     }
 }
-
-#endif

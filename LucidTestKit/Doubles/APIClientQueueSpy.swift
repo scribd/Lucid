@@ -6,14 +6,12 @@
 //  Copyright © 2018 Scribd. All rights reserved.
 //
 
-#if !RELEASE
-
 import Foundation
 
 #if LUCID_REACTIVE_KIT
-@testable import Lucid_ReactiveKit
+import Lucid_ReactiveKit
 #else
-@testable import Lucid
+import Lucid
 #endif
 
 public final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
@@ -69,5 +67,3 @@ public final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
 
     public var jsonCoderConfig = APIJSONCoderConfig()
 }
-
-#endif

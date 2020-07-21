@@ -6,15 +6,13 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
-#if !RELEASE
-
 import Foundation
 import XCTest
 
 #if LUCID_REACTIVE_KIT
-@testable import Lucid_ReactiveKit
+import Lucid_ReactiveKit
 #else
-@testable import Lucid
+import Lucid
 #endif
 
 public enum AnyEntitySpyIndexName: Hashable, QueryResultConvertible {
@@ -85,5 +83,3 @@ public enum AnyEntitySpy: EntityIndexing, EntityConvertible {
         }
     }
 }
-
-#endif

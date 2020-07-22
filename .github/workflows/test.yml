@@ -2,7 +2,7 @@ name: Tests
 on: push
 
 jobs:
-  tests:
+  codegen_tests:
     runs-on: ubuntu-latest
     steps:
       - name: Clone Project
@@ -31,3 +31,16 @@ jobs:
           label: CodeGen Coverage
           text: ${{ env.CODECOV }}
 
+  carthage_test:
+    runs-on: macos-latest
+    env: 
+      DEVELOPER_DIR: /Applications/Xcode_11.2.1.app/Contents/Developer
+      GITHUB_ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+
+    steps:
+      - name: Build Lucid Framework Using Carthage
+        run: |
+          echo 'git "git@github.com:scribd/Lucid.git" "master"' > Cartfile
+          
+          carthage bootstrap --platform iOS,watchOS --configuration Debug
+          carthage bootstrap --platform iOS,watchOS --configuration Release

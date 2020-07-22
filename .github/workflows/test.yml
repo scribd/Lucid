@@ -30,3 +30,22 @@ jobs:
           aws-filepath: badges/Lucid/CodeGen
           label: CodeGen Coverage
           text: ${{ env.CODECOV }}
+
+  lucid_tests:
+    name: Lucid-iOS Tests
+    runs-on: macos-latest
+    env: 
+      FASTLANE_LOGS: fastlane/test_output
+      DEVELOPER_DIR: /Applications/Xcode_11.2.1.app/Contents/Developer
+      GITHUB_ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+    steps:
+      - name: Clone Project
+        uses: actions/checkout@v2
+
+      - name: Bootstrap
+        run: |
+          carthage bootstrap --platform iOS
+
+      - name: Run Lucid-iOS Tests
+        run: |
+          xcodebuild -scheme Lucid-iOS -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 8' test

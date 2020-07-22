@@ -2,7 +2,7 @@ name: Tests
 on: push
 
 jobs:
-  tests:
+  codegen_tests:
     runs-on: ubuntu-latest
     steps:
       - name: Clone Project
@@ -14,11 +14,13 @@ jobs:
           echo "::set-env name=PRODUCT_PATH::`swift build --package-path CodeGen --show-bin-path`"
 
       - name: Create code coverage
+        if: github.ref == 'refs/heads/master'
         uses: mattpolzin/swift-codecov-action@0.4.0
         with:
           CODECOV_JSON: ${{ env.PRODUCT_PATH }}/codecov/*.json
 
       - name: Upload code coverage badge
+        if: github.ref == 'refs/heads/master'
         uses: alvivi/shield-badge@v1
         with:
           aws-access-key-id: ${{ secrets.S3_ACCESS_KEY }}
@@ -29,3 +31,41 @@ jobs:
           label: CodeGen Coverage
           text: ${{ env.CODECOV }}
 
+  carthage_test:
+    runs-on: macos-latest
+    env: 
+      DEVELOPER_DIR: /Applications/Xcode_11.2.1.app/Contents/Developer
+      GITHUB_ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+      CARTHAGE_DEBUG_OUTPUT: /tmp/carthage_debug_output.txt
+      CARTHAGE_RELEASE_OUTPUT: /tmp/carthage_release_output.txt
+      CARTHAGE_LOGS: CarthageLogs
+
+    steps:
+      - name: Build Lucid Framework Using Carthage
+        run: |
+          echo 'git "git@github.com:scribd/Lucid.git" "master"' > Cartfile
+          
+          carthage bootstrap --platform iOS,watchOS --configuration Debug 2>&1 | tee $CARTHAGE_DEBUG_OUTPUT
+          carthage bootstrap --platform iOS,watchOS --configuration Release 2>&1 | tee $CARTHAGE_RELEASE_OUTPUT
+
+      - name: Consolidate All Log Files
+        if: ${{ always() }}
+        run: |
+          mkdir -p $CARTHAGE_LOGS
+
+          CARTHAGE_DEBUG_LOGS=`grep "xcodebuild\ output\ can\ be\ found\ in\ *" $CARTHAGE_DEBUG_OUTPUT | awk '{ print $NF }'`
+          while IFS= read -r line ; do 
+            cp $line $CARTHAGE_LOGS
+          done <<< "$CARTHAGE_DEBUG_LOGS"
+
+          CARTHAGE_RELEASE_LOGS=`grep "xcodebuild\ output\ can\ be\ found\ in\ *" $CARTHAGE_RELEASE_OUTPUT | awk '{ print $NF }'`
+          while IFS= read -r line ; do 
+            cp $line $CARTHAGE_LOGS
+          done <<< "$CARTHAGE_RELEASE_LOGS"
+
+      - name: Upload Log Files
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-log
+          path: ${{ env.CARTHAGE_LOGS }}

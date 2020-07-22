@@ -48,4 +48,17 @@ jobs:
 
       - name: Run Lucid-iOS Tests
         run: |
-          xcodebuild -scheme Lucid-iOS -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 8' test
+          fastlane scan --scheme Lucid-iOS --device "iPhone 8" --output_directory $FASTLANE_LOGS --result_bundle true
+
+      - name: Bundle Log Files
+        if: ${{ always() }}
+        run: |
+          cd $FASTLANE_LOGS
+          zip -rX build-artifacts.zip .
+
+      - name: Upload Log Files
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifacts
+          path: ${{ env.FASTLANE_LOGS }}/build-artifacts.zip

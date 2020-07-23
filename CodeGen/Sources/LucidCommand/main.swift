@@ -51,23 +51,24 @@ let main = Group {
                                                                         noRepoUpdate: configuration.noRepoUpdate,
                                                                         logger: logger)
         
-        var appVersions = currentDescriptions.modelMappingHistory
-        appVersions.remove(configuration.currentVersion)
+        var modelMappingHistoryVersions = try currentDescriptions.modelMappingHistory(derivedFrom: descriptionsVersionManager.allVersionsFromGitTags())
+        let currentAppVersion = try Version(configuration.currentVersion, source: .description)
+        modelMappingHistoryVersions.removeAll { $0 == currentAppVersion }
 
-        var descriptions = try appVersions.reduce(into: [String: Descriptions]()) { descriptions, appVersion in
+        var descriptions = try modelMappingHistoryVersions.reduce(into: [Version: Descriptions]()) { descriptions, appVersion in
             let releaseTag = try descriptionsVersionManager.resolveLatestReleaseTag(excluding: false, appVersion: appVersion)
             let descriptionsPath = try descriptionsVersionManager.fetchDescriptionsVersion(releaseTag: releaseTag)
             let descriptionsParser = DescriptionsParser(inputPath: descriptionsPath, logger: Logger(level: .none))
             descriptions[appVersion] = try descriptionsParser.parse()
         }
         
-        descriptions[configuration.currentVersion] = currentDescriptions
+        descriptions[currentAppVersion] = currentDescriptions
         
         let _shouldGenerateDataModel: Bool
         if configuration.forceBuildNewDBModel || forceBuildNewDBModelForVersions.contains(currentVersion) {
             _shouldGenerateDataModel = true
         } else if let latestReleaseTag = try? descriptionsVersionManager.resolveLatestReleaseTag(excluding: true,
-                                                                                                 appVersion: configuration.currentVersion) {
+                                                                                                 appVersion: currentAppVersion) {
             
             let latestDescriptionsPath = try descriptionsVersionManager.fetchDescriptionsVersion(releaseTag: latestReleaseTag)
             let latestDescriptionsParser = DescriptionsParser(inputPath: latestDescriptionsPath,
@@ -77,12 +78,12 @@ let main = Group {
 
             _shouldGenerateDataModel = try shouldGenerateDataModel(byComparing: latestDescriptions,
                                                                    to: currentDescriptions,
-                                                                   appVersion: configuration.currentVersion,
+                                                                   appVersion: currentAppVersion,
                                                                    logger: logger)
             
             try validateDescriptions(byComparing: latestDescriptions,
                                      to: currentDescriptions,
-                                     appVersion: configuration.currentVersion,
+                                     appVersion: currentAppVersion,
                                      logger: logger)
         } else {
             _shouldGenerateDataModel = false
@@ -94,7 +95,8 @@ let main = Group {
             let descriptionsHash = try descriptionsVersionManager.descriptionsHash(absoluteInputPath: configuration.inputPath)
             let generator = SwiftCodeGenerator(to: target,
                                                descriptions: descriptions,
-                                               appVersion: configuration.currentVersion,
+                                               appVersion: currentAppVersion,
+                                               historyVersions: modelMappingHistoryVersions,
                                                shouldGenerateDataModel: _shouldGenerateDataModel,
                                                descriptionsHash: descriptionsHash,
                                                responseHandlerFunction: configuration.responseHandlerFunction,

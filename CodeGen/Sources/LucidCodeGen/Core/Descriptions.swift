@@ -220,8 +220,6 @@ public struct Entity {
     
     public let previousName: String?
     
-    public let addedAtVersion: String?
-    
     public let platforms: Set<Platform>
     
     public let remote: Bool
@@ -236,7 +234,7 @@ public struct Entity {
     
     public let identifierTypeID: String?
     
-    public let modelMappingHistory: [ModelMapping]?
+    public let versionHistory: [VersionHistoryItem]
     
     public let lastRemoteRead: Bool
     
@@ -245,15 +243,15 @@ public struct Entity {
     public let clientQueueName: String
 }
 
-// MARK: - ModelMapping
+// MARK: - VersionHistory
 
-public struct ModelMapping: Equatable {
-    
-    public let from: String
-    
-    public let to: String
-    
-    public let ignoreMigrationChecksOn: [String]
+public struct VersionHistoryItem: Equatable {
+
+    public let version: Version
+
+    public let ignoreMigrationChecks: Bool
+
+    public let ignorePropertyMigrationChecksOn: [String]
 }
 
 // MARK: - Identifier
@@ -314,7 +312,7 @@ public struct EntityProperty {
 
     public let persistedName: String?
 
-    public let addedAtVersion: String?
+    public let addedAtVersion: Version?
 
     public let propertyType: PropertyType
 
@@ -451,19 +449,19 @@ extension DefaultValue {
 
 // MARK: - Version
 
-public struct Version: Comparable, CustomStringConvertible {
+public struct Version: Hashable, Comparable, CustomStringConvertible {
 
-    public enum Tag: Equatable {
+    public enum Tag: Hashable {
         case release(ReleaseType)
         case other
     }
     
-    public enum ReleaseType: String, Equatable {
+    public enum ReleaseType: String, Hashable {
         case beta
         case appStore
     }
 
-    public enum Source {
+    public enum Source: Hashable {
         case description
         case gitTag
         case coreDataModel
@@ -484,7 +482,7 @@ public struct Version: Comparable, CustomStringConvertible {
     public let tag: Tag
     let major: Int
     let minor: Int
-    let dot: Int?
+    let patch: Int?
     let build: Int?
     
     public init(_ versionString: String, source: Source) throws {
@@ -494,7 +492,7 @@ public struct Version: Comparable, CustomStringConvertible {
         }
         self.major = major
         self.minor = minor
-        self.dot = version.dot
+        self.patch = version.patch
         self.build = version.build
         self.tag = Tag(versionString)
         self.versionString = versionString
@@ -507,8 +505,8 @@ public struct Version: Comparable, CustomStringConvertible {
         if lhs.minor < rhs.minor { return true }
         guard lhs.minor == rhs.minor else { return false }
 
-        if (lhs.dot ?? .min) < (rhs.dot ?? .min) { return true }
-        guard lhs.dot == rhs.dot else { return false }
+        if (lhs.patch ?? .min) < (rhs.patch ?? .min) { return true }
+        guard lhs.patch == rhs.patch else { return false }
 
         if (lhs.build ?? .min) < (rhs.build ?? .min) { return true }
         guard lhs.build == rhs.build else { return false }
@@ -520,18 +518,34 @@ public struct Version: Comparable, CustomStringConvertible {
     public static func isMatchingRelease(_ lhs: Version, _ rhs: Version) -> Bool {
         return lhs.major == rhs.major
             && lhs.minor == rhs.minor
-            && lhs.dot == rhs.dot
+            && lhs.patch == rhs.patch
     }
 
     public var description: String {
-        if let build = build, let dot = dot {
-            return "\(major).\(minor).\(dot) (\(build)) - \(tag.description)"
-        } else if let dot = dot {
-            return "\(major).\(minor).\(dot) - \(tag.description)"
+        if let build = build, let patch = patch {
+            return "\(major).\(minor).\(patch) (\(build)) - \(tag.description)"
+        } else if let patch = patch {
+            return "\(major).\(minor).\(patch) - \(tag.description)"
         } else if let build = build {
             return "\(major).\(minor) (\(build)) - \(tag.description)"
         } else {
             return "\(major).\(minor) - \(tag.description)"
+        }
+    }
+
+    public var dotDescription: String {
+        if let patch = patch {
+            return "\(major).\(minor).\(patch)"
+        } else {
+            return "\(major).\(minor)"
+        }
+    }
+
+    public var sqlDescription: String {
+        if let patch = patch {
+            return "\(major)_\(minor)_\(patch)"
+        } else {
+            return "\(major)_\(minor)"
         }
     }
 }
@@ -541,7 +555,7 @@ private extension Version {
     struct UnvalidatedVersion {
         var major: Int?
         var minor: Int?
-        var dot: Int?
+        var patch: Int?
         var build: Int?
     }
     
@@ -575,7 +589,7 @@ private extension Version {
                 } else if version.minor == nil {
                     version.minor = intValue
                 } else {
-                    version.dot = intValue
+                    version.patch = intValue
                 }
             }
     }

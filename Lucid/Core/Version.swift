@@ -10,12 +10,12 @@ public struct Version: Comparable, CustomStringConvertible {
 
     public let major: Int
     public let minor: Int
-    public let dot: Int?
+    public let patch: Int?
 
-    private init(major: Int, minor: Int, dot: Int?) {
+    private init(major: Int, minor: Int, patch: Int?) {
         self.major = major
         self.minor = minor
-        self.dot = dot
+        self.patch = patch
     }
 
     public init(_ versionString: String) throws {
@@ -30,7 +30,7 @@ public struct Version: Comparable, CustomStringConvertible {
         }
         self.major = major
         self.minor = minor
-        self.dot = split.popLast()
+        self.patch = split.popLast()
     }
 
     public static func < (lhs: Version, rhs: Version) -> Bool {
@@ -38,15 +38,15 @@ public struct Version: Comparable, CustomStringConvertible {
         guard lhs.major == rhs.major else { return false }
         if lhs.minor < rhs.minor { return true }
         guard lhs.minor == rhs.minor else { return false }
-        if (lhs.dot ?? .min) < (rhs.dot ?? .min) { return true }
+        if (lhs.patch ?? .min) < (rhs.patch ?? .min) { return true }
         return false
     }
 
-    static var oldestVersion: Version { return Version(major: 9, minor: 5, dot: 0) }
+    static var oldestVersion: Version { return Version(major: 9, minor: 5, patch: 0) }
 
     public var description: String {
-        if let dot = dot {
-            return "\(major).\(minor).\(dot)"
+        if let patch = patch {
+            return "\(major).\(minor).\(patch)"
         } else {
             return "\(major).\(minor)"
         }

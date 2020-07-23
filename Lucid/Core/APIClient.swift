@@ -300,6 +300,8 @@ public struct APIClientResponse<T> {
 
     public let mimeType: String?
 
+    public let textEncodingName: String?
+
     public let jsonCoderConfig: APIJSONCoderConfig
 
     public init(data: T, urlResponse: HTTPURLResponse, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
@@ -308,17 +310,20 @@ public struct APIClientResponse<T> {
         self.cachedResponse = header.cachedResponse
         self.jsonCoderConfig = jsonCoderConfig
         self.mimeType = urlResponse.mimeType
+        self.textEncodingName = urlResponse.textEncodingName
     }
 
     public init(data: T,
                 header: APIResponseHeader = .empty,
                 cachedResponse: Bool,
                 mimeType: String? = nil,
+                textEncodingName: String? = nil,
                 jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
         self.data = data
         self.header = header
         self.cachedResponse = cachedResponse
         self.mimeType = mimeType
+        self.textEncodingName = textEncodingName
         self.jsonCoderConfig = jsonCoderConfig
     }
 
@@ -328,6 +333,7 @@ public struct APIClientResponse<T> {
             header: header,
             cachedResponse: cachedResponse,
             mimeType: mimeType,
+            textEncodingName: textEncodingName,
             jsonCoderConfig: jsonCoderConfig
         )
     }

@@ -158,7 +158,11 @@ extension Entity: Decodable {
         self.name = name
         remote = try container.decodeIfPresent(Bool.self, forKey: .remote) ?? Defaults.remote
         previousName = try container.decodeIfPresent(String.self, forKey: .previousName)
-        addedAtVersion = try container.decodeIfPresent(String.self, forKey: .addedAtVersion)
+        if let addedAtVersionString = try container.decodeIfPresent(String.self, forKey: .addedAtVersion) {
+            addedAtVersion = try Version(addedAtVersionString, source: .description)
+        } else {
+            addedAtVersion = nil
+        }
         persist = try container.decodeIfPresent(Bool.self, forKey: .persist) ?? Defaults.persist
         identifier = try container.decodeIfPresent(EntityIdentifier.self, forKey: .identifier) ?? Defaults.identifier
         metadata = try container.decodeIfPresent([MetadataProperty].self, forKey: .metadata)
@@ -176,15 +180,14 @@ extension Entity: Decodable {
 extension ModelMapping: Decodable {
     
     private enum Keys: String, CodingKey {
-        case from
         case to
         case ignoreMigrationChecksOn
     }
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
-        from = try container.decode(String.self, forKey: .from)
-        to = try container.decode(String.self, forKey: .to)
+        let toString = try container.decode(String.self, forKey: .to)
+        to = try Version(toString, source: .description)
         ignoreMigrationChecksOn = (try container.decodeIfPresent([String].self, forKey: .ignoreMigrationChecksOn) ?? [])
     }
 }
@@ -333,8 +336,12 @@ extension EntityProperty: Decodable {
         
         name = try container.decode(String.self, forKey: .name)
         previousName = try container.decodeIfPresent(String.self, forKey: .previousName)
-        addedAtVersion = try container.decodeIfPresent(String.self, forKey: .addedAtVersion)
-        
+        if let addedAtVersionString = try container.decodeIfPresent(String.self, forKey: .addedAtVersion) {
+            addedAtVersion = try Version(addedAtVersionString, source: .description)
+        } else {
+            addedAtVersion = nil
+        }
+
         do {
             let relationship = try container.decode(EntityRelationship.self, forKey: .propertyType)
             propertyType = .relationship(relationship)

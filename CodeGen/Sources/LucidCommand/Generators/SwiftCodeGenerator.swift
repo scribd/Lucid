@@ -20,8 +20,9 @@ final class SwiftCodeGenerator {
     private let generators: [InternalSwiftCodeGenerator]
     
     init(to target: Target,
-         descriptions: [String: Descriptions],
-         appVersion: String,
+         descriptions: [Version: Descriptions],
+         appVersion: Version,
+         historyVersions: [Version],
          shouldGenerateDataModel: Bool,
          descriptionsHash: String,
          responseHandlerFunction: String?,
@@ -31,8 +32,8 @@ final class SwiftCodeGenerator {
          logger: Logger) {
 
         let platforms = Set(descriptions.flatMap { $0.value.platforms }).sorted()
-        let descriptionVariants: [(Platform?, [String: Descriptions])]
-        
+        let descriptionVariants: [(Platform?, [Version: Descriptions])]
+
         if platforms.isEmpty {
             descriptionVariants = [(nil, descriptions)]
         } else {
@@ -45,6 +46,7 @@ final class SwiftCodeGenerator {
             InternalSwiftCodeGenerator(to: target,
                                        descriptions: $1,
                                        appVersion: appVersion,
+                                       historyVersions: historyVersions,
                                        shouldGenerateDataModel: shouldGenerateDataModel,
                                        descriptionsHash: descriptionsHash,
                                        platform: $0,
@@ -66,8 +68,9 @@ final class SwiftCodeGenerator {
 private final class InternalSwiftCodeGenerator {
     
     private let target: Target
-    private let descriptions: [String: Descriptions]
-    private let appVersion: String
+    private let descriptions: [Version: Descriptions]
+    private let appVersion: Version
+    private let historyVersions: [Version]
     private let shouldGenerateDataModel: Bool
     private let descriptionsHash: String
     private let platform: Platform?
@@ -85,7 +88,7 @@ private final class InternalSwiftCodeGenerator {
         return currentDescriptions
     }
 
-    private lazy var sqliteFileName = "\(currentDescriptions.targets.app.moduleName)_\(appVersion.replacingOccurrences(of: ".", with: "_")).sqlite"
+    private lazy var sqliteFileName = "\(currentDescriptions.targets.app.moduleName)_\(appVersion.sqlDescription).sqlite"
 
     private lazy var sqliteFiles: [String] = (target.outputPath + "\(platform.flatMap { "\($0)/" } ?? "")SQLite")
         .glob("*.sqlite")
@@ -96,8 +99,9 @@ private final class InternalSwiftCodeGenerator {
     private lazy var sqliteFile = Path("SQLite") + sqliteFileName
 
     init(to target: Target,
-         descriptions: [String: Descriptions],
-         appVersion: String,
+         descriptions: [Version: Descriptions],
+         appVersion: Version,
+         historyVersions: [Version],
          shouldGenerateDataModel: Bool,
          descriptionsHash: String,
          platform: Platform?,
@@ -110,6 +114,7 @@ private final class InternalSwiftCodeGenerator {
         self.target = target
         self.descriptions = descriptions
         self.appVersion = appVersion
+        self.historyVersions = historyVersions
         self.shouldGenerateDataModel = shouldGenerateDataModel
         self.descriptionsHash = descriptionsHash
         self.platform = platform
@@ -162,6 +167,7 @@ private final class InternalSwiftCodeGenerator {
 
         if shouldGenerateDataModel {
             try generate(with: CoreDataXCDataModelGenerator(version: appVersion,
+                                                            historyVersions: historyVersions,
                                                             useCoreDataLegacyNaming: useCoreDataLegacyNaming,
                                                             descriptions: descriptions),
                          in: .coreDataModel(version: appVersion),

@@ -649,11 +649,11 @@ extension Entity {
         return hasExtras ? TypeIdentifier(name: "\(transformedName)ExtrasIndexName") : TypeIdentifier(name: "VoidExtrasIndexName")
     }
 
-    func coreDataEntityTypeID(for version: String? = nil) throws -> TypeIdentifier {
+    func coreDataEntityTypeID(for version: Version? = nil) throws -> TypeIdentifier {
         guard let version = version ?? modelMappingHistory?.last?.to ?? addedAtVersion else {
             throw CodeGenError.entityAddedAtVersionNotFound(name)
         }
-        return TypeIdentifier(name: "Managed\(name.camelCased().suffixedName())_\(version.replacingOccurrences(of: ".", with: "_"))")
+        return TypeIdentifier(name: "Managed\(name.camelCased().suffixedName())_\(version.sqlDescription)")
     }
 
     var hasVoidIdentifier: Bool {

@@ -19,7 +19,7 @@ public final class CoreDataMigrationTestsGenerator: Generator {
     
     private let sqliteFiles: [String]
     
-    private let appVersion: String
+    private let appVersion: Version
     
     private let platform: Platform?
 
@@ -27,7 +27,7 @@ public final class CoreDataMigrationTestsGenerator: Generator {
 
     public init(descriptions: Descriptions,
                 sqliteFiles: [String],
-                appVersion: String,
+                appVersion: Version,
                 platform: Platform?,
                 reactiveKit: Bool) {
         

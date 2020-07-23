@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import LucidCodeGen
 import PathKit
 
 enum OutputDirectory {
@@ -16,7 +17,7 @@ enum OutputDirectory {
     case support
     case factories
     case doubles
-    case coreDataModel(version: String)
+    case coreDataModel(version: Version)
     case coreDataModelVersion
     case jsonPayloads(String)
     case payloadTests
@@ -41,7 +42,7 @@ enum OutputDirectory {
         case .doubles:
             return Path("Doubles")
         case .coreDataModel(let version):
-            return OutputDirectory.support.path(appModuleName: appModuleName) + "\(appModuleName).xcdatamodeld" + "\(appModuleName)_\(version).xcdatamodel"
+            return OutputDirectory.support.path(appModuleName: appModuleName) + "\(appModuleName).xcdatamodeld" + "\(appModuleName)_\(version.dotDescription).xcdatamodel"
         case .coreDataModelVersion:
             return OutputDirectory.support.path(appModuleName: appModuleName) + "\(appModuleName).xcdatamodeld"
         case .jsonPayloads(let endpointName):

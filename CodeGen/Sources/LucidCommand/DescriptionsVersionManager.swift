@@ -76,16 +76,8 @@ final class DescriptionsVersionManager {
         return destinationDescriptionsPath
     }
 
-    func resolveLatestReleaseTag(excluding: Bool, appVersion: String) throws -> String {
-
-        logger.moveToChild("Resolving \(excluding ? "latest release tag " : "release tag for app version \(appVersion)")...")
-
-        try cacheRepository()
-        try fetchOrigin()
-
-        let resolvingVersion = try Version(appVersion, source: .description)
-
-        let versions = try shellOut(to: "git tag", at: self.repositoryPath.absolute().string)
+    func allVersionsFromGitTags() throws -> [Version] {
+        return try shellOut(to: "git tag", at: self.repositoryPath.absolute().string)
             .split(separator: "\n")
             .compactMap { tag -> Version? in
                 do {
@@ -97,12 +89,22 @@ final class DescriptionsVersionManager {
             .filter { $0.isRelease }
             .sorted()
             .reversed()
+    }
+
+    func resolveLatestReleaseTag(excluding: Bool, appVersion: Version) throws -> String {
+
+        logger.moveToChild("Resolving \(excluding ? "latest release tag " : "release tag for app version \(appVersion)")...")
+
+        try cacheRepository()
+        try fetchOrigin()
+
+        let versions = try allVersionsFromGitTags()
 
         let latestReleaseVersion = versions.first {
-            $0.isAppStoreRelease && (excluding ? $0 < resolvingVersion : Version.isMatchingRelease(resolvingVersion, $0))
+            $0.isAppStoreRelease && (excluding ? $0 < appVersion : Version.isMatchingRelease(appVersion, $0))
         }
         let latestBetaReleaseVersion = versions.first {
-            $0.isBetaRelease && (excluding ? $0 < resolvingVersion : Version.isMatchingRelease(resolvingVersion, $0))
+            $0.isBetaRelease && (excluding ? $0 < appVersion : Version.isMatchingRelease(appVersion, $0))
         }
 
         let resolve = { () -> String? in
@@ -118,7 +120,7 @@ final class DescriptionsVersionManager {
         }
 
         guard let releaseTag = resolve() else {
-            try logger.throwError("Could not resolve tag for app version: \(appVersion).")
+            try logger.throwError("Could not resolve tag for app version: \(appVersion.dotDescription).")
         }
 
         logger.done("Resolved tag: \(releaseTag).")
@@ -172,23 +174,23 @@ private extension String {
 
 // MARK: - Migration Helper
 
-func shouldGenerateDataModel(byComparing oldVersion: Descriptions,
-                             to newVersion: Descriptions,
-                             appVersion: String,
+func shouldGenerateDataModel(byComparing oldDescriptions: Descriptions,
+                             to newDescriptions: Descriptions,
+                             appVersion: Version,
                              logger: Logger) throws -> Bool {
 
     logger.moveToChild("Looking for changes in description files...")
 
     var result = false
 
-    for newVersionEntity in newVersion.persistedEntitiesByName.values.sorted(by: { $0.name < $1.name }) {
+    for newVersionEntity in newDescriptions.persistedEntitiesByName.values.sorted(by: { $0.name < $1.name }) {
         if let newVersionEntityPreviousName = newVersionEntity.previousSearchableName,
-            let oldVersionEntity = oldVersion.persistedEntitiesByName[newVersionEntityPreviousName],
+            let oldVersionEntity = oldDescriptions.persistedEntitiesByName[newVersionEntityPreviousName],
             oldVersionEntity.addedAtVersion == newVersionEntity.addedAtVersion {
             if try _shouldGenerateDataModel(byComparing: oldVersionEntity, to: newVersionEntity, appVersion: appVersion, logger: logger) {
                 result = true
             }
-        } else if let oldVersionEntity = oldVersion.persistedEntitiesByName[newVersionEntity.name],
+        } else if let oldVersionEntity = oldDescriptions.persistedEntitiesByName[newVersionEntity.name],
             oldVersionEntity.addedAtVersion == newVersionEntity.addedAtVersion {
             if try _shouldGenerateDataModel(byComparing: oldVersionEntity, to: newVersionEntity, appVersion: appVersion, logger: logger) {
                 result = true
@@ -205,8 +207,8 @@ func shouldGenerateDataModel(byComparing oldVersion: Descriptions,
         }
     }
 
-    for oldVersionEntity in oldVersion.persistedEntitiesByName.values {
-        if newVersion.persistedEntitiesByName[oldVersionEntity.name] == nil {
+    for oldVersionEntity in oldDescriptions.persistedEntitiesByName.values {
+        if newDescriptions.persistedEntitiesByName[oldVersionEntity.name] == nil {
             logger.warn("Detected deleted entity '\(oldVersionEntity.name)'.")
             result = true
             continue
@@ -223,87 +225,87 @@ func shouldGenerateDataModel(byComparing oldVersion: Descriptions,
     return result
 }
 
-private func _shouldGenerateDataModel(byComparing oldVersion: Entity,
-                                      to newVersion: Entity,
-                                      appVersion: String,
+private func _shouldGenerateDataModel(byComparing oldEntity: Entity,
+                                      to newEntity: Entity,
+                                      appVersion: Version,
                                       logger: Logger) throws -> Bool {
 
     var result = false
 
-    guard newVersion.addedAtVersion != appVersion else {
-        logger.info("Updating description of newly added entity \(newVersion.name). Generate new model.")
+    guard newEntity.addedAtVersion != appVersion else {
+        logger.info("Updating description of newly added entity \(newEntity.name). Generate new model.")
         return true
     }
 
-    if oldVersion.name != newVersion.name {
-        logger.warn("'\(newVersion.name).name' value changed from '\(oldVersion.name)' to '\(newVersion.name)'.")
+    if oldEntity.name != newEntity.name {
+        logger.warn("'\(newEntity.name).name' value changed from '\(oldEntity.name)' to '\(newEntity.name)'.")
         result = true
     }
 
-    if oldVersion.persist != newVersion.persist {
-        logger.warn("'\(newVersion.name).persist' value changed from '\(oldVersion.persist)' to '\(newVersion.persist)'.")
+    if oldEntity.persist != newEntity.persist {
+        logger.warn("'\(newEntity.name).persist' value changed from '\(oldEntity.persist)' to '\(newEntity.persist)'.")
         result = true
     }
 
-    if oldVersion.identifier.identifierType != newVersion.identifier.identifierType {
-        logger.warn("'\(newVersion.name).identifier' value changed from '\(oldVersion.identifier.identifierType)' to '\(newVersion.identifier.identifierType)'.")
+    if oldEntity.identifier.identifierType != newEntity.identifier.identifierType {
+        logger.warn("'\(newEntity.name).identifier' value changed from '\(oldEntity.identifier.identifierType)' to '\(newEntity.identifier.identifierType)'.")
         result = true
     }
     
-    if oldVersion.lastRemoteRead != newVersion.lastRemoteRead {
-        logger.warn("'\(newVersion.name).lastRemoteRead' value changed from '\(oldVersion.lastRemoteRead)' to '\(newVersion.lastRemoteRead)'.")
+    if oldEntity.lastRemoteRead != newEntity.lastRemoteRead {
+        logger.warn("'\(newEntity.name).lastRemoteRead' value changed from '\(oldEntity.lastRemoteRead)' to '\(newEntity.lastRemoteRead)'.")
         result = true
     }
     
-    if oldVersion.platforms != newVersion.platforms {
-        logger.warn("'\(newVersion.name).platforms' value changed from '\(oldVersion.platforms)' to '\(newVersion.platforms)'.")
+    if oldEntity.platforms != newEntity.platforms {
+        logger.warn("'\(newEntity.name).platforms' value changed from '\(oldEntity.platforms)' to '\(newEntity.platforms)'.")
         result = true
     }
     
-    let oldProperties = oldVersion.properties.reduce(into: [:]) { $0[$1.name] = $1 }
-    for newProperty in newVersion.properties {
+    let oldProperties = oldEntity.properties.reduce(into: [:]) { $0[$1.name] = $1 }
+    for newProperty in newEntity.properties {
         if let oldProperty = oldProperties[newProperty.previousSearchableName ?? newProperty.name] {
-            if try _shouldGenerateDataModel(byComparing: oldProperty, to: newProperty, entityName: newVersion.name, appVersion: appVersion, logger: logger) {
+            if try _shouldGenerateDataModel(byComparing: oldProperty, to: newProperty, entityName: newEntity.name, appVersion: appVersion, logger: logger) {
                 result = true
             }
         } else {
             guard newProperty.previousName == nil else {
-                try logger.throwError("Property '\(newVersion.name).\(newProperty.name)' is new. Thus it can't have a 'previous_name' defined.")
+                try logger.throwError("Property '\(newEntity.name).\(newProperty.name)' is new. Thus it can't have a 'previous_name' defined.")
             }
             if newProperty.unused {
-                logger.warn("Adding new unused property '\(newVersion.name).\(newProperty.name)'. No CoreData change required.")
+                logger.warn("Adding new unused property '\(newEntity.name).\(newProperty.name)'. No CoreData change required.")
                 continue
             }
             guard newProperty.addedAtVersion == appVersion else {
-                try logger.throwError("Property '\(newVersion.name).\(newProperty.name)' is new but its 'added_at_version' isn't set to '\(appVersion)'.")
+                try logger.throwError("Property '\(newEntity.name).\(newProperty.name)' is new but its 'added_at_version' isn't set to '\(appVersion)'.")
             }
             if newProperty.defaultValue == nil && newProperty.optional == false && newProperty.extra == false {
-                try logger.throwError("Property '\(newVersion.name).\(newProperty.name)' is new in \(appVersion) and non-optional, but it does not have a default value for migrations.")
+                try logger.throwError("Property '\(newEntity.name).\(newProperty.name)' is new in \(appVersion) and non-optional, but it does not have a default value for migrations.")
             }
-            logger.warn("Detected new property '\(newVersion.name).\(newProperty.name)'.")
+            logger.warn("Detected new property '\(newEntity.name).\(newProperty.name)'.")
             result = true
         }
     }
 
-    let newProperties = newVersion.properties.reduce(into: [:]) { $0[$1.name] = $1 }
-    for oldProperty in oldVersion.properties {
+    let newProperties = newEntity.properties.reduce(into: [:]) { $0[$1.name] = $1 }
+    for oldProperty in oldEntity.properties {
         if newProperties[oldProperty.name] == nil {
-            logger.warn("Detected deleted property '\(oldVersion.name).\(oldProperty.name)'.")
+            logger.warn("Detected deleted property '\(oldEntity.name).\(oldProperty.name)'.")
             result = true
             continue
         }
     }
 
-    if let oldVersionName = oldVersion.previousName, newVersion.previousName == nil {
-        try logger.throwError("\(newVersion.name).previous_name': '\(oldVersionName)' was deleted. Please restore it.")
+    if let oldVersionName = oldEntity.previousName, newEntity.previousName == nil {
+        try logger.throwError("\(newEntity.name).previous_name': '\(oldVersionName)' was deleted. Please restore it.")
     }
-    if oldVersion.previousName != newVersion.previousName {
-        logger.warn("'\(newVersion.name).previousName' value changed from '\(oldVersion.previousName ?? "nil")' to '\(newVersion.previousName ?? "nil")'.")
+    if oldEntity.previousName != newEntity.previousName {
+        logger.warn("'\(newEntity.name).previousName' value changed from '\(oldEntity.previousName ?? "nil")' to '\(newEntity.previousName ?? "nil")'.")
         result = true
     }
 
-    if oldVersion.modelMappingHistory != newVersion.modelMappingHistory {
-        logger.warn("'\(newVersion.name).modelMappingHistory' value changed from '\(oldVersion.modelMappingHistory?.description ?? "nil")' to '\(newVersion.modelMappingHistory?.description ?? "nil")'.")
+    if oldEntity.modelMappingHistory != newEntity.modelMappingHistory {
+        logger.warn("'\(newEntity.name).modelMappingHistory' value changed from '\(oldEntity.modelMappingHistory?.description ?? "nil")' to '\(newEntity.modelMappingHistory?.description ?? "nil")'.")
         result = true
     }
 
@@ -313,7 +315,7 @@ private func _shouldGenerateDataModel(byComparing oldVersion: Entity,
 private func _shouldGenerateDataModel(byComparing oldVersion: EntityProperty,
                                       to newVersion: EntityProperty,
                                       entityName: String,
-                                      appVersion: String,
+                                      appVersion: Version,
                                       logger: Logger) throws -> Bool {
 
     var result = false
@@ -391,7 +393,7 @@ private func _shouldGenerateDataModel(byComparing oldVersion: EntityProperty,
 
 func validateDescriptions(byComparing oldVersion: Descriptions,
                           to newVersion: Descriptions,
-                          appVersion: String,
+                          appVersion: Version,
                           logger: Logger) throws {
     
     for newVersion in newVersion.persistedEntitiesByName.values {

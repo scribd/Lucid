@@ -30,10 +30,20 @@ extension Descriptions {
         return endpoint
     }
     
-    public var modelMappingHistory: Set<String> {
-        return Set(entities.flatMap {
-            $0.modelMappingHistory?.flatMap { [$0.from, $0.to] } ?? []
-        })
+    public func modelMappingHistory(derivedFrom allVersions: [Version]) throws -> [Version] {
+        var history = Set<Version>()
+
+        entities.forEach { entity in
+            guard let addedAtVersion = entity.addedAtVersion else { return }
+            entity.modelVersions.forEach { version in
+                history.insert(version)
+                if version != addedAtVersion, let previousVersion = allVersions.first(where: { $0 < version && $0.isRelease && Version.isMatchingRelease(version, $0) == false }) {
+                    history.insert(previousVersion)
+                }
+            }
+        }
+
+        return history.sorted().reversed()
     }
 
     public var clientQueueNames: [String] {
@@ -112,27 +122,33 @@ extension Entity {
         return identifier.objc || properties.contains { $0.objc }
     }
     
-    func coreDataName(for version: String?, useCoreDataLegacyNaming: Bool = false) throws -> String {
-        guard let version = version ?? addedAtVersion else {
-            throw CodeGenError.entityAddedAtVersionNotFound(name)
-        }
+    func coreDataName(for version: Version, useCoreDataLegacyNaming: Bool = false) -> String {
         let name: String
         if useCoreDataLegacyNaming {
             name = self.name.camelCased(ignoreLexicon: true).suffixedName()
         } else {
             name = persistedName?.suffixedName() ?? self.name
         }
-        return "\(name)_\(version.replacingOccurrences(of: ".", with: "_"))"
+        return "\(name)_\(version.sqlDescription)"
     }
 
-    var ignoredVersionRangesByPropertyName: [String: [(from: String, to: String)]] {
+    func ignoredVersionRangesByPropertyName() throws -> [String: [(from: Version, to: Version)]] {
+        guard let addedAtVersion = addedAtVersion else {
+            throw CodeGenError.entityAddedAtVersionNotFound(name)
+        }
+        var from = addedAtVersion
         return (modelMappingHistory ?? []).reduce(into: [:]) {
             for propertyName in $1.ignoreMigrationChecksOn {
                 var ranges = $0[propertyName] ?? []
-                ranges.append(($1.from, $1.to))
+                ranges.append((from, $1.to))
                 $0[propertyName] = ranges
+                from = $1.to
             }
         }
+    }
+
+    var modelVersions: [Version] {
+        return [addedAtVersion].compactMap { $0 } + (modelMappingHistory?.compactMap { $0.to } ?? [])
     }
 
     public var previousSearchableName: String? {

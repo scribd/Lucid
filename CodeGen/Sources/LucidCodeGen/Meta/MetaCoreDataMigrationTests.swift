@@ -14,7 +14,7 @@ struct MetaCoreDataMigrationTests {
     
     let sqliteVersions: [Version]
     
-    let appVersion: String
+    let appVersion: Version
     
     let platform: Platform?
 
@@ -36,8 +36,8 @@ struct MetaCoreDataMigrationTests {
         ]
     }
     
-    private func variableFormatForVersion(_ version: String) -> String {
-        return version.replacingOccurrences(of: ".", with: "_")
+    private func variableFormatForVersion(_ version: Version) -> String {
+        return version.sqlDescription
     }
     
     private func variableFormatForFileVersion(_ fileVersion: String) throws -> String {
@@ -134,9 +134,9 @@ struct MetaCoreDataMigrationTests {
                                                       persistentStoreURL: destinationURL,
                                                       migrations: CoreDataManager.migrations(),
                                                       forceMigration: true)
-            \(MetaCode(indentation: 1, meta: descriptions.entities.filter { $0.persist }.map { entity in
+            \(MetaCode(indentation: 1, meta: try descriptions.entities.filter { $0.persist }.map { entity in
 
-                let rangesToIgnoreByPropertyName = entity.ignoredVersionRangesByPropertyName
+                let rangesToIgnoreByPropertyName = try entity.ignoredVersionRangesByPropertyName()
                 let testCode = PlainCode(code: """
                 
                 let \(entity.transformedName.variableCased())Expectation = self.expectation(description: "\(entity.transformedName)")
@@ -214,7 +214,7 @@ struct MetaCoreDataMigrationTests {
             """))
             .adding(members: try sqliteVersions.map { sqliteVersion in
                 let fileVersion = try variableFormatForFileVersion(sqliteVersion.versionString)
-                return Function(kind: .named("test_migration_from_\(fileVersion)_to_\(appVersion.replacingOccurrences(of: ".", with: "_"))_should_succeed"))
+                return Function(kind: .named("test_migration_from_\(fileVersion)_to_\(appVersion.sqlDescription)_should_succeed"))
                     .with(throws: true)
                     .adding(member: Reference.try | .named("runTest") | .call(Tuple()
                         .adding(parameter: TupleParameter(name: "for", value: Value.string(sqliteVersion.versionString)))

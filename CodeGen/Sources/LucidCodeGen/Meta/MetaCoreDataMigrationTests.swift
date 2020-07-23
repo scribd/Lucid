@@ -32,7 +32,9 @@ struct MetaCoreDataMigrationTests {
     
     func meta() throws -> [FileBodyMember] {
         return [
-            try testClass()
+            try testClass(),
+            EmptyLine(),
+            try appVersions(),
         ]
     }
     
@@ -59,7 +61,7 @@ struct MetaCoreDataMigrationTests {
         if descriptions.targets.appTests.outputPath.isAbsolute == false {
             appTestsOutputPath = "\\(projectDirectoryPath)/\(appTestsOutputPath)"
         }
-        
+
         return Type(identifier: TypeIdentifier(name: "CoreDataMigrationTests"))
             .adding(inheritedType: .xcTestCase)
             .adding(member: PlainCode(code: """
@@ -72,40 +74,18 @@ struct MetaCoreDataMigrationTests {
                 }
                 return projectDirectoryPath
             }()
-            \((try sqliteVersions.map { sqliteVersion -> String in
-                try variableFormatForFileVersion(sqliteVersion.versionString)
-            } + [variableFormatForVersion(appVersion)]).map { version in
-                "\nprivate var version\(version): Version!"
-            }.reduce(String()) { $0 + $1 })
-                
+
             override func setUp() {
                 super.setUp()
-
                 Logger.shared = LoggerMock()
             }
             
             override func tearDown() {
                 defer { super.tearDown() }
-                
                 Logger.shared = nil
-                \((try sqliteVersions.map { sqliteVersion -> String in
-                    try variableFormatForFileVersion(sqliteVersion.versionString)
-                } + [variableFormatForVersion(appVersion)]).map { version in
-                    "\n    version\(version) = nil"
-                }.reduce(String()) { $0 + $1 })
             }
 
-            private func buildVersionVariables() throws {\((try sqliteVersions.map { sqliteVersion -> String in
-                    try variableFormatForFileVersion(sqliteVersion.versionString)
-                } + [variableFormatForVersion(appVersion)]).map { version in
-                    "\n    version\(version) = try Version(\"\(valueFormatForVersion(version))\")"
-                }.reduce(String()) { $0 + $1 })
-            }
-                
             private func runTest(for sqliteFile: String, version: Version) throws {
-
-                try buildVersionVariables()
-
                 guard let appSupportDirectory = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory, .userDomainMask, true).first else {
                     XCTFail("Could not find app support directory")
                     return
@@ -142,7 +122,7 @@ struct MetaCoreDataMigrationTests {
                 let \(entity.transformedName.variableCased())Expectation = self.expectation(description: "\(entity.transformedName)")
                 hasExpectations = true
                 let \(entity.transformedName.variableCased())CoreDataStore = \(MetaCode(meta: TypeIdentifier.coreDataStore(of: entity.typeID())))(coreDataManager: coreDataManager)
-                \(entity.transformedName.variableCased())CoreDataStore.get(byID: \(entity.transformedName)Factory\(entity.hasVoidIdentifier ? "()" : "(42)").entity.identifier, in: _ReadContext<EndpointResultPayload>()) { result in
+                \(entity.transformedName.variableCased())CoreDataStore.search(withQuery: .all, in: _ReadContext<EndpointResultPayload>()) { result in
                     defer { \(entity.transformedName.variableCased())Expectation.fulfill() }
                     switch result {
                     case .success(let result):
@@ -168,15 +148,15 @@ struct MetaCoreDataMigrationTests {
                     if let rangesToIgnore = rangesToIgnoreByPropertyName[property.name], rangesToIgnore.isEmpty == false {
                         for (fromVersion, toVersion) in rangesToIgnore {
                             assert = If(condition:
-                                .value(Reference.named("version")) < .value(.named(.`self`) + .named("version\(variableFormatForVersion(fromVersion))")) ||
-                                .value(Reference.named("version")) >= .value(.named(.`self`) + .named("version\(variableFormatForVersion(toVersion))"))
+                                .value(Reference.named("version")) < .value(Reference.named("AppVersions.version\(variableFormatForVersion(fromVersion))")) ||
+                                .value(Reference.named("version")) >= .value(Reference.named("AppVersions.version\(variableFormatForVersion(toVersion))"))
                             ).adding(member: assert)
                         }
                     }
                 
                     if let addedAtVersion = property.addedAtVersion {
                         assert = If(condition:
-                            .value(Reference.named("version")) >= .value(.named(.`self`) + .named("version\(variableFormatForVersion(addedAtVersion))"))
+                            .value(Reference.named("version")) >= .value(Reference.named("AppVersions.version\(variableFormatForVersion(addedAtVersion))"))
                         ).adding(member: assert)
                     }
                 
@@ -188,9 +168,14 @@ struct MetaCoreDataMigrationTests {
                 }
                 """)
 
-                if let addedAtVersion = entity.addedAtVersion {
+                let checkpoints = entity.migrationCheckpoints
+                guard let mostRecentCheckpointVersion = checkpoints.last else {
+                    fatalError("attempting to build core data migration tests for entity \(entity.name) with missing version history")
+                }
+
+                if (checkpoints.count == 1 && entity.previousName == nil) || checkpoints.count > 1 {
                     return If(condition:
-                        .value(Reference.named("version")) >= .value(Reference.named("version\(variableFormatForVersion(addedAtVersion))"))
+                        .value(Reference.named("version")) >= .value(Reference.named("AppVersions.version\(variableFormatForVersion(mostRecentCheckpointVersion))"))
                     ).adding(member: testCode)
                 } else {
                     return testCode
@@ -210,7 +195,14 @@ struct MetaCoreDataMigrationTests {
                     self.waitForExpectations(timeout: 1, handler: nil)
                 }
             }
-            
+
+            private func test_app_versions() {\((try sqliteVersions.map { sqliteVersion -> String in
+                    try variableFormatForFileVersion(sqliteVersion.versionString)
+                } + [variableFormatForVersion(appVersion)]).map { version in
+                    "\n    XCTAssertNotNil(AppVersions.version\(version))"
+                }.reduce(String()) { $0 + $1 })
+            }
+
             """))
             .adding(members: try sqliteVersions.map { sqliteVersion in
                 let fileVersion = try variableFormatForFileVersion(sqliteVersion.versionString)
@@ -218,10 +210,24 @@ struct MetaCoreDataMigrationTests {
                     .with(throws: true)
                     .adding(member: Reference.try | .named("runTest") | .call(Tuple()
                         .adding(parameter: TupleParameter(name: "for", value: Value.string(sqliteVersion.versionString)))
-                        .adding(parameter: TupleParameter(name: "version", value: Value.reference(Reference.named("Version") | .call(Tuple()
-                            .adding(parameter: TupleParameter(value: Value.string(fileVersion.replacingOccurrences(of: "_", with: "."))))
-                        ))))
+                        .adding(parameter: TupleParameter(name: "version", value: Reference.named("AppVersions.version\(variableFormatForVersion(sqliteVersion))")))
                 ))
             })
+    }
+
+    private func appVersions() throws -> Type {
+
+        return Type(identifier: TypeIdentifier(name: "AppVersions"))
+            .adding(member: PlainCode(code: """
+            \((try sqliteVersions.map { sqliteVersion -> String in
+                try variableFormatForFileVersion(sqliteVersion.versionString)
+            } + [variableFormatForVersion(appVersion)]).map { version in
+                "static let version\(version): Version! = try? Version(\"\(valueFormatForVersion(version))\")\n"
+            }.reduce(String()) { $0 + $1 })
+            static var currentVersion: Version {
+                return version\(variableFormatForVersion(appVersion))
+            }
+            """)
+        )
     }
 }

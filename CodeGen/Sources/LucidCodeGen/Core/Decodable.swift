@@ -29,6 +29,7 @@ private enum Defaults {
     static let lastRemoteRead = false
     static let queryContext = false
     static let clientQueueName = Entity.mainClientQueueName
+    static let ignoreMigrationChecks = false
 }
 
 extension Entity {
@@ -176,6 +177,7 @@ extension VersionHistoryItem: Decodable {
     
     private enum Keys: String, CodingKey {
         case version
+        case ignoreMigrationChecks
         case ignoreMigrationChecksOn
     }
     
@@ -183,7 +185,8 @@ extension VersionHistoryItem: Decodable {
         let container = try decoder.container(keyedBy: Keys.self)
         let versionString = try container.decode(String.self, forKey: .version)
         version = try Version(versionString, source: .description)
-        ignoreMigrationChecksOn = (try container.decodeIfPresent([String].self, forKey: .ignoreMigrationChecksOn) ?? [])
+        ignoreMigrationChecks = try container.decodeIfPresent(Bool.self, forKey: .ignoreMigrationChecks) ?? Defaults.ignoreMigrationChecks
+        ignoreMigrationChecksOn = try container.decodeIfPresent([String].self, forKey: .ignoreMigrationChecksOn) ?? []
     }
 }
 

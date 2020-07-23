@@ -249,6 +249,8 @@ public struct VersionHistoryItem: Equatable {
 
     public let version: Version
 
+    public let ignoreMigrationChecks: Bool
+
     public let ignoreMigrationChecksOn: [String]
 }
 

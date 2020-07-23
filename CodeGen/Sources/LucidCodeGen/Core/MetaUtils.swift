@@ -613,7 +613,19 @@ extension Entity {
     func identifierTypeID(objc: Bool = false) -> TypeIdentifier {
         return hasVoidIdentifier ? .voidEntityIdentifier : TypeIdentifier(name: objc ? "SC\(transformedName)IdentifierObjc" : "\(transformedName)Identifier")
     }
-    
+
+    var migrationCheckpoints: [Version] {
+        var checkpoints = [Version]()
+        for historyItem in versionHistory {
+            if checkpoints.isEmpty {
+                checkpoints.append(historyItem.version)
+            } else if historyItem.ignoreMigrationChecks {
+                checkpoints.append(historyItem.version)
+            }
+        }
+        return checkpoints
+    }
+
     func remoteIdentifierValueTypeID(_ descriptions: Descriptions, persist: Bool = false) throws -> TypeIdentifier {
         switch identifier.identifierType {
         case .void:

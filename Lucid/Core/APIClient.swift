@@ -275,13 +275,16 @@ public struct APIRequest<Model>: Equatable {
 
 public struct APIResponseHeader {
 
+    public let rawValue: [AnyHashable : Any]
+
     public let cachedResponse: Bool
 
     public let etag: String?
 
-    public init(with headerFields: [AnyHashable: Any]) {
-        self.cachedResponse = (headerFields["Status"] as? String)?.contains("304 Not Modified") ?? false
-        self.etag = headerFields["Etag"] as? String
+    public init(with rawValue: [AnyHashable: Any]) {
+        self.rawValue = rawValue
+        self.cachedResponse = (rawValue["Status"] as? String)?.contains("304 Not Modified") ?? false
+        self.etag = rawValue["Etag"] as? String
     }
 
     static var empty: APIResponseHeader { return APIResponseHeader(with: [:]) }

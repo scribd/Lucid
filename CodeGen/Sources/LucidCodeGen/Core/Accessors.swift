@@ -29,7 +29,7 @@ extension Descriptions {
         }
         return endpoint
     }
-    
+
     public func modelMappingHistory(derivedFrom allVersions: [Version]) throws -> [Version] {
         var history = Set<Version>()
 
@@ -137,18 +137,22 @@ extension Entity {
             throw CodeGenError.entityAddedAtVersionNotFound(name)
         }
         var from = addedAtVersion
-        return (modelMappingHistory ?? []).reduce(into: [:]) {
+        return versionHistory.reduce(into: [:]) {
             for propertyName in $1.ignoreMigrationChecksOn {
                 var ranges = $0[propertyName] ?? []
-                ranges.append((from, $1.to))
+                ranges.append((from, $1.version))
                 $0[propertyName] = ranges
-                from = $1.to
+                from = $1.version
             }
         }
     }
 
+    public var addedAtVersion: Version? {
+        return modelVersions.first
+    }
+
     var modelVersions: [Version] {
-        return [addedAtVersion].compactMap { $0 } + (modelMappingHistory?.compactMap { $0.to } ?? [])
+        return versionHistory.map { $0.version }
     }
 
     public var previousSearchableName: String? {

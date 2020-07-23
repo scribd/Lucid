@@ -143,7 +143,7 @@ extension Entity: Decodable {
         case metadata
         case properties
         case uid
-        case modelMappingHistory
+        case versionHistory
         case persistedName
         case platforms
         case lastRemoteRead
@@ -158,17 +158,12 @@ extension Entity: Decodable {
         self.name = name
         remote = try container.decodeIfPresent(Bool.self, forKey: .remote) ?? Defaults.remote
         previousName = try container.decodeIfPresent(String.self, forKey: .previousName)
-        if let addedAtVersionString = try container.decodeIfPresent(String.self, forKey: .addedAtVersion) {
-            addedAtVersion = try Version(addedAtVersionString, source: .description)
-        } else {
-            addedAtVersion = nil
-        }
         persist = try container.decodeIfPresent(Bool.self, forKey: .persist) ?? Defaults.persist
         identifier = try container.decodeIfPresent(EntityIdentifier.self, forKey: .identifier) ?? Defaults.identifier
         metadata = try container.decodeIfPresent([MetadataProperty].self, forKey: .metadata)
         properties = try container.decode([EntityProperty].self, forKey: .properties).sorted(by: { $0.name < $1.name })
         identifierTypeID = try container.decodeIfPresent(String.self, forKey: .uid)
-        modelMappingHistory = try container.decodeIfPresent([ModelMapping].self, forKey: .modelMappingHistory)
+        versionHistory = try container.decodeIfPresent([VersionHistoryItem].self, forKey: .versionHistory) ?? []
         persistedName = try container.decodeIfPresent(String.self, forKey: .persistedName)
         platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? Defaults.platforms
         lastRemoteRead = try container.decodeIfPresent(Bool.self, forKey: .lastRemoteRead) ?? Defaults.lastRemoteRead
@@ -177,17 +172,17 @@ extension Entity: Decodable {
     }
 }
 
-extension ModelMapping: Decodable {
+extension VersionHistoryItem: Decodable {
     
     private enum Keys: String, CodingKey {
-        case to
+        case version
         case ignoreMigrationChecksOn
     }
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
-        let toString = try container.decode(String.self, forKey: .to)
-        to = try Version(toString, source: .description)
+        let versionString = try container.decode(String.self, forKey: .version)
+        version = try Version(versionString, source: .description)
         ignoreMigrationChecksOn = (try container.decodeIfPresent([String].self, forKey: .ignoreMigrationChecksOn) ?? [])
     }
 }

@@ -304,8 +304,8 @@ private func _shouldGenerateDataModel(byComparing oldEntity: Entity,
         result = true
     }
 
-    if oldEntity.modelMappingHistory != newEntity.modelMappingHistory {
-        logger.warn("'\(newEntity.name).modelMappingHistory' value changed from '\(oldEntity.modelMappingHistory?.description ?? "nil")' to '\(newEntity.modelMappingHistory?.description ?? "nil")'.")
+    if oldEntity.versionHistory != newEntity.versionHistory {
+        logger.warn("'\(newEntity.name).versionHistory' value changed from '\(oldEntity.versionHistory.description)' to '\(newEntity.versionHistory.description)'.")
         result = true
     }
 

@@ -46,7 +46,7 @@ public final class CoreDataXCDataModelGenerator: Generator {
         <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="14460.32" systemVersion="18A391" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="\(version.dotDescription)">
 
         \(try currentDescriptions.entities.filter { $0.persist }.flatMap { entity -> [String] in
-        return try entity.modelMappingHistory.resolve(for: entity, in: self.descriptions, currentVersion: version, historyVersions: historyVersions).map {
+        return try entity.versionHistory.resolve(for: entity, in: self.descriptions, currentVersion: version, historyVersions: historyVersions).map {
                 try generate(for: $0, in: $1, version: $2, previousName: $3)
             }
         }.joined(separator: "\n"))
@@ -237,7 +237,7 @@ private extension DefaultValue {
     }
 }
 
-private extension Optional where Wrapped == [ModelMapping] {
+private extension Array where Element == VersionHistoryItem {
     
     typealias ResolvedModelMapping = (
         entityName: String,
@@ -248,30 +248,20 @@ private extension Optional where Wrapped == [ModelMapping] {
     
     func resolve(for entity: Entity, in descriptions: [Version: Descriptions], currentVersion: Version, historyVersions: [Version]) throws -> [ResolvedModelMapping] {
 
-
-        guard let currentDescriptions = descriptions[currentVersion] else {
-            fatalError("Could not find descriptions for version: \(currentVersion)")
-        }
-
         guard let addedAtVersion = entity.addedAtVersion else {
             fatalError("Could not find added_at_version for entity: \(entity.name)")
         }
 
-        guard let modelMappingHistory = self else {
-            return [(entityName: entity.name, descriptions: currentDescriptions, version: addedAtVersion, previousName: entity.previousName)]
-        }
-        
         var mappings = [ResolvedModelMapping]()
 
-        let versions = [addedAtVersion] + modelMappingHistory.map { $0.to }
-        for (index, version) in versions.enumerated() {
+        for (index, version) in map({ $0.version }).enumerated() {
 
             let isLatestVersion = version == currentVersion
             let descriptionsVersion: Version
             if isLatestVersion {
                 descriptionsVersion = version
             } else {
-                let nextVersion = version == versions.last ? currentVersion : versions[index+1]
+                let nextVersion = version == last?.version ? currentVersion : self[index+1].version
                 descriptionsVersion = historyVersions.first { $0 < nextVersion && Version.isMatchingRelease($0, version) == false } ?? addedAtVersion
             }
 
@@ -279,11 +269,13 @@ private extension Optional where Wrapped == [ModelMapping] {
                 fatalError("Could not find descriptions for version: \(descriptionsVersion)")
             }
 
+            let versionEntity = try versionDescriptions.entity(for: entity.name)
+
             mappings.append((
-                entityName: entity.name,
+                entityName: versionEntity.name,
                 descriptions: versionDescriptions,
                 version: version,
-                previousName: nil
+                previousName: versionEntity.previousName
             ))
         }
 

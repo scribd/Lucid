@@ -220,8 +220,6 @@ public struct Entity {
     
     public let previousName: String?
     
-    public let addedAtVersion: Version?
-    
     public let platforms: Set<Platform>
     
     public let remote: Bool
@@ -236,7 +234,7 @@ public struct Entity {
     
     public let identifierTypeID: String?
     
-    public let modelMappingHistory: [ModelMapping]?
+    public let versionHistory: [VersionHistoryItem]
     
     public let lastRemoteRead: Bool
     
@@ -245,12 +243,12 @@ public struct Entity {
     public let clientQueueName: String
 }
 
-// MARK: - ModelMapping
+// MARK: - VersionHistory
 
-public struct ModelMapping: Equatable {
-    
-    public let to: Version
-    
+public struct VersionHistoryItem: Equatable {
+
+    public let version: Version
+
     public let ignoreMigrationChecksOn: [String]
 }
 

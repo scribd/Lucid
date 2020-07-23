@@ -650,7 +650,7 @@ extension Entity {
     }
 
     func coreDataEntityTypeID(for version: Version? = nil) throws -> TypeIdentifier {
-        guard let version = version ?? modelMappingHistory?.last?.to ?? addedAtVersion else {
+        guard let version = version ?? versionHistory.last?.version else {
             throw CodeGenError.entityAddedAtVersionNotFound(name)
         }
         return TypeIdentifier(name: "Managed\(name.camelCased().suffixedName())_\(version.sqlDescription)")

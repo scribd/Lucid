@@ -287,7 +287,7 @@ public struct APIResponseHeader {
         self.etag = rawValue["Etag"] as? String
     }
 
-    static var empty: APIResponseHeader { return APIResponseHeader(with: [:]) }
+    public static let empty = APIResponseHeader(with: [:])
 }
 
 public struct APIClientResponse<T> {
@@ -298,6 +298,8 @@ public struct APIClientResponse<T> {
 
     public let cachedResponse: Bool
 
+    public let mimeType: String?
+
     public let jsonCoderConfig: APIJSONCoderConfig
 
     public init(data: T, urlResponse: HTTPURLResponse, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
@@ -305,19 +307,27 @@ public struct APIClientResponse<T> {
         self.header = APIResponseHeader(with: urlResponse.allHeaderFields)
         self.cachedResponse = header.cachedResponse
         self.jsonCoderConfig = jsonCoderConfig
+        self.mimeType = urlResponse.mimeType
     }
 
-    public init(data: T, cachedResponse: Bool, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
+    public init(data: T,
+                header: APIResponseHeader = .empty,
+                cachedResponse: Bool,
+                mimeType: String? = nil,
+                jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
         self.data = data
-        self.header = .empty
+        self.header = header
         self.cachedResponse = cachedResponse
+        self.mimeType = mimeType
         self.jsonCoderConfig = jsonCoderConfig
     }
 
     public func with<O>(data: O) -> APIClientResponse<O> {
         return APIClientResponse<O>(
             data: data,
+            header: header,
             cachedResponse: cachedResponse,
+            mimeType: mimeType,
             jsonCoderConfig: jsonCoderConfig
         )
     }

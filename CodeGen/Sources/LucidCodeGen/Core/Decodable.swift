@@ -178,7 +178,7 @@ extension VersionHistoryItem: Decodable {
     private enum Keys: String, CodingKey {
         case version
         case ignoreMigrationChecks
-        case ignoreMigrationChecksOn
+        case ignorePropertyMigrationChecksOn
     }
     
     public init(from decoder: Decoder) throws {
@@ -186,7 +186,7 @@ extension VersionHistoryItem: Decodable {
         let versionString = try container.decode(String.self, forKey: .version)
         version = try Version(versionString, source: .description)
         ignoreMigrationChecks = try container.decodeIfPresent(Bool.self, forKey: .ignoreMigrationChecks) ?? Defaults.ignoreMigrationChecks
-        ignoreMigrationChecksOn = try container.decodeIfPresent([String].self, forKey: .ignoreMigrationChecksOn) ?? []
+        ignorePropertyMigrationChecksOn = try container.decodeIfPresent([String].self, forKey: .ignorePropertyMigrationChecksOn) ?? []
     }
 }
 

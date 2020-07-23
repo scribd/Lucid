@@ -138,7 +138,7 @@ extension Entity {
         }
         var from = addedAtVersion
         return versionHistory.reduce(into: [:]) {
-            for propertyName in $1.ignoreMigrationChecksOn {
+            for propertyName in $1.ignorePropertyMigrationChecksOn {
                 var ranges = $0[propertyName] ?? []
                 ranges.append((from, $1.version))
                 $0[propertyName] = ranges

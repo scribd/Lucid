@@ -251,7 +251,7 @@ public struct VersionHistoryItem: Equatable {
 
     public let ignoreMigrationChecks: Bool
 
-    public let ignoreMigrationChecksOn: [String]
+    public let ignorePropertyMigrationChecksOn: [String]
 }
 
 // MARK: - Identifier

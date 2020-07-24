@@ -25,7 +25,7 @@ let main = Group {
     ) { configPath, currentVersion, cachePath, noRepoUpdate, forceBuildNewDBModel, forceBuildNewDBModelForVersions, reactiveKit, selectedTargets in
         
         let logger = Logger()
-        
+
         logger.moveToChild("Reading configuration file.")
         let configuration = try SwiftCommandConfiguration.make(with: configPath,
                                                                currentVersion: currentVersion.isEmpty ? nil : currentVersion,
@@ -37,10 +37,16 @@ let main = Group {
                                                                reactiveKit: reactiveKit == "true" ? true : reactiveKit == "false" ? false : nil,
                                                                logger: logger)
 
+        let currentAppVersion = try Version(configuration.currentVersion, source: .description)
         let currentDescriptionsParser = DescriptionsParser(inputPath: configuration.inputPath,
                                                            targets: configuration.targets,
                                                            logger: logger)
-        let currentDescriptions = try currentDescriptionsParser.parse()
+        let currentDescriptions = try currentDescriptionsParser.parse(version: currentAppVersion)
+
+        logger.moveToChild("Validating entity version histories")
+        try validateEntityVersionHistory(using: currentDescriptions, logger: logger)
+        logger.moveToParent()
+
         logger.moveToParent()
 
         logger.moveToChild("Resolving release tags.")
@@ -50,16 +56,15 @@ let main = Group {
                                                                         gitRemote: configuration.gitRemote,
                                                                         noRepoUpdate: configuration.noRepoUpdate,
                                                                         logger: logger)
-        
+
         var modelMappingHistoryVersions = try currentDescriptions.modelMappingHistory(derivedFrom: descriptionsVersionManager.allVersionsFromGitTags())
-        let currentAppVersion = try Version(configuration.currentVersion, source: .description)
         modelMappingHistoryVersions.removeAll { $0 == currentAppVersion }
 
         var descriptions = try modelMappingHistoryVersions.reduce(into: [Version: Descriptions]()) { descriptions, appVersion in
             let releaseTag = try descriptionsVersionManager.resolveLatestReleaseTag(excluding: false, appVersion: appVersion)
             let descriptionsPath = try descriptionsVersionManager.fetchDescriptionsVersion(releaseTag: releaseTag)
             let descriptionsParser = DescriptionsParser(inputPath: descriptionsPath, logger: Logger(level: .none))
-            descriptions[appVersion] = try descriptionsParser.parse()
+            descriptions[appVersion] = try descriptionsParser.parse(version: appVersion)
         }
         
         descriptions[currentAppVersion] = currentDescriptions
@@ -74,7 +79,8 @@ let main = Group {
             let latestDescriptionsParser = DescriptionsParser(inputPath: latestDescriptionsPath,
                                                               targets: configuration.targets,
                                                               logger: Logger(level: .none))
-            let latestDescriptions = try latestDescriptionsParser.parse()
+            let appVersion = try Version(latestReleaseTag, source: .description)
+            let latestDescriptions = try latestDescriptionsParser.parse(version: appVersion)
 
             _shouldGenerateDataModel = try shouldGenerateDataModel(byComparing: latestDescriptions,
                                                                    to: currentDescriptions,
@@ -83,7 +89,6 @@ let main = Group {
             
             try validateDescriptions(byComparing: latestDescriptions,
                                      to: currentDescriptions,
-                                     appVersion: currentAppVersion,
                                      logger: logger)
         } else {
             _shouldGenerateDataModel = false
@@ -122,7 +127,7 @@ let main = Group {
         
         let logger = Logger()
         let parser = DescriptionsParser(inputPath: Path(inputPath), logger: logger)
-        let descriptions = try parser.parse()
+        let descriptions = try parser.parse(version: Version.zeroVersion)
         
         let authToken = authToken.isEmpty ? nil : authToken
         let generator = JSONPayloadsGenerator(to: Path(outputPath),

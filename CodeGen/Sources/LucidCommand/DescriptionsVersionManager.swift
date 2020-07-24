@@ -72,7 +72,6 @@ final class DescriptionsVersionManager {
         try shellOut(to: "cp -r \(repositoryDescriptionsPath.absolute()) \(destinationDescriptionsPath.absolute())")
         logger.done("Copied descriptions to \(destinationDescriptionsPath).")
         logger.moveToParent()
-
         return destinationDescriptionsPath
     }
 
@@ -128,7 +127,7 @@ final class DescriptionsVersionManager {
 
         return releaseTag
     }
-    
+
     private func cacheRepository() throws {
         if (repositoryPath + ".git").exists == false {
             if repositoryPath.exists {
@@ -172,6 +171,25 @@ private extension String {
     }
 }
 
+// MARK: - Entity Version History Validation
+
+func validateEntityVersionHistory(using descriptions: Descriptions, logger: Logger) throws {
+
+    for entity in descriptions.entities {
+        guard entity.persist else { continue }
+
+        guard let firstVersion = entity.versionHistory.first else {
+            try logger.throwError("Entity \(entity.name) must list a version history to persist.")
+        }
+
+        if firstVersion.previousName != nil ||
+        firstVersion.ignoreMigrationChecks == true ||
+            firstVersion.ignorePropertyMigrationChecksOn.isEmpty == false {
+            try logger.throwError("First version of Entity \(entity.name) cannot have a previous name or migration rules.")
+        }
+    }
+}
+
 // MARK: - Migration Helper
 
 func shouldGenerateDataModel(byComparing oldDescriptions: Descriptions,
@@ -184,20 +202,20 @@ func shouldGenerateDataModel(byComparing oldDescriptions: Descriptions,
     var result = false
 
     for newVersionEntity in newDescriptions.persistedEntitiesByName.values.sorted(by: { $0.name < $1.name }) {
-        if let newVersionEntityPreviousName = newVersionEntity.previousSearchableName,
-            let oldVersionEntity = oldDescriptions.persistedEntitiesByName[newVersionEntityPreviousName],
+        let newVersionEntityPreviousName = newVersionEntity.nameForVersion(oldDescriptions.version)
+        if let oldVersionEntity = oldDescriptions.persistedEntitiesByName[newVersionEntityPreviousName],
             oldVersionEntity.addedAtVersion == newVersionEntity.addedAtVersion {
-            if try _shouldGenerateDataModel(byComparing: oldVersionEntity, to: newVersionEntity, appVersion: appVersion, logger: logger) {
+            if try _shouldGenerateDataModel(byComparing: oldVersionEntity, to: newVersionEntity, oldVersion: oldDescriptions.version, appVersion: appVersion, logger: logger) {
                 result = true
             }
         } else if let oldVersionEntity = oldDescriptions.persistedEntitiesByName[newVersionEntity.name],
             oldVersionEntity.addedAtVersion == newVersionEntity.addedAtVersion {
-            if try _shouldGenerateDataModel(byComparing: oldVersionEntity, to: newVersionEntity, appVersion: appVersion, logger: logger) {
+            if try _shouldGenerateDataModel(byComparing: oldVersionEntity, to: newVersionEntity, oldVersion: oldDescriptions.version, appVersion: appVersion, logger: logger) {
                 result = true
             }
         } else {
-            guard newVersionEntity.previousName == nil else {
-                try logger.throwError("Entity \(newVersionEntity.name) is new. Thus it can't have a 'previous_name' defined.")
+            guard newVersionEntity.legacyPreviousName == nil else {
+                try logger.throwError("Entity \(newVersionEntity.name) is new. Thus it can't have a 'legacy_previous_name' defined.")
             }
             guard newVersionEntity.addedAtVersion == appVersion else {
                 try logger.throwError("Entity \(newVersionEntity.name) is new but its 'added_at_version' isn't set to '\(appVersion)'.")
@@ -227,6 +245,7 @@ func shouldGenerateDataModel(byComparing oldDescriptions: Descriptions,
 
 private func _shouldGenerateDataModel(byComparing oldEntity: Entity,
                                       to newEntity: Entity,
+                                      oldVersion: Version,
                                       appVersion: Version,
                                       logger: Logger) throws -> Bool {
 
@@ -296,12 +315,15 @@ private func _shouldGenerateDataModel(byComparing oldEntity: Entity,
         }
     }
 
-    if let oldVersionName = oldEntity.previousName, newEntity.previousName == nil {
-        try logger.throwError("\(newEntity.name).previous_name': '\(oldVersionName)' was deleted. Please restore it.")
+    if let oldVersionName = oldEntity.legacyPreviousName, newEntity.legacyPreviousName != oldVersionName {
+        try logger.throwError("\(newEntity.name).legacy_previous_name': '\(oldVersionName)' was changed or deleted. Please restore it.")
     }
-    if oldEntity.previousName != newEntity.previousName {
-        logger.warn("'\(newEntity.name).previousName' value changed from '\(oldEntity.previousName ?? "nil")' to '\(newEntity.previousName ?? "nil")'.")
+    if oldEntity.legacyPreviousName != newEntity.legacyPreviousName {
+        logger.warn("'\(newEntity.name).legacy_previous_name' value changed from '\(oldEntity.legacyPreviousName ?? "nil")' to '\(newEntity.legacyPreviousName ?? "nil")'.")
         result = true
+    }
+    if newEntity.nameForVersion(oldVersion) != oldEntity.name {
+        try logger.throwError("Names for entity \(newEntity.name) do no match between versions \(oldVersion) and \(appVersion). Update version_history to include previous_name.")
     }
 
     if oldEntity.versionHistory != newEntity.versionHistory {
@@ -312,72 +334,72 @@ private func _shouldGenerateDataModel(byComparing oldEntity: Entity,
     return result
 }
 
-private func _shouldGenerateDataModel(byComparing oldVersion: EntityProperty,
-                                      to newVersion: EntityProperty,
+private func _shouldGenerateDataModel(byComparing oldProperty: EntityProperty,
+                                      to newProperty: EntityProperty,
                                       entityName: String,
                                       appVersion: Version,
                                       logger: Logger) throws -> Bool {
 
     var result = false
 
-    if oldVersion.name != newVersion.name {
-        logger.warn("'\(entityName).\(newVersion.name).name' value changed from '\(oldVersion.name)' to '\(newVersion.name)'.")
+    if oldProperty.name != newProperty.name {
+        logger.warn("'\(entityName).\(newProperty.name).name' value changed from '\(oldProperty.name)' to '\(newProperty.name)'.")
         result = true
     }
 
-    if oldVersion.propertyType != newVersion.propertyType {
-        logger.warn("'\(entityName).\(newVersion.name).propertyType' value changed from '\(oldVersion.propertyType)' to '\(newVersion.propertyType)'.")
+    if oldProperty.propertyType != newProperty.propertyType {
+        logger.warn("'\(entityName).\(newProperty.name).propertyType' value changed from '\(oldProperty.propertyType)' to '\(newProperty.propertyType)'.")
         result = true
     }
 
-    if oldVersion.optional != newVersion.optional {
-        logger.warn("'\(entityName).\(newVersion.name).optional' value changed from '\(oldVersion.optional)' to '\(newVersion.optional)'.")
+    if oldProperty.optional != newProperty.optional {
+        logger.warn("'\(entityName).\(newProperty.name).optional' value changed from '\(oldProperty.optional)' to '\(newProperty.optional)'.")
         result = true
     }
 
-    if oldVersion.extra != newVersion.extra {
-        logger.warn("'\(entityName).\(newVersion.name).extra' value changed from '\(oldVersion.extra)' to '\(newVersion.extra)'.")
+    if oldProperty.extra != newProperty.extra {
+        logger.warn("'\(entityName).\(newProperty.name).extra' value changed from '\(oldProperty.extra)' to '\(newProperty.extra)'.")
         result = true
     }
 
-    if oldVersion.defaultValue != newVersion.defaultValue {
-        logger.warn("'\(entityName).\(newVersion.name).defaultValue' value changed from '\(oldVersion.defaultValue?.description ?? "nil")' to '\(newVersion.defaultValue?.description ?? "nil")'.")
+    if oldProperty.defaultValue != newProperty.defaultValue {
+        logger.warn("'\(entityName).\(newProperty.name).defaultValue' value changed from '\(oldProperty.defaultValue?.description ?? "nil")' to '\(newProperty.defaultValue?.description ?? "nil")'.")
         result = true
     }
 
-    if oldVersion.useForEquality != newVersion.useForEquality {
-        logger.warn("'\(entityName).\(newVersion.name).useForEquality' value changed from '\(oldVersion.useForEquality)' to '\(newVersion.useForEquality)'.")
+    if oldProperty.useForEquality != newProperty.useForEquality {
+        logger.warn("'\(entityName).\(newProperty.name).useForEquality' value changed from '\(oldProperty.useForEquality)' to '\(newProperty.useForEquality)'.")
         result = true
     }
 
-    if let oldVersionName = oldVersion.previousName, newVersion.previousName == nil {
-        try logger.throwError("'\(newVersion.name).previous_name': '\(oldVersionName)' was deleted. Please restore it.")
+    if let oldPropertyName = oldProperty.previousName, newProperty.previousName == nil {
+        try logger.throwError("'\(newProperty.name).previous_name': '\(oldPropertyName)' was deleted. Please restore it.")
     }
-    if oldVersion.previousName != newVersion.previousName {
-        logger.warn("'\(entityName).\(newVersion.name).previousName' value changed from '\(oldVersion.previousName ?? "nil")' to '\(newVersion.previousName ?? "nil")'.")
-        result = true
-    }
-    
-    if oldVersion.platforms != newVersion.platforms {
-        logger.warn("'\(newVersion.name).platforms' value changed from '\(oldVersion.platforms)' to '\(newVersion.platforms)'.")
+    if oldProperty.previousName != newProperty.previousName {
+        logger.warn("'\(entityName).\(newProperty.name).previousName' value changed from '\(oldProperty.previousName ?? "nil")' to '\(newProperty.previousName ?? "nil")'.")
         result = true
     }
 
-    if oldVersion.unused != newVersion.unused {
+    if oldProperty.platforms != newProperty.platforms {
+        logger.warn("'\(newProperty.name).platforms' value changed from '\(oldProperty.platforms)' to '\(newProperty.platforms)'.")
+        result = true
+    }
+
+    if oldProperty.unused != newProperty.unused {
         // Toggling the unused flag
-        switch (oldVersion.unused, newVersion.unused) {
+        switch (oldProperty.unused, newProperty.unused) {
         case (false, true):
-            logger.warn("'\(entityName).\(newVersion.name).unused' value changed from '\(oldVersion.unused)' to '\(newVersion.unused)'. Removing property.")
+            logger.warn("'\(entityName).\(newProperty.name).unused' value changed from '\(oldProperty.unused)' to '\(newProperty.unused)'. Removing property.")
             result = true
 
         case (true, false):
-            guard oldVersion.previousName == nil else {
-                try logger.throwError("Property \(newVersion.name) is being changed from unused to used. It should use `added_at_version` rather than 'previous_name'. Update description and run again.")
+            guard oldProperty.previousName == nil else {
+                try logger.throwError("Property \(newProperty.name) is being changed from unused to used. It should use `added_at_version` rather than 'previous_name'. Update description and run again.")
             }
-            guard newVersion.addedAtVersion == appVersion else {
-                try logger.throwError("Property \(newVersion.name) is being changed from unused to used but its 'added_at_version' isn't set to '\(appVersion)'. Update description and run again.")
+            guard newProperty.addedAtVersion == appVersion else {
+                try logger.throwError("Property \(newProperty.name) is being changed from unused to used but its 'added_at_version' isn't set to '\(appVersion)'. Update description and run again.")
             }
-            logger.warn("Detected property '\(newVersion.name)' changed from unused to used.")
+            logger.warn("Detected property '\(newProperty.name)' changed from unused to used.")
             result = true
 
         case (false, false),
@@ -391,18 +413,23 @@ private func _shouldGenerateDataModel(byComparing oldVersion: EntityProperty,
 
 // MARK: - Validation
 
-func validateDescriptions(byComparing oldVersion: Descriptions,
-                          to newVersion: Descriptions,
-                          appVersion: Version,
+func validateDescriptions(byComparing oldDescriptions: Descriptions,
+                          to newDescriptions: Descriptions,
                           logger: Logger) throws {
     
-    for newVersion in newVersion.persistedEntitiesByName.values {
-        if let previousName = newVersion.previousSearchableName,
-            let oldVersion = oldVersion.persistedEntitiesByName[previousName] {
-
-            if oldVersion.identifierTypeID != newVersion.identifierTypeID {
-                logger.warn("'\(newVersion.name).uid' value changed from '\(oldVersion.identifierTypeID ?? "nil")' to '\(newVersion.identifierTypeID ?? "nil")'. This value should never change arbitrarily as it could cause severe data losses.")
-            }
+    for newEntity in newDescriptions.persistedEntitiesByName.values {
+        guard let addedAtVersion = newEntity.addedAtVersion else {
+            try logger.throwError("Entity \(newEntity.name) does not have a valid version history.")
+        }
+        guard addedAtVersion > oldDescriptions.version || Version.isMatchingRelease(addedAtVersion, oldDescriptions.version) else {
+            continue
+        }
+        let previousName = newEntity.nameForVersion(oldDescriptions.version)
+        guard let oldEntity = oldDescriptions.persistedEntitiesByName[previousName] else {
+            try logger.throwError("Entity \(newEntity.name) could not find valid description for version \(oldDescriptions.version).")
+        }
+        if oldEntity.identifierTypeID != newEntity.identifierTypeID {
+            logger.warn("'\(newEntity.name).uid' value changed from '\(oldEntity.identifierTypeID ?? "nil")' to '\(newEntity.identifierTypeID ?? "nil")'. This value should never change arbitrarily as it could cause severe data losses.")
         }
     }
 }

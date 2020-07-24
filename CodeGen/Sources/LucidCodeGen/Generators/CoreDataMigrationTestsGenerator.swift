@@ -20,7 +20,9 @@ public final class CoreDataMigrationTestsGenerator: Generator {
     private let sqliteFiles: [String]
     
     private let appVersion: Version
-    
+
+    private let oldestModelVersion: Version
+
     private let platform: Platform?
 
     private let reactiveKit: Bool
@@ -28,12 +30,14 @@ public final class CoreDataMigrationTestsGenerator: Generator {
     public init(descriptions: Descriptions,
                 sqliteFiles: [String],
                 appVersion: Version,
+                oldestModelVersion: Version,
                 platform: Platform?,
                 reactiveKit: Bool) {
         
         self.descriptions = descriptions
         self.sqliteFiles = sqliteFiles
         self.appVersion = appVersion
+        self.oldestModelVersion = oldestModelVersion
         self.platform = platform
         self.reactiveKit = reactiveKit
     }
@@ -45,11 +49,13 @@ public final class CoreDataMigrationTestsGenerator: Generator {
 
         let sqliteVersions = sqliteFiles
             .compactMap { try? Version($0, source: .coreDataModel) }
+            .filter { $0 > oldestModelVersion || Version.isMatchingRelease($0, oldestModelVersion) }
             .sorted()
 
         let coreDataMigrationTests = MetaCoreDataMigrationTests(descriptions: descriptions,
                                                                 sqliteVersions: sqliteVersions,
                                                                 appVersion: appVersion,
+                                                                oldestModelVersion: oldestModelVersion,
                                                                 platform: platform,
                                                                 reactiveKit: reactiveKit)
         

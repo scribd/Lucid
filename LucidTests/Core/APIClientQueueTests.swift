@@ -578,16 +578,16 @@ extension APIClientQueueTests {
 
         let localIdentifierData = "[{\"local\":\"1\"}]".data(using: .utf8)
 
-        let config0 = APIRequestConfig(method: .get, path: .path("fake_path1"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: true))
+        let config0 = APIRequestConfig(method: .get, path: .path("fake_path1"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onNetworkInterrupt]))
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(config0), identifiers: localIdentifierData)
 
-        let config1 = APIRequestConfig(method: .get, path: .path("fake_path1"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: false))
+        let config1 = APIRequestConfig(method: .get, path: .path("fake_path1"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: []))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(config1), identifiers: localIdentifierData)
 
-        let config2 = APIRequestConfig(method: .get, path: .path("fake_path1"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: true))
+        let config2 = APIRequestConfig(method: .get, path: .path("fake_path1"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onNetworkInterrupt]))
         let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(config2), identifiers: localIdentifierData)
 
-        let config3 = APIRequestConfig(method: .get, path: .path("fake_path1"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: false))
+        let config3 = APIRequestConfig(method: .get, path: .path("fake_path1"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: []))
         let request3 = APIClientQueueRequest(wrapping: APIRequest<Data>(config3), identifiers: localIdentifierData)
 
         defaultQueue.append(request0)
@@ -595,7 +595,7 @@ extension APIClientQueueTests {
         defaultQueue.append(request2)
         defaultQueue.append(request3)
 
-        let removedRequests = defaultQueue.removeRequests(matching: { $0.wrapped.config.queueingStrategy.retryOnInternetConnectionFailure == false })
+        let removedRequests = defaultQueue.removeRequests(matching: { $0.wrapped.config.queueingStrategy.retryPolicy.contains(.onNetworkInterrupt) == false })
 
         // test correct requests were removed
         XCTAssertEqual(removedRequests.count, 2)
@@ -616,16 +616,16 @@ extension APIClientQueueTests {
     func test_remove_requests_should_remove_every_request_matching_the_filter_in_the_uniquing_queue() {
 
 
-        let config0 = APIRequestConfig(method: .get, path: .path("fake_path1"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: true))
+        let config0 = APIRequestConfig(method: .get, path: .path("fake_path1"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onNetworkInterrupt]))
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(config0), identifiers: "[{\"local\":\"1\"}]".data(using: .utf8))
 
-        let config1 = APIRequestConfig(method: .get, path: .path("fake_path2"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: false))
+        let config1 = APIRequestConfig(method: .get, path: .path("fake_path2"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: []))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(config1), identifiers: "[{\"local\":\"2\"}]".data(using: .utf8))
 
-        let config2 = APIRequestConfig(method: .get, path: .path("fake_path3"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: true))
+        let config2 = APIRequestConfig(method: .get, path: .path("fake_path3"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onNetworkInterrupt]))
         let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(config2), identifiers: "[{\"local\":\"3\"}]".data(using: .utf8))
 
-        let config3 = APIRequestConfig(method: .get, path: .path("fake_path4"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: false))
+        let config3 = APIRequestConfig(method: .get, path: .path("fake_path4"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: []))
         let request3 = APIClientQueueRequest(wrapping: APIRequest<Data>(config3), identifiers: "[{\"local\":\"4\"}]".data(using: .utf8))
 
         uniquingQueue.append(request0)
@@ -633,7 +633,7 @@ extension APIClientQueueTests {
         uniquingQueue.append(request2)
         uniquingQueue.append(request3)
 
-        let removedRequests = uniquingQueue.removeRequests(matching: { $0.wrapped.config.queueingStrategy.retryOnInternetConnectionFailure == false })
+        let removedRequests = uniquingQueue.removeRequests(matching: { $0.wrapped.config.queueingStrategy.retryPolicy.contains(.onNetworkInterrupt) == false })
 
         // test correct requests were removed
         XCTAssertEqual(removedRequests.count, 2)

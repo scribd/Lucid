@@ -146,7 +146,7 @@ public extension APIError {
 
     var isNetworkConnectionFailure: Bool {
         switch self {
-        case .internetConnectionFailure:
+        case .network(.networkConnectionFailure):
             return true
         case .api,
              .deserialization,

@@ -56,8 +56,12 @@ public struct APIClientQueueRequest: Equatable, Codable {
         }
     }
 
-    public var retryOnInternetConnectionFailures: Bool {
-        return wrapped.config.queueingStrategy.retryOnInternetConnectionFailure
+    public var retryOnNetworkInterrupt: Bool {
+        return wrapped.config.queueingStrategy.retryPolicy.contains(.onNetworkInterrupt)
+    }
+
+    public var retryOnRequestTimeout: Bool {
+        return wrapped.config.queueingStrategy.retryPolicy.contains(.onRequestTimeout)
     }
 
     public init(wrapping request: APIRequest<Data>, identifiers: Data? = nil) {
@@ -413,7 +417,7 @@ extension APIClientQueue: APIClientQueueProcessorDelegate {
 /// The timing is handled by an injected scheduler.
 ///
 /// - Warning:
-///     - Make sure `APIClient`'s implementation handles `APIError.internetConnectionFailure`
+///     - Make sure `APIClient`'s implementation handles `APIError.networkConnectionFailure`
 ///       correctly since it's used by the queueing retry strategy.
 protocol APIClientQueueProcessing: AnyObject {
 
@@ -713,15 +717,22 @@ private extension APIClientQueueProcessor {
 
     private func _handleAPIError(_ apiError: APIError, request: APIClientQueueRequest) {
         switch apiError {
-        case .internetConnectionFailure:
-            Logger.log(.info, "\(APIClientQueueProcessor.self): Not connected to internet. Will reschedule request and cancel non-retrying \requests in the queue.")
-            /// Any requests in the queue that expect to fail and not retry on .internetConnectionFailure should be sent the failure right away.
-            if let requestsToCancel = delegate?.removeRequests(matching: { $0.retryOnInternetConnectionFailures == false }) {
+        case .network(.networkConnectionFailure(.networkConnectionLost)),
+             .network(.networkConnectionFailure(.notConnectedToInternet)):
+            Logger.log(.info, "\(APIClientQueueProcessor.self): Not connected to network. Will reschedule request and cancel non-retrying \requests in the queue.")
+            /// Any requests in the queue that expect to fail and not retry on .networkConnectionFailure should be sent the failure right away.
+            if let requestsToCancel = delegate?.removeRequests(matching: { $0.retryOnNetworkInterrupt == false }) {
                 let responseHandlers = _responseHandlers.orderedKeyValues.map { $0.1 }
                 for requestToCancel in requestsToCancel {
                     forwardDidReceiveResponseToHandlers(.apiError(apiError, requestToCancel), handlers: responseHandlers, completion: { })
                 }
             }
+            if request.retryOnNetworkInterrupt {
+                delegate?.prepend(request)
+            } else {
+                Logger.log(.error, "\(APIClientQueueProcessor.self): Request: \(client.description(for: request.wrapped.config)) failed and won't be retried: \(apiError).")
+            }
+        case .network(.networkConnectionFailure(.requestTimedOut)) where request.retryOnRequestTimeout:
             delegate?.prepend(request)
         case .api,
              .deserialization,
@@ -755,12 +766,13 @@ private extension APIClientQueueProcessor {
             handler(.success(response), request, forwardToNextHandler)
         case .apiError(let error, let request):
             switch error {
-            case .internetConnectionFailure where request.retryOnInternetConnectionFailures:
+            case .network(.networkConnectionFailure(.networkConnectionLost)) where request.retryOnNetworkInterrupt,
+                 .network(.networkConnectionFailure(.notConnectedToInternet)) where request.retryOnNetworkInterrupt,
+                 .network(.networkConnectionFailure(.requestTimedOut)) where request.retryOnRequestTimeout:
                 forwardToNextHandler()
             case .api,
                  .deserialization,
                  .emptyBodyResponse,
-                 .internetConnectionFailure,
                  .network,
                  .networkingProtocolIsNotHTTP,
                  .sessionKeyMismatch,

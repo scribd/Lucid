@@ -617,7 +617,7 @@ private extension CoreManager {
                     } else {
                         return self.get(withQuery: query, in: remoteContext)
                             .flatMapError { error -> Signal<QueryResult<E>, ManagerError> in
-                                if error.isInternetConnectionFailure {
+                                if error.isNetworkConnectionFailure {
                                     // if we can't reach the remote store, return local results
                                     return Signal(just: localResult)
                                 } else {
@@ -725,7 +725,7 @@ private extension CoreManager {
 
             let overwriteSearch: (QueryResult<E>?) -> Signal<QueryResult<E>, ManagerError> = { localResult in
                 let mapNetworkErrorToLocalResult: ((ManagerError) -> Signal<QueryResult<E>, ManagerError>) = { error in
-                    if error.isInternetConnectionFailure, let localResult = localResult {
+                    if error.isNetworkConnectionFailure, let localResult = localResult {
                         // if we can't reach the remote store, return local results
                         return Signal(just: localResult)
                     } else {
@@ -878,7 +878,7 @@ private extension CoreManager {
                         }
 
                     case .failure(let error):
-                        Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities: \(error)", assert: error.isInternetConnectionFailure == false)
+                        Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities: \(error)", assert: error.isNetworkConnectionFailure == false)
                         guardedPromise(.failure(.store(error)))
                     }
                 }

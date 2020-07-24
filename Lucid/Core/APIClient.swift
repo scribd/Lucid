@@ -143,8 +143,8 @@ public struct APIRequestConfig: Codable, Hashable {
             public let rawValue: Int
             public init(rawValue: Int) { self.rawValue = rawValue }
 
-            static let onNetworkInterrupt = RetryPolicy(rawValue: 1 << 0)
-            static let onRequestTimeout = RetryPolicy(rawValue: 1 << 1)
+            public static let onNetworkInterrupt = RetryPolicy(rawValue: 1 << 0)
+            public static let onRequestTimeout = RetryPolicy(rawValue: 1 << 1)
         }
 
         public let synchronization: Synchronization

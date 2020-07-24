@@ -95,6 +95,8 @@ public protocol Descriptions {
     var endpointsByName: [String: EndpointPayload] { get }
     
     var targets: Targets { get }
+
+    var version: Version { get }
 }
 
 // MARK: - EndpointPayload
@@ -218,8 +220,6 @@ public struct Entity {
     
     public let persistedName: String?
     
-    public let previousName: String?
-    
     public let platforms: Set<Platform>
     
     public let remote: Bool
@@ -233,7 +233,11 @@ public struct Entity {
     public var properties: [EntityProperty]
     
     public let identifierTypeID: String?
-    
+
+    public let legacyPreviousName: String?
+
+    public let legacyAddedAtVersion: Version?
+
     public let versionHistory: [VersionHistoryItem]
     
     public let lastRemoteRead: Bool
@@ -248,6 +252,8 @@ public struct Entity {
 public struct VersionHistoryItem: Equatable {
 
     public let version: Version
+
+    public let previousName: String?
 
     public let ignoreMigrationChecks: Bool
 
@@ -484,7 +490,7 @@ public struct Version: Hashable, Comparable, CustomStringConvertible {
     let minor: Int
     let patch: Int?
     let build: Int?
-    
+
     public init(_ versionString: String, source: Source) throws {
         let version = try Version.matchesForVersionComponents(source.versionComponents, in: versionString)
         guard let major = version.major, let minor = version.minor else {
@@ -548,6 +554,17 @@ public struct Version: Hashable, Comparable, CustomStringConvertible {
             return "\(major)_\(minor)"
         }
     }
+
+    private init(major: Int, minor: Int) {
+        self.major = major
+        self.minor = minor
+        self.patch = nil
+        self.build = nil
+        self.tag = .other
+        self.versionString = String()
+    }
+
+    public static var zeroVersion: Version { return Version(major: 0, minor: 0) }
 }
 
 private extension Version {

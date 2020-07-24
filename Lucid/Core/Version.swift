@@ -42,7 +42,7 @@ public struct Version: Comparable, CustomStringConvertible {
         return false
     }
 
-    static var oldestVersion: Version { return Version(major: 9, minor: 5, patch: 0) }
+    static var oldestVersion: Version { return Version(major: 0, minor: 0, patch: nil) }
 
     public var description: String {
         if let patch = patch {

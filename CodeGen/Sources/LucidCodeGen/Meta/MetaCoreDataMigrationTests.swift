@@ -15,7 +15,9 @@ struct MetaCoreDataMigrationTests {
     let sqliteVersions: [Version]
     
     let appVersion: Version
-    
+
+    let oldestModelVersion: Version
+
     let platform: Platform?
 
     let reactiveKit: Bool
@@ -147,14 +149,20 @@ struct MetaCoreDataMigrationTests {
                 
                     if let rangesToIgnore = rangesToIgnoreByPropertyName[property.name], rangesToIgnore.isEmpty == false {
                         for (fromVersion, toVersion) in rangesToIgnore {
-                            assert = If(condition:
-                                .value(Reference.named("version")) < .value(Reference.named("AppVersions.version\(variableFormatForVersion(fromVersion))")) ||
-                                .value(Reference.named("version")) >= .value(Reference.named("AppVersions.version\(variableFormatForVersion(toVersion))"))
-                            ).adding(member: assert)
+                            if fromVersion > oldestModelVersion {
+                                assert = If(condition:
+                                    .value(Reference.named("version")) < .value(Reference.named("AppVersions.version\(variableFormatForVersion(fromVersion))")) ||
+                                    .value(Reference.named("version")) >= .value(Reference.named("AppVersions.version\(variableFormatForVersion(toVersion))"))
+                                ).adding(member: assert)
+                            } else if toVersion > oldestModelVersion {
+                                assert = If(condition:
+                                    .value(Reference.named("version")) >= .value(Reference.named("AppVersions.version\(variableFormatForVersion(toVersion))"))
+                                ).adding(member: assert)
+                            }
                         }
                     }
                 
-                    if let addedAtVersion = property.addedAtVersion {
+                    if let addedAtVersion = property.addedAtVersion, addedAtVersion > oldestModelVersion {
                         assert = If(condition:
                             .value(Reference.named("version")) >= .value(Reference.named("AppVersions.version\(variableFormatForVersion(addedAtVersion))"))
                         ).adding(member: assert)
@@ -173,7 +181,7 @@ struct MetaCoreDataMigrationTests {
                     fatalError("attempting to build core data migration tests for entity \(entity.name) with missing version history")
                 }
 
-                if (checkpoints.count == 1 && entity.previousName == nil) || checkpoints.count > 1 {
+                if mostRecentCheckpointVersion > oldestModelVersion {
                     return If(condition:
                         .value(Reference.named("version")) >= .value(Reference.named("AppVersions.version\(variableFormatForVersion(mostRecentCheckpointVersion))"))
                     ).adding(member: testCode)

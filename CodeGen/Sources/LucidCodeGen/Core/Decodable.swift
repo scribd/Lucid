@@ -137,13 +137,14 @@ extension Entity: Decodable {
     private enum Keys: String, CodingKey {
         case name
         case remote
-        case previousName
-        case addedAtVersion
         case persist
         case identifier
         case metadata
         case properties
         case uid
+        case legacyPreviousName
+        case previousName
+        case addedAtVersion
         case versionHistory
         case persistedName
         case platforms
@@ -158,13 +159,19 @@ extension Entity: Decodable {
         let name = try container.decode(String.self, forKey: .name)
         self.name = name
         remote = try container.decodeIfPresent(Bool.self, forKey: .remote) ?? Defaults.remote
-        previousName = try container.decodeIfPresent(String.self, forKey: .previousName)
         persist = try container.decodeIfPresent(Bool.self, forKey: .persist) ?? Defaults.persist
         identifier = try container.decodeIfPresent(EntityIdentifier.self, forKey: .identifier) ?? Defaults.identifier
         metadata = try container.decodeIfPresent([MetadataProperty].self, forKey: .metadata)
         properties = try container.decode([EntityProperty].self, forKey: .properties).sorted(by: { $0.name < $1.name })
         identifierTypeID = try container.decodeIfPresent(String.self, forKey: .uid)
+        legacyPreviousName = try container.decodeIfPresent(String.self, forKey: .legacyPreviousName) ?? container.decodeIfPresent(String.self, forKey: .previousName)
         versionHistory = try container.decodeIfPresent([VersionHistoryItem].self, forKey: .versionHistory) ?? []
+        let legacyAddedAtVersionString = try container.decodeIfPresent(String.self, forKey: .addedAtVersion)
+        if versionHistory.isEmpty, let addedAtVersionString = legacyAddedAtVersionString {
+            legacyAddedAtVersion = try? Version(addedAtVersionString, source: .description)
+        } else {
+            legacyAddedAtVersion = nil
+        }
         persistedName = try container.decodeIfPresent(String.self, forKey: .persistedName)
         platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? Defaults.platforms
         lastRemoteRead = try container.decodeIfPresent(Bool.self, forKey: .lastRemoteRead) ?? Defaults.lastRemoteRead
@@ -177,6 +184,7 @@ extension VersionHistoryItem: Decodable {
     
     private enum Keys: String, CodingKey {
         case version
+        case previousName
         case ignoreMigrationChecks
         case ignorePropertyMigrationChecksOn
     }
@@ -185,6 +193,7 @@ extension VersionHistoryItem: Decodable {
         let container = try decoder.container(keyedBy: Keys.self)
         let versionString = try container.decode(String.self, forKey: .version)
         version = try Version(versionString, source: .description)
+        previousName = try container.decodeIfPresent(String.self, forKey: .previousName)
         ignoreMigrationChecks = try container.decodeIfPresent(Bool.self, forKey: .ignoreMigrationChecks) ?? Defaults.ignoreMigrationChecks
         ignorePropertyMigrationChecksOn = try container.decodeIfPresent([String].self, forKey: .ignorePropertyMigrationChecksOn) ?? []
     }

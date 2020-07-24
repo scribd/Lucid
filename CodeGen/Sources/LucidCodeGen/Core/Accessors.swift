@@ -148,38 +148,26 @@ extension Entity {
     }
 
     public var addedAtVersion: Version? {
-        return modelVersions.first
+        return modelVersions.first ?? legacyAddedAtVersion
     }
 
     var modelVersions: [Version] {
         return versionHistory.map { $0.version }
     }
 
-    public var previousSearchableName: String? {
-        guard let previousName = previousName else { return nil }
-
-        // Remove potential core data model version
-        var name: String = previousName
-            .split(separator: "_")
-            .reversed()
-            .reduce(into: (endCondition: false, words: [String]())) { data, word in
-                let word = String(word)
-                let isNumber = word.contains { $0.isNumber == false } == false
-                if isNumber == false || data.endCondition {
-                    data.words = [word] + data.words
-                    data.endCondition = true
-                }
-            }
-            .words
-            .joined(separator: "_")
-
-        // Remove potential suffix
-        if name.hasSuffix(String.Configuration.entitySuffix) {
-            let higherBound = name.index(name.endIndex, offsetBy: -String.Configuration.entitySuffix.count)
-            name = String(name[name.startIndex..<higherBound])
+    public func nameForVersion(_ version: Version) -> String {
+        if versionHistory.isEmpty {
+            // legacy check
+            return name
         }
 
-        return name.snakeCased
+        return versionHistory.first {
+            $0.version > version && $0.previousName != nil
+        }?.previousName ?? name
+    }
+
+    public var previousNameForCoreData: String? {
+        return versionHistory.first { $0.previousName != nil }?.previousName
     }
 }
 

@@ -41,20 +41,39 @@ final class SwiftCodeGenerator {
                 (platform, descriptions.mapValues { $0.variant(for: platform) })
             }
         }
-        
+
         generators = descriptionVariants.map {
-            InternalSwiftCodeGenerator(to: target,
-                                       descriptions: $1,
-                                       appVersion: appVersion,
-                                       historyVersions: historyVersions,
-                                       shouldGenerateDataModel: shouldGenerateDataModel,
-                                       descriptionsHash: descriptionsHash,
-                                       platform: $0,
-                                       responseHandlerFunction: responseHandlerFunction,
-                                       coreDataMigrationsFunction: coreDataMigrationsFunction,
-                                       reactiveKit: reactiveKit,
-                                       useCoreDataLegacyNaming: useCoreDataLegacyNaming,
-                                       logger: logger)
+            if let platform = $0 {
+                logger.moveToChild("Determine oldest data model version for \(platform).")
+            } else {
+                logger.moveToChild("Determine oldest data model version.")
+            }
+            let oldestModelVersion: Version
+            do {
+                guard let currentDescriptions = descriptions[appVersion] else {
+                    try logger.throwError("Could not find current descriptions.")
+                }
+                oldestModelVersion = try SwiftCodeGenerator.determineOldestXcdatamodelVersion(using: currentDescriptions, platform: $0, logger: logger) ?? appVersion
+                logger.info("Oldest model version is set at \(oldestModelVersion).")
+            } catch {
+                logger.warn("\(error) Defaulting to current version \(appVersion).")
+                oldestModelVersion = appVersion
+            }
+            logger.moveToParent()
+
+            return InternalSwiftCodeGenerator(to: target,
+                                              descriptions: $1,
+                                              appVersion: appVersion,
+                                              oldestModelVersion: oldestModelVersion,
+                                              historyVersions: historyVersions,
+                                              shouldGenerateDataModel: shouldGenerateDataModel,
+                                              descriptionsHash: descriptionsHash,
+                                              platform: $0,
+                                              responseHandlerFunction: responseHandlerFunction,
+                                              coreDataMigrationsFunction: coreDataMigrationsFunction,
+                                              reactiveKit: reactiveKit,
+                                              useCoreDataLegacyNaming: useCoreDataLegacyNaming,
+                                              logger: logger)
         }
     }
     
@@ -63,6 +82,41 @@ final class SwiftCodeGenerator {
             try generator.generate()
         }
     }
+
+    private static func determineOldestXcdatamodelVersion(using descriptions: Descriptions,
+                                                          platform: Platform?,
+                                                          logger: Logger) throws -> Version? {
+        let target = descriptions.targets.app
+        let appModuleName = target.moduleName
+        let prefix = appModuleName
+        let suffix = ".xcdatamodel"
+
+        var path = target.outputPath
+        if let platform = platform {
+            path = path + Path(platform)
+        }
+        path = path + OutputDirectory.coreDataModelVersion.path(appModuleName: appModuleName)
+        let children = try path.children()
+
+        let allVersions: [Version] = try children.filter { $0.string.hasSuffix(suffix) }.map {
+            let filename = $0.lastComponent
+            var versionName = filename
+            if versionName.hasPrefix(prefix) {
+                versionName = String(versionName.dropFirst(prefix.count))
+            }
+            if versionName.hasSuffix(suffix) {
+                versionName = String(versionName.dropLast(suffix.count))
+            }
+
+            if let version = try? Version(versionName, source: .description) {
+                return version
+            } else {
+                try logger.throwError("Unable to parse version from model name \(filename).")
+            }
+        }
+
+        return allVersions.sorted().first
+    }
 }
 
 private final class InternalSwiftCodeGenerator {
@@ -70,6 +124,7 @@ private final class InternalSwiftCodeGenerator {
     private let target: Target
     private let descriptions: [Version: Descriptions]
     private let appVersion: Version
+    private let oldestModelVersion: Version
     private let historyVersions: [Version]
     private let shouldGenerateDataModel: Bool
     private let descriptionsHash: String
@@ -101,6 +156,7 @@ private final class InternalSwiftCodeGenerator {
     init(to target: Target,
          descriptions: [Version: Descriptions],
          appVersion: Version,
+         oldestModelVersion: Version,
          historyVersions: [Version],
          shouldGenerateDataModel: Bool,
          descriptionsHash: String,
@@ -114,6 +170,7 @@ private final class InternalSwiftCodeGenerator {
         self.target = target
         self.descriptions = descriptions
         self.appVersion = appVersion
+        self.oldestModelVersion = oldestModelVersion
         self.historyVersions = historyVersions
         self.shouldGenerateDataModel = shouldGenerateDataModel
         self.descriptionsHash = descriptionsHash
@@ -198,6 +255,7 @@ private final class InternalSwiftCodeGenerator {
             try generate(with: CoreDataMigrationTestsGenerator(descriptions: currentDescriptions,
                                                                sqliteFiles: sqliteFiles,
                                                                appVersion: appVersion,
+                                                               oldestModelVersion: oldestModelVersion,
                                                                platform: platform,
                                                                reactiveKit: reactiveKit),
                          in: .coreDataMigrationTests,

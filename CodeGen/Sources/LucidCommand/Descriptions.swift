@@ -13,7 +13,7 @@ import PathKit
 // MARK: - Descriptions
 
 final class Descriptions: LucidCodeGen.Descriptions {
-    
+
     let subtypes: [Subtype]
     let entities: [Entity]
     let endpoints: [EndpointPayload]
@@ -25,12 +25,15 @@ final class Descriptions: LucidCodeGen.Descriptions {
     let persistedEntitiesByName: [String: Entity]
     
     let targets: Targets
-    
+
+    let version: Version
+
     private init(subtypes: [Subtype],
                  entities: [Entity],
                  endpoints: [EndpointPayload],
-                 targets: Targets) {
-        
+                 targets: Targets,
+                 version: Version) {
+
         self.subtypes = subtypes
         self.entities = entities
         self.endpoints = endpoints
@@ -45,14 +48,15 @@ final class Descriptions: LucidCodeGen.Descriptions {
             .reduce(into: [:]) { $0[$1.name] = $1 }
 
         self.targets = targets
+        self.version = version
     }
     
-    fileprivate convenience init(_ parser: DescriptionsParser, _ targets: Targets) throws {
+    fileprivate convenience init(_ parser: DescriptionsParser, _ targets: Targets, _ version: Version) throws {
         let subtypes: [Subtype] = try parser.parseDescription(.subtypes).sorted { $0.name < $1.name }
         let entities: [Entity] = try parser.parseDescription(.entities).sorted { $0.name < $1.name }
         let endpoints: [EndpointPayload] = try parser.parseDescription(.endpointPayloads).sorted { $0.name < $1.name }
 
-        self.init(subtypes: subtypes, entities: entities, endpoints: endpoints, targets: targets)
+        self.init(subtypes: subtypes, entities: entities, endpoints: endpoints, targets: targets, version: version)
     }
     
     func variant(for platform: Platform) -> Descriptions {
@@ -94,7 +98,8 @@ final class Descriptions: LucidCodeGen.Descriptions {
             subtypes: subtypes,
             entities: entities,
             endpoints: endpoints,
-            targets: targets
+            targets: targets,
+            version: version
         )
     }
 
@@ -170,9 +175,9 @@ final class DescriptionsParser {
         self.logger = logger
     }
     
-    func parse() throws -> Descriptions {
+    func parse(version: Version) throws -> Descriptions {
         logger.moveToChild("Parsing Descriptions.")
-        let descriptions = try Descriptions(self, targets)
+        let descriptions = try Descriptions(self, targets, version)
         logger.moveToParent()
         return descriptions
     }

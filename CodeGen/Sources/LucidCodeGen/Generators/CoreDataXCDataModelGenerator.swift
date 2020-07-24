@@ -46,8 +46,8 @@ public final class CoreDataXCDataModelGenerator: Generator {
         <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="14460.32" systemVersion="18A391" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="\(version.dotDescription)">
 
         \(try currentDescriptions.entities.filter { $0.persist }.flatMap { entity -> [String] in
-        return try entity.versionHistory.resolve(for: entity, in: self.descriptions, currentVersion: version, historyVersions: historyVersions).map {
-                try generate(for: $0, in: $1, version: $2, previousName: $3)
+            return try entity.versionHistory.resolve(for: entity, in: self.descriptions, currentVersion: version, historyVersions: historyVersions).map {
+                try generate(for: $0, in: $1, version: $2, previousName: $3, previousDescriptions: $4)
             }
         }.joined(separator: "\n"))
         
@@ -57,11 +57,24 @@ public final class CoreDataXCDataModelGenerator: Generator {
         return File(content: content, path: directory + filename)
     }
     
-    private func generate(for entityName: String, in descriptions: Descriptions, version: Version, previousName: String? = nil) throws -> String {
+    private func generate(for entityName: String, in descriptions: Descriptions, version: Version, previousName: String?, previousDescriptions: Descriptions?) throws -> String {
 
         let entity = try descriptions.entity(for: entityName)
 
-        let elementIDText = previousName.flatMap { " elementID=\"\($0)\"" } ?? ""
+        let elementIDText: String
+
+        if let legacyPreviousName = entity.legacyPreviousName {
+            elementIDText = " elementID=\"\(legacyPreviousName)\""
+        } else if let previousName = previousName, previousName != entityName {
+            guard let previousDescriptions = previousDescriptions else {
+                fatalError("Could not find descriptions for previous version, but found previous name \(previousName).")
+            }
+            let previousEntity = try previousDescriptions.entity(for: previousName)
+            let previousEntityCoreDataName = previousEntity.coreDataName(for: previousDescriptions.version, useCoreDataLegacyNaming: useCoreDataLegacyNaming)
+            elementIDText = " elementID=\"\(previousEntityCoreDataName)\""
+        } else {
+            elementIDText = String()
+        }
         let entityCoreDataName = entity.coreDataName(for: version, useCoreDataLegacyNaming: useCoreDataLegacyNaming)
         let entityCoreDataManagedName = try entity.coreDataEntityTypeID(for: version).swiftString
 
@@ -243,7 +256,8 @@ private extension Array where Element == VersionHistoryItem {
         entityName: String,
         descriptions: Descriptions,
         version: Version,
-        previousName: String?
+        previousName: String?,
+        previousDescriptions: Descriptions?
     )
     
     func resolve(for entity: Entity, in descriptions: [Version: Descriptions], currentVersion: Version, historyVersions: [Version]) throws -> [ResolvedModelMapping] {
@@ -256,26 +270,46 @@ private extension Array where Element == VersionHistoryItem {
 
         for (index, version) in map({ $0.version }).enumerated() {
 
-            let isLatestVersion = version == currentVersion
+            let isLatestVersion = index == count - 1
             let descriptionsVersion: Version
             if isLatestVersion {
-                descriptionsVersion = version
+                descriptionsVersion = currentVersion
             } else {
-                let nextVersion = version == last?.version ? currentVersion : self[index+1].version
-                descriptionsVersion = historyVersions.first { $0 < nextVersion && Version.isMatchingRelease($0, version) == false } ?? addedAtVersion
+                let nextItem = self[index+1]
+                if nextItem.previousName != nil {
+                    // we are migrating this version to the new name, so we must remove the previous version from the model
+                    continue
+                }
+                descriptionsVersion = historyVersions.first { $0 < nextItem.version || Version.isMatchingRelease($0, version) } ?? addedAtVersion
             }
 
             guard let versionDescriptions = descriptions[descriptionsVersion] else {
                 fatalError("Could not find descriptions for version: \(descriptionsVersion)")
             }
 
-            let versionEntity = try versionDescriptions.entity(for: entity.name)
+            let versionedName = entity.nameForVersion(descriptionsVersion)
+            let versionedPreviousName = entity.previousNameForCoreData
+            let versionedPreviousDescriptions: Descriptions?
+
+            if let versionedPreviousName = versionedPreviousName {
+                guard let renamedHistoryIndex = firstIndex(where: { $0.previousName == versionedPreviousName }) else {
+                    fatalError("Could not find index of previous name \(versionedPreviousName) in entity \(entity.name).")
+                }
+                guard renamedHistoryIndex > 0 else {
+                    fatalError("First version of entity \(entity.name) should not have previous_name.")
+                }
+                let previousHistoryItem = self[renamedHistoryIndex-1]
+                versionedPreviousDescriptions = descriptions[previousHistoryItem.version]
+            } else {
+                versionedPreviousDescriptions = nil
+            }
 
             mappings.append((
-                entityName: versionEntity.name,
+                entityName: versionedName,
                 descriptions: versionDescriptions,
                 version: version,
-                previousName: versionEntity.previousName
+                previousName: versionedPreviousName,
+                previousDescriptions: versionedPreviousDescriptions
             ))
         }
 

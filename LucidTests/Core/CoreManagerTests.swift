@@ -4267,7 +4267,7 @@ final class CoreManagerTests: XCTestCase {
     // MARK: get: local --> remote
 
     func test_get_local_or_remote_returns_nil_result_if_local_result_missing_and_receiving_internet_connection_error() {
-        remoteStoreSpy.getResultStub = .failure(.api(.internetConnectionFailure(NSError(domain: "test", code: 0, userInfo: nil))))
+        remoteStoreSpy.getResultStub = .failure(.api(.network(.networkConnectionFailure(.networkConnectionLost))))
         memoryStoreSpy.getResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
@@ -4303,7 +4303,7 @@ final class CoreManagerTests: XCTestCase {
     }
 
     func test_get_local_then_remote_returns_nil_result_if_local_result_missing_and_receiving_internet_connection_error() {
-        remoteStoreSpy.getResultStub = .failure(.api(.internetConnectionFailure(NSError(domain: "test", code: 0, userInfo: nil))))
+        remoteStoreSpy.getResultStub = .failure(.api(.network(.networkConnectionFailure(.networkConnectionLost))))
         memoryStoreSpy.getResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
@@ -4341,7 +4341,7 @@ final class CoreManagerTests: XCTestCase {
     // MARK: search: local --> remote
 
     func test_search_local_or_remote_returns_nil_result_if_local_result_missing_and_receiving_internet_connection_error() {
-        remoteStoreSpy.searchResultStub = .failure(.api(.internetConnectionFailure(NSError(domain: "test", code: 0, userInfo: nil))))
+        remoteStoreSpy.searchResultStub = .failure(.api(.network(.networkConnectionFailure(.networkConnectionLost))))
         memoryStoreSpy.searchResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
@@ -4378,7 +4378,7 @@ final class CoreManagerTests: XCTestCase {
     }
 
     func test_search_local_then_remote_returns_nil_result_if_local_result_missing_and_receiving_internet_connection_error() {
-        remoteStoreSpy.searchResultStub = .failure(.api(.internetConnectionFailure(NSError(domain: "test", code: 0, userInfo: nil))))
+        remoteStoreSpy.searchResultStub = .failure(.api(.network(.networkConnectionFailure(.networkConnectionLost))))
         memoryStoreSpy.searchResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
@@ -4415,7 +4415,7 @@ final class CoreManagerTests: XCTestCase {
     }
 
     func test_search_local_or_remote_returns_partial_local_result_when_receiving_internet_connection_error() {
-        remoteStoreSpy.searchResultStub = .failure(.api(.internetConnectionFailure(NSError(domain: "test", code: 0, userInfo: nil))))
+        remoteStoreSpy.searchResultStub = .failure(.api(.network(.networkConnectionFailure(.networkConnectionLost))))
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil))]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
@@ -4454,7 +4454,7 @@ final class CoreManagerTests: XCTestCase {
     }
 
     func test_search_local_then_remote_returns_partial_local_result_when_receiving_internet_connection_error() {
-        remoteStoreSpy.searchResultStub = .failure(.api(.internetConnectionFailure(NSError(domain: "test", code: 0, userInfo: nil))))
+        remoteStoreSpy.searchResultStub = .failure(.api(.network(.networkConnectionFailure(.networkConnectionLost))))
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil))]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")

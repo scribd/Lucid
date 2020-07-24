@@ -17,13 +17,40 @@ import Combine
 
 public enum APIError: Error, Equatable {
     case networkingProtocolIsNotHTTP
-    case network(Error)
-    case internetConnectionFailure(Error)
+    case network(NetworkError)
     case url
     case deserialization(Error)
     case emptyBodyResponse
     case api(httpStatusCode: Int, errorPayload: APIErrorPayload?)
     case sessionKeyMismatch
+}
+
+public enum NetworkError: Error, Equatable {
+    case networkConnectionFailure(NetworkConnectionError)
+    case parsing(ParsingError)
+    case unknown
+    case cancelled
+    case badURL
+    case unsupportedURL
+    case cannotFindHost
+    case cannotConnectToHost
+    case DNSLookupFailed
+    case badServerResponse
+    case userCancelledAuthentication
+    case userAuthenticationRequired
+    case other(NSError)
+}
+
+public enum NetworkConnectionError: Error, Equatable {
+    case networkConnectionLost
+    case notConnectedToInternet
+    case requestTimedOut
+}
+
+public enum ParsingError: Error, Equatable {
+    case cannotDecodeContentData
+    case cannotDecodeRawData
+    case cannotParseResponse
 }
 
 // MARK: - Request Config
@@ -112,13 +139,21 @@ public struct APIRequestConfig: Codable, Hashable {
             case barrier
         }
 
+        public struct RetryPolicy: OptionSet, Codable, Hashable {
+            public let rawValue: Int
+            public init(rawValue: Int) { self.rawValue = rawValue }
+
+            static let onNetworkInterrupt = RetryPolicy(rawValue: 1 << 0)
+            static let onRequestTimeout = RetryPolicy(rawValue: 1 << 1)
+        }
+
         public let synchronization: Synchronization
-        public let retryOnInternetConnectionFailure: Bool
+        public let retryPolicy: RetryPolicy
 
         public init(synchronization: Synchronization,
-                    retryOnInternetConnectionFailure: Bool) {
+                    retryPolicy: RetryPolicy) {
             self.synchronization = synchronization
-            self.retryOnInternetConnectionFailure = retryOnInternetConnectionFailure
+            self.retryPolicy = retryPolicy
         }
     }
 
@@ -483,8 +518,8 @@ extension APIClient {
 
                         if let error = error as NSError? {
                             let apiError = APIError(network: error)
-                            if case .internetConnectionFailure = apiError {
-                                Logger.log(.debug, "\(Self.self): \(self.identifier): Internet connection failure occurred for request: \(urlRequest): \(error)")
+                            if apiError.isNetworkConnectionFailure {
+                                Logger.log(.debug, "\(Self.self): \(self.identifier): Network connection failure occurred for request: \(urlRequest): \(error)")
                             } else {
                                 Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
                             }
@@ -912,17 +947,43 @@ extension APIError {
     init(network error: NSError) {
         if error.domain == NSURLErrorDomain {
             switch error.code {
-            case NSURLErrorNotConnectedToInternet:
-                self = .internetConnectionFailure(error)
-            case NSURLErrorTimedOut:
-                self = .internetConnectionFailure(error)
             case NSURLErrorNetworkConnectionLost:
-                self = .internetConnectionFailure(error)
+                self = .network(.networkConnectionFailure(.networkConnectionLost))
+            case NSURLErrorNotConnectedToInternet:
+                self = .network(.networkConnectionFailure(.notConnectedToInternet))
+            case NSURLErrorTimedOut:
+                self = .network(.networkConnectionFailure(.requestTimedOut))
+            case NSURLErrorCannotDecodeContentData:
+                self = .network(.parsing(.cannotDecodeContentData))
+            case NSURLErrorCannotDecodeRawData:
+                self = .network(.parsing(.cannotDecodeRawData))
+            case NSURLErrorCannotParseResponse:
+                self = .network(.parsing(.cannotParseResponse))
+            case NSURLErrorUnknown:
+                self = .network(.unknown)
+            case NSURLErrorCancelled:
+                self = .network(.cancelled)
+            case NSURLErrorBadURL:
+                self = .network(.badURL)
+            case NSURLErrorUnsupportedURL:
+                self = .network(.unsupportedURL)
+            case NSURLErrorCannotFindHost:
+                self = .network(.cannotFindHost)
+            case NSURLErrorCannotConnectToHost:
+                self = .network(.cannotConnectToHost)
+            case NSURLErrorDNSLookupFailed:
+                self = .network(.DNSLookupFailed)
+            case NSURLErrorBadServerResponse:
+                self = .network(.badServerResponse)
+            case NSURLErrorUserCancelledAuthentication:
+                self = .network(.userCancelledAuthentication)
+            case NSURLErrorUserAuthenticationRequired:
+                self = .network(.userAuthenticationRequired)
             default:
-                self = .network(error)
+                self = .network(.other(error))
             }
         } else {
-            self = .network(error)
+            self = .network(.other(error))
         }
     }
 }
@@ -1071,8 +1132,6 @@ extension APIError {
              (.emptyBodyResponse, .emptyBodyResponse),
              (.sessionKeyMismatch, .sessionKeyMismatch):
             return true
-        case (.internetConnectionFailure(let lhs), .internetConnectionFailure(let rhs)):
-            return lhs as NSError == rhs as NSError
         case (.api(let lHTTPStatusCode, let lErrorPayload), .api(let rHTTPStatusCode, let rErrorPayload)):
             guard lHTTPStatusCode == rHTTPStatusCode else { return false }
             guard lErrorPayload == rErrorPayload else { return false }
@@ -1083,7 +1142,6 @@ extension APIError {
              (.deserialization, _),
              (.emptyBodyResponse, _),
              (.sessionKeyMismatch, _),
-             (.internetConnectionFailure, _),
              (.api, _):
             return false
         }
@@ -1155,11 +1213,13 @@ public extension HTTPMethod {
         switch self {
         case .get,
              .head:
-            return APIRequestConfig.QueueingStrategy(synchronization: .concurrent, retryOnInternetConnectionFailure: false)
+            return APIRequestConfig.QueueingStrategy(synchronization: .concurrent,
+                                                     retryPolicy: [])
         case .delete,
              .post,
              .put:
-            return APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryOnInternetConnectionFailure: true)
+            return APIRequestConfig.QueueingStrategy(synchronization: .barrier,
+                                                     retryPolicy: [.onNetworkInterrupt, .onRequestTimeout])
         }
     }
 

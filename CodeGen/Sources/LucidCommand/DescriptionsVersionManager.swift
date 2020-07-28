@@ -12,6 +12,8 @@ import PathKit
 
 final class DescriptionsVersionManager {
 
+    private let workingPath: Path
+
     private let inputPath: Path
 
     private let outputPath: Path
@@ -32,12 +34,14 @@ final class DescriptionsVersionManager {
         return repositoryPath + inputPath
     }
 
-    init(outputPath: Path,
+    init(workingPath: Path,
+         outputPath: Path,
          inputPath: Path,
          gitRemote: String?,
          noRepoUpdate: Bool,
          logger: Logger) throws {
 
+        self.workingPath = workingPath
         self.outputPath = outputPath
         self.inputPath = inputPath
         self.gitRemote = gitRemote
@@ -76,7 +80,11 @@ final class DescriptionsVersionManager {
     }
 
     func allVersionsFromGitTags() throws -> [Version] {
-        return try shellOut(to: "git tag", at: self.repositoryPath.absolute().string)
+
+        try cacheRepository()
+        try fetchOrigin()
+
+        return try shellOut(to: "git tag", at: repositoryPath.absolute().string)
             .split(separator: "\n")
             .compactMap { tag -> Version? in
                 do {
@@ -93,9 +101,6 @@ final class DescriptionsVersionManager {
     func resolveLatestReleaseTag(excluding: Bool, appVersion: Version) throws -> String {
 
         logger.moveToChild("Resolving \(excluding ? "latest release tag " : "release tag for app version \(appVersion)")...")
-
-        try cacheRepository()
-        try fetchOrigin()
 
         let versions = try allVersionsFromGitTags()
 
@@ -129,12 +134,16 @@ final class DescriptionsVersionManager {
     }
 
     private func cacheRepository() throws {
+        guard (workingPath + ".git").exists else {
+            try logger.throwError("Working directory needs to be a git repository.")
+        }
+
         if (repositoryPath + ".git").exists == false {
             if repositoryPath.exists {
                 try repositoryPath.delete()
             }
             try repositoryPath.mkpath()
-            try shellOut(to: "cp -r . \(repositoryPath.absolute()) || true")
+            try shellOut(to: "cp -r \(workingPath.absolute())/ \(repositoryPath.absolute()) || true")
             logger.done("Cached repository to \(repositoryPath.absolute()).")
         }
     }

@@ -51,7 +51,8 @@ let main = Group {
 
         logger.moveToChild("Resolving release tags.")
         
-        let descriptionsVersionManager = try DescriptionsVersionManager(outputPath: configuration.cachePath,
+        let descriptionsVersionManager = try DescriptionsVersionManager(workingPath: configuration._workingPath,
+                                                                        outputPath: configuration.cachePath,
                                                                         inputPath: configuration._inputPath,
                                                                         gitRemote: configuration.gitRemote,
                                                                         noRepoUpdate: configuration.noRepoUpdate,
@@ -61,6 +62,7 @@ let main = Group {
         modelMappingHistoryVersions.removeAll { $0 == currentAppVersion }
 
         var descriptions = try modelMappingHistoryVersions.reduce(into: [Version: Descriptions]()) { descriptions, appVersion in
+            guard appVersion < currentAppVersion else { return }
             let releaseTag = try descriptionsVersionManager.resolveLatestReleaseTag(excluding: false, appVersion: appVersion)
             let descriptionsPath = try descriptionsVersionManager.fetchDescriptionsVersion(releaseTag: releaseTag)
             let descriptionsParser = DescriptionsParser(inputPath: descriptionsPath, logger: Logger(level: .none))

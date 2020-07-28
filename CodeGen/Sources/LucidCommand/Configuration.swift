@@ -16,7 +16,7 @@ enum ConfigurationError: Error {
 
 struct SwiftCommandConfiguration {
     
-    private var _workingPath: Path = Path(".")
+    private(set) var _workingPath: Path = .current
     
     private(set) var targets: TargetConfigurations
     

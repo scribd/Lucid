@@ -310,19 +310,35 @@ public struct APIRequest<Model>: Equatable {
 
 public struct APIResponseHeader {
 
-    public let rawValue: [AnyHashable : Any]
+    private let _valueForKey: (String) -> String?
 
-    public let cachedResponse: Bool
-
-    public let etag: String?
-
-    public init(with rawValue: [AnyHashable: Any]) {
-        self.rawValue = rawValue
-        self.cachedResponse = (rawValue["Status"] as? String)?.contains("304 Not Modified") ?? false
-        self.etag = rawValue["Etag"] as? String
+    public init(_ valueForKey: @escaping (String) -> String? = { _ in nil }) {
+        _valueForKey = valueForKey
     }
 
-    public static let empty = APIResponseHeader(with: [:])
+    fileprivate init(_ urlResponse: HTTPURLResponse) {
+        self.init { key in
+            if #available(iOS 13.0, *) {
+                return urlResponse.value(forHTTPHeaderField: key)
+            } else {
+                return (urlResponse.allHeaderFields[key] ?? urlResponse.allHeaderFields[key.lowercased()]) as? String
+            }
+        }
+    }
+
+    public func value(for key: String) -> String? {
+        return _valueForKey(key)
+    }
+
+    public var cachedResponse: Bool {
+        return value(for: "Status")?.contains("304 Not Modified") ?? false
+    }
+
+    public var etag: String? {
+        return value(for: "Etag")
+    }
+
+    public static let empty = APIResponseHeader()
 }
 
 public struct APIClientResponse<T> {
@@ -341,7 +357,7 @@ public struct APIClientResponse<T> {
 
     public init(data: T, urlResponse: HTTPURLResponse, jsonCoderConfig: APIJSONCoderConfig = APIJSONCoderConfig()) {
         self.data = data
-        self.header = APIResponseHeader(with: urlResponse.allHeaderFields)
+        self.header = APIResponseHeader(urlResponse)
         self.cachedResponse = header.cachedResponse
         self.jsonCoderConfig = jsonCoderConfig
         self.mimeType = urlResponse.mimeType

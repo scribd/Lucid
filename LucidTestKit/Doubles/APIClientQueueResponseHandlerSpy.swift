@@ -18,7 +18,7 @@ public final class APIClientQueueProcessorResponseHandlerSpy {
 
     // MARK: - Records
 
-    public private(set) var resultRecords = [Result<APIClientResponse<Data>, APIError>]()
+    public private(set) var resultRecords = [APIClientQueueResult<Data, APIError>]()
 
     public private(set) var requestRecords = [APIClientQueueRequest]()
 
@@ -41,7 +41,7 @@ public final class APIClientQueueResponseHandlerSpy: APIClientQueueResponseHandl
 
     // MARK: - Records
 
-    public private(set) var resultRecords = [Result<APIClientResponse<Data>, APIError>]()
+    public private(set) var resultRecords = [APIClientQueueResult<Data, APIError>]()
 
     public private(set) var requestRecords = [APIClientQueueRequest]()
 
@@ -52,7 +52,7 @@ public final class APIClientQueueResponseHandlerSpy: APIClientQueueResponseHandl
     }
 
     public func clientQueue(_ clientQueue: APIClientQueuing,
-                            didReceiveResponse result: Result<APIClientResponse<Data>, APIError>,
+                            didReceiveResponse result: APIClientQueueResult<Data, APIError>,
                             for request: APIClientQueueRequest,
                             completion: @escaping () -> Void) {
 

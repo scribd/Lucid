@@ -116,7 +116,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
         guard hasCachedResponse == false else { return }
 
-        let requestCompletion: (Result<APIClientResponse<Data>, APIError>) -> Void = { result in
+        let requestCompletion: (APIClientQueueResult<Data, APIError>) -> Void = { result in
             switch result {
             case .success(let response):
 
@@ -146,6 +146,9 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                 } catch {
                     context.set(payloadResult: .failure(.deserialization(error)), source: source, for: request.config)
                 }
+
+            case .aborted:
+                context.set(payloadResult: .failure(.network(.cancelled)), source: nil, for: request.config)
 
             case .failure(let error):
                 context.set(payloadResult: .failure(error), source: nil, for: request.config)
@@ -227,7 +230,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             return
         }
 
-        let requestCompletion: (Result<APIClientResponse<Data>, APIError>) -> Void = { result in
+        let requestCompletion: (APIClientQueueResult<Data, APIError>) -> Void = { result in
             switch result {
             case .success(let response):
 
@@ -257,6 +260,9 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                 } catch {
                     context.set(payloadResult: .failure(.deserialization(error)), source: source, for: request.config)
                 }
+
+            case .aborted:
+                context.set(payloadResult: .failure(.network(.cancelled)), source: nil, for: request.config)
 
             case .failure(let error):
                 context.set(payloadResult: .failure(error), source: nil, for: request.config)
@@ -492,15 +498,15 @@ private extension RemoteStore {
         private let requestTokensQueue = DispatchQueue(label: "\(ClientQueueResponseHandler.self)_requests")
         private var _requestTokens: Set<UUID>
 
-        private let resultHandler: (Result<APIClientResponse<Data>, APIError>) -> Void
+        private let resultHandler: (APIClientQueueResult<Data, APIError>) -> Void
 
-        init<S>(_ requests: S, _ resultHandler: @escaping (Result<APIClientResponse<Data>, APIError>) -> Void) where S: Sequence, S.Element == APIClientQueueRequest {
+        init<S>(_ requests: S, _ resultHandler: @escaping (APIClientQueueResult<Data, APIError>) -> Void) where S: Sequence, S.Element == APIClientQueueRequest {
             _requestTokens = Set(requests.lazy.map { $0.token })
             self.resultHandler = resultHandler
         }
 
         func clientQueue(_ clientQueue: APIClientQueuing,
-                         didReceiveResponse result: Result<APIClientResponse<Data>, APIError>,
+                         didReceiveResponse result: APIClientQueueResult<Data, APIError>,
                          for request: APIClientQueueRequest,
                          completion: @escaping () -> Void) {
 
@@ -516,14 +522,16 @@ private extension RemoteStore {
         }
     }
 
-    func completeOnClientQueueResponse<S>(for requests: S, completion: @escaping (Result<APIClientResponse<Data>, APIError>) -> Void) where S: Sequence, S.Element == APIClientQueueRequest {
+    func completeOnClientQueueResponse<S>(for requests: S, completion: @escaping (APIClientQueueResult<Data, APIError>) -> Void) where S: Sequence, S.Element == APIClientQueueRequest {
         var responseHandlerToken: APIClientQueueResponseHandlerToken?
-        responseHandlerToken = clientQueue.register(ClientQueueResponseHandler(requests) { result in
-            if let token = responseHandlerToken {
-                self.clientQueue.unregister(token)
+        responseHandlerToken = clientQueue.register(
+            ClientQueueResponseHandler(requests) { result in
+                if let token = responseHandlerToken {
+                    self.clientQueue.unregister(token)
+                }
+                completion(result)
             }
-            completion(result)
-        })
+        )
     }
 }
 

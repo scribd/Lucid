@@ -43,3 +43,34 @@ public extension Result {
         }
     }
 }
+
+public extension APIClientQueueResult {
+
+    var error: E? {
+        switch self {
+        case .failure(let error):
+            return error
+        case .aborted,
+             .success:
+            return nil
+        }
+    }
+
+    var value: APIClientResponse<T>? {
+        switch self {
+        case .success(let value):
+            return value
+        case .aborted,
+             .failure:
+            return nil
+        }
+    }
+
+    init(value: APIClientResponse<T>) {
+        self = .success(value)
+    }
+
+    init(error: E) {
+        self = .failure(error)
+    }
+}

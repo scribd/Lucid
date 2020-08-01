@@ -38,7 +38,7 @@ final class BackgroundTaskManagerTests: XCTestCase {
         let expectation = self.expectation(description: "new_task_id")
         Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { timer in
             XCTAssertGreaterThan(observationCallCount, 1)
-            XCTAssertEqual(self.backgroundTaskManagerSpy.endBackgroundTaskRecords.count, observationCallCount + 1)
+            XCTAssertEqual(self.backgroundTaskManagerSpy.endBackgroundTaskRecords.count, observationCallCount)
             XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, self.backgroundTaskManagerSpy.endBackgroundTaskRecords.count + 1)
             expectation.fulfill()
             timer.invalidate()

@@ -20,26 +20,30 @@ protocol BackgroundTaskManaging: AnyObject {
 extension BackgroundTaskManaging {
 
     /// Begin background task and renew it once it times out.
-    func beginBackgroundTask(timeout: TimeInterval = 30, expirationHandler: @escaping () -> Void) -> Property<UIBackgroundTaskIdentifier> {
-        let taskID = Property(UIBackgroundTaskIdentifier.invalid)
+    func beginBackgroundTask(taskID: Property<UIBackgroundTaskIdentifier>? = nil, timeout: TimeInterval = 30, expirationHandler: @escaping () -> Void) -> Property<UIBackgroundTaskIdentifier> {
+        let taskID = taskID ?? Property(UIBackgroundTaskIdentifier.invalid)
 
         let timer = Timer(timeInterval: timeout, repeats: false) { timer in
             timer.invalidate()
             if taskID.value != .invalid {
                 self.endBackgroundTask(taskID.value)
-                taskID.value = self.beginBackgroundTask(timeout: timeout, expirationHandler: expirationHandler).value
+                taskID.value = .invalid
+                taskID.value = self.beginBackgroundTask(taskID: nil, timeout: timeout, expirationHandler: expirationHandler).value
             }
         }
         RunLoop.current.add(timer, forMode: .default)
 
+        var originalValue = UIBackgroundTaskIdentifier.invalid
         taskID.value = beginBackgroundTask {
             timer.invalidate()
-            if taskID.value != .invalid {
+            let value = taskID.value
+            if value != .invalid, value == originalValue {
                 self.endBackgroundTask(taskID.value)
                 taskID.value = .invalid
             }
             expirationHandler()
         }
+        originalValue = taskID.value
 
         return taskID
     }

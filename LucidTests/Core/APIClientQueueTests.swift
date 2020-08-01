@@ -243,7 +243,7 @@ extension APIClientQueueTests {
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations[1].1, request1)
     }
 
-    func test_append_should_overwrite_elements_with_matching_keys_in_the_uniquing_queue() {
+    func test_append_should_overwrite_elements_with_matching_keys_in_the_uniquing_queue_and_abort_the_existing_request() {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, host: "host0", path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, host: "host0", path: .path("fake_path2")))
@@ -271,6 +271,8 @@ extension APIClientQueueTests {
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations[1].1, request1)
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations[2].0, "fake_path1_key")
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations[2].1, request2)
+
+        XCTAssertEqual(queueProcessor.abortRequestInvocations, [request0])
     }
 
     func test_append_to_empty_uniquing_queue_should_trigger_a_call_to_the_processor() {

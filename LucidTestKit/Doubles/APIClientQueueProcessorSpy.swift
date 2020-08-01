@@ -18,11 +18,14 @@ public final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
     public private(set) var flushInvocations = 0
 
     public private(set) var getDelegateInvocations = 0
+    
     public private(set) var setDelegateInvocations = [APIClientQueueProcessorDelegate?]()
 
     public private(set) var registerInvocations = [APIClientQueueProcessorResponseHandler]()
 
     public private(set) var unregisterInvocations = [UUID]()
+
+    public private(set) var abortRequestInvocations = [APIClientQueueRequest]()
 
     // MARK: - Stubs
 
@@ -59,6 +62,10 @@ public final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
 
     public func unregister(_ token: APIClientQueueProcessorResponseHandlerToken) {
         unregisterInvocations.append(token)
+    }
+
+    public func abortRequest(_ request: APIClientQueueRequest) {
+        abortRequestInvocations.append(request)
     }
 
     public var jsonCoderConfig = APIJSONCoderConfig()

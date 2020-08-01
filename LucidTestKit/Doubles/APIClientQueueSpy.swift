@@ -32,7 +32,7 @@ public final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
 
     public var tokenStub = UUID()
 
-    public var responseStubs: [APIRequestConfig: Result<APIClientResponse<Data>, APIError>] = [:]
+    public var responseStubs: [APIRequestConfig: APIClientQueueResult<Data, APIError>] = [:]
 
     // MARK: - API
 

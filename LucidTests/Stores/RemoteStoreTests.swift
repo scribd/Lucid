@@ -90,7 +90,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_request_an_entity_from_the_client_using_endpoint_derived_from_entity_type() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let expectation = self.expectation(description: "entity")
         store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: derivedFromEntityTypeContext) { result in
@@ -116,7 +116,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_two_gets_should_only_send_one_request_to_the_client_using_endpoint_derived_from_entity_type() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let dispatchGroup = DispatchGroup()
 
@@ -154,10 +154,10 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_two_different_gets_should_send_two_requests_to_the_client_using_endpoint_derived_from_entity_type() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let requestConfig2 = APIRequestConfig(method: .get, path: .path("fake_entity") / "24")
-        clientQueueSpy.responseStubs[requestConfig2] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig2] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let dispatchGroup = DispatchGroup()
 
@@ -196,7 +196,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_two_gets_in_two_different_contexts_should_send_two_requests_to_the_client_using_endpoint_derived_from_entity_type() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let dispatchGroup = DispatchGroup()
 
@@ -237,7 +237,7 @@ final class RemoteStoreTests: XCTestCase {
 
         Logger.shared = LoggerMock(shouldCauseFailures: false)
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.failure(.api(httpStatusCode: 400, errorPayload: nil))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.failure(.api(httpStatusCode: 400, errorPayload: nil))
 
         let expectation = self.expectation(description: "entity")
         store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: derivedFromEntityTypeContext) { result in
@@ -262,7 +262,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_post_a_request_to_the_client_queue_using_endpoint_derived_from_entity_type() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let expectation = self.expectation(description: "entity")
         let entity = EntitySpy(idValue: .remote(42, nil), title: "fake_title")
@@ -290,7 +290,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_post_a_delete_request_to_the_client_queue_using_endpoint_derived_from_entity_type() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let expectation = self.expectation(description: "entity")
 
@@ -317,7 +317,7 @@ final class RemoteStoreTests: XCTestCase {
     func test_should_request_entities_from_the_client_using_endpoint_derived_from_entity_type() {
 
         let requestConfig = APIRequestConfig(method: .get, path: .path("fake_entity"))
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let expectation = self.expectation(description: "entity")
         store.search(withQuery: .filter(.title == .string("fake_title")), in: derivedFromEntityTypeContext) { result in
@@ -340,7 +340,7 @@ final class RemoteStoreTests: XCTestCase {
     func test_should_request_entities_from_the_client_and_order_them_by_id_asc_using_endpoint_derived_from_entity_type() {
 
         let requestConfig = APIRequestConfig(method: .get, path: .path("fake_entity"))
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let query = Query<EntitySpy>
             .filter(.title == .string("fake_title"))
@@ -365,7 +365,7 @@ final class RemoteStoreTests: XCTestCase {
     func test_should_request_entities_from_the_client_and_order_them_by_id_desc_using_endpoint_derived_from_entity_type() {
 
         let requestConfig = APIRequestConfig(method: .get, path: .path("fake_entity"))
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let query = Query<EntitySpy>
             .filter(.title == .string("fake_title"))
@@ -390,7 +390,7 @@ final class RemoteStoreTests: XCTestCase {
     func test_two_searches_should_only_send_one_request_to_the_client_by_inferring_the_same_api_request_using_endpoint_derived_from_entity_type() {
 
         let requestConfig = APIRequestConfig(method: .get, path: .path("fake_entity"))
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let dispatchGroup = DispatchGroup()
 
@@ -428,7 +428,7 @@ final class RemoteStoreTests: XCTestCase {
     func test_two_searches_should_only_send_one_request_to_the_client_by_passing_in_the_request_token_using_endpoint_derived_from_entity_type() {
 
         let requestConfig = APIRequestConfig(method: .get, path: .path("fake_entity"))
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let expectation1 = self.expectation(description: "search_1")
         let expectation2 = self.expectation(description: "search_2")
@@ -461,7 +461,7 @@ final class RemoteStoreTests: XCTestCase {
     func test_two_searches_in_two_different_contexts_should_send_two_requests_to_the_client_using_endpoint_derived_from_entity_type() {
 
         let requestConfig = APIRequestConfig(method: .get, path: .path("fake_entity"))
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let dispatchGroup = DispatchGroup()
 
@@ -499,7 +499,7 @@ final class RemoteStoreTests: XCTestCase {
     func test_two_different_searches_should_send_two_requests_to_the_client_using_endpoint_derived_from_entity_type() {
 
         let requestConfig = APIRequestConfig(method: .get, path: .path("fake_entity"))
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let dispatchGroup = DispatchGroup()
 
@@ -536,7 +536,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_setting_an_entity_should_flip_synchronized_flag_using_endpoint_derived_from_entity_type() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let expectation = self.expectation(description: "entity")
         let entity = EntitySpy(idValue: .remote(42, nil), title: "fake_title")
@@ -589,7 +589,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_request_an_entity_from_the_client_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let expectation = self.expectation(description: "entity")
         store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: requestContext) { result in
@@ -612,7 +612,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_two_gets_should_only_send_one_request_to_the_client_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let dispatchGroup = DispatchGroup()
 
@@ -649,10 +649,10 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_two_different_gets_should_send_two_requests_to_the_client_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let requestConfig2 = APIRequestConfig(method: .get, path: .path("fake_entity") / "24")
-        clientQueueSpy.responseStubs[requestConfig2] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig2] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let dispatchGroup = DispatchGroup()
 
@@ -689,7 +689,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_two_gets_in_two_different_contexts_should_send_two_requests_to_the_client_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let dispatchGroup = DispatchGroup()
 
@@ -742,7 +742,7 @@ final class RemoteStoreTests: XCTestCase {
 
         Logger.shared = LoggerMock(shouldCauseFailures: false)
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.failure(.api(httpStatusCode: 400, errorPayload: nil))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.failure(.api(httpStatusCode: 400, errorPayload: nil))
 
         let expectation = self.expectation(description: "entity")
         store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: requestContext) { result in
@@ -790,7 +790,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_post_a_request_to_the_client_queue_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let expectation = self.expectation(description: "entity")
         let entity = EntitySpy(idValue: .remote(42, nil), title: "fake_title")
@@ -822,7 +822,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_post_a_delete_request_to_the_client_queue_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let expectation = self.expectation(description: "entity")
 
@@ -852,7 +852,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_request_entities_from_the_client_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let expectation = self.expectation(description: "entity")
         store.search(withQuery: .filter(.title == .string("fake_title")), in: requestContext) { result in
@@ -871,7 +871,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_request_entities_from_the_client_and_order_them_by_id_asc_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let query = Query<EntitySpy>
             .filter(.title == .string("fake_title"))
@@ -895,7 +895,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_request_entities_from_the_client_and_order_them_by_id_desc_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let query = Query<EntitySpy>
             .filter(.title == .string("fake_title"))
@@ -919,7 +919,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_two_searches_should_only_send_one_request_to_the_client_by_inferring_the_same_api_request_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let dispatchGroup = DispatchGroup()
 
@@ -956,7 +956,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_two_searches_should_only_send_one_request_to_the_client_by_passing_in_the_request_token_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let expectation1 = self.expectation(description: "search_1")
         let expectation2 = self.expectation(description: "search_2")
@@ -988,7 +988,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_two_searches_in_two_different_contexts_should_send_two_requests_to_the_client_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let dispatchGroup = DispatchGroup()
 
@@ -1039,7 +1039,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_two_different_searches_should_send_two_requests_to_the_client_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let dispatchGroup = DispatchGroup()
 
@@ -1076,7 +1076,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_setting_an_entity_should_flip_synchronized_flag_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let expectation = self.expectation(description: "entity")
         let entity = EntitySpy(idValue: .remote(42, nil), title: "fake_title")
@@ -1127,7 +1127,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_request_entities_from_the_client_and_not_filter_if_there_are_no_root_entities_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let allEntities = (1...3).map { EntitySpy(idValue: .remote($0, nil)) }
 
@@ -1162,7 +1162,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_request_entities_from_the_client_and_filter_for_root_entities_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let allEntities = (1...3).map { EntitySpy(idValue: .remote($0, nil)) }
         let rootEntities = (1...2).map { EntitySpyMetadata(remoteID: $0) }
@@ -1197,7 +1197,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_request_entities_from_the_client_and_filter_on_query_when_trust_remote_filtering_is_false_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let allEntities = (1...3).map { EntitySpy(idValue: .remote($0, nil)) }
 
@@ -1231,7 +1231,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_request_entities_from_the_client_and_not_filter_on_query_when_trust_remote_filtering_is_true_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let allEntities = (1...3).map { EntitySpy(idValue: .remote($0, nil)) }
 
@@ -1267,7 +1267,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_request_entities_from_the_client_and_filter_on_query_when_trust_remote_filtering_is_true_but_response_is_from_cache_using_request_endpoint() {
 
-        clientQueueSpy.responseStubs[requestConfig] = Result<APIClientResponse<Data>, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
 
         let allEntities = (1...3).map { EntitySpy(idValue: .remote($0, nil)) }
         let rootEntities = (1...2).map { EntitySpyMetadata(remoteID: $0) }

@@ -74,6 +74,12 @@ public struct APIClientQueueRequest: Equatable, Codable {
 
 // MARK: - Handler
 
+public enum APIClientQueueResult<T, E: Error> {
+    case success(APIClientResponse<T>)
+    case aborted
+    case failure(E)
+}
+
 /// Object in charge of handling the response of a request.
 public protocol APIClientQueueResponseHandler: AnyObject {
 
@@ -84,7 +90,7 @@ public protocol APIClientQueueResponseHandler: AnyObject {
     ///     - result: Either the responded data or an error.
     ///     - request: `APIClientQueueRequest` associated to the response.
     func clientQueue(_ clientQueue: APIClientQueuing,
-                     didReceiveResponse result: Result<APIClientResponse<Data>, APIError>,
+                     didReceiveResponse result: APIClientQueueResult<Data, APIError>,
                      for request: APIClientQueueRequest,
                      completion: @escaping () -> Void)
 }
@@ -279,6 +285,9 @@ extension APIClientQueue: APIClientQueuing {
                 var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
                 orderingSet.append(key)
                 orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
+                if let existingRequest = valueCache[key] {
+                    self.processor.abortRequest(existingRequest)
+                }
                 valueCache[key] = request
                 self.processor.didEnqueueNewRequest()
             }
@@ -429,12 +438,14 @@ protocol APIClientQueueProcessing: AnyObject {
 
     func unregister(_ token: APIClientQueueProcessorResponseHandlerToken)
 
+    func abortRequest(_ request: APIClientQueueRequest)
+
     var delegate: APIClientQueueProcessorDelegate? { get set }
 }
 
 public typealias APIClientQueueProcessorResponseHandlerToken = UUID
 public typealias APIClientQueueProcessorResponseHandler = (
-    _ result: Result<APIClientResponse<Data>, APIError>,
+    _ result: APIClientQueueResult<Data, APIError>,
     _ request: APIClientQueueRequest,
     _ completion: @escaping () -> Void
 ) -> Void
@@ -587,6 +598,13 @@ extension APIClientQueueProcessor: APIClientQueueProcessing {
         _responseHandlers[token] = nil
     }
 
+    func abortRequest(_ request: APIClientQueueRequest) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        forwardDidReceiveResponseToHandlers(.aborted(request), handlers: _responseHandlers.orderedKeyValues.map { $0.1 }) {}
+    }
+
     func didEnqueueNewRequest() {
         scheduler.didEnqueueNewRequest()
     }
@@ -685,20 +703,28 @@ private extension APIClientQueueProcessor {
 
     private enum ProcessingResult {
         case success(_ response: APIClientResponse<Data>, _ request: APIClientQueueRequest)
+        case aborted(_ request: APIClientQueueRequest)
         case apiError(_ apiError: APIError, _ request: APIClientQueueRequest)
         case backgroundSessionExpired(_ request: APIClientQueueRequest)
     }
 
     private func _complete(_ result: ProcessingResult, _ operationCompletion: @escaping () -> Void) {
 
-        forwardDidReceiveResponseToHandlers(result, handlers: _responseHandlers.orderedKeyValues.map { $0.1 }) {}
+        lock.lock()
+        defer { lock.unlock() }
+
+        let responseHandlers = _responseHandlers.orderedKeyValues.map { $0.1 }
+        forwardDidReceiveResponseToHandlers(result, handlers: responseHandlers) {}
 
         let didSucceed: Bool
         switch result {
         case .success:
             didSucceed = true
+        case .aborted:
+            Logger.log(.error, "\(APIClientQueueProcessor.self): Processor should not be aborting requests in flight.", assert: true)
+            didSucceed = true
         case .apiError(let apiError, let request):
-            self._handleAPIError(apiError, request: request)
+            self._handleAPIError(apiError, request: request, responseHandlers: responseHandlers)
             didSucceed = false
         case .backgroundSessionExpired(let request):
             Logger.log(.info, "\(APIClientQueueProcessor.self): Background session expired. Will reschedule request.")
@@ -715,14 +741,13 @@ private extension APIClientQueueProcessor {
         }
     }
 
-    private func _handleAPIError(_ apiError: APIError, request: APIClientQueueRequest) {
+    private func _handleAPIError(_ apiError: APIError, request: APIClientQueueRequest, responseHandlers: [APIClientQueueProcessorResponseHandler]) {
         switch apiError {
         case .network(.networkConnectionFailure(.networkConnectionLost)),
              .network(.networkConnectionFailure(.notConnectedToInternet)):
             Logger.log(.info, "\(APIClientQueueProcessor.self): Not connected to network. Will reschedule request and cancel non-retrying \requests in the queue.")
             /// Any requests in the queue that expect to fail and not retry on .networkConnectionFailure should be sent the failure right away.
             if let requestsToCancel = delegate?.removeRequests(matching: { $0.retryOnNetworkInterrupt == false }) {
-                let responseHandlers = _responseHandlers.orderedKeyValues.map { $0.1 }
                 for requestToCancel in requestsToCancel {
                     forwardDidReceiveResponseToHandlers(.apiError(apiError, requestToCancel), handlers: responseHandlers, completion: { })
                 }
@@ -764,6 +789,8 @@ private extension APIClientQueueProcessor {
             forwardToNextHandler()
         case .success(let response, let request):
             handler(.success(response), request, forwardToNextHandler)
+        case .aborted(let request):
+            handler(.aborted, request, forwardToNextHandler)
         case .apiError(let error, let request):
             switch error {
             case .network(.networkConnectionFailure(.networkConnectionLost)) where request.retryOnNetworkInterrupt,

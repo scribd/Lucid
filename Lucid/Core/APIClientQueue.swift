@@ -786,7 +786,7 @@ private extension APIClientQueueProcessor {
 
         switch result {
         case .backgroundSessionExpired:
-            forwardToNextHandler()
+            completion()
         case .success(let response, let request):
             handler(.success(response), request, forwardToNextHandler)
         case .aborted(let request):
@@ -796,7 +796,7 @@ private extension APIClientQueueProcessor {
             case .network(.networkConnectionFailure(.networkConnectionLost)) where request.retryOnNetworkInterrupt,
                  .network(.networkConnectionFailure(.notConnectedToInternet)) where request.retryOnNetworkInterrupt,
                  .network(.networkConnectionFailure(.requestTimedOut)) where request.retryOnRequestTimeout:
-                forwardToNextHandler()
+                completion()
             case .api,
                  .deserialization,
                  .emptyBodyResponse,

@@ -109,13 +109,15 @@ final class StoreStackTests: XCTestCase {
 
     func test_should_fail_to_get_with_a_composite_error() {
         memoryStoreSpy.getResultStub = .failure(.notSupported)
-        remoteStoreSpy.getResultStub = .failure(.api(.api(httpStatusCode: 400, errorPayload: nil)))
+        remoteStoreSpy.getResultStub = .failure(.api(.api(
+            httpStatusCode: 400, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
 
         let expectation = self.expectation(description: "entity")
         storeStack.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: ReadContext<EntitySpy>()) { result in
             switch result {
             case .failure(.composite(
-                current: .api(.api(httpStatusCode: 400, errorPayload: nil)), previous: .notSupported)
+                current: .api(.api(httpStatusCode: 400, errorPayload: nil, _)), previous: .notSupported)
             ):
                 XCTAssertEqual(self.memoryStoreSpy.identifierRecords.first?.value.remoteValue, 42)
                 XCTAssertEqual(self.memoryStoreSpy.identifierRecords.count, 1)
@@ -178,13 +180,15 @@ final class StoreStackTests: XCTestCase {
 
     func test_should_fail_to_set_in_remote_and_memory_stores() {
         memoryStoreSpy.setResultStub = .failure(.notSupported)
-        remoteStoreSpy.setResultStub = .failure(.api(.api(httpStatusCode: 400, errorPayload: nil)))
+        remoteStoreSpy.setResultStub = .failure(.api(.api(
+            httpStatusCode: 400, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
 
         let expectation = self.expectation(description: "entity")
         storeStack.set(EntitySpy(idValue: .remote(42, nil)), in: WriteContext(dataTarget: .local)) { result in
             switch result {
             case .failure(.composite(
-                current: .api(.api(httpStatusCode: 400, errorPayload: nil)), previous: .notSupported)
+                current: .api(.api(httpStatusCode: 400, errorPayload: nil, _)), previous: .notSupported)
             ):
                 XCTAssertEqual(self.memoryStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
                 XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
@@ -205,12 +209,14 @@ final class StoreStackTests: XCTestCase {
 
     func test_should_fail_to_set_in_remote_store_only() {
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
-        remoteStoreSpy.setResultStub = .failure(.api(.api(httpStatusCode: 400, errorPayload: nil)))
+        remoteStoreSpy.setResultStub = .failure(.api(.api(
+            httpStatusCode: 400, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
 
         let expectation = self.expectation(description: "entity")
         storeStack.set(EntitySpy(idValue: .remote(42, nil)), in: WriteContext(dataTarget: .local)) { result in
             switch result {
-            case .failure(.api(.api(httpStatusCode: 400, errorPayload: nil))):
+            case .failure(.api(.api(httpStatusCode: 400, errorPayload: nil, _))):
                 XCTAssertEqual(self.memoryStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
                 XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
                 XCTAssertEqual(self.remoteStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
@@ -268,13 +274,15 @@ final class StoreStackTests: XCTestCase {
 
     func test_should_fail_to_remove_in_remote_and_memory_stores() {
         memoryStoreSpy.removeResultStub = .failure(.notSupported)
-        remoteStoreSpy.removeResultStub = .failure(.api(.api(httpStatusCode: 400, errorPayload: nil)))
+        remoteStoreSpy.removeResultStub = .failure(.api(.api(
+            httpStatusCode: 400, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
 
         let expectation = self.expectation(description: "remove")
         storeStack.remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: WriteContext(dataTarget: .local)) { result in
             switch result {
             case .failure(.composite(
-                current: .api(.api(httpStatusCode: 400, errorPayload: nil)), previous: .notSupported)
+                current: .api(.api(httpStatusCode: 400, errorPayload: nil, _)), previous: .notSupported)
             ):
                 XCTAssertEqual(self.memoryStoreSpy.identifierRecords.first?.value.remoteValue, 42)
                 XCTAssertEqual(self.memoryStoreSpy.identifierRecords.count, 1)
@@ -295,12 +303,14 @@ final class StoreStackTests: XCTestCase {
 
     func _testShouldFailToRemoveInRemoteStoreOnly() {
         memoryStoreSpy.removeResultStub = .success(())
-        remoteStoreSpy.removeResultStub = .failure(.api(.api(httpStatusCode: 400, errorPayload: nil)))
+        remoteStoreSpy.removeResultStub = .failure(.api(.api(
+            httpStatusCode: 400, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
 
         let expectation = self.expectation(description: "remove")
         storeStack.remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: WriteContext(dataTarget: .local)) { result in
             switch result {
-            case .failure(.api(.api(httpStatusCode: 400, errorPayload: nil))):
+            case .failure(.api(.api(httpStatusCode: 400, errorPayload: nil, _))):
                 XCTAssertEqual(self.memoryStoreSpy.identifierRecords.first?.value.remoteValue, 42)
                 XCTAssertEqual(self.memoryStoreSpy.identifierRecords.count, 1)
                 XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
@@ -414,7 +424,9 @@ final class StoreStackTests: XCTestCase {
 
     func test_should_fail_to_search_with_a_composite_error() {
         memoryStoreSpy.searchResultStub = .failure(.notSupported)
-        remoteStoreSpy.searchResultStub = .failure(.api(.api(httpStatusCode: 400, errorPayload: nil)))
+        remoteStoreSpy.searchResultStub = .failure(.api(.api(
+            httpStatusCode: 400, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
 
         let query = Query<EntitySpy>.filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil))))
 
@@ -422,7 +434,7 @@ final class StoreStackTests: XCTestCase {
         storeStack.search(withQuery: query, in: ReadContext<EntitySpy>()) { result in
             switch result {
             case .failure(.composite(
-                current: .api(.api(httpStatusCode: 400, errorPayload: nil)), previous: .notSupported)
+                current: .api(.api(httpStatusCode: 400, errorPayload: nil, _)), previous: .notSupported)
             ):
                 XCTAssertEqual(self.memoryStoreSpy.queryRecords.first, query)
                 XCTAssertEqual(self.memoryStoreSpy.queryRecords.count, 1)

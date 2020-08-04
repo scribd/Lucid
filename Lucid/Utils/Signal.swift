@@ -150,11 +150,11 @@ public extension APIError {
             return true
         case .api,
              .deserialization,
-             .emptyBodyResponse,
              .network,
              .networkingProtocolIsNotHTTP,
              .sessionKeyMismatch,
-             .url:
+             .url,
+             .other:
             return false
         }
     }

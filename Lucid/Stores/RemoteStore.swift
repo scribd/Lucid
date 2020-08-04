@@ -104,7 +104,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                 Logger.log(.error, "\(RemoteStore.self): Could not convert \(type(of: payload)) to \(E.ResultPayload.self).", assert: true)
                 completion(.failure(.invalidContext))
 
-            case .failure(.api(httpStatusCode: 404, _)):
+            case .failure(.api(httpStatusCode: 404, _, _)):
                 completion(.success(.empty()))
 
             case .failure(let error):

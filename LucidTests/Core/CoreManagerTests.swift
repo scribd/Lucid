@@ -89,7 +89,9 @@ final class CoreManagerTests: XCTestCase {
 
     func test_manager_should_fail_to_get_entity_from_remote_store_then_not_cache_it_and_fall_back_to_memory_store_when_cache_strategy_is_prefer_remote() {
 
-        remoteStoreSpy.getResultStub = .failure(.api(.api(httpStatusCode: 500, errorPayload: nil)))
+        remoteStoreSpy.getResultStub = .failure(.api(.api(
+            httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
         memoryStoreSpy.getResultStub = .success(.empty())
 
         let onceExpectation = self.expectation(description: "once")
@@ -106,7 +108,7 @@ final class CoreManagerTests: XCTestCase {
                 switch event {
                 case .next:
                     XCTFail("Unexpected success.")
-                case .failed(.store(.api(.api(httpStatusCode: 500, errorPayload: nil)))):
+                case .failed(.store(.api(.api(httpStatusCode: 500, errorPayload: nil, _)))):
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
                     XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 0)
@@ -126,7 +128,9 @@ final class CoreManagerTests: XCTestCase {
 
     func test_manager_should_fail_to_get_entity_from_remote_store_then_not_cache_it_when_data_source_is_remote() {
 
-        remoteStoreSpy.getResultStub = .failure(.api(.api(httpStatusCode: 500, errorPayload: nil)))
+        remoteStoreSpy.getResultStub = .failure(.api(.api(
+            httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
 
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
@@ -142,7 +146,7 @@ final class CoreManagerTests: XCTestCase {
                 switch event {
                 case .next:
                     XCTFail("Unexpected success.")
-                case .failed(.store(.api(.api(httpStatusCode: 500, errorPayload: nil)))):
+                case .failed(.store(.api(.api(httpStatusCode: 500, errorPayload: nil, _)))):
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
                     XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 0)
@@ -197,7 +201,9 @@ final class CoreManagerTests: XCTestCase {
 
     func test_manager_should_fail_to_get_entity_from_remote_store_when_cache_strategy_is_remote_only() {
 
-        remoteStoreSpy.getResultStub = .failure(.api(.api(httpStatusCode: 500, errorPayload: nil)))
+        remoteStoreSpy.getResultStub = .failure(.api(.api(
+            httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
         memoryStoreSpy.getResultStub = .success(.empty())
 
         let onceExpectation = self.expectation(description: "once")
@@ -214,7 +220,7 @@ final class CoreManagerTests: XCTestCase {
                 switch event {
                 case .next:
                     XCTFail("Unexpected success.")
-                case .failed(.store(.api(.api(httpStatusCode: 500, errorPayload: nil)))):
+                case .failed(.store(.api(.api(httpStatusCode: 500, errorPayload: nil, _)))):
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
                     XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 0)
@@ -297,7 +303,9 @@ final class CoreManagerTests: XCTestCase {
 
     func test_manager_should_fail_to_get_entity_from_memory_store_then_not_cache_it_when_strategy_is_cache_only() {
 
-        memoryStoreSpy.getResultStub = .failure(.api(.api(httpStatusCode: 500, errorPayload: nil)))
+        memoryStoreSpy.getResultStub = .failure(.api(.api(
+            httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
 
         let onceExpectation = self.expectation(description: "once")
 
@@ -310,7 +318,7 @@ final class CoreManagerTests: XCTestCase {
                 switch event {
                 case .next:
                     XCTFail("Unexpected success.")
-                case .failed(.store(.api(.api(httpStatusCode: 500, errorPayload: nil)))):
+                case .failed(.store(.api(.api(httpStatusCode: 500, errorPayload: nil, _)))):
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 0)
                     XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 0)
                     XCTAssertEqual(self.memoryStoreSpy.identifierRecords.count, 1)
@@ -447,7 +455,9 @@ final class CoreManagerTests: XCTestCase {
 
     func test_manager_should_fail_to_get_entity_from_memory_first_but_ignore_error_and_reach_remote_store_when_strategy_is_prefer_cache() {
 
-        memoryStoreSpy.getResultStub = .failure(.api(.api(httpStatusCode: 500, errorPayload: nil)))
+        memoryStoreSpy.getResultStub = .failure(.api(.api(
+            httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
         remoteStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil))))
 
@@ -487,8 +497,12 @@ final class CoreManagerTests: XCTestCase {
 
     func test_manager_should_fail_to_get_entity_from_memory_first_but_ignore_error_and_return_remote_store_error_when_strategy_is_prefer_cache() {
 
-        memoryStoreSpy.getResultStub = .failure(.api(.api(httpStatusCode: 500, errorPayload: nil)))
-        remoteStoreSpy.getResultStub = .failure(.api(.api(httpStatusCode: 500, errorPayload: nil)))
+        memoryStoreSpy.getResultStub = .failure(.api(.api(
+            httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
+        remoteStoreSpy.getResultStub = .failure(.api(.api(
+            httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
 
         let context = ReadContext<EntitySpy>(dataSource: .localThen(.remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
@@ -504,7 +518,7 @@ final class CoreManagerTests: XCTestCase {
                 switch event {
                 case .next:
                     XCTFail("Unexpected success")
-                case .failed(.store(.api(.api(httpStatusCode: 500, errorPayload: nil)))):
+                case .failed(.store(.api(.api(httpStatusCode: 500, errorPayload: nil, _)))):
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
 
@@ -743,7 +757,9 @@ final class CoreManagerTests: XCTestCase {
 
     func test_manager_should_fail_to_get_entities_when_stores_fails_and_strategy_is_prefer_remote() {
 
-        remoteStoreSpy.searchResultStub = .failure(.api(.api(httpStatusCode: 500, errorPayload: nil)))
+        remoteStoreSpy.searchResultStub = .failure(.api(.api(
+            httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
         memoryStoreSpy.searchResultStub = .failure(.notSupported)
 
         let onceExpectation = self.expectation(description: "once")
@@ -777,7 +793,9 @@ final class CoreManagerTests: XCTestCase {
 
     func test_v3_manager_should_fail_to_get_entities_when_stores_fails_and_data_source_is_remote() {
 
-        remoteStoreSpy.searchResultStub = .failure(.api(.api(httpStatusCode: 500, errorPayload: nil)))
+        remoteStoreSpy.searchResultStub = .failure(.api(.api(
+            httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
         memoryStoreSpy.searchResultStub = .failure(.notSupported)
 
         let context = ReadContext<EntitySpy>(dataSource: .remote(
@@ -795,7 +813,7 @@ final class CoreManagerTests: XCTestCase {
                 switch event {
                 case .next:
                     XCTFail("Unexpected success.")
-                case .failed(.store(.api(.api(httpStatusCode: 500, errorPayload: nil)))):
+                case .failed(.store(.api(.api(httpStatusCode: 500, errorPayload: nil, _)))):
                     XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 0)
                     onceExpectation.fulfill()
                 case .failed(let error):
@@ -889,7 +907,9 @@ final class CoreManagerTests: XCTestCase {
 
     func test_manager_should_fail_to_get_entities_when_stores_fails_and_strategy_is_remote_only() {
 
-        remoteStoreSpy.searchResultStub = .failure(.api(.api(httpStatusCode: 500, errorPayload: nil)))
+        remoteStoreSpy.searchResultStub = .failure(.api(.api(
+            httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        )))
         memoryStoreSpy.searchResultStub = .failure(.notSupported)
 
         let onceExpectation = self.expectation(description: "once")

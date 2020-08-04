@@ -761,11 +761,11 @@ private extension APIClientQueueProcessor {
             delegate?.prepend(request)
         case .api,
              .deserialization,
-             .emptyBodyResponse,
              .sessionKeyMismatch,
              .network,
              .networkingProtocolIsNotHTTP,
-             .url:
+             .url,
+             .other:
             Logger.log(.error, "\(APIClientQueueProcessor.self): Request: \(client.description(for: request.wrapped.config)) failed and won't be retried: \(apiError).")
         }
     }
@@ -799,11 +799,11 @@ private extension APIClientQueueProcessor {
                 completion()
             case .api,
                  .deserialization,
-                 .emptyBodyResponse,
                  .network,
                  .networkingProtocolIsNotHTTP,
                  .sessionKeyMismatch,
-                 .url:
+                 .url,
+                 .other:
                 handler(.failure(error), request, forwardToNextHandler)
             }
         }

@@ -567,8 +567,9 @@ final class RemoteStoreCache {
     fileprivate func addListener(for request: APIRequestConfig, listener: @escaping EndpointResponseListener) {
         dispatchQueue.async {
             guard self._payloadRequest == nil || self._payloadRequest == request else {
-                Logger.log(.error, "\(RemoteStoreCache.self) attempting to add listener for mismatched token.", assert: true)
-                listener(.failure(.emptyBodyResponse))
+                let message = "Attempting to add listener for mismatched token."
+                Logger.log(.error, "\(RemoteStoreCache.self): \(message)", assert: true)
+                listener(.failure(.other(message)))
                 return
             }
 

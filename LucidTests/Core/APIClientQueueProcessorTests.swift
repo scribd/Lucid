@@ -420,11 +420,15 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_emptyBodyResponse() {
-        _testFailureStateWithAPIError(.emptyBodyResponse)
+        _testFailureStateWithAPIError(.other("fake error"))
     }
 
     func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_api() {
-        _testFailureStateWithAPIError(.api(httpStatusCode: 1, errorPayload: APIErrorPayload(apiStatusCode: 5, message: "error")))
+        _testFailureStateWithAPIError(.api(
+            httpStatusCode: 1,
+            errorPayload: APIErrorPayload(apiStatusCode: 5, message: "error"),
+            response: APIClientResponse(data: Data(), cachedResponse: false)
+        ))
     }
 
     func test_processor_tells_scheduler_request_failed_and_prepends_request_for_failure_with_error_no_internet_connection() {

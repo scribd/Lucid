@@ -29,10 +29,9 @@ public final class APIClientQueueProcessorResponseHandlerSpy {
     }
 
     public var handler: APIClientQueueProcessorResponseHandler {
-        return { result, request, completion in
+        return { result, request in
             self.resultRecords.append(result)
             self.requestRecords.append(request)
-            completion()
         }
     }
 }
@@ -53,11 +52,9 @@ public final class APIClientQueueResponseHandlerSpy: APIClientQueueResponseHandl
 
     public func clientQueue(_ clientQueue: APIClientQueuing,
                             didReceiveResponse result: APIClientQueueResult<Data, APIError>,
-                            for request: APIClientQueueRequest,
-                            completion: @escaping () -> Void) {
+                            for request: APIClientQueueRequest) {
 
         resultRecords.append(result)
         requestRecords.append(request)
-        completion()
     }
 }

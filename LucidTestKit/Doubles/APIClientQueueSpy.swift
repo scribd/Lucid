@@ -44,7 +44,7 @@ public final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
         appendInvocations.append(request)
         registerInvocations.forEach {
             guard let response = responseStubs[request.wrapped.config] else { return }
-            $0.clientQueue(self, didReceiveResponse: response, for: request) {}
+            $0.clientQueue(self, didReceiveResponse: response, for: request)
         }
     }
 

@@ -91,8 +91,7 @@ public protocol APIClientQueueResponseHandler: AnyObject {
     ///     - request: `APIClientQueueRequest` associated to the response.
     func clientQueue(_ clientQueue: APIClientQueuing,
                      didReceiveResponse result: APIClientQueueResult<Data, APIError>,
-                     for request: APIClientQueueRequest,
-                     completion: @escaping () -> Void)
+                     for request: APIClientQueueRequest)
 }
 
 /// Response Handler registration token.
@@ -296,9 +295,9 @@ extension APIClientQueue: APIClientQueuing {
 
     @discardableResult
     public func register(_ handler: APIClientQueueResponseHandler) -> APIClientQueueResponseHandlerToken {
-        return processor.register { [weak self] response, request, completion in
+        return processor.register { [weak self] response, request in
             guard let strongSelf = self else { return }
-            handler.clientQueue(strongSelf, didReceiveResponse: response, for: request, completion: completion)
+            handler.clientQueue(strongSelf, didReceiveResponse: response, for: request)
         }
     }
 
@@ -446,8 +445,7 @@ protocol APIClientQueueProcessing: AnyObject {
 public typealias APIClientQueueProcessorResponseHandlerToken = UUID
 public typealias APIClientQueueProcessorResponseHandler = (
     _ result: APIClientQueueResult<Data, APIError>,
-    _ request: APIClientQueueRequest,
-    _ completion: @escaping () -> Void
+    _ request: APIClientQueueRequest
 ) -> Void
 
 protocol APIClientQueueProcessorDelegate: AnyObject, APIClientPriorityQueuing {
@@ -602,7 +600,7 @@ extension APIClientQueueProcessor: APIClientQueueProcessing {
         lock.lock()
         defer { lock.unlock() }
 
-        forwardDidReceiveResponseToHandlers(.aborted(request), handlers: _responseHandlers.orderedKeyValues.map { $0.1 }) {}
+        forwardDidReceiveResponseToHandlers(.aborted(request), handlers: _responseHandlers.orderedValues)
     }
 
     func didEnqueueNewRequest() {
@@ -713,8 +711,8 @@ private extension APIClientQueueProcessor {
         lock.lock()
         defer { lock.unlock() }
 
-        let responseHandlers = _responseHandlers.orderedKeyValues.map { $0.1 }
-        forwardDidReceiveResponseToHandlers(result, handlers: responseHandlers) {}
+        let responseHandlers = _responseHandlers.orderedValues
+        forwardDidReceiveResponseToHandlers(result, handlers: responseHandlers)
 
         let didSucceed: Bool
         switch result {
@@ -724,7 +722,7 @@ private extension APIClientQueueProcessor {
             Logger.log(.error, "\(APIClientQueueProcessor.self): Processor should not be aborting requests in flight.", assert: true)
             didSucceed = true
         case .apiError(let apiError, let request):
-            self._handleAPIError(apiError, request: request, responseHandlers: responseHandlers)
+            _handleAPIError(apiError, request: request, responseHandlers: responseHandlers)
             didSucceed = false
         case .backgroundSessionExpired(let request):
             Logger.log(.info, "\(APIClientQueueProcessor.self): Background session expired. Will reschedule request.")
@@ -749,7 +747,7 @@ private extension APIClientQueueProcessor {
             /// Any requests in the queue that expect to fail and not retry on .networkConnectionFailure should be sent the failure right away.
             if let requestsToCancel = delegate?.removeRequests(matching: { $0.retryOnNetworkInterrupt == false }) {
                 for requestToCancel in requestsToCancel {
-                    forwardDidReceiveResponseToHandlers(.apiError(apiError, requestToCancel), handlers: responseHandlers, completion: { })
+                    forwardDidReceiveResponseToHandlers(.apiError(apiError, requestToCancel), handlers: responseHandlers)
                 }
             }
             if request.retryOnNetworkInterrupt {
@@ -770,41 +768,30 @@ private extension APIClientQueueProcessor {
         }
     }
 
-    private func forwardDidReceiveResponseToHandlers(_ result: ProcessingResult,
-                                                     handlers: [APIClientQueueProcessorResponseHandler],
-                                                     completion: @escaping () -> Void) {
-        guard let handler = handlers.first else {
-            completion()
-            return
-        }
-
-        let forwardToNextHandler = {
-            self.forwardDidReceiveResponseToHandlers(result,
-                                                     handlers: handlers.dropFirst().array,
-                                                     completion: completion)
-        }
-
-        switch result {
-        case .backgroundSessionExpired:
-            completion()
-        case .success(let response, let request):
-            handler(.success(response), request, forwardToNextHandler)
-        case .aborted(let request):
-            handler(.aborted, request, forwardToNextHandler)
-        case .apiError(let error, let request):
-            switch error {
-            case .network(.networkConnectionFailure(.networkConnectionLost)) where request.retryOnNetworkInterrupt,
-                 .network(.networkConnectionFailure(.notConnectedToInternet)) where request.retryOnNetworkInterrupt,
-                 .network(.networkConnectionFailure(.requestTimedOut)) where request.retryOnRequestTimeout:
-                completion()
-            case .api,
-                 .deserialization,
-                 .network,
-                 .networkingProtocolIsNotHTTP,
-                 .sessionKeyMismatch,
-                 .url,
-                 .other:
-                handler(.failure(error), request, forwardToNextHandler)
+    private func forwardDidReceiveResponseToHandlers(_ result: ProcessingResult, handlers: [APIClientQueueProcessorResponseHandler]) {
+        for handler in handlers {
+            switch result {
+            case .backgroundSessionExpired:
+                return
+            case .success(let response, let request):
+                handler(.success(response), request)
+            case .aborted(let request):
+                handler(.aborted, request)
+            case .apiError(let error, let request):
+                switch error {
+                case .network(.networkConnectionFailure(.networkConnectionLost)) where request.retryOnNetworkInterrupt,
+                     .network(.networkConnectionFailure(.notConnectedToInternet)) where request.retryOnNetworkInterrupt,
+                     .network(.networkConnectionFailure(.requestTimedOut)) where request.retryOnRequestTimeout:
+                    return
+                case .api,
+                     .deserialization,
+                     .network,
+                     .networkingProtocolIsNotHTTP,
+                     .sessionKeyMismatch,
+                     .url,
+                     .other:
+                    handler(.failure(error), request)
+                }
             }
         }
     }

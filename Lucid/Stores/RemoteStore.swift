@@ -507,11 +507,9 @@ private extension RemoteStore {
 
         func clientQueue(_ clientQueue: APIClientQueuing,
                          didReceiveResponse result: APIClientQueueResult<Data, APIError>,
-                         for request: APIClientQueueRequest,
-                         completion: @escaping () -> Void) {
+                         for request: APIClientQueueRequest) {
 
             requestTokensQueue.async {
-                defer { completion() }
                 guard self._requestTokens.contains(request.token) else { return }
                 self._requestTokens.remove(request.token)
 

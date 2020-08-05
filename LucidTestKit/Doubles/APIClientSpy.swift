@@ -65,7 +65,7 @@ public final class APIClientSpy: APIClient {
     public func send(request: APIRequest<Data>, completion: @escaping (Result<APIClientResponse<Data>, APIError>) -> Void) {
         requestRecords.append(request as Any)
         guard let resultStub = resultStubs[request.config] as? Result<APIClientResponse<Data>, APIError> else {
-            completion(.failure(.api(httpStatusCode: 500, errorPayload: nil)))
+            completion(.failure(.api(httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false))))
             XCTFail("Expected stub for request with path: \(request.config.path.description)")
             return
         }
@@ -83,7 +83,7 @@ public final class APIClientSpy: APIClient {
     public func send<Model>(request: APIRequest<Model>, completion: @escaping (Result<Model, APIError>) -> Void) where Model: Decodable {
         requestRecords.append(request as Any)
         guard let resultStub = resultStubs[request.config] as? Result<Model, APIError> else {
-            completion(.failure(.api(httpStatusCode: 500, errorPayload: nil)))
+            completion(.failure(.api(httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false))))
             XCTFail("Expected stub for request with path: \(request.config.path.description)")
             return
         }

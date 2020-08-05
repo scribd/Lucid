@@ -237,12 +237,14 @@ final class RemoteStoreTests: XCTestCase {
 
         Logger.shared = LoggerMock(shouldCauseFailures: false)
 
-        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.failure(.api(httpStatusCode: 400, errorPayload: nil))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.failure(.api(
+            httpStatusCode: 400, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        ))
 
         let expectation = self.expectation(description: "entity")
         store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: derivedFromEntityTypeContext) { result in
             switch result {
-            case .failure(.api(.api(httpStatusCode: 400, errorPayload: nil))):
+            case .failure(.api(.api(httpStatusCode: 400, errorPayload: nil, _))):
                 XCTAssertEqual(EntitySpy.remotePathRecords.count, 1)
                 XCTAssertEqual(EntitySpy.remotePathRecords.first, .get(EntitySpyIdentifier(value: .remote(42, nil)), extras: nil))
                 XCTAssertEqual(EntitySpy.endpointInvocationCount, 0)
@@ -742,12 +744,14 @@ final class RemoteStoreTests: XCTestCase {
 
         Logger.shared = LoggerMock(shouldCauseFailures: false)
 
-        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.failure(.api(httpStatusCode: 400, errorPayload: nil))
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.failure(.api(
+            httpStatusCode: 400, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
+        ))
 
         let expectation = self.expectation(description: "entity")
         store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: requestContext) { result in
             switch result {
-            case .failure(.api(.api(httpStatusCode: 400, errorPayload: nil))):
+            case .failure(.api(.api(httpStatusCode: 400, errorPayload: nil, _))):
                 break
             case .failure(let error):
                 XCTFail("Unexpected error: \(error)")

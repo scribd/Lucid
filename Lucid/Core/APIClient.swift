@@ -20,9 +20,9 @@ public enum APIError: Error, Equatable {
     case network(NetworkError)
     case url
     case deserialization(Error)
-    case emptyBodyResponse
-    case api(httpStatusCode: Int, errorPayload: APIErrorPayload?)
+    case api(httpStatusCode: Int, errorPayload: APIErrorPayload?, response: APIClientResponse<Data>)
     case sessionKeyMismatch
+    case other(String)
 }
 
 public enum NetworkError: Error, Equatable {
@@ -550,23 +550,20 @@ extension APIClient {
                             return
                         }
 
+                        let wrappedResponse = APIClientResponse(data: data ?? Data(),
+                                                                urlResponse: response,
+                                                                jsonCoderConfig: self.jsonCoderConfig())
+
                         guard response.isSuccess else {
                             let errorPayload = data.flatMap { self.errorPayload(from: $0) }
-                            let error = APIError.api(httpStatusCode: response.statusCode, errorPayload: errorPayload)
-                            Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
-                            wrappedCompletion(.failure(error))
-                            return
-                        }
-
-                        guard let data = data else {
-                            let error = APIError.emptyBodyResponse
+                            let error = APIError.api(httpStatusCode: response.statusCode, errorPayload: errorPayload, response: wrappedResponse)
                             Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
                             wrappedCompletion(.failure(error))
                             return
                         }
 
                         Logger.log(.info, "\(Self.self): \(self.identifier): Request succeeded: \(requestDescription).")
-                        wrappedCompletion(.success(APIClientResponse(data: data, urlResponse: response, jsonCoderConfig: self.jsonCoderConfig())))
+                        wrappedCompletion(.success(wrappedResponse))
                     }
                 }
 
@@ -1145,20 +1142,21 @@ extension APIError {
              (.network, .network),
              (.url, .url),
              (.deserialization, .deserialization),
-             (.emptyBodyResponse, .emptyBodyResponse),
              (.sessionKeyMismatch, .sessionKeyMismatch):
             return true
-        case (.api(let lHTTPStatusCode, let lErrorPayload), .api(let rHTTPStatusCode, let rErrorPayload)):
+        case (.api(let lHTTPStatusCode, let lErrorPayload, _), .api(let rHTTPStatusCode, let rErrorPayload, _)):
             guard lHTTPStatusCode == rHTTPStatusCode else { return false }
             guard lErrorPayload == rErrorPayload else { return false }
             return true
+        case (.other(let lhs), .other(let rhs)):
+            return lhs == rhs
         case (.networkingProtocolIsNotHTTP, _),
              (.network, _),
              (.url, _),
              (.deserialization, _),
-             (.emptyBodyResponse, _),
              (.sessionKeyMismatch, _),
-             (.api, _):
+             (.api, _),
+             (.other, _):
             return false
         }
     }

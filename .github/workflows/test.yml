@@ -30,23 +30,3 @@ jobs:
           aws-filepath: badges/Lucid/CodeGen
           label: CodeGen Coverage
           text: ${{ env.CODECOV }}
-
-  carthage_test:
-    runs-on: macos-latest
-    env: 
-      DEVELOPER_DIR: /Applications/Xcode_11.2.1.app/Contents/Developer
-      GITHUB_ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-      CARTHAGE_OUTPUT: carthage_output.txt
-
-    steps:
-      - name: Retrieve Latest Lucid Framework Using Carthage
-        run: |
-          echo 'git "git@github.com:scribd/Lucid.git"' > Cartfile
-          carthage bootstrap --platform iOS,watchOS --log-path $CARTHAGE_OUTPUT
-
-      - name: Upload Log Files
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: build-log
-          path: ${{ env.CARTHAGE_OUTPUT }}

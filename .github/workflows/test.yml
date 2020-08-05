@@ -36,22 +36,17 @@ jobs:
     env: 
       DEVELOPER_DIR: /Applications/Xcode_11.2.1.app/Contents/Developer
       GITHUB_ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-      CARTHAGE_DEBUG_OUTPUT: /tmp/carthage_debug_output.txt
-      CARTHAGE_RELEASE_OUTPUT: /tmp/carthage_release_output.txt
+      CARTHAGE_OUTPUT: carthage_output.txt
 
     steps:
-      - name: Build Lucid Framework Using Carthage
+      - name: Retrieve Latest Lucid Framework Using Carthage
         run: |
-          echo 'git "git@github.com:scribd/Lucid.git" "master"' > Cartfile
-          
-          carthage bootstrap --platform iOS,watchOS --configuration Debug --log-path $CARTHAGE_DEBUG_OUTPUT
-          carthage bootstrap --platform iOS,watchOS --configuration Release --log-path $CARTHAGE_RELEASE_OUTPUT
+          echo 'git "git@github.com:scribd/Lucid.git"' > Cartfile
+          carthage bootstrap --platform iOS,watchOS --log-path $CARTHAGE_OUTPUT
 
       - name: Upload Log Files
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
         with:
           name: build-log
-          path: |
-            ${{ env.CARTHAGE_DEBUG_OUTPUT }}
-            ${{ env.CARTHAGE_RELEASE_OUTPUT }}
+          path: ${{ env.CARTHAGE_OUTPUT }}

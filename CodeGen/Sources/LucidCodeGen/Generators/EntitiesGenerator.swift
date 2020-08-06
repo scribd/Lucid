@@ -68,7 +68,7 @@ public final class EntitiesGenerator: Generator {
             if indexMeta.isEmpty == false {
                 result = result
                     .adding(member: EmptyLine())
-                    .adding(members: try entityIndexName.meta())
+                    .adding(members: indexMeta)
             }
 
             return result.swiftFile(in: directory)

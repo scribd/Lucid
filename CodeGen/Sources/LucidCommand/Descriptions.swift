@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import LucidCodeGen
 import LucidCodeGenCore
 import PathKit
 

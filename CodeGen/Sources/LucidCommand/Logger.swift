@@ -5,7 +5,6 @@
 //  Created by Théophane Rupin on 3/20/19.
 //
 
-import LucidCodeGen
 import LucidCodeGenCore
 
 // MARK: - Errors

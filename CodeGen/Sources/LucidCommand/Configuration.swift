@@ -8,7 +8,6 @@
 import Yams
 import PathKit
 import Foundation
-import LucidCodeGen
 import LucidCodeGenCore
 
 enum ConfigurationError: Error {
@@ -25,6 +24,12 @@ struct SwiftCommandConfiguration {
     let _inputPath: Path
     var inputPath: Path {
         return _inputPath.isRelative ? _workingPath + _inputPath : _inputPath
+    }
+
+    let _customExtensionsPath: Path?
+    var customExtensionsPath: Path? {
+        guard let path = _customExtensionsPath else { return nil }
+        return path.isRelative ? _workingPath + path : path
     }
 
     /// Cache files location (defaults to /usr/local/share/lucid/cache).
@@ -107,6 +112,13 @@ struct SwiftCommandConfiguration {
         String.Configuration.setLexicon(configuration.lexicon)
 
         return configuration
+    }
+
+    static func make(with configPath: String) throws -> SwiftCommandConfiguration {
+        let configPath = Path(configPath)
+        return try YAMLDecoder().decode(SwiftCommandConfiguration.self,
+                                        from: try configPath.read(),
+                                        userInfo: [:])
     }
 }
 
@@ -203,6 +215,7 @@ extension SwiftCommandConfiguration: Decodable {
     private enum Keys: String, CodingKey {
         case targets
         case inputPath = "input_path"
+        case customExtensionsPath = "custom_extensions_path"
         case cachePath = "cache_path"
         case companyName = "company_name"
         case currentVersion = "current_version"
@@ -229,6 +242,7 @@ extension SwiftCommandConfiguration: Decodable {
         self.targets = targets
         
         _inputPath = try container.decode(Path.self, forKey: .inputPath)
+        _customExtensionsPath = try container.decodeIfPresent(Path.self, forKey: .customExtensionsPath)
         _cachePath = try container.decodeIfPresent(Path.self, forKey: .cachePath) ?? Defaults.cachePath
         companyName = try container.decodeIfPresent(String.self, forKey: .companyName) ?? Defaults.companyName
         currentVersion = try container.decodeIfPresent(String.self, forKey: .currentVersion) ?? Defaults.currentVersion

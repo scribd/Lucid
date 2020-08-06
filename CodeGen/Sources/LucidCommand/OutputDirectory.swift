@@ -62,16 +62,16 @@ enum OutputDirectory {
     }
 }
 
-// MARK: - Custom Extensions
+// MARK: - Extensions
 
 enum Extensions {
 
     enum DirectoryName {
-        static let extensions = Path("Extensions")
+        static let metaCode = Path("MetaCode")
         static let sources = Path("Sources")
         static let lucidCodeGenCore = Path("LucidCodeGenCore")
-        static let lucidCodeGenCustomExtensions = Path("LucidCodeGenCustomExtensions")
-        static let lucidCommandCustomExtensions = Path("LucidCommandCustomExtensions")
+        static let lucidCodeGenExtensions = Path("LucidCodeGenExtensions")
+        static let lucidCommandExtensions = Path("LucidCommandExtensions")
 
         static let generators = Path("Generators")
         static let meta = Path("Meta")
@@ -84,35 +84,35 @@ enum Extensions {
         static let version = Path(".version")
         static let swiftversion = Path(".swift-version")
 
-        static let customExtensionsGenerator = Path("CustomExtensionsGenerator.swift")
+        static let extensionsFileGenerator = Path("ExtensionsFileGenerator.swift")
 
-        static let metaEntityCustomExtensions = Path("MetaEntityCustomExtensions.swift")
-        static let metaSubtypeCustomExtensions = Path("MetaSubtypeCustomExtensions.swift")
+        static let metaEntityExtensions = Path("MetaEntityExtensions.swift")
+        static let metaSubtypeExtensions = Path("MetaSubtypeExtensions.swift")
     }
 
     enum SourcePath {
 
         enum Directory {
-            static let customExtensions = Path(".CustomExtensions")
-            static let customSources = customExtensions + DirectoryName.sources
+            static let extensions = Path(".Extensions")
+            static let sources = extensions + DirectoryName.sources
             static let lucidCodeGenCore = DirectoryName.sources + DirectoryName.lucidCodeGenCore
-            static let lucidCodeGenCustomExtensions = customSources + DirectoryName.lucidCodeGenCustomExtensions
-            static let lucidCommandCustomExtensions = customSources + DirectoryName.lucidCommandCustomExtensions
+            static let lucidCodeGenExtensions = sources + DirectoryName.lucidCodeGenExtensions
+            static let lucidCommandExtensions = sources + DirectoryName.lucidCommandExtensions
 
-            static let generators = lucidCodeGenCustomExtensions + DirectoryName.generators
+            static let generators = lucidCodeGenExtensions + DirectoryName.generators
         }
 
         enum File {
-            static let makefile = Directory.customExtensions + FileName.makefile
-            static let package = Directory.customExtensions + FileName.package
-            static let gitignore = Directory.customExtensions + FileName.gitignore
-            static let version = Directory.customExtensions + FileName.version
-            static let swiftversion = Directory.customExtensions + FileName.swiftversion
+            static let makefile = Directory.extensions + FileName.makefile
+            static let package = Directory.extensions + FileName.package
+            static let gitignore = Directory.extensions + FileName.gitignore
+            static let version = Directory.extensions + FileName.version
+            static let swiftversion = Directory.extensions + FileName.swiftversion
 
-            static let customExtensionsGenerator = Directory.generators + FileName.customExtensionsGenerator
+            static let extensionsFileGenerator = Directory.generators + FileName.extensionsFileGenerator
 
-            static let metaEntityCustomExtensions = Directory.lucidCodeGenCustomExtensions + Path(".MetaEntityCustomExtensions.swift")
-            static let metaSubtypeCustomExtensions = Directory.lucidCodeGenCustomExtensions + Path(".MetaSubtypeCustomExtensions.swift")
+            static let metaEntityExtensions = Directory.lucidCodeGenExtensions + Path(".MetaEntityExtensions.swift")
+            static let metaSubtypeExtensions = Directory.lucidCodeGenExtensions + Path(".MetaSubtypeExtensions.swift")
         }
     }
 }

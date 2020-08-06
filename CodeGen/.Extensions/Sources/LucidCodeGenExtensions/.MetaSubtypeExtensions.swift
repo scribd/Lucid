@@ -1,12 +1,12 @@
 //
-//  MetaSubtypeCustomExtensions.swift
+//  MetaSubtypeExtensions.swift
 //  LucidCodeGen
 //
 
 import Meta
 import LucidCodeGenCore
 
-struct MetaSubtypeCustomExtensions {
+struct MetaSubtypeExtensions {
 
     let subtypeName: String
 

@@ -1,13 +1,13 @@
 //
 //  main.swift
-//  CustomExtensions
+//  Extensions
 //
 //  Created by Stephane Magne on 12/4/18.
 //  Copyright © 2018 Scribd. All rights reserved.
 //
 
 import Foundation
-import LucidCodeGenCustomExtensions
+import LucidCodeGenExtensions
 import LucidCodeGenCore
 import Commander
 import PathKit

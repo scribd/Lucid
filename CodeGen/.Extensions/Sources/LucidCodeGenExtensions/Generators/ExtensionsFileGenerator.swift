@@ -1,6 +1,6 @@
 //
-//  CustomExtensionsGenerator.swift
-//  LucidCodeGenCustomExtensions
+//  ExtensionsFileGenerator.swift
+//  LucidCodeGenExtensions
 //
 //  Created by Stephane Magne on 07/29/20.
 //
@@ -24,11 +24,11 @@ public protocol MetaExtension {
     func meta(for descriptions: Descriptions) throws -> [FileBodyMember]
 }
 
-// MARK: - CustomExtensionsGenerator
+// MARK: - ExtensionsFileGenerator
 
-public final class CustomExtensionsGenerator: ExtensionsGenerator {
+public final class ExtensionsFileGenerator: ExtensionsGenerator {
 
-    public let name = "Custom Extensions"
+    public let name = "Extensions"
 
     private let descriptions: Descriptions
 
@@ -42,16 +42,16 @@ public final class CustomExtensionsGenerator: ExtensionsGenerator {
 
         switch element {
         case .entity(let entityName):
-            let customEntity = MetaEntityCustomExtensions(entityName: entityName)
-            extensions = customEntity.extensions
+            let entityExtensions = MetaEntityExtensions(entityName: entityName)
+            extensions = entityExtensions.extensions
 
         case .subtype(let subtypeName):
-            let customSubtype = MetaSubtypeCustomExtensions(subtypeName: subtypeName)
-            extensions = customSubtype.extensions
+            let subtypeExtensions = MetaSubtypeExtensions(subtypeName: subtypeName)
+            extensions = subtypeExtensions.extensions
 
         case .all,
              .endpoint:
-            /// No support for custom extensions of .all or .endpoint. Only .entity and .subtype are supported.
+            /// No support for extensions of .all or .endpoint. Only .entity and .subtype are supported.
             return []
         }
 
@@ -59,7 +59,7 @@ public final class CustomExtensionsGenerator: ExtensionsGenerator {
     }
 }
 
-private extension CustomExtensionsGenerator {
+private extension ExtensionsFileGenerator {
 
     func file(for metaExtension: MetaExtension, in directory: Path, organizationName: String) throws -> SwiftFile? {
 

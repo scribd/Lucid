@@ -26,9 +26,9 @@ struct SwiftCommandConfiguration {
         return _inputPath.isRelative ? _workingPath + _inputPath : _inputPath
     }
 
-    let _customExtensionsPath: Path?
-    var customExtensionsPath: Path? {
-        guard let path = _customExtensionsPath else { return nil }
+    let _extensionsPath: Path?
+    var extensionsPath: Path? {
+        guard let path = _extensionsPath else { return nil }
         return path.isRelative ? _workingPath + path : path
     }
 
@@ -215,7 +215,7 @@ extension SwiftCommandConfiguration: Decodable {
     private enum Keys: String, CodingKey {
         case targets
         case inputPath = "input_path"
-        case customExtensionsPath = "custom_extensions_path"
+        case extensionsPath = "extensions_path"
         case cachePath = "cache_path"
         case organizationName = "organization_name"
         case currentVersion = "current_version"
@@ -242,7 +242,7 @@ extension SwiftCommandConfiguration: Decodable {
         self.targets = targets
         
         _inputPath = try container.decode(Path.self, forKey: .inputPath)
-        _customExtensionsPath = try container.decodeIfPresent(Path.self, forKey: .customExtensionsPath)
+        _extensionsPath = try container.decodeIfPresent(Path.self, forKey: .extensionsPath)
         _cachePath = try container.decodeIfPresent(Path.self, forKey: .cachePath) ?? Defaults.cachePath
         organizationName = try container.decodeIfPresent(String.self, forKey: .organizationName) ?? Defaults.organizationName
         currentVersion = try container.decodeIfPresent(String.self, forKey: .currentVersion) ?? Defaults.currentVersion

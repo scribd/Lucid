@@ -1,12 +1,12 @@
 //
-//  MetaEntityCustomExtensions.swift
+//  MetaEntityExtensions.swift
 //  LucidCodeGen
 //
 
 import Meta
 import LucidCodeGenCore
 
-struct MetaEntityCustomExtensions {
+struct MetaEntityExtensions {
 
     let entityName: String
 

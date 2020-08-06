@@ -2,9 +2,9 @@
 import PackageDescription
 
 let package = Package(
-    name: "LucidCustomExtensions",
+    name: "LucidExtensions",
     products: [
-      .executable(name: "lucid-extensions", targets: ["LucidCommandCustomExtensions"])
+      .executable(name: "lucid-extensions", targets: ["LucidCommandExtensions"])
     ],
     dependencies: [
         .package(url: "https://github.com/kylef/Commander.git", from: "0.8.0"),
@@ -15,7 +15,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "LucidCodeGenCore", dependencies: ["PathKit", "Meta"]),
-        .target(name: "LucidCodeGenCustomExtensions", dependencies: ["LucidCodeGenCore", "PathKit", "Meta"]),
-        .target(name: "LucidCommandCustomExtensions", dependencies: ["Commander", "ShellOut", "Yams", "LucidCodeGenCore", "LucidCodeGenCustomExtensions"])
+        .target(name: "LucidCodeGenExtensions", dependencies: ["LucidCodeGenCore", "PathKit", "Meta"]),
+        .target(name: "LucidCommandExtensions", dependencies: ["Commander", "ShellOut", "Yams", "LucidCodeGenCore", "LucidCodeGenExtensions"])
     ]
 )

@@ -1,1 +1,1 @@
-/Users/stephane/Source/iscribd/Carthage/Checkouts/Lucid/CodeGen/Sources/LucidCommand/OutputDirectory.swift
+../../../Sources/LucidCommand/OutputDirectory.swift

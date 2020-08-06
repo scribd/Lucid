@@ -83,7 +83,7 @@ private final class InternalSwiftExtensionGenerator {
         logger.moveToChild("Generating Code \(platform.flatMap { "for platform: \($0), " } ?? "")for target: '\(target.name.rawValue)'...")
         
         try generate(with: CustomExtensionsGenerator(descriptions: descriptions),
-                     in: .custom,
+                     in: .extensions,
                      for: .app,
                      deleteExtraFiles: true)
 

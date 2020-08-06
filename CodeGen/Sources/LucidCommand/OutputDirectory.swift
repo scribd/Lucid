@@ -24,7 +24,7 @@ enum OutputDirectory {
     case coreDataTests
     case coreDataMigrationTests
     case sqliteFiles
-    case custom
+    case extensions
     
     func path(appModuleName: String) -> Path {
         switch self {
@@ -56,8 +56,8 @@ enum OutputDirectory {
             return Path("CoreDataMigrations")
         case .sqliteFiles:
             return Path("SQLite")
-        case .custom:
-            return Path("Custom")
+        case .extensions:
+            return Path("Extensions")
         }
     }
 }

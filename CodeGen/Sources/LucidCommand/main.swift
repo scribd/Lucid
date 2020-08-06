@@ -104,18 +104,18 @@ let main = Group {
         logger.moveToChild("Starting code generation...")
         for target in configuration.targets.all where target.isSelected {
             let descriptionsHash = try descriptionsVersionManager.descriptionsHash(absoluteInputPath: configuration.inputPath)
-            let generator = SwiftCodeGenerator(to: target,
-                                               descriptions: descriptions,
-                                               appVersion: currentAppVersion,
-                                               historyVersions: modelMappingHistoryVersions,
-                                               shouldGenerateDataModel: _shouldGenerateDataModel,
-                                               descriptionsHash: descriptionsHash,
-                                               responseHandlerFunction: configuration.responseHandlerFunction,
-                                               coreDataMigrationsFunction: configuration.coreDataMigrationsFunction,
-                                               reactiveKit: configuration.reactiveKit,
-                                               useCoreDataLegacyNaming: configuration.useCoreDataLegacyNaming,
-                                               companyName: configuration.companyName,
-                                               logger: logger)
+            let generator = try SwiftCodeGenerator(to: target,
+                                                   descriptions: descriptions,
+                                                   appVersion: currentAppVersion,
+                                                   historyVersions: modelMappingHistoryVersions,
+                                                   shouldGenerateDataModel: _shouldGenerateDataModel,
+                                                   descriptionsHash: descriptionsHash,
+                                                   responseHandlerFunction: configuration.responseHandlerFunction,
+                                                   coreDataMigrationsFunction: configuration.coreDataMigrationsFunction,
+                                                   reactiveKit: configuration.reactiveKit,
+                                                   useCoreDataLegacyNaming: configuration.useCoreDataLegacyNaming,
+                                                   companyName: configuration.companyName,
+                                                   logger: logger)
             try generator.generate()
         }
         logger.moveToParent()

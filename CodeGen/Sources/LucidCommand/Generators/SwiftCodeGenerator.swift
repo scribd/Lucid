@@ -31,9 +31,13 @@ final class SwiftCodeGenerator {
          reactiveKit: Bool,
          useCoreDataLegacyNaming: Bool,
          companyName: String,
-         logger: Logger) {
+         logger: Logger) throws {
 
-        let platforms = Set(descriptions.flatMap { $0.value.platforms }).sorted()
+        guard let latestDescription = descriptions[appVersion] else {
+            try logger.throwError("Could not find description for latest app version \(appVersion).")
+        }
+
+        let platforms = latestDescription.platforms.sorted()
         let descriptionVariants: [(Platform?, [Version: Descriptions])]
 
         if platforms.isEmpty {

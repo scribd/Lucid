@@ -25,12 +25,12 @@ public final class EntityGraphGenerator: Generator {
         self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
     }
     
-    public func generate(for element: Description, in directory: Path, companyName: String) throws -> SwiftFile? {
+    public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
         guard element == .all else { return nil }
         
         let filename = "EntityGraph.swift"
         
-        let header = MetaHeader(filename: filename, companyName: companyName)
+        let header = MetaHeader(filename: filename, organizationName: organizationName)
         let entityGraph = MetaEntityGraph(descriptions: descriptions,
                                           reactiveKit: reactiveKit,
                                           useCoreDataLegacyNaming: useCoreDataLegacyNaming)

@@ -34,10 +34,10 @@ public final class CoreManagerContainersGenerator: Generator {
         self.reactiveKit = reactiveKit
     }
     
-    public func generate(for element: Description, in directory: Path, companyName: String) throws -> SwiftFile? {
+    public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
         guard element == .all else { return nil }
         
-        let header = MetaHeader(filename: filename, companyName: companyName)
+        let header = MetaHeader(filename: filename, organizationName: organizationName)
         let coreManagerContainer = MetaCoreManagerContainer(descriptions: descriptions,
                                                             responseHandlerFunction: responseHandlerFunction,
                                                             coreDataMigrationsFunction: coreDataMigrationsFunction,

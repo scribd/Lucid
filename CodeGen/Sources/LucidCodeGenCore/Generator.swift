@@ -24,14 +24,14 @@ public protocol Generator {
     
     var name: String { get }
     
-    func generate(for element: Description, in directory: Path, companyName: String) throws -> SwiftFile?
+    func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile?
 }
 
 public protocol ExtensionsGenerator {
 
     var name: String { get }
 
-    func generate(for element: Description, in directory: Path, companyName: String) throws -> [SwiftFile]
+    func generate(for element: Description, in directory: Path, organizationName: String) throws -> [SwiftFile]
 }
 
 public extension File {

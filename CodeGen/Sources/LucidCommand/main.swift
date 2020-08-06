@@ -114,7 +114,7 @@ let main = Group {
                                                    coreDataMigrationsFunction: configuration.coreDataMigrationsFunction,
                                                    reactiveKit: configuration.reactiveKit,
                                                    useCoreDataLegacyNaming: configuration.useCoreDataLegacyNaming,
-                                                   companyName: configuration.companyName,
+                                                   organizationName: configuration.organizationName,
                                                    logger: logger)
             try generator.generate()
         }

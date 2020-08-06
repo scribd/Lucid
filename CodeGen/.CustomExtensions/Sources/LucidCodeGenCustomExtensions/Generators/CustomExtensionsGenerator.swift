@@ -36,7 +36,7 @@ public final class CustomExtensionsGenerator: ExtensionsGenerator {
         self.descriptions = descriptions
     }
     
-    public func generate(for element: Description, in directory: Path, companyName: String) throws -> [SwiftFile] {
+    public func generate(for element: Description, in directory: Path, organizationName: String) throws -> [SwiftFile] {
 
         let extensions: [MetaExtension]
 
@@ -55,13 +55,13 @@ public final class CustomExtensionsGenerator: ExtensionsGenerator {
             return []
         }
 
-        return try extensions.compactMap { try file(for: $0, in: directory, companyName: companyName) }
+        return try extensions.compactMap { try file(for: $0, in: directory, organizationName: organizationName) }
     }
 }
 
 private extension CustomExtensionsGenerator {
 
-    func file(for metaExtension: MetaExtension, in directory: Path, companyName: String) throws -> SwiftFile? {
+    func file(for metaExtension: MetaExtension, in directory: Path, organizationName: String) throws -> SwiftFile? {
 
         let imports = try metaExtension.imports()
         let body = try metaExtension.meta(for: descriptions)
@@ -69,7 +69,7 @@ private extension CustomExtensionsGenerator {
         guard body.isEmpty == false else { return nil }
 
         let filename = "\(metaExtension.name.camelCased().suffixedName())+\(metaExtension.extensionName).swift"
-        let header = MetaHeader(filename: filename, companyName: companyName)
+        let header = MetaHeader(filename: filename, organizationName: organizationName)
 
         return Meta.File(name: filename)
             .with(header: header.meta)

@@ -22,12 +22,12 @@ public final class PayloadTestsGenerator: Generator {
         self.reactiveKit = reactiveKit
     }
     
-    public func generate(for element: Description, in directory: Path, companyName: String) throws -> SwiftFile? {
+    public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
         guard let endpointName = element.endpointName else { return nil }
         
         let filename = "\(endpointName.camelCased(separators: "/_").suffixedName())PayloadsTests.swift"
         
-        let header = MetaHeader(filename: filename, companyName: companyName)
+        let header = MetaHeader(filename: filename, organizationName: organizationName)
         let endpointPayloadTests = MetaEndpointPayloadTests(endpointName: endpointName,
                                                             descriptions: descriptions,
                                                             reactiveKit: reactiveKit)

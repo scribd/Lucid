@@ -45,7 +45,7 @@ import PathKit
         let generator = SwiftExtensionGenerator(to: configuration.targets.app,
                                                 descriptions: currentDescriptions,
                                                 appVersion: currentAppVersion,
-                                                companyName: configuration.companyName,
+                                                organizationName: configuration.organizationName,
                                                 logger: logger)
         try generator.generate()
         logger.moveToParent()

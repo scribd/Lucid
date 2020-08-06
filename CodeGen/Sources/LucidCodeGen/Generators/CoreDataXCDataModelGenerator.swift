@@ -34,7 +34,7 @@ public final class CoreDataXCDataModelGenerator: Generator {
         self.descriptions = descriptions
     }
     
-    public func generate(for element: Description, in directory: Path, companyName: String) throws -> SwiftFile? {
+    public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
 
         guard let currentDescriptions = self.descriptions[version] else {
             fatalError("Could not find descriptions for version: \(version.dotDescription)")

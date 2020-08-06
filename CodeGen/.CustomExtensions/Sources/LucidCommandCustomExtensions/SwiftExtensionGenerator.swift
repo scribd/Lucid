@@ -23,7 +23,7 @@ final class SwiftExtensionGenerator {
     init(to target: Target,
          descriptions: Descriptions,
          appVersion: Version,
-         companyName: String,
+         organizationName: String,
          logger: Logger) {
 
         let platforms = Set(descriptions.platforms.sorted())
@@ -42,7 +42,7 @@ final class SwiftExtensionGenerator {
                                                    descriptions: $1,
                                                    appVersion: appVersion,
                                                    platform: $0,
-                                                   companyName: companyName,
+                                                   organizationName: organizationName,
                                                    logger: logger)
         }
     }
@@ -60,21 +60,21 @@ private final class InternalSwiftExtensionGenerator {
     private let descriptions: Descriptions
     private let appVersion: Version
     private let platform: Platform?
-    private let companyName: String
+    private let organizationName: String
     private let logger: Logger
     
     init(to target: Target,
          descriptions: Descriptions,
          appVersion: Version,
          platform: Platform?,
-         companyName: String,
+         organizationName: String,
          logger: Logger) {
         
         self.target = target
         self.descriptions = descriptions
         self.appVersion = appVersion
         self.platform = platform
-        self.companyName = companyName
+        self.organizationName = organizationName
         self.logger = logger
     }
     
@@ -112,7 +112,7 @@ private final class InternalSwiftExtensionGenerator {
 
         for element in descriptions {
             do {
-                let files = try generator.generate(for: element, in: directory, companyName: companyName)
+                let files = try generator.generate(for: element, in: directory, organizationName: organizationName)
                 for file in files {
                     try file.path.parent().mkpath()
                     try file.path.write(file.content)

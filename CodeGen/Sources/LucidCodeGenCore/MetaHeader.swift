@@ -11,12 +11,12 @@ public struct MetaHeader {
     
     public let filename: String
 
-    public let companyName: String
+    public let organizationName: String
 
     public init(filename: String,
-                companyName: String) {
+                organizationName: String) {
         self.filename = filename
-        self.companyName = companyName
+        self.organizationName = organizationName
     }
 
     public var meta: [Comment] {
@@ -25,7 +25,7 @@ public struct MetaHeader {
             .comment(filename),
             .empty,
             .comment("Generated automatically."),
-            .comment("Copyright © \(companyName). All rights reserved."),
+            .comment("Copyright © \(organizationName). All rights reserved."),
             .empty
         ]
     }

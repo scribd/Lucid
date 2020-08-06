@@ -38,10 +38,10 @@ public final class ExportSQLiteFileTestGenerator: Generator {
         self.reactiveKit = reactiveKit
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> SwiftFile? {
+    public func generate(for element: Description, in directory: Path, companyName: String) throws -> SwiftFile? {
         guard element == .all else { return nil }
         
-        let header = MetaHeader(filename: filename)
+        let header = MetaHeader(filename: filename, companyName: companyName)
         let exportSQLiteFileTest = MetaExportSQLiteFileTest(descriptions: descriptions,
                                                             descriptionsHash: descriptionsHash,
                                                             sqliteFileName: sqliteFile.lastComponentWithoutExtension,

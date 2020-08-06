@@ -25,12 +25,12 @@ public final class EntitiesGenerator: Generator {
         self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> SwiftFile? {
+    public func generate(for element: Description, in directory: Path, companyName: String) throws -> SwiftFile? {
         switch element {
         case .all:
             let filename = "EntityIndexValueTypes.swift"
             
-            let header = MetaHeader(filename: filename)
+            let header = MetaHeader(filename: filename, companyName: companyName)
             let subtype = MetaSubtypes(descriptions: descriptions)
             
             return Meta.File(name: filename)
@@ -42,7 +42,7 @@ public final class EntitiesGenerator: Generator {
         case .entity(let entityName):
             let filename = "\(entityName.camelCased().suffixedName()).swift"
             
-            let header = MetaHeader(filename: filename)
+            let header = MetaHeader(filename: filename, companyName: companyName)
             let entityIdentifier = MetaEntityIdentifier(entityName: entityName, descriptions: descriptions)
             let entityIndexName = MetaEntityIndexName(entityName: entityName, descriptions: descriptions)
             let entity = MetaEntity(entityName: entityName, useCoreDataLegacyNaming: useCoreDataLegacyNaming, descriptions: descriptions)

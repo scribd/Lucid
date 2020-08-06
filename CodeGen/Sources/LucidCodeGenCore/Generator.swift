@@ -1,6 +1,6 @@
 //
 //  Generator.swift
-//  LucidCodeGen
+//  LucidCodeGenCore
 //
 //  Created by Théophane Rupin on 3/20/19.
 //
@@ -24,7 +24,7 @@ public protocol Generator {
     
     var name: String { get }
     
-    func generate(for element: Description, in directory: Path) throws -> SwiftFile?
+    func generate(for element: Description, in directory: Path, companyName: String) throws -> SwiftFile?
 }
 
 public extension File {

@@ -22,12 +22,12 @@ public final class SubtypesGenerator: Generator {
         self.reactiveKit = reactiveKit
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> SwiftFile? {
+    public func generate(for element: Description, in directory: Path, companyName: String) throws -> SwiftFile? {
         guard let subtypeName = element.subtypeName else { return nil }
         
         let filename = "\(subtypeName.camelCased().suffixedName()).swift"
         
-        let header = MetaHeader(filename: filename)
+        let header = MetaHeader(filename: filename, companyName: companyName)
         let subtype = MetaSubtype(subtypeName: subtypeName, descriptions: descriptions)
         let subtypeObjc = MetaSubtypeObjc(subtypeName: subtypeName, descriptions: descriptions)
         

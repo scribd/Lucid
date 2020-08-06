@@ -30,6 +30,7 @@ final class SwiftCodeGenerator {
          coreDataMigrationsFunction: String?,
          reactiveKit: Bool,
          useCoreDataLegacyNaming: Bool,
+         companyName: String,
          logger: Logger) {
 
         let platforms = Set(descriptions.flatMap { $0.value.platforms }).sorted()
@@ -74,6 +75,7 @@ final class SwiftCodeGenerator {
                                               coreDataMigrationsFunction: coreDataMigrationsFunction,
                                               reactiveKit: reactiveKit,
                                               useCoreDataLegacyNaming: useCoreDataLegacyNaming,
+                                              companyName: companyName,
                                               logger: logger)
         }
     }
@@ -134,7 +136,8 @@ private final class InternalSwiftCodeGenerator {
     private let coreDataMigrationsFunction: String?
     private let reactiveKit: Bool
     private let useCoreDataLegacyNaming: Bool
-    
+    private let companyName: String
+
     private let logger: Logger
     
     private var currentDescriptions: Descriptions {
@@ -166,6 +169,7 @@ private final class InternalSwiftCodeGenerator {
          coreDataMigrationsFunction: String?,
          reactiveKit: Bool,
          useCoreDataLegacyNaming: Bool,
+         companyName: String,
          logger: Logger) {
         
         self.target = target
@@ -180,6 +184,7 @@ private final class InternalSwiftCodeGenerator {
         self.coreDataMigrationsFunction = coreDataMigrationsFunction
         self.reactiveKit = reactiveKit
         self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
+        self.companyName = companyName
         self.logger = logger
     }
     
@@ -304,7 +309,7 @@ private final class InternalSwiftCodeGenerator {
         
         for element in descriptions {
             do {
-                guard let file = try generator.generate(for: element, in: directory) else {
+                guard let file = try generator.generate(for: element, in: directory, companyName: companyName) else {
                     continue
                 }
                 try file.path.parent().mkpath()

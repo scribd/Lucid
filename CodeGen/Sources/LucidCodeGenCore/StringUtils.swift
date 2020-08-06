@@ -1,6 +1,6 @@
 //
 //  StringUtils.swift
-//  LucidCodeGen
+//  LucidCodeGenCore
 //
 //  Created by Théophane Rupin on 3/20/19.
 //

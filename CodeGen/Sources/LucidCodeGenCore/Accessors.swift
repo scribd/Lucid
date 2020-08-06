@@ -1,6 +1,6 @@
 //
 //  Accessors.swift
-//  LucidCodeGen
+//  LucidCodeGenCore
 //
 //  Created by Théophane Rupin on 3/27/19.
 //

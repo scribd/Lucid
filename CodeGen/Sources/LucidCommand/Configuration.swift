@@ -33,6 +33,9 @@ struct SwiftCommandConfiguration {
         return _cachePath.isRelative ? _workingPath + _cachePath : _cachePath
     }
 
+    /// Company name that will appear in generated file headers.
+    let companyName: String
+
     /// Current application version (defaults to 1.0.0).
     var currentVersion: String
     
@@ -180,6 +183,7 @@ struct TargetConfiguration: Target {
 // MARK: - Defaults
 
 private enum Defaults {
+    static let companyName = "MyCompany"
     static let currentVersion = "1.0.0"
     static let cachePath = Path("/usr/local/share/lucid/cache")
     static let gitRemote: String? = nil
@@ -200,6 +204,7 @@ extension SwiftCommandConfiguration: Decodable {
         case targets
         case inputPath = "input_path"
         case cachePath = "cache_path"
+        case companyName = "company_name"
         case currentVersion = "current_version"
         case lastReleaseTag = "last_release_tag"
         case gitRemote = "git_remote"
@@ -225,6 +230,7 @@ extension SwiftCommandConfiguration: Decodable {
         
         _inputPath = try container.decode(Path.self, forKey: .inputPath)
         _cachePath = try container.decodeIfPresent(Path.self, forKey: .cachePath) ?? Defaults.cachePath
+        companyName = try container.decodeIfPresent(String.self, forKey: .companyName) ?? Defaults.companyName
         currentVersion = try container.decodeIfPresent(String.self, forKey: .currentVersion) ?? Defaults.currentVersion
         gitRemote = try container.decodeIfPresent(String.self, forKey: .gitRemote) ?? Defaults.gitRemote
         forceBuildNewDBModel = try container.decodeIfPresent(Bool.self, forKey: .forceBuildNewDBModel) ?? Defaults.forceBuildNewDBModel

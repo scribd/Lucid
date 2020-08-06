@@ -22,12 +22,12 @@ public final class SpyGenerator: Generator {
         self.reactiveKit = reactiveKit
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> SwiftFile? {
+    public func generate(for element: Description, in directory: Path, companyName: String) throws -> SwiftFile? {
         switch element {
         case .all:
             let filename = "CoreManagerSpy+ManagerProviding.swift"
             
-            let header = MetaHeader(filename: filename)
+            let header = MetaHeader(filename: filename, companyName: companyName)
             let spyFactory = MetaCoreManagerSpy(descriptions: descriptions, reactiveKit: reactiveKit)
             
             return Meta.File(name: filename)

@@ -23,7 +23,6 @@ final class SwiftExtensionGenerator {
     init(to target: Target,
          descriptions: Descriptions,
          appVersion: Version,
-         extensionName: String,
          companyName: String,
          logger: Logger) {
 
@@ -43,7 +42,6 @@ final class SwiftExtensionGenerator {
                                                    descriptions: $1,
                                                    appVersion: appVersion,
                                                    platform: $0,
-                                                   extensionName: extensionName,
                                                    companyName: companyName,
                                                    logger: logger)
         }
@@ -62,7 +60,6 @@ private final class InternalSwiftExtensionGenerator {
     private let descriptions: Descriptions
     private let appVersion: Version
     private let platform: Platform?
-    private let extensionName: String
     private let companyName: String
     private let logger: Logger
     
@@ -70,7 +67,6 @@ private final class InternalSwiftExtensionGenerator {
          descriptions: Descriptions,
          appVersion: Version,
          platform: Platform?,
-         extensionName: String,
          companyName: String,
          logger: Logger) {
         
@@ -78,7 +74,6 @@ private final class InternalSwiftExtensionGenerator {
         self.descriptions = descriptions
         self.appVersion = appVersion
         self.platform = platform
-        self.extensionName = extensionName
         self.companyName = companyName
         self.logger = logger
     }
@@ -87,7 +82,7 @@ private final class InternalSwiftExtensionGenerator {
         
         logger.moveToChild("Generating Code \(platform.flatMap { "for platform: \($0), " } ?? "")for target: '\(target.name.rawValue)'...")
         
-        try generate(with: CustomExtensionsGenerator(descriptions: descriptions, extensionName: extensionName),
+        try generate(with: CustomExtensionsGenerator(descriptions: descriptions),
                      in: .custom,
                      for: .app,
                      deleteExtraFiles: true)
@@ -95,10 +90,10 @@ private final class InternalSwiftExtensionGenerator {
         logger.moveToParent()
     }
     
-    private func generate<G: Generator>(with generator: G,
-                                        in directory: OutputDirectory,
-                                        for targetName: TargetName,
-                                        deleteExtraFiles: Bool = false) throws {
+    private func generate<G: ExtensionsGenerator>(with generator: G,
+                                                  in directory: OutputDirectory,
+                                                  for targetName: TargetName,
+                                                  deleteExtraFiles: Bool = false) throws {
 
         guard targetName == target.name else { return }
 
@@ -117,15 +112,15 @@ private final class InternalSwiftExtensionGenerator {
 
         for element in descriptions {
             do {
-                guard let file = try generator.generate(for: element, in: directory, companyName: companyName) else {
-                    continue
+                let files = try generator.generate(for: element, in: directory, companyName: companyName)
+                for file in files {
+                    try file.path.parent().mkpath()
+                    try file.path.write(file.content)
+                    generatedFiles.insert(file.path.string)
+                    logger.done("Generated \(file.path).")
                 }
-                try file.path.parent().mkpath()
-                try file.path.write(file.content)
-                generatedFiles.insert(file.path.string)
-                logger.done("Generated \(file.path).")
             } catch {
-                logger.error("Failed to generate '\(element)'.")
+                logger.error("Failed to generate extensions for '\(element)'.")
                 throw error
             }
         }

@@ -18,9 +18,8 @@ import PathKit
         "swift",
         Option<String>("config-path", default: ".lucid.yaml", description: "Configuration file location."),
         Option<String>("current-version", default: String(), description: "Current app version."),
-        Option<String>("extension-name", default: "CustomExtensions", description: "Generated file extension name after the '+'."),
         VariadicOption<String>("selected-targets", default: [], description: "List of targets to generate.")
-    ) { configPath, currentVersion, extensionName, selectedTargets in
+    ) { configPath, currentVersion, selectedTargets in
         
         let logger = Logger()
 
@@ -46,7 +45,6 @@ import PathKit
         let generator = SwiftExtensionGenerator(to: configuration.targets.app,
                                                 descriptions: currentDescriptions,
                                                 appVersion: currentAppVersion,
-                                                extensionName: extensionName,
                                                 companyName: configuration.companyName,
                                                 logger: logger)
         try generator.generate()

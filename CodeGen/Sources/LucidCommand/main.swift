@@ -295,19 +295,19 @@ let main = Group {
                 logger.info("File \(targetSwiftVersionPath) already exists.")
             }
 
-            let targetMetaEntityFile = targetExtensionsDirectory + Extensions.FileName.metaEntityCustomExtension
+            let targetMetaEntityFile = targetExtensionsDirectory + Extensions.FileName.metaEntityCustomExtensions
             if targetMetaEntityFile.exists == false {
                 logger.info("Adding \(targetMetaEntityFile).")
-                let sourceMetaEntityFile = lucidSourcePath + Extensions.SourcePath.File.metaEntityCustomExtension
+                let sourceMetaEntityFile = lucidSourcePath + Extensions.SourcePath.File.metaEntityCustomExtensions
                 try sourceMetaEntityFile.copy(targetMetaEntityFile)
             } else {
                 logger.info("File \(targetMetaEntityFile) already exists.")
             }
 
-            let targetMetaSubtypeFile = targetExtensionsDirectory + Extensions.FileName.metaSubtypeCustomExtension
+            let targetMetaSubtypeFile = targetExtensionsDirectory + Extensions.FileName.metaSubtypeCustomExtensions
             if targetMetaSubtypeFile.exists == false {
                 logger.info("Adding \(targetMetaSubtypeFile).")
-                let sourceMetaSubtypeFile = lucidSourcePath + Extensions.SourcePath.File.metaSubtypeCustomExtension
+                let sourceMetaSubtypeFile = lucidSourcePath + Extensions.SourcePath.File.metaSubtypeCustomExtensions
                 try sourceMetaSubtypeFile.copy(targetMetaSubtypeFile)
             } else {
                 logger.info("File \(targetMetaSubtypeFile) already exists.")
@@ -324,19 +324,19 @@ let main = Group {
                 logger.info("File symlink \(targetGeneratorLink) already exists.")
             }
 
-            let targetMetaEntityLink = customExtensionsPath + Extensions.DirectoryName.sources + Extensions.DirectoryName.lucidCodeGenCustomExtensions + Extensions.DirectoryName.meta + Extensions.FileName.metaEntityCustomExtension
+            let targetMetaEntityLink = customExtensionsPath + Extensions.DirectoryName.sources + Extensions.DirectoryName.lucidCodeGenCustomExtensions + Extensions.DirectoryName.meta + Extensions.FileName.metaEntityCustomExtensions
             if targetMetaEntityLink.exists == false {
-                let sourceMetaEntityLink = customExtensionsPath + Extensions.DirectoryName.extensions + Extensions.FileName.metaEntityCustomExtension
+                let sourceMetaEntityLink = customExtensionsPath + Extensions.DirectoryName.extensions + Extensions.FileName.metaEntityCustomExtensions
                 logger.info("Adding symlink \(targetMetaEntityLink) from \(sourceMetaEntityLink).")
                 try targetMetaEntityLink.relativeSymlink(sourceMetaEntityLink)
             } else {
                 logger.info("File symlink \(targetMetaEntityLink) already exists.")
             }
 
-            let targetMetaSubtypeLink = customExtensionsPath + Extensions.DirectoryName.sources + Extensions.DirectoryName.lucidCodeGenCustomExtensions + Extensions.DirectoryName.meta + Extensions.FileName.metaSubtypeCustomExtension
+            let targetMetaSubtypeLink = customExtensionsPath + Extensions.DirectoryName.sources + Extensions.DirectoryName.lucidCodeGenCustomExtensions + Extensions.DirectoryName.meta + Extensions.FileName.metaSubtypeCustomExtensions
             if targetMetaSubtypeLink.exists == false {
                 logger.info("Adding symlink \(targetMetaSubtypeLink).")
-                let sourceMetaSubtypeLink = customExtensionsPath + Extensions.DirectoryName.extensions + Extensions.FileName.metaSubtypeCustomExtension
+                let sourceMetaSubtypeLink = customExtensionsPath + Extensions.DirectoryName.extensions + Extensions.FileName.metaSubtypeCustomExtensions
                 try targetMetaSubtypeLink.relativeSymlink(sourceMetaSubtypeLink)
             } else {
                 logger.info("File symlink \(targetMetaSubtypeLink) already exists.")

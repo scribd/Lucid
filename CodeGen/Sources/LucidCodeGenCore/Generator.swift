@@ -27,6 +27,13 @@ public protocol Generator {
     func generate(for element: Description, in directory: Path, companyName: String) throws -> SwiftFile?
 }
 
+public protocol ExtensionsGenerator {
+
+    var name: String { get }
+
+    func generate(for element: Description, in directory: Path, companyName: String) throws -> [SwiftFile]
+}
+
 public extension File {
     
     func swiftFile(in directory: Path) -> SwiftFile {

@@ -29,7 +29,7 @@ private struct MySubtypeExtension: MetaExtension {
     }
 
     func meta(for descriptions: Descriptions) throws -> [FileBodyMember] {
-        guard let subtype = try descriptions.subtype(for: name) else { return [] }
+        let subtype = try descriptions.subtype(for: name)
         return [
             Comment.mark("Custom \(subtype.name.camelCased()) Extension"),
             EmptyLine(),

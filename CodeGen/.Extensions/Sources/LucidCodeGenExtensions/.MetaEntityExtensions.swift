@@ -29,7 +29,7 @@ private struct MyEntityExtension: MetaExtension {
     }
 
     func meta(for descriptions: Descriptions) throws -> [FileBodyMember] {
-        guard let entity = try descriptions.entity(for: name) else { return [] }
+        let entity = try descriptions.entity(for: name)
         return [
             Comment.mark("Custom \(entity.name.camelCased()) Extension"),
             EmptyLine(),

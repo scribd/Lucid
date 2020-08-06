@@ -8,6 +8,7 @@
 
 import Foundation
 import LucidCodeGen
+import LucidCodeGenCore
 import Commander
 import PathKit
 

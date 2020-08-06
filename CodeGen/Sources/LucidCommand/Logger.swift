@@ -6,6 +6,7 @@
 //
 
 import LucidCodeGen
+import LucidCodeGenCore
 
 // MARK: - Errors
 

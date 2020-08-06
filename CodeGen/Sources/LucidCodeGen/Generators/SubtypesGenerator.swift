@@ -7,6 +7,7 @@
 
 import Meta
 import PathKit
+import LucidCodeGenCore
 
 public final class SubtypesGenerator: Generator {
     
@@ -21,7 +22,7 @@ public final class SubtypesGenerator: Generator {
         self.reactiveKit = reactiveKit
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> File? {
+    public func generate(for element: Description, in directory: Path) throws -> SwiftFile? {
         guard let subtypeName = element.subtypeName else { return nil }
         
         let filename = "\(subtypeName.camelCased().suffixedName()).swift"

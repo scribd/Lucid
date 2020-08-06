@@ -6,7 +6,7 @@
 //
 
 import Meta
-import Foundation
+import LucidCodeGenCore
 
 struct MetaHeader {
     

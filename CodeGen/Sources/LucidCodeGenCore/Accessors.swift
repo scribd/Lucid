@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension Descriptions {
+public extension Descriptions {
     
     func subtype(for name: String) throws -> Subtype {
         guard let subtype = subtypesByName[name] else {
@@ -30,7 +30,7 @@ extension Descriptions {
         return endpoint
     }
 
-    public func modelMappingHistory(derivedFrom allVersions: [Version]) throws -> [Version] {
+    func modelMappingHistory(derivedFrom allVersions: [Version]) throws -> [Version] {
         var history = Set<Version>()
 
         entities.forEach { entity in
@@ -46,7 +46,7 @@ extension Descriptions {
         return history.sorted().reversed()
     }
 
-    public var clientQueueNames: [String] {
+    var clientQueueNames: [String] {
         var names = Set(entities.map { $0.clientQueueName })
         names.insert(Entity.mainClientQueueName)
         return names.sorted { lhs, rhs in
@@ -61,7 +61,7 @@ extension Descriptions {
     }
 }
 
-extension Entity {
+public extension Entity {
     
     func property(for name: String) throws -> EntityProperty {
         guard let property = properties.first(where: { $0.name == name }) else {
@@ -147,7 +147,7 @@ extension Entity {
         }
     }
 
-    public var addedAtVersion: Version? {
+    var addedAtVersion: Version? {
         return modelVersions.first ?? legacyAddedAtVersion
     }
 
@@ -155,7 +155,7 @@ extension Entity {
         return versionHistory.map { $0.version }
     }
 
-    public func nameForVersion(_ version: Version) -> String {
+    func nameForVersion(_ version: Version) -> String {
         if versionHistory.isEmpty {
             // legacy check
             return name
@@ -166,12 +166,12 @@ extension Entity {
         }?.previousName ?? name
     }
 
-    public var previousNameForCoreData: String? {
+    var previousNameForCoreData: String? {
         return versionHistory.first { $0.previousName != nil }?.previousName
     }
 }
 
-extension EntityIdentifier {
+public extension EntityIdentifier {
     
     func relationshipIDs(_ entity: Entity, _ descriptions: Descriptions) throws -> [EntityIdentifierType.RelationshipID] {
         switch identifierType {
@@ -229,7 +229,7 @@ extension EntityIdentifier {
     }
 }
 
-extension EntityProperty {
+public extension EntityProperty {
     
     var relationship: EntityRelationship? {
         return propertyType.relationship
@@ -259,7 +259,7 @@ extension EntityProperty {
         }
     }
 
-    public var previousSearchableName: String? {
+    var previousSearchableName: String? {
         return previousName?.snakeCased.camelCased().variableCased()
     }
 
@@ -272,7 +272,7 @@ extension EntityProperty {
     }
 }
 
-extension EntityProperty.PropertyType {
+public extension EntityProperty.PropertyType {
     
     var relationship: EntityRelationship? {
         switch self {
@@ -338,7 +338,7 @@ extension EntityProperty.PropertyType {
     }
 }
 
-extension EntityIdentifier {
+public extension EntityIdentifier {
     
     var isRelationship: Bool {
         switch identifierType {
@@ -368,14 +368,14 @@ extension EntityIdentifier {
     }
 }
 
-extension MetadataProperty {
+public extension MetadataProperty {
     
     var isArray: Bool {
         return propertyType.isArray
     }
 }
 
-extension MetadataProperty.PropertyType {
+public extension MetadataProperty.PropertyType {
 
     var isArray: Bool {
         switch self {
@@ -388,7 +388,7 @@ extension MetadataProperty.PropertyType {
     }
 }
 
-extension EndpointPayloadEntity.Structure {
+public extension EndpointPayloadEntity.Structure {
     
     var isArray: Bool {
         switch self {
@@ -401,7 +401,7 @@ extension EndpointPayloadEntity.Structure {
     }
 }
 
-extension EndpointPayload {
+public extension EndpointPayload {
 
     enum InitializerType {
         case initFromRoot(_ subkey: String?)
@@ -428,7 +428,7 @@ extension EndpointPayload {
     }
 }
 
-extension Subtype {
+public extension Subtype {
     
     var isStruct: Bool {
         switch items {

@@ -5,8 +5,9 @@
 //  Created by Théophane Rupin on 4/18/19.
 //
 
+import Meta
 import PathKit
-import Foundation
+import LucidCodeGenCore
 
 public final class CoreDataXCDataModelGenerator: Generator {
 
@@ -33,7 +34,7 @@ public final class CoreDataXCDataModelGenerator: Generator {
         self.descriptions = descriptions
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> File? {
+    public func generate(for element: Description, in directory: Path) throws -> SwiftFile? {
 
         guard let currentDescriptions = self.descriptions[version] else {
             fatalError("Could not find descriptions for version: \(version.dotDescription)")
@@ -54,7 +55,7 @@ public final class CoreDataXCDataModelGenerator: Generator {
         </model>
         """
         
-        return File(content: content, path: directory + filename)
+        return SwiftFile(content: content, path: directory + filename)
     }
     
     private func generate(for entityName: String, in descriptions: Descriptions, version: Version, previousName: String?, previousDescriptions: Descriptions?) throws -> String {

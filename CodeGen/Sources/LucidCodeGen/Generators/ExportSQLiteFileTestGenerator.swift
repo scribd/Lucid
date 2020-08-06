@@ -7,6 +7,7 @@
 
 import Meta
 import PathKit
+import LucidCodeGenCore
 
 public final class ExportSQLiteFileTestGenerator: Generator {
 
@@ -37,7 +38,7 @@ public final class ExportSQLiteFileTestGenerator: Generator {
         self.reactiveKit = reactiveKit
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> File? {
+    public func generate(for element: Description, in directory: Path) throws -> SwiftFile? {
         guard element == .all else { return nil }
         
         let header = MetaHeader(filename: filename)

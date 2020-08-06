@@ -32,7 +32,7 @@ private enum Defaults {
     static let ignoreMigrationChecks = false
 }
 
-extension Entity {
+public extension Entity {
     static let mainClientQueueName = "main"
 }
 
@@ -101,7 +101,7 @@ extension EndpointPayloadTest.Entity: Decodable {
         case isTarget
     }
     
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
         name = try container.decode(String.self, forKey: .name)
         count = try container.decodeIfPresent(Int.self, forKey: .count)
@@ -206,7 +206,7 @@ extension EndpointPayloadEntityVariation: Decodable {
         case propertyRenames
     }
     
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
         
         self.entityName = try container.decode(String.self, forKey: .entityName)
@@ -499,7 +499,7 @@ extension Subtype.Property: Decodable {
 
 extension Subtype.Property.PropertyType: Decodable {
     
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         
         let value = try container.decode(String.self)

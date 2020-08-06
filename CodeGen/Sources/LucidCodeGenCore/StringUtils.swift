@@ -8,9 +8,9 @@
 import Foundation
 import Meta
 
-extension String {
+public extension String {
     
-    public enum Configuration {
+    enum Configuration {
 
         fileprivate static var _lexicon = [String: String]()
         public static func setLexicon(_ lexicon: [String]) {
@@ -23,7 +23,7 @@ extension String {
         public static var entitySuffix = ""
     }
     
-    public func camelCased(separators: String = "_", ignoreLexicon: Bool = false) -> String {
+    func camelCased(separators: String = "_", ignoreLexicon: Bool = false) -> String {
         return components(separatedBy: CharacterSet(charactersIn: separators))
             .reduce(into: String()) { string, word in
                 if ignoreLexicon == false, let wordFromLexicon = Configuration._lexicon[word.lowercased()] {
@@ -82,7 +82,7 @@ extension String {
             .flatMap { dropLast($0.0.count) + $0.1 } ?? self + "s"
     }
     
-    public func suffixedName() -> String {
+    func suffixedName() -> String {
         if isArray {
             return "[\(arrayElementType())\(String.Configuration.entitySuffix)]"
         }

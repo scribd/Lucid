@@ -9,6 +9,7 @@ import Yams
 import PathKit
 import Foundation
 import LucidCodeGen
+import LucidCodeGenCore
 
 enum ConfigurationError: Error {
     case targetNotFound

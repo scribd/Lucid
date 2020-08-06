@@ -7,6 +7,7 @@
 
 import Meta
 import PathKit
+import LucidCodeGenCore
 
 public final class EntitiesGenerator: Generator {
     
@@ -24,7 +25,7 @@ public final class EntitiesGenerator: Generator {
         self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> File? {
+    public func generate(for element: Description, in directory: Path) throws -> SwiftFile? {
         switch element {
         case .all:
             let filename = "EntityIndexValueTypes.swift"

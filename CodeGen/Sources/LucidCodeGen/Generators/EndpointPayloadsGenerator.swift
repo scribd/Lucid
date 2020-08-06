@@ -7,6 +7,7 @@
 
 import Meta
 import PathKit
+import LucidCodeGenCore
 
 public final class EndpointPayloadsGenerator: Generator {
     
@@ -21,7 +22,7 @@ public final class EndpointPayloadsGenerator: Generator {
         self.reactiveKit = reactiveKit
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> File? {
+    public func generate(for element: Description, in directory: Path) throws -> SwiftFile? {
         switch element {
         case .all:
             let filename = "EndpointResultPayload.swift"

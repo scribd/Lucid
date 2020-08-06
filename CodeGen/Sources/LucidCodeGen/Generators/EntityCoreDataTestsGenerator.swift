@@ -7,6 +7,7 @@
 
 import Meta
 import PathKit
+import LucidCodeGenCore
 
 public final class CoreDataTestsGenerator: Generator {
     
@@ -21,7 +22,7 @@ public final class CoreDataTestsGenerator: Generator {
         self.reactiveKit = reactiveKit
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> File? {
+    public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
         guard let entityName = element.entityName else { return nil }
         
         let entity = try descriptions.entity(for: entityName)
@@ -29,7 +30,7 @@ public final class CoreDataTestsGenerator: Generator {
         
         let filename = "\(entityName.camelCased().suffixedName())CoreDataTests.swift"
         
-        let header = MetaHeader(filename: filename)
+        let header = MetaHeader(filename: filename, organizationName: organizationName)
         let entityCoreDataTests = MetaEntityCoreDataTests(entityName: entityName,
                                                           descriptions: descriptions,
                                                           reactiveKit: reactiveKit)

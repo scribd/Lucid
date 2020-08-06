@@ -1,6 +1,6 @@
 //
 //  Error.swift
-//  LucidCodeGen
+//  LucidCodeGenCore
 //
 //  Created by Théophane Rupin on 3/20/19.
 //
@@ -27,9 +27,9 @@ public enum CodeGenError: Error, CustomStringConvertible {
 
 // MARK: - Description
 
-extension CodeGenError {
+public extension CodeGenError {
     
-    public var description: String {
+    var description: String {
         switch self {
         case .unsupportedType(let type):
             return "Unsupported type: '\(type)'."

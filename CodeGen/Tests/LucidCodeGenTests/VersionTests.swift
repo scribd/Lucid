@@ -5,7 +5,7 @@
 //  Created by Théophane Rupin on 3/20/19.
 //
 
-@testable import LucidCodeGen
+@testable import LucidCodeGenCore
 
 import XCTest
 

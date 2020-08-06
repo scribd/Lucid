@@ -7,6 +7,7 @@
 
 import Meta
 import PathKit
+import LucidCodeGenCore
 
 public final class EndpointPayloadsGenerator: Generator {
     
@@ -21,12 +22,12 @@ public final class EndpointPayloadsGenerator: Generator {
         self.reactiveKit = reactiveKit
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> File? {
+    public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
         switch element {
         case .all:
             let filename = "EndpointResultPayload.swift"
             
-            let header = MetaHeader(filename: filename)
+            let header = MetaHeader(filename: filename, organizationName: organizationName)
             let resultPayload = MetaEndpointResultPayload(descriptions: descriptions)
             
             return Meta.File(name: filename)
@@ -41,7 +42,7 @@ public final class EndpointPayloadsGenerator: Generator {
             
             let filename = "\(entityName.camelCased().suffixedName())Payloads.swift"
             
-            let header = MetaHeader(filename: filename)
+            let header = MetaHeader(filename: filename, organizationName: organizationName)
             let entityPayload = MetaEntityPayload(entityName: entityName,
                                                   descriptions: descriptions)
             
@@ -54,7 +55,7 @@ public final class EndpointPayloadsGenerator: Generator {
         case .endpoint(let endpointName):
             let filename = "\(endpointName.camelCased(separators: "_/").suffixedName())EndpointPayload.swift"
             
-            let header = MetaHeader(filename: filename)
+            let header = MetaHeader(filename: filename, organizationName: organizationName)
             let entityPayload = MetaEndpointPayload(endpointName: endpointName,
                                                     descriptions: descriptions)
             

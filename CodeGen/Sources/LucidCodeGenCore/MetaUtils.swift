@@ -1,6 +1,6 @@
 //
 //  MetaUtils.swift
-//  LucidCodeGen
+//  LucidCodeGenCore
 //
 //  Created by Théophane Rupin on 3/22/19.
 //
@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - Type Checking
 
-extension TypeIdentifier {
+public extension TypeIdentifier {
     
     var isArray: Bool {
         return arrayElement != nil
@@ -63,7 +63,7 @@ extension TypeIdentifier {
 
 // MARK: - Static Imports
 
-extension Import {
+public extension Import {
     
     static var xcTest: Import {
         return Import(name: "XCTest", testable: false)
@@ -96,7 +96,7 @@ extension Import {
 
 // MARK: - Static TypeIdentifiers
 
-extension TypeIdentifier {
+public extension TypeIdentifier {
     
     static var coreDataIdentifier: TypeIdentifier {
         return TypeIdentifier(name: "CoreDataIdentifier")
@@ -533,7 +533,7 @@ extension TypeIdentifier {
 
 // MARK: - Static References
 
-extension Reference {
+public extension Reference {
     
     static func array(with values: [VariableValue] = [], ofType typeID: TypeIdentifier? = nil) -> Reference {
         let arrayTypeID: TypeIdentifier
@@ -583,7 +583,7 @@ extension Reference {
 
 // MARK: - Static Functions
 
-extension Function {
+public extension Function {
     
     static var initFromDecoder: Function {
         return Function(kind: .`init`)
@@ -600,7 +600,7 @@ extension Function {
 
 // MARK: - Entity
 
-extension Entity {
+public extension Entity {
 
     var transformedName: String {
         return name.camelCased().suffixedName()
@@ -682,7 +682,7 @@ extension Entity {
     }
 }
 
-extension Entity {
+public extension Entity {
 
     enum InheritanceType {
         case localAndRemote
@@ -704,7 +704,7 @@ extension Entity {
     }
 }
 
-extension Entity.InheritanceType {
+public extension Entity.InheritanceType {
 
     var isLocal: Bool {
         switch self {
@@ -728,7 +728,7 @@ extension Entity.InheritanceType {
     }
 }
 
-extension Entity {
+public extension Entity {
     
     func isIdentifierStoredAsOptional(_ descriptions: Descriptions) throws -> Bool {
         switch identifier.identifierType {
@@ -759,7 +759,7 @@ extension Entity {
     }
 }
 
-extension EntityProperty {
+public extension EntityProperty {
 
     func transformedName(ignoreLexicon: Bool = true) -> String {
         return name
@@ -813,7 +813,7 @@ extension EntityProperty {
     }
 }
 
-extension EntityProperty.PropertyType {
+public extension EntityProperty.PropertyType {
     
     func remoteIdentifierValueTypeID(_ descriptions: Descriptions, persist: Bool) throws -> TypeIdentifier {
         switch self {
@@ -875,7 +875,7 @@ extension EntityProperty.PropertyType {
 
 // MARK: - Relationships
 
-extension EntityRelationship {
+public extension EntityRelationship {
     
     func remoteIdentifierValueTypeID(_ descriptions: Descriptions, persist: Bool) throws -> TypeIdentifier {
         let entity = try descriptions.entity(for: entityName)
@@ -909,7 +909,7 @@ extension EntityRelationship {
 
 // MARK: - ScalarType
 
-extension PropertyScalarType {
+public extension PropertyScalarType {
     
     func typeID(persist: Bool = false, objc: Bool = false) -> TypeIdentifier {
         if objc {
@@ -988,7 +988,7 @@ extension PropertyScalarType {
     }
 }
 
-extension PropertyScalarType {
+public extension PropertyScalarType {
     
     var usesScalarValueType: Bool {
         switch self {
@@ -1012,7 +1012,7 @@ extension PropertyScalarType {
     }
 }
 
-extension EntityProperty.PropertyType {
+public extension EntityProperty.PropertyType {
     
     var usesScalarValueType: Bool {
         switch self {
@@ -1028,7 +1028,7 @@ extension EntityProperty.PropertyType {
 
 // MARK: - Subtypes
 
-extension Subtype {
+public extension Subtype {
     
     func typeID(objc: Bool = false) -> TypeIdentifier {
         let name = self.name.camelCased().suffixedName()
@@ -1057,7 +1057,7 @@ extension Subtype {
     }
 }
 
-extension Subtype.Property {
+public extension Subtype.Property {
     
     func typeID(objc: Bool = false) -> TypeIdentifier {
         let typeID = propertyType.typeID(objc: objc)
@@ -1069,7 +1069,7 @@ extension Subtype.Property {
     }
 }
 
-extension Subtype.Property.PropertyType {
+public extension Subtype.Property.PropertyType {
     
     func typeID(objc: Bool = false) -> TypeIdentifier {
         switch self {
@@ -1084,7 +1084,7 @@ extension Subtype.Property.PropertyType {
 
 // MARK: - Extras
 
-extension Entity {
+public extension Entity {
 
     func hasIndexes(_ descriptions: Descriptions) throws -> Bool {
         return try indexes(descriptions).isEmpty == false
@@ -1107,7 +1107,7 @@ extension Entity {
     }
 }
 
-extension EntityProperty {
+public extension EntityProperty {
 
     func hasExtras(_ descriptions: Descriptions, _ parsedEntities: [String: Bool] = [:]) throws -> Bool {
         return try extra || hasRelationshipExtras(descriptions, parsedEntities)
@@ -1125,7 +1125,7 @@ extension EntityProperty {
 
 // MARK: - Payloads
 
-extension Entity {
+public extension Entity {
     
     var payloadTypeID: TypeIdentifier {
         return TypeIdentifier(name: "\(transformedName)Payload")
@@ -1207,7 +1207,7 @@ extension Entity {
     }
 }
 
-extension EntityIdentifier {
+public extension EntityIdentifier {
     
     func payloadVariable(ignoreLexicon: Bool = false) throws -> Variable {
         guard let value: Variable = payloadVariable(ignoreLexicon: ignoreLexicon) else {
@@ -1229,7 +1229,7 @@ extension EntityIdentifier {
     }
 }
 
-extension EntityProperty {
+public extension EntityProperty {
     
     var payloadName: String {
         switch propertyType {
@@ -1270,7 +1270,7 @@ extension EntityProperty {
     }
 }
 
-extension EntityProperty.PropertyType {
+public extension EntityProperty.PropertyType {
     
     func payloadValueTypeID(_ descriptions: Descriptions) throws -> TypeIdentifier {
         switch self {
@@ -1286,7 +1286,7 @@ extension EntityProperty.PropertyType {
     }
 }
 
-extension EntityRelationship {
+public extension EntityRelationship {
     
     func payloadValueTypeID(_ descriptions: Descriptions) throws -> TypeIdentifier {
         let entity = try descriptions.entity(for: entityName)
@@ -1308,7 +1308,7 @@ extension EntityRelationship {
 
 // MARK: - Metadata
 
-extension Entity {
+public extension Entity {
     
     var metadataTypeID: TypeIdentifier {
         return TypeIdentifier(name: "\(transformedName)Metadata")
@@ -1364,7 +1364,7 @@ extension Entity {
     }
 }
 
-extension MetadataProperty {
+public extension MetadataProperty {
     
     func variable(ignoreLexicon: Bool = false) -> Variable {
         return Variable(name: isArray ?
@@ -1378,7 +1378,7 @@ extension MetadataProperty {
     }
 }
 
-extension MetadataProperty.PropertyType {
+public extension MetadataProperty.PropertyType {
     
     var typeID: TypeIdentifier {
         switch self {
@@ -1392,7 +1392,7 @@ extension MetadataProperty.PropertyType {
     }
 }
 
-extension EntityProperty {
+public extension EntityProperty {
     
     func metadataTypeID(_ descriptions: Descriptions) throws -> TypeIdentifier? {
         guard let relationship = self.relationship, relationship.idOnly == false else { return nil }
@@ -1414,7 +1414,7 @@ extension EntityProperty {
     }
 }
 
-extension EndpointPayload {
+public extension EndpointPayload {
     
     var metadataVariable: Variable {
         return Variable(name: "endpointMetadata")
@@ -1427,9 +1427,9 @@ extension EndpointPayload {
 
 // MARK: - Endpoints
 
-extension EndpointPayload {
+public extension EndpointPayload {
 
-    public var transformedName: String {
+    var transformedName: String {
         return name.camelCased(separators: "_/")
     }
     
@@ -1447,7 +1447,7 @@ extension EndpointPayload {
     }
 }
 
-extension EndpointPayloadEntity {
+public extension EndpointPayloadEntity {
     
     var payloadVariable: Variable {
         if structure.isArray {
@@ -1471,7 +1471,7 @@ extension EndpointPayloadEntity {
 
 // MARK: - Manager
 
-extension Entity {
+public extension Entity {
     
     var coreManagerProvidingTypeID: TypeIdentifier {
         return TypeIdentifier(name: "\(transformedName)CoreManagerProviding")
@@ -1492,14 +1492,14 @@ extension Entity {
 
 // MARK: - Tests
 
-extension EndpointPayload {
+public extension EndpointPayload {
     
     func testJSONResourceName(for test: EndpointPayloadTest) -> String {
         return test.name.camelCased() + transformedName + "Payload"
     }
 }
 
-extension Entity {
+public extension Entity {
     
     var coreDataStoreVariable: Variable {
         return Variable(name: "\(transformedName.variableCased())CoreDataStore")
@@ -1508,7 +1508,7 @@ extension Entity {
 
 // MARK: - Factories
 
-extension Entity {
+public extension Entity {
     
     var factoryTypeID: TypeIdentifier {
         return TypeIdentifier(name: "\(transformedName)Factory")
@@ -1533,14 +1533,14 @@ extension Entity {
     }
 }
 
-extension Subtype {
+public extension Subtype {
     
     var factoryTypeID: TypeIdentifier {
         return TypeIdentifier(name: "\(name.camelCased().suffixedName())Factory")
     }
 }
 
-extension EntityProperty {
+public extension EntityProperty {
     
     func defaultValue(property: EntityProperty? = nil,
                       identifier: Reference,
@@ -1558,7 +1558,7 @@ extension EntityProperty {
     }
 }
 
-extension EntityProperty.PropertyType {
+public extension EntityProperty.PropertyType {
     
     fileprivate func defaultValue(property: EntityProperty,
                                   identifier: Reference,
@@ -1608,7 +1608,7 @@ extension EntityProperty.PropertyType {
     }
 }
 
-extension PropertyScalarType {
+public extension PropertyScalarType {
     
     func defaultValue(propertyName: String, identifier: Reference) -> VariableValue {
         switch self {
@@ -1662,7 +1662,7 @@ extension PropertyScalarType {
 
 // MARK: - DefaultValue
 
-extension DefaultValue {
+public extension DefaultValue {
     
     var variableValue: VariableValue {
         switch self {

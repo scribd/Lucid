@@ -8,7 +8,7 @@
 import Yams
 import PathKit
 import Foundation
-import LucidCodeGen
+import LucidCodeGenCore
 
 enum ConfigurationError: Error {
     case targetNotFound
@@ -26,11 +26,20 @@ struct SwiftCommandConfiguration {
         return _inputPath.isRelative ? _workingPath + _inputPath : _inputPath
     }
 
+    let _extensionsPath: Path?
+    var extensionsPath: Path? {
+        guard let path = _extensionsPath else { return nil }
+        return path.isRelative ? _workingPath + path : path
+    }
+
     /// Cache files location (defaults to /usr/local/share/lucid/cache).
     private var _cachePath: Path
     var cachePath: Path {
         return _cachePath.isRelative ? _workingPath + _cachePath : _cachePath
     }
+
+    /// Company name that will appear in generated file headers.
+    let organizationName: String
 
     /// Current application version (defaults to 1.0.0).
     var currentVersion: String
@@ -103,6 +112,13 @@ struct SwiftCommandConfiguration {
         String.Configuration.setLexicon(configuration.lexicon)
 
         return configuration
+    }
+
+    static func make(with configPath: String) throws -> SwiftCommandConfiguration {
+        let configPath = Path(configPath)
+        return try YAMLDecoder().decode(SwiftCommandConfiguration.self,
+                                        from: try configPath.read(),
+                                        userInfo: [:])
     }
 }
 
@@ -179,6 +195,7 @@ struct TargetConfiguration: Target {
 // MARK: - Defaults
 
 private enum Defaults {
+    static let organizationName = "MyOrganization"
     static let currentVersion = "1.0.0"
     static let cachePath = Path("/usr/local/share/lucid/cache")
     static let gitRemote: String? = nil
@@ -198,7 +215,9 @@ extension SwiftCommandConfiguration: Decodable {
     private enum Keys: String, CodingKey {
         case targets
         case inputPath = "input_path"
+        case extensionsPath = "extensions_path"
         case cachePath = "cache_path"
+        case organizationName = "organization_name"
         case currentVersion = "current_version"
         case lastReleaseTag = "last_release_tag"
         case gitRemote = "git_remote"
@@ -223,7 +242,9 @@ extension SwiftCommandConfiguration: Decodable {
         self.targets = targets
         
         _inputPath = try container.decode(Path.self, forKey: .inputPath)
+        _extensionsPath = try container.decodeIfPresent(Path.self, forKey: .extensionsPath)
         _cachePath = try container.decodeIfPresent(Path.self, forKey: .cachePath) ?? Defaults.cachePath
+        organizationName = try container.decodeIfPresent(String.self, forKey: .organizationName) ?? Defaults.organizationName
         currentVersion = try container.decodeIfPresent(String.self, forKey: .currentVersion) ?? Defaults.currentVersion
         gitRemote = try container.decodeIfPresent(String.self, forKey: .gitRemote) ?? Defaults.gitRemote
         forceBuildNewDBModel = try container.decodeIfPresent(Bool.self, forKey: .forceBuildNewDBModel) ?? Defaults.forceBuildNewDBModel

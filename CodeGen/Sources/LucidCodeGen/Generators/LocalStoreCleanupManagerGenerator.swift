@@ -7,6 +7,7 @@
 
 import Meta
 import PathKit
+import LucidCodeGenCore
 
 public final class LocalStoreCleanupManagerGenerator: Generator {
 
@@ -23,10 +24,10 @@ public final class LocalStoreCleanupManagerGenerator: Generator {
         self.reactiveKit = reactiveKit
     }
 
-    public func generate(for element: Description, in directory: Path) throws -> File? {
+    public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
         guard element == .all else { return nil }
 
-        let header = MetaHeader(filename: filename)
+        let header = MetaHeader(filename: filename, organizationName: organizationName)
         let localStoreCleanup = MetaLocalStoreCleanupManager(descriptions: descriptions, reactiveKit: reactiveKit)
 
         return Meta.File(name: filename)

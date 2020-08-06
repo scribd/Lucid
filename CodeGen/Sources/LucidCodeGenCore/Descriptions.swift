@@ -1,6 +1,6 @@
 //
 //  Descriptions.swift
-//  LucidCodeGen
+//  LucidCodeGenCore
 //
 //  Created by Théophane Rupin on 3/20/19.
 //
@@ -17,7 +17,7 @@ public enum Description: Equatable {
     case entity(String)
     case endpoint(String)
     
-    var subtypeName: String? {
+    public var subtypeName: String? {
         if case .subtype(let name) = self {
             return name
         } else {
@@ -25,7 +25,7 @@ public enum Description: Equatable {
         }
     }
     
-    var entityName: String? {
+    public var entityName: String? {
         if case .entity(let name) = self {
             return name
         } else {
@@ -33,7 +33,7 @@ public enum Description: Equatable {
         }
     }
     
-    var endpointName: String? {
+    public var endpointName: String? {
         if case .endpoint(let name) = self {
             return name
         } else {
@@ -57,9 +57,9 @@ public protocol Targets {
     var appTestSupport: Target { get }
 }
 
-extension Targets {
+public extension Targets {
     
-    public var all: [Target] {
+    var all: [Target] {
         return [app, appTests, appTestSupport]
     }
 }
@@ -105,13 +105,13 @@ public struct EndpointPayload {
     
     public let name: String
     
-    let baseKey: String?
+    public let baseKey: String?
 
     public let entity: EndpointPayloadEntity
     
-    let entityVariations: [EndpointPayloadEntityVariation]?
+    public let entityVariations: [EndpointPayloadEntityVariation]?
 
-    let metadata: [MetadataProperty]?
+    public let metadata: [MetadataProperty]?
     
     public let tests: [EndpointPayloadTest]
 }
@@ -125,10 +125,10 @@ public struct EndpointPayloadTest {
         case post
     }
 
-    struct Entity {
-        let name: String
-        let count: Int?
-        let isTarget: Bool
+    public struct Entity {
+        public let name: String
+        public let count: Int?
+        public let isTarget: Bool
     }
     
     public let name: String
@@ -140,44 +140,44 @@ public struct EndpointPayloadTest {
     public let body: String?
 
     // for parsing from previous versions
-    let contexts: [String]
+    public let contexts: [String]
 
-    let endpoints: [String]
+    public let endpoints: [String]
 
-    let entities: [Entity]
+    public let entities: [Entity]
 }
 
 // MARK: - EndpointPayloadEntity
 
 public struct EndpointPayloadEntity {
 
-    enum Structure: String {
+    public enum Structure: String {
         case single = "single"
         case array = "array"
         case nestedArray = "nested_array"
     }
     
-    let entityKey: String?
+    public let entityKey: String?
 
     public let entityName: String
 
-    let structure: Structure
+    public let structure: Structure
 
-    let optional: Bool
+    public let optional: Bool
 }
 
 // MARK: - Variations
 
-struct EndpointPayloadEntityVariation {
+public struct EndpointPayloadEntityVariation {
 
-    struct Rename: Decodable {
+    public struct Rename: Decodable {
         let originalName: String
         let customName: String
     }
     
-    let entityName: String
+    public let entityName: String
 
-    let propertyRenames: [Rename]?
+    public let propertyRenames: [Rename]?
 }
 
 // MARK: - PropertyScalarType
@@ -274,8 +274,8 @@ public struct EntityIdentifier: Equatable {
 public enum EntityIdentifierType: Equatable {
 
     public struct RelationshipID: Equatable {
-        let variableName: String
-        var entityName: String
+        public let variableName: String
+        public var entityName: String
     }
     
     case void
@@ -365,7 +365,7 @@ public struct EntityRelationship: Equatable {
 
 public struct Subtype {
     
-    enum `Protocol`: String, Decodable {
+    public enum `Protocol`: String, Decodable {
         case codable
     }
     
@@ -377,19 +377,19 @@ public struct Subtype {
     
     public struct Property {
         
-        enum PropertyType {
+        public enum PropertyType {
             case scalar(PropertyScalarType)
             case custom(String)
         }
         
-        let name: String
-        let key: String?
-        let propertyType: PropertyType
-        let optional: Bool
-        let objc: Bool
-        let unused: Bool
-        let defaultValue: DefaultValue?
-        let logError: Bool
+        public let name: String
+        public let key: String?
+        public let propertyType: PropertyType
+        public let optional: Bool
+        public let objc: Bool
+        public let unused: Bool
+        public let defaultValue: DefaultValue?
+        public let logError: Bool
         public let platforms: Set<Platform>
     }
     
@@ -397,16 +397,16 @@ public struct Subtype {
 
     public var items: Items
 
-    let manualImplementations: Set<Protocol>
+    public let manualImplementations: Set<Protocol>
     
-    let objc: Bool
+    public let objc: Bool
     
     public let platforms: Set<Platform>
 }
 
 // MARK: - Conversions
 
-extension PropertyScalarType {
+public extension PropertyScalarType {
     
     init?(_ stringValue: String) {
         switch stringValue.lowercased() {
@@ -446,9 +446,9 @@ extension DefaultValue: CustomStringConvertible {
 
 // MARK: - Equatable
 
-extension DefaultValue {
+public extension DefaultValue {
     
-    public static func == (_ lhs: DefaultValue, _ rhs: DefaultValue) -> Bool {
+    static func == (_ lhs: DefaultValue, _ rhs: DefaultValue) -> Bool {
         return lhs.description == rhs.description
     }
 }
@@ -486,10 +486,10 @@ public struct Version: Hashable, Comparable, CustomStringConvertible {
     
     public let versionString: String
     public let tag: Tag
-    let major: Int
-    let minor: Int
-    let patch: Int?
-    let build: Int?
+    public let major: Int
+    public let minor: Int
+    public let patch: Int?
+    public let build: Int?
 
     public init(_ versionString: String, source: Source) throws {
         let version = try Version.matchesForVersionComponents(source.versionComponents, in: versionString)

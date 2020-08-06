@@ -7,12 +7,12 @@
 //
 
 import Foundation
-import LucidCodeGen
+import LucidCodeGenCore
 import PathKit
 
 // MARK: - Descriptions
 
-final class Descriptions: LucidCodeGen.Descriptions {
+final class Descriptions: LucidCodeGenCore.Descriptions {
 
     let subtypes: [Subtype]
     let entities: [Entity]

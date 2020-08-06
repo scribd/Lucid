@@ -7,6 +7,7 @@
 
 import Meta
 import PathKit
+import LucidCodeGenCore
 
 public final class FactoriesGenerator: Generator {
     
@@ -21,12 +22,12 @@ public final class FactoriesGenerator: Generator {
         self.reactiveKit = reactiveKit
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> File? {
+    public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
         switch element {
         case .all:
             let filename = "EntityFactory.swift"
             
-            let header = MetaHeader(filename: filename)
+            let header = MetaHeader(filename: filename, organizationName: organizationName)
             let entityFactories = MetaEntityFactories(descriptions: descriptions)
             
             return Meta.File(name: filename)
@@ -37,7 +38,7 @@ public final class FactoriesGenerator: Generator {
         case .entity(let entityName):
             let filename = "\(entityName.camelCased().suffixedName())Factory.swift"
             
-            let header = MetaHeader(filename: filename)
+            let header = MetaHeader(filename: filename, organizationName: organizationName)
             let entityFactory = MetaEntityFactory(entityName: entityName,
                                                   descriptions: descriptions,
                                                   reactiveKit: reactiveKit)
@@ -51,7 +52,7 @@ public final class FactoriesGenerator: Generator {
         case .subtype(let subtypeName):
             let filename = "\(subtypeName.camelCased().suffixedName())Factory.swift"
             
-            let header = MetaHeader(filename: filename)
+            let header = MetaHeader(filename: filename, organizationName: organizationName)
             let subtypeFactory = MetaSubtypeFactory(subtypeName: subtypeName,
                                                     descriptions: descriptions,
                                                     reactiveKit: reactiveKit)

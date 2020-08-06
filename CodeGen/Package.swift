@@ -14,8 +14,9 @@ let package = Package(
         .package(url: "https://github.com/jpsim/Yams.git", from: "2.0.0")
     ],
     targets: [
-        .target(name: "LucidCodeGen", dependencies: ["PathKit", "Meta"]),
-        .testTarget(name: "LucidCodeGenTests", dependencies: ["LucidCodeGen"]),
-        .target(name: "LucidCommand", dependencies: ["Commander", "PathKit", "ShellOut", "Yams", "LucidCodeGen"])
+        .target(name: "LucidCodeGenCore", dependencies: ["PathKit", "Meta"]),
+        .target(name: "LucidCodeGen", dependencies: ["LucidCodeGenCore", "PathKit", "Meta"]),
+        .testTarget(name: "LucidCodeGenTests", dependencies: ["LucidCodeGenCore", "LucidCodeGen"]),
+        .target(name: "LucidCommand", dependencies: ["Commander", "ShellOut", "Yams", "LucidCodeGenCore", "LucidCodeGen"])
     ]
 )

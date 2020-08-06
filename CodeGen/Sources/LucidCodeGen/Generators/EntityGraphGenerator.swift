@@ -7,6 +7,7 @@
 
 import Meta
 import PathKit
+import LucidCodeGenCore
 
 public final class EntityGraphGenerator: Generator {
     
@@ -24,12 +25,12 @@ public final class EntityGraphGenerator: Generator {
         self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> File? {
+    public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
         guard element == .all else { return nil }
         
         let filename = "EntityGraph.swift"
         
-        let header = MetaHeader(filename: filename)
+        let header = MetaHeader(filename: filename, organizationName: organizationName)
         let entityGraph = MetaEntityGraph(descriptions: descriptions,
                                           reactiveKit: reactiveKit,
                                           useCoreDataLegacyNaming: useCoreDataLegacyNaming)

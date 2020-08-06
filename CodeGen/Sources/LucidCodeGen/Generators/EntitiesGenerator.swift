@@ -7,6 +7,7 @@
 
 import Meta
 import PathKit
+import LucidCodeGenCore
 
 public final class EntitiesGenerator: Generator {
     
@@ -24,12 +25,12 @@ public final class EntitiesGenerator: Generator {
         self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> File? {
+    public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
         switch element {
         case .all:
             let filename = "EntityIndexValueTypes.swift"
             
-            let header = MetaHeader(filename: filename)
+            let header = MetaHeader(filename: filename, organizationName: organizationName)
             let subtype = MetaSubtypes(descriptions: descriptions)
             
             return Meta.File(name: filename)
@@ -41,7 +42,7 @@ public final class EntitiesGenerator: Generator {
         case .entity(let entityName):
             let filename = "\(entityName.camelCased().suffixedName()).swift"
             
-            let header = MetaHeader(filename: filename)
+            let header = MetaHeader(filename: filename, organizationName: organizationName)
             let entityIdentifier = MetaEntityIdentifier(entityName: entityName, descriptions: descriptions)
             let entityIndexName = MetaEntityIndexName(entityName: entityName, descriptions: descriptions)
             let entity = MetaEntity(entityName: entityName, useCoreDataLegacyNaming: useCoreDataLegacyNaming, descriptions: descriptions)
@@ -67,7 +68,7 @@ public final class EntitiesGenerator: Generator {
             if indexMeta.isEmpty == false {
                 result = result
                     .adding(member: EmptyLine())
-                    .adding(members: try entityIndexName.meta())
+                    .adding(members: indexMeta)
             }
 
             return result.swiftFile(in: directory)

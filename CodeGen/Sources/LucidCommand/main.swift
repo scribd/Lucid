@@ -8,10 +8,14 @@
 
 import Foundation
 import LucidCodeGen
+import LucidCodeGenCore
 import Commander
 import PathKit
 
+// MARK: - Commands
+
 let main = Group {
+
     $0.command(
         "swift",
         Option<String>("config-path", default: ".lucid.yaml", description: "Configuration file location."),
@@ -100,17 +104,18 @@ let main = Group {
         logger.moveToChild("Starting code generation...")
         for target in configuration.targets.all where target.isSelected {
             let descriptionsHash = try descriptionsVersionManager.descriptionsHash(absoluteInputPath: configuration.inputPath)
-            let generator = SwiftCodeGenerator(to: target,
-                                               descriptions: descriptions,
-                                               appVersion: currentAppVersion,
-                                               historyVersions: modelMappingHistoryVersions,
-                                               shouldGenerateDataModel: _shouldGenerateDataModel,
-                                               descriptionsHash: descriptionsHash,
-                                               responseHandlerFunction: configuration.responseHandlerFunction,
-                                               coreDataMigrationsFunction: configuration.coreDataMigrationsFunction,
-                                               reactiveKit: configuration.reactiveKit,
-                                               useCoreDataLegacyNaming: configuration.useCoreDataLegacyNaming,
-                                               logger: logger)
+            let generator = try SwiftCodeGenerator(to: target,
+                                                   descriptions: descriptions,
+                                                   appVersion: currentAppVersion,
+                                                   historyVersions: modelMappingHistoryVersions,
+                                                   shouldGenerateDataModel: _shouldGenerateDataModel,
+                                                   descriptionsHash: descriptionsHash,
+                                                   responseHandlerFunction: configuration.responseHandlerFunction,
+                                                   coreDataMigrationsFunction: configuration.coreDataMigrationsFunction,
+                                                   reactiveKit: configuration.reactiveKit,
+                                                   useCoreDataLegacyNaming: configuration.useCoreDataLegacyNaming,
+                                                   organizationName: configuration.organizationName,
+                                                   logger: logger)
             try generator.generate()
         }
         logger.moveToParent()
@@ -140,6 +145,23 @@ let main = Group {
         try generator.generate()
     }
 
+    $0.command(
+        "bootstrap",
+        Option<String>("config-path", default: ".lucid.yaml", description: "Configuration file location."),
+        Option<String>("source-code-path", default: String(), description: "Source code directory location.")
+    ) { configPath, sourceCodePath in
+
+        let logger = Logger()
+        logger.moveToChild("Reading configuration file.")
+        let configuration = try SwiftCommandConfiguration.make(with: configPath)
+        logger.moveToParent()
+
+        let bootstrap = Bootstrap(logger: logger,
+                                  configuration: configuration,
+                                  sourceCodePath: sourceCodePath)
+
+        try bootstrap.run()
+    }
 }
 
 main.run()

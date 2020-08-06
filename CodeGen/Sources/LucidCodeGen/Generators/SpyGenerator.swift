@@ -7,8 +7,7 @@
 
 import Meta
 import PathKit
-
-import Foundation
+import LucidCodeGenCore
 
 public final class SpyGenerator: Generator {
     
@@ -23,12 +22,12 @@ public final class SpyGenerator: Generator {
         self.reactiveKit = reactiveKit
     }
     
-    public func generate(for element: Description, in directory: Path) throws -> File? {
+    public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
         switch element {
         case .all:
             let filename = "CoreManagerSpy+ManagerProviding.swift"
             
-            let header = MetaHeader(filename: filename)
+            let header = MetaHeader(filename: filename, organizationName: organizationName)
             let spyFactory = MetaCoreManagerSpy(descriptions: descriptions, reactiveKit: reactiveKit)
             
             return Meta.File(name: filename)

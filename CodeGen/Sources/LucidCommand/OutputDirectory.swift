@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import LucidCodeGen
+import LucidCodeGenCore
 import PathKit
 
 enum OutputDirectory {
@@ -24,6 +24,7 @@ enum OutputDirectory {
     case coreDataTests
     case coreDataMigrationTests
     case sqliteFiles
+    case extensions
     
     func path(appModuleName: String) -> Path {
         switch self {
@@ -55,6 +56,113 @@ enum OutputDirectory {
             return Path("CoreDataMigrations")
         case .sqliteFiles:
             return Path("SQLite")
+        case .extensions:
+            return Path("Extensions")
         }
+    }
+}
+
+// MARK: - Extensions
+
+enum Extensions {
+
+    enum DirectoryName {
+        static let metaCode = Path("MetaCode")
+        static let sources = Path("Sources")
+        static let lucidCodeGenCore = Path("LucidCodeGenCore")
+        static let lucidCodeGenExtensions = Path("LucidCodeGenExtensions")
+        static let lucidCommandExtensions = Path("LucidCommandExtensions")
+
+        static let generators = Path("Generators")
+        static let meta = Path("Meta")
+    }
+
+    enum FileName {
+        static let makefile = Path("Makefile")
+        static let package = Path("Package.swift")
+        static let gitignore = Path(".gitignore")
+        static let version = Path(".version")
+        static let swiftversion = Path(".swift-version")
+
+        static let extensionsFileGenerator = Path("ExtensionsFileGenerator.swift")
+
+        static let metaEntityExtensions = Path("MetaEntityExtensions.swift")
+        static let metaSubtypeExtensions = Path("MetaSubtypeExtensions.swift")
+    }
+
+    enum SourcePath {
+
+        enum Directory {
+            static let extensions = Path(".Extensions")
+            static let sources = extensions + DirectoryName.sources
+            static let lucidCodeGenCore = DirectoryName.sources + DirectoryName.lucidCodeGenCore
+            static let lucidCodeGenExtensions = sources + DirectoryName.lucidCodeGenExtensions
+            static let lucidCommandExtensions = sources + DirectoryName.lucidCommandExtensions
+
+            static let generators = lucidCodeGenExtensions + DirectoryName.generators
+        }
+
+        enum File {
+            static let makefile = Directory.extensions + FileName.makefile
+            static let package = Directory.extensions + FileName.package
+            static let gitignore = Directory.extensions + FileName.gitignore
+            static let version = Directory.extensions + FileName.version
+            static let swiftversion = Directory.extensions + FileName.swiftversion
+
+            static let extensionsFileGenerator = Directory.generators + FileName.extensionsFileGenerator
+
+            static let metaEntityExtensions = Directory.lucidCodeGenExtensions + Path(".MetaEntityExtensions.swift")
+            static let metaSubtypeExtensions = Directory.lucidCodeGenExtensions + Path(".MetaSubtypeExtensions.swift")
+        }
+    }
+}
+
+extension Path {
+
+    func relativeSymlink(_ path: Path) throws {
+        let relativeSymlinkPath = relativePath(to: path)
+        try symlink(relativeSymlinkPath)
+    }
+
+    private func relativePath(to targetFile: Path) -> Path {
+
+        let sourceComponents = absolute().components
+        let targetComponents = targetFile.absolute().components
+
+        guard sourceComponents != targetComponents else {
+            fatalError("Can't create a symlink to itself.")
+        }
+
+        let common = sourceComponents.sharedPrefix(with: targetComponents)
+
+        let parentCount = sourceComponents.count - common.count - 1
+        var relative = Path()
+        for _ in 0..<parentCount {
+            relative = relative + Path("..")
+        }
+
+        for i in common.count..<targetComponents.count {
+            relative = relative + Path(targetComponents[i])
+        }
+
+        return relative
+    }
+}
+
+private extension Array where Element == String {
+
+    func sharedPrefix(with other: [String]) -> [String] {
+        var sourceIterator = makeIterator()
+        var targetIterator = other.makeIterator()
+
+        var common = [String]()
+
+        while let nextSource = sourceIterator.next(),
+            let nextTarget = targetIterator.next(),
+            nextSource == nextTarget {
+                common.append(nextSource)
+        }
+
+        return common
     }
 }

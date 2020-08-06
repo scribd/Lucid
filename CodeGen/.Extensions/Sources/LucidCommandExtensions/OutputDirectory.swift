@@ -1,0 +1,1 @@
+../../../Sources/LucidCommand/OutputDirectory.swift

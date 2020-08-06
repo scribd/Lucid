@@ -8,6 +8,7 @@
 
 import Foundation
 import LucidCodeGen
+import LucidCodeGenCore
 import PathKit
 #if os(Linux)
     import Glibc
@@ -29,9 +30,14 @@ final class SwiftCodeGenerator {
          coreDataMigrationsFunction: String?,
          reactiveKit: Bool,
          useCoreDataLegacyNaming: Bool,
-         logger: Logger) {
+         organizationName: String,
+         logger: Logger) throws {
 
-        let platforms = Set(descriptions.flatMap { $0.value.platforms }).sorted()
+        guard let latestDescription = descriptions[appVersion] else {
+            try logger.throwError("Could not find description for latest app version \(appVersion).")
+        }
+
+        let platforms = latestDescription.platforms.sorted()
         let descriptionVariants: [(Platform?, [Version: Descriptions])]
 
         if platforms.isEmpty {
@@ -73,6 +79,7 @@ final class SwiftCodeGenerator {
                                               coreDataMigrationsFunction: coreDataMigrationsFunction,
                                               reactiveKit: reactiveKit,
                                               useCoreDataLegacyNaming: useCoreDataLegacyNaming,
+                                              organizationName: organizationName,
                                               logger: logger)
         }
     }
@@ -133,7 +140,8 @@ private final class InternalSwiftCodeGenerator {
     private let coreDataMigrationsFunction: String?
     private let reactiveKit: Bool
     private let useCoreDataLegacyNaming: Bool
-    
+    private let organizationName: String
+
     private let logger: Logger
     
     private var currentDescriptions: Descriptions {
@@ -165,6 +173,7 @@ private final class InternalSwiftCodeGenerator {
          coreDataMigrationsFunction: String?,
          reactiveKit: Bool,
          useCoreDataLegacyNaming: Bool,
+         organizationName: String,
          logger: Logger) {
         
         self.target = target
@@ -179,6 +188,7 @@ private final class InternalSwiftCodeGenerator {
         self.coreDataMigrationsFunction = coreDataMigrationsFunction
         self.reactiveKit = reactiveKit
         self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
+        self.organizationName = organizationName
         self.logger = logger
     }
     
@@ -303,7 +313,7 @@ private final class InternalSwiftCodeGenerator {
         
         for element in descriptions {
             do {
-                guard let file = try generator.generate(for: element, in: directory) else {
+                guard let file = try generator.generate(for: element, in: directory, organizationName: organizationName) else {
                     continue
                 }
                 try file.path.parent().mkpath()

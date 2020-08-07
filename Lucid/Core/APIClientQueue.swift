@@ -286,9 +286,7 @@ extension APIClientQueue: APIClientQueuing {
                 orderingSet.append(key)
                 orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
                 if let existingRequest = valueCache[key] {
-                    dataQueue.async(flags: .barrier) {
-                        self.processor.abortRequest(existingRequest)
-                    }
+                    self.processor.abortRequest(existingRequest)
                 }
                 valueCache[key] = request
                 self.processor.didEnqueueNewRequest()
@@ -349,9 +347,7 @@ extension APIClientQueue: APIClientPriorityQueuing {
             dataQueue.async(flags: .barrier) {
                 var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
                 guard orderingSet.contains(key) == false else {
-                    dataQueue.async(flags: .barrier) {
-                        self.processor.abortRequest(request)
-                    }
+                    self.processor.abortRequest(request)
                     return
                 }
                 orderingSet.prepend(key)
@@ -590,26 +586,33 @@ final class APIClientQueueProcessor {
 extension APIClientQueueProcessor: APIClientQueueProcessing {
 
     func register(_ handler: @escaping APIClientQueueProcessorResponseHandler) -> APIClientQueueProcessorResponseHandlerToken {
-        lock.lock()
-        defer { lock.unlock() }
-
         let token = UUID()
-        _responseHandlers.append(key: token, value: handler)
+        processingQueue.async(flags: .barrier) {
+            self.lock.lock()
+            defer { self.lock.unlock() }
+
+            self._responseHandlers.append(key: token, value: handler)
+        }
         return token
     }
 
     func unregister(_ token: APIClientQueueProcessorResponseHandlerToken) {
-        lock.lock()
-        defer { lock.unlock() }
+        processingQueue.async(flags: .barrier) {
+            self.lock.lock()
+            defer { self.lock.unlock() }
 
-        _responseHandlers[token] = nil
+            self._responseHandlers[token] = nil
+        }
     }
 
     func abortRequest(_ request: APIClientQueueRequest) {
-        lock.lock()
-        defer { lock.unlock() }
+        processingQueue.async(flags: .barrier) {
+            self.lock.lock()
+            let handlers = self._responseHandlers.orderedKeyValues.map { $0.1 }
+            self.lock.unlock()
 
-        forwardDidReceiveResponseToHandlers(.aborted(request), handlers: _responseHandlers.orderedKeyValues.map { $0.1 }) {}
+            self.forwardDidReceiveResponseToHandlers(.aborted(request), handlers: handlers) {}
+        }
     }
 
     func didEnqueueNewRequest() {

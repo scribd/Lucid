@@ -286,7 +286,9 @@ extension APIClientQueue: APIClientQueuing {
                 orderingSet.append(key)
                 orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
                 if let existingRequest = valueCache[key] {
-                    self.processor.abortRequest(existingRequest)
+                    dataQueue.async(flags: .barrier) {
+                        self.processor.abortRequest(existingRequest)
+                    }
                 }
                 valueCache[key] = request
                 self.processor.didEnqueueNewRequest()
@@ -346,7 +348,12 @@ extension APIClientQueue: APIClientPriorityQueuing {
             let key = uniquingFunction(request)
             dataQueue.async(flags: .barrier) {
                 var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
-                guard orderingSet.contains(key) == false else { return }
+                guard orderingSet.contains(key) == false else {
+                    dataQueue.async(flags: .barrier) {
+                        self.processor.abortRequest(request)
+                    }
+                    return
+                }
                 orderingSet.prepend(key)
                 orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
                 valueCache[key] = request

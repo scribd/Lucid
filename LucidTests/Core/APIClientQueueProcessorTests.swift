@@ -174,15 +174,13 @@ final class APIClientQueueProcessorTests: XCTestCase {
     func test_processor_does_nothing_if_no_requests_are_pending() {
         processor.delegate = processDelegateSpy
 
-        XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 0)
-        XCTAssertTrue(self.backgroundTaskManagerSpy.expirationHandlerRecords.isEmpty)
+        XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
 
         processor.processNext()
 
         let expectation = self.expectation(description: "processor")
         waitForAsyncQueues {
-            XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 0)
-            XCTAssertTrue(self.backgroundTaskManagerSpy.expirationHandlerRecords.isEmpty)
+            XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
             expectation.fulfill()
         }
 
@@ -198,16 +196,14 @@ final class APIClientQueueProcessorTests: XCTestCase {
             APIClientResponse(data: Data(), cachedResponse: false)
         )
 
-        XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 0)
-        XCTAssertTrue(self.backgroundTaskManagerSpy.expirationHandlerRecords.isEmpty)
+        XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
         XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 0)
 
         processor.processNext()
 
         let expectation = self.expectation(description: "processor")
         waitForAsyncQueues {
-            XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 1)
-            XCTAssertFalse(self.backgroundTaskManagerSpy.expirationHandlerRecords.isEmpty)
+            XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 1)
             XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 1)
             expectation.fulfill()
         }
@@ -224,16 +220,14 @@ final class APIClientQueueProcessorTests: XCTestCase {
             APIClientResponse(data: Data(), cachedResponse: false)
         )
 
-        XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 0)
-        XCTAssertTrue(self.backgroundTaskManagerSpy.expirationHandlerRecords.isEmpty)
+        XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
         XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 0)
 
         processor.processNext()
 
         let expectation = self.expectation(description: "processor")
         waitForAsyncQueues {
-            XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 0)
-            XCTAssertTrue(self.backgroundTaskManagerSpy.expirationHandlerRecords.isEmpty)
+            XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
             XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 1)
             expectation.fulfill()
         }
@@ -252,8 +246,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
             APIClientResponse(data: Data(), cachedResponse: false)
         )
 
-        XCTAssertEqual(backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 0)
-        XCTAssertTrue(backgroundTaskManagerSpy.expirationHandlerRecords.isEmpty)
+        XCTAssertEqual(backgroundTaskManagerSpy.startInvocations.count, 0)
         XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 0)
 
         processor.processNext()
@@ -261,8 +254,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         processingQueue.sync { }
 
-        XCTAssertEqual(backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 1)
-        XCTAssertFalse(backgroundTaskManagerSpy.expirationHandlerRecords.isEmpty)
+        XCTAssertEqual(backgroundTaskManagerSpy.startInvocations.count, 1)
         XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 1)
     }
 
@@ -277,8 +269,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
             APIClientResponse(data: Data(), cachedResponse: false)
         )
 
-        XCTAssertEqual(backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 0)
-        XCTAssertTrue(backgroundTaskManagerSpy.expirationHandlerRecords.isEmpty)
+        XCTAssertEqual(backgroundTaskManagerSpy.startInvocations.count, 0)
         XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 0)
 
         processor.processNext()
@@ -286,8 +277,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         processingQueue.sync { }
 
-        XCTAssertEqual(backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 1)
-        XCTAssertFalse(backgroundTaskManagerSpy.expirationHandlerRecords.isEmpty)
+        XCTAssertEqual(backgroundTaskManagerSpy.startInvocations.count, 1)
         XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 2)
     }
 
@@ -307,8 +297,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         let expectation = self.expectation(description: "processor")
 
-        XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 0)
-        XCTAssertTrue(self.backgroundTaskManagerSpy.expirationHandlerRecords.isEmpty)
+        XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
         XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 0)
 
         processDelegateSpy.requestStub = request1
@@ -319,8 +308,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
             self.processor.processNext()
 
             self.waitForAsyncQueues {
-                XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 2)
-                XCTAssertFalse(self.backgroundTaskManagerSpy.expirationHandlerRecords.isEmpty)
+                XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 2)
                 XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 2)
                 expectation.fulfill()
             }
@@ -599,7 +587,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.networkConnectionLost)))
         ]
 
-        XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 0)
+        XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
         XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
         XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
@@ -610,13 +598,10 @@ final class APIClientQueueProcessorTests: XCTestCase {
         let expectation = self.expectation(description: "processor")
         waitForAsyncQueues {
             // expire background session
-            let expirationHandlers = self.backgroundTaskManagerSpy.expirationHandlerRecords.filter {
-                self.backgroundTaskManagerSpy.endBackgroundTaskRecords.contains($0.0) == false
-            }
-            expirationHandlers.values.forEach { $0() }
+            self.backgroundTaskManagerSpy.startInvocations.forEach { $0() }
 
             self.waitForAsyncQueues {
-                XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 1)
+                XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 1)
                 XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
                 XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
                 XCTAssertEqual(self.processDelegateSpy.prependInvocations.first, request)
@@ -638,7 +623,8 @@ final class APIClientQueueProcessorTests: XCTestCase {
             )
         ]
 
-        XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 0)
+        XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
+        XCTAssertEqual(self.backgroundTaskManagerSpy.stopInvocations.count, 0)
         XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
         XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
@@ -648,13 +634,8 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         let expectation = self.expectation(description: "processor")
         waitForAsyncQueues {
-            // expire background session
-            let expirationHandlers = self.backgroundTaskManagerSpy.expirationHandlerRecords.filter {
-                self.backgroundTaskManagerSpy.endBackgroundTaskRecords.contains($0.0) == false
-            }
-            expirationHandlers.values.forEach { $0() }
-
-            XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, 1)
+            XCTAssertEqual(self.backgroundTaskManagerSpy.stopInvocations.count, 1)
+            XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 1)
             XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 1)
             XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
             XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)

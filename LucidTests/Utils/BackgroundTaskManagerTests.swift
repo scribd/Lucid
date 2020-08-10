@@ -14,34 +14,84 @@ import ReactiveKit
 
 final class BackgroundTaskManagerTests: XCTestCase {
 
-    private var backgroundTaskManagerSpy: BackgroundTaskManagerSpy!
+    private var coreManagerSpy: CoreBackgroundTaskManagerSpy!
+
+    private var manager: BackgroundTaskManager!
 
     override func setUp() {
         super.setUp()
-        backgroundTaskManagerSpy = BackgroundTaskManagerSpy()
+        coreManagerSpy = CoreBackgroundTaskManagerSpy()
+        manager = BackgroundTaskManager(coreManagerSpy, timeout: 0.25)
     }
 
     override func tearDown() {
         defer { super.tearDown() }
-        backgroundTaskManagerSpy = nil
+        coreManagerSpy = nil
+        manager = nil
     }
 
-    func test_begin_task_renew_after_it_times_out() {
+    func test_start_should_begin_background_task() {
+        let expectation = self.expectation(description: "start")
+        _ = manager.start {}
 
-        let taskID = backgroundTaskManagerSpy.beginBackgroundTask(timeout: 0.05, expirationHandler: {})
-
-        var observationCallCount = 0
-        taskID.observeNext { taskID in
-            observationCallCount += 1
-        }.dispose(in: bag)
-
-        let expectation = self.expectation(description: "new_task_id")
-        Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { timer in
-            XCTAssertGreaterThan(observationCallCount, 1)
-            XCTAssertEqual(self.backgroundTaskManagerSpy.endBackgroundTaskRecords.count, observationCallCount)
-            XCTAssertEqual(self.backgroundTaskManagerSpy.beginBackgroundTaskCallCountRecord, self.backgroundTaskManagerSpy.endBackgroundTaskRecords.count + 1)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            XCTAssertEqual(self.coreManagerSpy.beginBackgroundTaskCallCountRecord, 1)
             expectation.fulfill()
-            timer.invalidate()
+        }
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_start_several_times_should_begin_one_background_task() {
+        let expectation = self.expectation(description: "start")
+        _ = manager.start {}
+        _ = manager.start {}
+        _ = manager.start {}
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            XCTAssertEqual(self.coreManagerSpy.beginBackgroundTaskCallCountRecord, 1)
+            expectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_start_should_keep_a_background_task_leaving_until_stop_is_called() {
+        let expectation = self.expectation(description: "start")
+        _ = manager.start {}
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            XCTAssertEqual(self.coreManagerSpy.beginBackgroundTaskCallCountRecord, 2)
+            XCTAssertEqual(self.coreManagerSpy.endBackgroundTaskRecords.count, 1)
+            expectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_stop_should_only_end_background_task_once_it_expires() {
+        let expectation = self.expectation(description: "start")
+        let id = manager.start {}
+        _ = manager.stop(id)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            XCTAssertEqual(self.coreManagerSpy.beginBackgroundTaskCallCountRecord, 1)
+            XCTAssertEqual(self.coreManagerSpy.endBackgroundTaskRecords.count, 0)
+            expectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_stop_should_end_background_task_once_it_expires() {
+        let expectation = self.expectation(description: "start")
+        let id = manager.start {}
+        _ = manager.stop(id)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            XCTAssertEqual(self.coreManagerSpy.beginBackgroundTaskCallCountRecord, 1)
+            XCTAssertEqual(self.coreManagerSpy.endBackgroundTaskRecords.count, 1)
+            expectation.fulfill()
         }
 
         waitForExpectations(timeout: 1)

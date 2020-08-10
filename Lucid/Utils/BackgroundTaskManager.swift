@@ -19,8 +19,16 @@ protocol CoreBackgroundTaskManaging: AnyObject {
 
 extension UIApplication: CoreBackgroundTaskManaging {}
 
+/// In charge of keeping one background task alive as long as needed.
 protocol BackgroundTaskManaging: AnyObject {
+
+    /// Starts background task if none is running and registers a timeout handler.
+    /// - Parameter timeoutHandler: Called once the running background task times out.
     func start(_ timeoutHandler: @escaping () -> Void) -> UUID
+
+    /// Orders to stop the currently running background task at the most appropriate time.
+    /// - Parameter taskID: Unique ID given when starting a task.
+    /// - Returns: `true` when a task will be stopped as a result.
     func stop(_ taskID: UUID) -> Bool
 }
 

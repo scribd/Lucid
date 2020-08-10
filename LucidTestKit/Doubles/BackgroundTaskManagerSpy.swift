@@ -1,5 +1,5 @@
 //
-//  BackgroundTaskManagerSpy.swift
+//  CoreBackgroundTaskManagerSpy.swift
 //  LucidTestKit
 //
 //  Created by Ibrahim Sha'ath on 2/28/19.
@@ -10,7 +10,7 @@ import Foundation
 import UIKit
 @testable import Lucid_ReactiveKit
 
-public final class BackgroundTaskManagerSpy: BackgroundTaskManaging {
+public final class CoreBackgroundTaskManagerSpy: CoreBackgroundTaskManaging {
 
     // MARK: - Records
 
@@ -40,5 +40,34 @@ public final class BackgroundTaskManagerSpy: BackgroundTaskManaging {
 
     public func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier) {
         endBackgroundTaskRecords.append(identifier)
+    }
+}
+
+public final class BackgroundTaskManagerSpy: BackgroundTaskManaging {
+
+    // MARK: - Invocations
+
+    public private(set) var startInvocations = [() -> Void]()
+    public private(set) var stopInvocations = [UUID]()
+    
+    // MARK: - Values
+
+    public var startValue = UUID()
+    public var stopValue = true
+
+    public init(){
+        // no-op
+    }
+
+    // MARK: - API
+
+    public func start(_ timeoutHandler: @escaping () -> Void) -> UUID {
+        startInvocations.append(timeoutHandler)
+        return startValue
+    }
+
+    public func stop(_ taskID: UUID) -> Bool {
+        stopInvocations.append(taskID)
+        return stopValue
     }
 }

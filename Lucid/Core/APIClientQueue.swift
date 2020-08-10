@@ -345,7 +345,10 @@ extension APIClientQueue: APIClientPriorityQueuing {
             let key = uniquingFunction(request)
             dataQueue.async(flags: .barrier) {
                 var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
-                guard orderingSet.contains(key) == false else { return }
+                guard orderingSet.contains(key) == false else {
+                    self.processor.abortRequest(request)
+                    return
+                }
                 orderingSet.prepend(key)
                 orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
                 valueCache[key] = request
@@ -469,6 +472,7 @@ final class APIClientQueueProcessor {
 
     #if os(iOS)
     private let _backgroundTaskManager: BackgroundTaskManaging
+    private let backgroundTaskID = Property<UIBackgroundTaskIdentifier>(.invalid)
     #endif
 
     weak var delegate: APIClientQueueProcessorDelegate? {
@@ -525,7 +529,7 @@ final class APIClientQueueProcessor {
                                                          codingContext: .clientQueueRequest)
 
         self.init(client: client,
-                  backgroundTaskManager: UIApplication.shared,
+                  backgroundTaskManager: BackgroundTaskManager(),
                   scheduler: scheduler,
                   diskCache: diskCache.caching,
                   responseHandlers: responseHandlers)
@@ -581,26 +585,33 @@ final class APIClientQueueProcessor {
 extension APIClientQueueProcessor: APIClientQueueProcessing {
 
     func register(_ handler: @escaping APIClientQueueProcessorResponseHandler) -> APIClientQueueProcessorResponseHandlerToken {
-        lock.lock()
-        defer { lock.unlock() }
-
         let token = UUID()
-        _responseHandlers.append(key: token, value: handler)
+        processingQueue.async(flags: .barrier) {
+            self.lock.lock()
+            defer { self.lock.unlock() }
+
+            self._responseHandlers.append(key: token, value: handler)
+        }
         return token
     }
 
     func unregister(_ token: APIClientQueueProcessorResponseHandlerToken) {
-        lock.lock()
-        defer { lock.unlock() }
+        processingQueue.async(flags: .barrier) {
+            self.lock.lock()
+            defer { self.lock.unlock() }
 
-        _responseHandlers[token] = nil
+            self._responseHandlers[token] = nil
+        }
     }
 
     func abortRequest(_ request: APIClientQueueRequest) {
-        lock.lock()
-        defer { lock.unlock() }
+        processingQueue.async(flags: .barrier) {
+            self.lock.lock()
+            let handlers = self._responseHandlers.orderedValues
+            self.lock.unlock()
 
-        forwardDidReceiveResponseToHandlers(.aborted(request), handlers: _responseHandlers.orderedValues)
+            self.forwardDidReceiveResponseToHandlers(.aborted(request), handlers: handlers)
+        }
     }
 
     func didEnqueueNewRequest() {
@@ -656,13 +667,18 @@ private extension APIClientQueueProcessor {
     func _process(_ request: APIClientQueueRequest, _ operationCompletion: @escaping () -> Void) {
 
         #if os(iOS)
-        let backgroundTaskID: Property<UIBackgroundTaskIdentifier> = request.wrapped.config.background ? _backgroundTaskManager.beginBackgroundTask(expirationHandler: {
-            self.lock.lock()
-            defer { self.lock.unlock() }
+        let taskID: UUID?
+        if request.wrapped.config.background {
+            taskID = _backgroundTaskManager.start {
+                self.lock.lock()
+                defer { self.lock.unlock() }
 
-            Logger.log(.warning, "\(APIClientQueueProcessor.self): Background task expired.")
-            self._complete(.backgroundSessionExpired(request), operationCompletion)
-        }) : Property(.invalid)
+                Logger.log(.warning, "\(APIClientQueueProcessor.self): Background task expired.")
+                self._complete(.backgroundSessionExpired(request), operationCompletion)
+            }
+        } else {
+            taskID = nil
+        }
         #endif
 
         let requestDescription = client.description(for: request.wrapped.config)
@@ -673,13 +689,9 @@ private extension APIClientQueueProcessor {
             defer { self.lock.unlock() }
 
             #if os(iOS)
-            if request.wrapped.config.background {
-                if backgroundTaskID.value != .invalid {
-                    self._backgroundTaskManager.endBackgroundTask(backgroundTaskID.value)
-                } else {
-                    Logger.log(.warning, "\(APIClientQueueProcessor.self): Received response from server after background task expired.")
-                    return
-                }
+            if let taskID = taskID, self._backgroundTaskManager.stop(taskID) == false {
+                Logger.log(.warning, "\(APIClientQueueProcessor.self): Received response after background task timed out: \(requestDescription).")
+                return
             }
             #endif
 

@@ -93,7 +93,6 @@ public extension Signal where Element: OptionalProtocol, Element.Wrapped: Entity
 public extension ManagerError {
 
     var isNetworkConnectionFailure: Bool {
-
         switch self {
         case .notSupported,
              .conflict,
@@ -105,8 +104,19 @@ public extension ManagerError {
         }
     }
 
-    var isUserAccessFailure: Bool {
+    var shouldFallBackToLocalStore: Bool {
+        switch self {
+        case .notSupported,
+             .conflict,
+             .logicalError,
+             .userAccessInvalid:
+            return false
+        case .store(let storeError):
+            return storeError.shouldFallBackToLocalStore
+        }
+    }
 
+    var isUserAccessFailure: Bool {
         switch self {
         case .notSupported,
              .conflict,
@@ -121,11 +131,33 @@ public extension ManagerError {
 
 public extension StoreError {
 
-    var isNetworkConnectionFailure: Bool {
+    var shouldFallBackToLocalStore: Bool {
+        return isNetworkConnectionFailure || isNotModified
+    }
 
+    var isNetworkConnectionFailure: Bool {
         switch self {
         case .api(let apiError):
             return apiError.isNetworkConnectionFailure
+        case .composite,
+             .unknown,
+             .notSupported,
+             .notFoundInPayload,
+             .emptyStack,
+             .invalidCoreDataState,
+             .invalidCoreDataEntity,
+             .coreData,
+             .invalidContext,
+             .identifierNotSynced,
+             .identifierNotFound:
+            return false
+        }
+    }
+
+    var isNotModified: Bool {
+        switch self {
+        case .api(let apiError):
+            return apiError.isNotModified
         case .composite,
              .unknown,
              .notSupported,
@@ -147,6 +179,22 @@ public extension APIError {
     var isNetworkConnectionFailure: Bool {
         switch self {
         case .network(.networkConnectionFailure):
+            return true
+        case .api,
+             .deserialization,
+             .network,
+             .networkingProtocolIsNotHTTP,
+             .sessionKeyMismatch,
+             .url,
+             .other,
+             .responseCode:
+            return false
+        }
+    }
+
+    var isNotModified: Bool {
+        switch self {
+        case .responseCode(.notModified):
             return true
         case .api,
              .deserialization,

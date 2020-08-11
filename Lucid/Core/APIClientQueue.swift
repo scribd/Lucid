@@ -643,11 +643,10 @@ extension APIClientQueueProcessor: APIClientQueueSchedulerDelegate {
         diskCache[request.token.uuidString] = request
 
         let requestOperation = AsyncOperation(on: processingQueue, title: request.token.uuidString, barrier: request.isBarrier) { completion in
-            let operationCompletion = {
+            self._process(request) {
                 self.diskCache[request.token.uuidString] = nil
                 completion()
             }
-            self._process(request, operationCompletion)
         }
 
         operationQueue.run(operation: requestOperation)
@@ -728,7 +727,8 @@ private extension APIClientQueueProcessor {
 
         let didSucceed: Bool
         switch result {
-        case .success:
+        case .success,
+             .apiError(.responseCode(.notModified), _):
             didSucceed = true
         case .aborted:
             Logger.log(.error, "\(APIClientQueueProcessor.self): Processor should not be aborting requests in flight.", assert: true)
@@ -775,7 +775,8 @@ private extension APIClientQueueProcessor {
              .network,
              .networkingProtocolIsNotHTTP,
              .url,
-             .other:
+             .other,
+             .responseCode:
             Logger.log(.error, "\(APIClientQueueProcessor.self): Request: \(client.description(for: request.wrapped.config)) failed and won't be retried: \(apiError).")
         }
     }
@@ -801,7 +802,8 @@ private extension APIClientQueueProcessor {
                      .networkingProtocolIsNotHTTP,
                      .sessionKeyMismatch,
                      .url,
-                     .other:
+                     .other,
+                     .responseCode:
                     handler(.failure(error), request)
                 }
             }

@@ -617,7 +617,7 @@ private extension CoreManager {
                     } else {
                         return self.get(withQuery: query, in: remoteContext)
                             .flatMapError { error -> Signal<QueryResult<E>, ManagerError> in
-                                if error.isNetworkConnectionFailure {
+                                if error.shouldFallBackToLocalStore {
                                     // if we can't reach the remote store, return local results
                                     return Signal(just: localResult)
                                 } else {
@@ -694,7 +694,11 @@ private extension CoreManager {
                             }
 
                         case .failure(let error):
-                            Logger.log(.error, "\(CoreManager.self): An error occurred while getting entity: \(error)")
+                            if error.shouldFallBackToLocalStore {
+                                Logger.log(.debug, "\(CoreManager.self): Encountered state while getting entity: \(error)")
+                            } else {
+                                Logger.log(.error, "\(CoreManager.self): An error occurred while getting entity: \(error)", assert: true)
+                            }
                             guardedPromise(.failure(.store(error)))
                         }
                     }
@@ -725,7 +729,7 @@ private extension CoreManager {
 
             let overwriteSearch: (QueryResult<E>?) -> Signal<QueryResult<E>, ManagerError> = { localResult in
                 let mapNetworkErrorToLocalResult: ((ManagerError) -> Signal<QueryResult<E>, ManagerError>) = { error in
-                    if error.isNetworkConnectionFailure, let localResult = localResult {
+                    if error.shouldFallBackToLocalStore, let localResult = localResult {
                         // if we can't reach the remote store, return local results
                         return Signal(just: localResult)
                     } else {
@@ -878,7 +882,11 @@ private extension CoreManager {
                         }
 
                     case .failure(let error):
-                        Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities: \(error)", assert: error.isNetworkConnectionFailure == false)
+                        if error.shouldFallBackToLocalStore {
+                            Logger.log(.debug, "\(CoreManager.self): Encountered state while searching entities: \(error)")
+                        } else {
+                            Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities: \(error)", assert: true)
+                        }
                         guardedPromise(.failure(.store(error)))
                     }
                 }

@@ -365,6 +365,30 @@ final class APIClientQueueProcessorTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 
+    func test_processor_tells_scheduler_request_succeeded_and_asks_for_next_request_for_result_error_not_modified() {
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
+        processDelegateSpy.requestStub = request
+        processor.delegate = processDelegateSpy
+
+        clientSpy.resultStubs = [
+            request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.responseCode(.notModified))
+        ]
+
+        XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
+        XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
+
+        processor.processNext()
+
+        let expectation = self.expectation(description: "processor")
+        waitForAsyncQueues {
+            XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 1)
+            XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
+
     private func _testFailureStateWithAPIError(_ apiError: APIError) {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request

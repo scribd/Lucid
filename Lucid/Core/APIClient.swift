@@ -23,6 +23,7 @@ public enum APIError: Error, Equatable {
     case api(httpStatusCode: Int, errorPayload: APIErrorPayload?, response: APIClientResponse<Data>)
     case sessionKeyMismatch
     case other(String)
+    case responseCode(ResponseCode)
 }
 
 public enum NetworkError: Error, Equatable {
@@ -51,6 +52,10 @@ public enum ParsingError: Error, Equatable {
     case cannotDecodeContentData
     case cannotDecodeRawData
     case cannotParseResponse
+}
+
+public enum ResponseCode: Error, Equatable {
+    case notModified
 }
 
 // MARK: - Request Config
@@ -550,6 +555,12 @@ extension APIClient {
                             return
                         }
 
+                        if let responseCode = APIError(urlResponse: response) {
+                            Logger.log(.info, "\(Self.self): \(self.identifier): Received api response code for request: \(urlRequest): \(responseCode)")
+                            wrappedCompletion(.failure(responseCode))
+                            return
+                        }
+
                         let wrappedResponse = APIClientResponse(data: data ?? Data(),
                                                                 urlResponse: response,
                                                                 jsonCoderConfig: self.jsonCoderConfig())
@@ -999,6 +1010,15 @@ extension APIError {
             self = .network(.other(error))
         }
     }
+
+    init?(urlResponse: HTTPURLResponse) {
+        let header = APIResponseHeader(urlResponse)
+        if header.cachedResponse && header.etag != nil {
+            self = .responseCode(.notModified)
+        } else {
+            return nil
+        }
+    }
 }
 
 extension APIRequestConfig.Path {
@@ -1150,13 +1170,16 @@ extension APIError {
             return true
         case (.other(let lhs), .other(let rhs)):
             return lhs == rhs
+        case (.responseCode(let lhs), .responseCode(let rhs)):
+            return lhs == rhs
         case (.networkingProtocolIsNotHTTP, _),
              (.network, _),
              (.url, _),
              (.deserialization, _),
              (.sessionKeyMismatch, _),
              (.api, _),
-             (.other, _):
+             (.other, _),
+             (.responseCode, _):
             return false
         }
     }

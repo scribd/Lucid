@@ -1316,4 +1316,143 @@ final class RemoteStoreTests: XCTestCase {
 
         wait(for: [expectation], timeout: 1)
     }
+
+    // MARK: - Payloads
+
+    func test_get_should_return_store_error_empty_response_for_api_response_with_304_and_empty_body() {
+
+        let emptyHeader = APIResponseHeader { key in
+            if key == "Status" {
+                return "304 Not Modified"
+            } else {
+                return nil
+            }
+        }
+        let emptyResponse = APIClientResponse(data: Data(), header: emptyHeader, cachedResponse: true)
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(emptyResponse)
+
+        let expectation = self.expectation(description: "entity")
+        store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: derivedFromEntityTypeContext) { result in
+            switch result {
+            case .success:
+                XCTFail("Unexpected success")
+            case .failure(.emptyResponse):
+                break
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error)")
+            }
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
+
+    func test_search_should_return_store_error_empty_response_for_api_response_with_304_and_empty_body() {
+
+        let emptyHeader = APIResponseHeader { key in
+            if key == "Status" {
+                return "304 Not Modified"
+            } else {
+                return nil
+            }
+        }
+        let emptyResponse = APIClientResponse(data: Data(), header: emptyHeader, cachedResponse: true)
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(emptyResponse)
+
+        let allEntities = (1...3).map { EntitySpy(idValue: .remote($0, nil)) }
+
+        requestContext = ReadContext<EntitySpy>(dataSource: .remote(
+            endpoint: .request(requestConfig,
+                               resultPayload: EndpointStubData(stubEntities: allEntities,
+                                                               stubEntityMetadata: nil,
+                                                               stubEndpointMetadata: nil)))
+        )
+
+        let expectation = self.expectation(description: "entity")
+        store.search(withQuery: .all, in: requestContext) { result in
+            switch result {
+            case .success:
+                XCTFail("Unexpected success")
+            case .failure(.emptyResponse):
+                break
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error)")
+            }
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
+
+    func test_get_should_attempt_to_create_endpoint_payload_for_api_response_with_304_and_greater_than_zero_body() {
+
+        let emptyHeader = APIResponseHeader { key in
+            if key == "Status" {
+                return "304 Not Modified"
+            } else {
+                return nil
+            }
+        }
+        let someResponse = APIClientResponse(data: Data(count: 1), header: emptyHeader, cachedResponse: true)
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(someResponse)
+
+        requestContext = ReadContext<EntitySpy>(dataSource: .remote(
+            endpoint: .request(requestConfig,
+                               resultPayload: EndpointStubData(stubEntities: stubEntities,
+                                                               stubEntityMetadata: nil,
+                                                               stubEndpointMetadata: nil)))
+        )
+
+        let expectation = self.expectation(description: "entity")
+        store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: requestContext) { result in
+            switch result {
+            case .success(let queryResult):
+                XCTAssertEqual(queryResult.entity?.identifier, EntitySpyIdentifier(value: .remote(42, nil)))
+            case .failure(.emptyResponse):
+                XCTFail("Unexpected empty response")
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error)")
+            }
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
+
+    func test_search_should_attempt_to_create_endpoint_payload_api_response_with_304_and_greater_than_zero_body() {
+
+        let emptyHeader = APIResponseHeader { key in
+            if key == "Status" {
+                return "304 Not Modified"
+            } else {
+                return nil
+            }
+        }
+        let someResponse = APIClientResponse(data: Data(count: 1), header: emptyHeader, cachedResponse: true)
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(someResponse)
+
+        let allEntities = (1...3).map { EntitySpy(idValue: .remote($0, nil)) }
+
+        requestContext = ReadContext<EntitySpy>(dataSource: .remote(
+            endpoint: .request(requestConfig,
+                               resultPayload: EndpointStubData(stubEntities: allEntities,
+                                                               stubEntityMetadata: nil,
+                                                               stubEndpointMetadata: nil)))
+        )
+
+        let expectation = self.expectation(description: "entity")
+        store.search(withQuery: .all, in: requestContext) { result in
+            switch result {
+            case .success(let queryResult):
+                XCTAssertEqual(queryResult.array, allEntities)
+            case .failure(.emptyResponse):
+                XCTFail("Unexpected empty response")
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error)")
+            }
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
 }

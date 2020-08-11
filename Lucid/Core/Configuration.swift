@@ -12,4 +12,7 @@ public enum LucidConfiguration {
 
     /// - Warning: Only use if also using `useCoreDataLegacyNaming` option for generating the code.
     public static var useCoreDataLegacyNaming = false
+
+    /// Depth limit for which `RelationshipController` won't go beyond in any scenario.
+    public static var relationshipControllerMaxRecursionDepth = 10
 }

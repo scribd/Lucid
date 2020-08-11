@@ -309,15 +309,21 @@ public final class RelationshipController<RelationshipManager, Graph>
                                 )._fill(graph, path: path + [entityType])
                             }
 
+                            let globalDepthLimit = LucidConfiguration.relationshipControllerMaxRecursionDepth
+
                             switch recursiveMethod {
-                            case .depthLimit(let limit) where path.count < limit:
+                            case .depthLimit(let limit) where path.count < limit && path.count < globalDepthLimit:
                                 return recurse()
 
-                            case .full:
+                            case .full where path.count < globalDepthLimit:
                                 return recurse()
 
                             case .none,
-                                 .depthLimit:
+                                 .depthLimit,
+                                 .full:
+                                if path.count >= globalDepthLimit {
+                                    Logger.log(.error, "\(RelationshipController.self): Recursion depth limit (\(globalDepthLimit)) has been reached.", assert: true)
+                                }
                                 return entities.map { entities in
                                     graph.insert(entities)
                                 }

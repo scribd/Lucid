@@ -332,13 +332,17 @@ final class StoreStack<E: Entity> {
         store.get(withQuery: query, in: context) { result in
             switch result {
             case .success(var queryResult):
-                queryResult = queryResult.validatingExtras(with: query)
-                if queryResult.entity != nil {
-                    self.readWriteQueue.async {
-                        completion(.success(queryResult))
-                    }
+                if queryResult.isNotModified && stores.isEmpty == false {
+                    self.get(withQuery: query, in: context, stores: stores, error: nil, completion: completion)
                 } else {
-                    self.get(withQuery: query, in: context, stores: stores, error: error, completion: completion)
+                    queryResult = queryResult.validatingExtras(with: query)
+                    if queryResult.entity != nil {
+                        self.readWriteQueue.async {
+                            completion(.success(queryResult))
+                        }
+                    } else {
+                        self.get(withQuery: query, in: context, stores: stores, error: error, completion: completion)
+                    }
                 }
             case .failure(let currentError):
                 let error = currentError.compose(with: error)
@@ -396,9 +400,13 @@ final class StoreStack<E: Entity> {
         store.search(withQuery: query, in: context) { result in
             switch result {
             case .success(var queryResult):
-                queryResult = queryResult.validatingExtras(with: query)
-                self.readWriteQueue.async {
-                    completion(.success(queryResult))
+                if queryResult.isNotModified && stores.isEmpty == false {
+                    self.search(withQuery: query, in: context, stores: stores, error: nil, completion: completion)
+                } else {
+                    queryResult = queryResult.validatingExtras(with: query)
+                    self.readWriteQueue.async {
+                        completion(.success(queryResult))
+                    }
                 }
 
             case .failure(let currentError):

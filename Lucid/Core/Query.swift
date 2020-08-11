@@ -238,6 +238,7 @@ public struct QueryResult<E>: QueryResultInterface where E: Entity {
         case groups(DualHashDictionary<EntityIndexValue<E.RelationshipIdentifier, E.Subtype>, [E]>)
         case entitiesSequence(AnySequence<E>)
         case entitiesArray([E])
+        case notModified
     }
 
     private(set) var data: Data
@@ -253,7 +254,8 @@ public struct QueryResult<E>: QueryResultInterface where E: Entity {
         case .entitiesSequence(let entities):
             data = .entitiesArray(entities.array)
         case .groups,
-             .entitiesArray:
+             .entitiesArray,
+             .notModified:
             break
         }
         return self
@@ -266,7 +268,8 @@ public struct QueryResult<E>: QueryResultInterface where E: Entity {
         case .entitiesSequence(let entities):
             return QueryResult(data: .entitiesArray(entities.array), _metadata: _metadata)
         case .groups,
-             .entitiesArray:
+             .entitiesArray,
+             .notModified:
             return self
         }
     }
@@ -283,6 +286,8 @@ public struct QueryResult<E>: QueryResultInterface where E: Entity {
             return entities
         case .entitiesArray(let entities):
             return entities.any
+        case .notModified:
+            return [].any
         }
     }
 
@@ -294,6 +299,8 @@ public struct QueryResult<E>: QueryResultInterface where E: Entity {
             return entities.array
         case .entitiesArray(let entities):
             return entities
+        case .notModified:
+            return []
         }
     }
 
@@ -306,12 +313,24 @@ public struct QueryResult<E>: QueryResultInterface where E: Entity {
         case .entitiesArray(let entities) where entities.isEmpty == false:
             return DualHashDictionary([(nil, entities)])
         case .entitiesArray,
-             .entitiesSequence:
+             .entitiesSequence,
+             .notModified:
             return DualHashDictionary()
         }
     }
 
     // MARK: - O(1) operations
+
+    public var isNotModified: Bool {
+        switch data {
+        case .notModified:
+            return true
+        case .groups,
+             .entitiesSequence,
+             .entitiesArray:
+            return false
+        }
+    }
 
     public var isEmpty: Bool {
         return any.isEmpty
@@ -345,6 +364,8 @@ public protocol QueryResultInterface: Equatable {
     var array: [E] { get }
 
     var groups: DualHashDictionary<EntityIndexValue<E.RelationshipIdentifier, E.Subtype>?, [E]> { get }
+
+    var isNotModified: Bool { get }
 
     var isEmpty: Bool { get }
 
@@ -488,6 +509,10 @@ public extension QueryResult {
         } else {
             data = .entitiesArray(entities)
         }
+    }
+
+    static func notModified() -> QueryResult<E> {
+        return QueryResult(data: .notModified)
     }
 
     static func empty() -> QueryResult<E> {
@@ -729,6 +754,9 @@ extension QueryResult {
 
         case .entitiesArray(let entities):
             queryResult = QueryResult(data: .entitiesArray(entities.filter { $0.isEntityValid(for: query) }))
+
+        case .notModified:
+            return self
         }
 
         queryResult._metadata = _metadata

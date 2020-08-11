@@ -9,6 +9,7 @@
 public enum ManagerResult<E> where E: Entity {
     case groups(DualHashDictionary<EntityIndexValue<E.RelationshipIdentifier, E.Subtype>, [E]>)
     case entities([E])
+    case notModified
 
     public var entities: [E] {
         switch self {
@@ -16,11 +17,23 @@ public enum ManagerResult<E> where E: Entity {
             return groups.values.flatMap { $0 }
         case .entities(let entities):
             return entities
+        case .notModified:
+            return []
         }
     }
 
     public var entity: E? {
         return entities.first
+    }
+
+    public var isNotModified: Bool {
+        switch self {
+        case .notModified:
+            return true
+        case .groups,
+             .entities:
+            return false
+        }
     }
 
     public var isEmpty: Bool {
@@ -60,6 +73,8 @@ public extension QueryResult {
             return .entities(entities.array)
         case .entitiesArray(let entities):
             return .entities(entities)
+        case .notModified:
+            return .notModified
         }
     }
 }

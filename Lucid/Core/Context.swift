@@ -52,7 +52,7 @@ public protocol EmptyContextProviding: CaseIterable {
 
 // MARK: - EndpointResponseListener
 
-typealias EndpointResponseListener = (Result<AnyResultPayloadConvertible, APIError>) -> Void
+typealias EndpointResponseListener = (Result<ResponsePayload, APIError>) -> Void
 
 // MARK: - ReadContext
 
@@ -138,7 +138,7 @@ public final class _ReadContext<ResultPayload> where ResultPayload: ResultPayloa
     /// - Parameters:
     ///     - payloadResult: Either an error or the payload to store.
     ///     - request: maps to Cache key.
-    func set(payloadResult: Result<AnyResultPayloadConvertible, APIError>,
+    func set(payloadResult: Result<ResponsePayload, APIError>,
              source: RemoteResponseSource?,
              for request: APIRequestConfig) {
 
@@ -532,7 +532,7 @@ public enum RemoteResponseSource {
 final class RemoteStoreCache {
 
     fileprivate struct Payload {
-        let result: Result<AnyResultPayloadConvertible, APIError>
+        let result: Result<ResponsePayload, APIError>
         let source: RemoteResponseSource?
     }
 
@@ -592,7 +592,7 @@ final class RemoteStoreCache {
     /// - Parameters:
     ///     - payloadResult: Either an error or the payload to store.
     ///     - request: The APIRequestConfig returned from a previous request.
-    fileprivate func set(payloadResult: Result<AnyResultPayloadConvertible, APIError>,
+    fileprivate func set(payloadResult: Result<ResponsePayload, APIError>,
                          source: RemoteResponseSource?,
                          for request: APIRequestConfig) {
 
@@ -632,12 +632,17 @@ final class RemoteStoreCache {
     fileprivate var resultPayload: AnyResultPayloadConvertible? {
         return dispatchQueue.sync {
             switch payload?.result {
-            case .some(.success(let payloadResult)):
+            case .some(.success(.data(let payloadResult))):
                 return payloadResult
-            case .some(.failure),
+            case .some,
                  .none:
                 return nil
             }
         }
     }
+}
+
+enum ResponsePayload {
+    case notModified
+    case data(AnyResultPayloadConvertible)
 }

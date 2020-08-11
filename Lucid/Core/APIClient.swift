@@ -308,6 +308,10 @@ public struct APIRequest<Model>: Equatable {
 
 // MARK: - Response
 
+enum APIResponseCode {
+    case notModified
+}
+
 public struct APIResponseHeader {
 
     private let _valueForKey: (String) -> String?
@@ -387,6 +391,14 @@ public struct APIClientResponse<T> {
             textEncodingName: textEncodingName,
             jsonCoderConfig: jsonCoderConfig
         )
+    }
+
+    var responseCode: APIResponseCode? {
+        if header.cachedResponse && header.etag != nil {
+            return .notModified
+        } else {
+            return nil
+        }
     }
 }
 

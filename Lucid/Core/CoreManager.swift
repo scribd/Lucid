@@ -616,6 +616,13 @@ private extension CoreManager {
                         return Signal(just: localResult)
                     } else {
                         return self.get(withQuery: query, in: remoteContext)
+                            .map { result -> QueryResult<E> in
+                                if result.isNotModified {
+                                    return localResult
+                                } else {
+                                    return result
+                                }
+                            }
                             .flatMapError { error -> Signal<QueryResult<E>, ManagerError> in
                                 if error.isNetworkConnectionFailure {
                                     // if we can't reach the remote store, return local results
@@ -724,6 +731,13 @@ private extension CoreManager {
             var overwriteSignal: Signal<QueryResult<E>, ManagerError>?
 
             let overwriteSearch: (QueryResult<E>?) -> Signal<QueryResult<E>, ManagerError> = { localResult in
+                let mapNotModifiedResultToLocalResult: ((QueryResult<E>) -> QueryResult<E>) = { result in
+                    if result.isNotModified, let localResult = localResult {
+                        return localResult
+                    } else {
+                        return result
+                    }
+                }
                 let mapNetworkErrorToLocalResult: ((ManagerError) -> Signal<QueryResult<E>, ManagerError>) = { error in
                     if error.isNetworkConnectionFailure, let localResult = localResult {
                         // if we can't reach the remote store, return local results
@@ -735,12 +749,14 @@ private extension CoreManager {
                 return dispatchQueue.sync {
                     if let overwriteSignal = overwriteSignal {
                         return overwriteSignal
+                            .map(mapNotModifiedResultToLocalResult)
                             .flatMapError(mapNetworkErrorToLocalResult)
                     }
                     let signal = self.search(withQuery: query, in: remoteContext)
                         .once
                     overwriteSignal = signal
                     return signal
+                        .map(mapNotModifiedResultToLocalResult)
                         .flatMapError(mapNetworkErrorToLocalResult)
                 }
             }

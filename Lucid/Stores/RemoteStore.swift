@@ -92,7 +92,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
         context.addListener(for: request.config) { result in
             switch result {
-            case .success(let payload as E.ResultPayload):
+            case .success(.data(let payload as E.ResultPayload)):
                 if let entity: E = payload.getEntity(for: identifier) {
                     let metadata = Metadata<E>(payload.metadata)
                     completion(.success(QueryResult(from: entity, metadata: metadata)))
@@ -100,9 +100,12 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                     completion(.failure(.notFoundInPayload))
                 }
 
-            case .success(let payload):
+            case .success(.data(let payload)):
                 Logger.log(.error, "\(RemoteStore.self): Could not convert \(type(of: payload)) to \(E.ResultPayload.self).", assert: true)
                 completion(.failure(.invalidContext))
+
+            case .success(.notModified):
+                completion(.success((.notModified())))
 
             case .failure(.api(httpStatusCode: 404, _, _)):
                 completion(.success(.empty()))
@@ -122,19 +125,27 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
                 let source: RemoteResponseSource = response.cachedResponse ? .urlCache(.empty) : .server(.empty)
 
+                if let responseCode = response.responseCode {
+                    switch responseCode {
+                    case .notModified:
+                        context.set(payloadResult: .success(.notModified), source: source, for: request.config)
+                        return
+                    }
+                }
+
                 do {
                     switch context.dataSource {
                     case ._remote(.request(_, let endpoint), _, _, _):
                         let payload = try E.ResultPayload(from: response.data,
                                                           endpoint: endpoint,
                                                           decoder: response.jsonCoderConfig.decoder)
-                        context.set(payloadResult: .success(payload), source: source, for: request.config)
+                        context.set(payloadResult: .success(.data(payload)), source: source, for: request.config)
 
                     case ._remote(.derivedFromEntityType, _, _, _):
                         let payload = try E.ResultPayload(from: response.data,
                                                           endpoint: try E.unwrappedEndpoint(for: path),
                                                           decoder: response.jsonCoderConfig.decoder)
-                        context.set(payloadResult: .success(payload), source: source, for: request.config)
+                        context.set(payloadResult: .success(.data(payload)), source: source, for: request.config)
 
                     case .local,
                          .localOr,
@@ -196,7 +207,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
         context.addListener(for: request.config) { result in
             switch result {
-            case .success(let payload as E.ResultPayload):
+            case .success(.data(let payload as E.ResultPayload)):
                 let entities: AnySequence<E>
                 let alreadyFiltered: Bool = context.trustRemoteFiltering && hasCachedResponse == false
                 if alreadyFiltered {
@@ -212,9 +223,12 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                 )
                 completion(.success((searchResult, hasCachedResponse)))
 
-            case .success(let payload):
+            case .success(.data(let payload)):
                 Logger.log(.error, "\(RemoteStore.self): Could not convert \(type(of: payload)) to \(E.ResultPayload.self)", assert: true)
                 completion(.failure(.invalidContext))
+
+            case .success(.notModified):
+                completion(.success((.notModified(), true)))
 
             case .failure(let error):
                 let error = StoreError.api(error)
@@ -236,20 +250,28 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
                 let source: RemoteResponseSource = response.cachedResponse ? .urlCache(response.header) : .server(response.header)
 
+                if let responseCode = response.responseCode {
+                    switch responseCode {
+                    case .notModified:
+                        context.set(payloadResult: .success(.notModified), source: source, for: request.config)
+                        return
+                    }
+                }
+
                 do {
                     switch context.dataSource {
                     case ._remote(.request(_, let endpoint), _, _, _):
                         let payload = try E.ResultPayload(from: response.data,
                                                           endpoint: endpoint,
                                                           decoder: response.jsonCoderConfig.decoder)
-                        context.set(payloadResult: .success(payload), source: source, for: request.config)
+                        context.set(payloadResult: .success(.data(payload)), source: source, for: request.config)
 
                     case ._remote(.derivedFromEntityType, _, _, _):
                         let path = RemotePath<E>.search(query)
                         let payload = try E.ResultPayload(from: response.data,
                                                           endpoint: try E.unwrappedEndpoint(for: path),
                                                           decoder: response.jsonCoderConfig.decoder)
-                        context.set(payloadResult: .success(payload), source: source, for: request.config)
+                        context.set(payloadResult: .success(.data(payload)), source: source, for: request.config)
 
                     case .local,
                          .localOr,

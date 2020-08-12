@@ -390,6 +390,13 @@ public struct APIClientResponse<T> {
     }
 }
 
+public extension APIClientResponse where T == Data {
+    
+    var isNotModified: Bool {
+        return header.cachedResponse && data.isEmpty
+    }
+}
+
 // MARK: - Error payload
 
 public struct APIErrorPayload: Equatable {

@@ -23,6 +23,7 @@ public indirect enum StoreError: Error, Equatable {
     case invalidContext
     case identifierNotSynced
     case identifierNotFound
+    case emptyResponse
 }
 
 // MARK: - StoreLevel

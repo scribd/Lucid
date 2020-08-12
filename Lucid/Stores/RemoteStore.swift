@@ -92,7 +92,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
         context.addListener(for: request.config) { result in
             switch result {
-            case .success(let payload as E.ResultPayload):
+            case .success(.some(let payload as E.ResultPayload)):
                 if let entity: E = payload.getEntity(for: identifier) {
                     let metadata = Metadata<E>(payload.metadata)
                     completion(.success(QueryResult(from: entity, metadata: metadata)))
@@ -100,9 +100,12 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                     completion(.failure(.notFoundInPayload))
                 }
 
-            case .success(let payload):
+            case .success(.some(let payload)):
                 Logger.log(.error, "\(RemoteStore.self): Could not convert \(type(of: payload)) to \(E.ResultPayload.self).", assert: true)
                 completion(.failure(.invalidContext))
+
+            case .success(.none):
+                completion(.failure(.emptyResponse))
 
             case .failure(.api(httpStatusCode: 404, _, _)):
                 completion(.success(.empty()))
@@ -121,6 +124,11 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             case .success(let response):
 
                 let source: RemoteResponseSource = response.cachedResponse ? .urlCache(.empty) : .server(.empty)
+
+                if response.isNotModified {
+                    context.set(payloadResult: .success(nil), source: source, for: request.config)
+                    return
+                }
 
                 do {
                     switch context.dataSource {
@@ -196,7 +204,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
         context.addListener(for: request.config) { result in
             switch result {
-            case .success(let payload as E.ResultPayload):
+            case .success(.some(let payload as E.ResultPayload)):
                 let entities: AnySequence<E>
                 let alreadyFiltered: Bool = context.trustRemoteFiltering && hasCachedResponse == false
                 if alreadyFiltered {
@@ -212,9 +220,12 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                 )
                 completion(.success((searchResult, hasCachedResponse)))
 
-            case .success(let payload):
+            case .success(.some(let payload)):
                 Logger.log(.error, "\(RemoteStore.self): Could not convert \(type(of: payload)) to \(E.ResultPayload.self)", assert: true)
                 completion(.failure(.invalidContext))
+
+            case .success(.none):
+                completion(.failure(.emptyResponse))
 
             case .failure(let error):
                 let error = StoreError.api(error)
@@ -235,6 +246,11 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             case .success(let response):
 
                 let source: RemoteResponseSource = response.cachedResponse ? .urlCache(response.header) : .server(response.header)
+
+                if response.isNotModified {
+                    context.set(payloadResult: .success(nil), source: source, for: request.config)
+                    return
+                }
 
                 do {
                     switch context.dataSource {
@@ -318,41 +334,43 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
     public func set<S>(_ entities: S, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void) where S: Sequence, S.Element == E {
 
         var countMismatch = false
-        let requests = entities.compactMap { (entity: E) -> APIClientQueueRequest? in
-            let setPath: RemoteSetPath<E> = entity.identifier.hasBeenPushedToClientQueue ? .update(entity) : .create(entity)
-            let path: RemotePath<E> = .set(setPath)
 
-            switch context.dataTarget {
-            case .localAndRemote(.derivedFromEntityType),
-                 .remote(.derivedFromEntityType):
-                if let request = E.request(for: path, or: nil) {
-                    return APIClientQueueRequest(wrapping: request, identifiers: [entity.identifier])
-                } else {
+        let requests: [APIClientQueueRequest]
+
+        switch context.dataTarget {
+        case .localAndRemote(.derivedFromEntityType),
+             .remote(.derivedFromEntityType):
+            requests = entities.compactMap { entity in
+                let setPath: RemoteSetPath<E> = entity.identifier.hasBeenPushedToClientQueue ? .update(entity) : .create(entity)
+                let path: RemotePath<E> = .set(setPath)
+                guard let request = E.request(for: path, or: nil) else {
                     countMismatch = true
                     return nil
                 }
+                return APIClientQueueRequest(wrapping: request, identifiers: [entity.identifier])
+            }
 
-            case .localAndRemote(.derivedFromPath(let builder)),
-                 .remote(.derivedFromPath(let builder)):
+        case .localAndRemote(.derivedFromPath(let builder)),
+             .remote(.derivedFromPath(let builder)):
+            requests = entities.compactMap { entity in
+                let setPath: RemoteSetPath<E> = entity.identifier.hasBeenPushedToClientQueue ? .update(entity) : .create(entity)
                 guard let config = builder(setPath) else {
                     countMismatch = true
                     return nil
                 }
                 let request = APIRequest<Data>(config)
                 return APIClientQueueRequest(wrapping: request, identifiers: [entity.identifier])
-
-            case .localAndRemote(.request(let config)),
-                 .remote(.request(let config)):
-                if entities.array.count > 1 {
-                    Logger.log(.error, "\(Self.self): Data target \(context.dataTarget) does not support multiple entities at once. Use .localAndRemoteDerivedFromEntityType or .localAndRemoteDerivedFromPath instead.", assert: true)
-                }
-                let request = APIRequest<Data>(config)
-                return APIClientQueueRequest(wrapping: request, identifiers: [entity.identifier])
-
-            case .local:
-                Logger.log(.error, "\(Self.self): Remote store should not be attempting to handle data target \(context.dataTarget).", assert: true)
-                return nil
             }
+
+        case .localAndRemote(.request(let config)),
+             .remote(.request(let config)):
+            let request = APIRequest<Data>(config)
+            requests = [APIClientQueueRequest(wrapping: request, identifiers: entities.map { $0.identifier })]
+
+        case .local:
+            Logger.log(.error, "\(Self.self): Remote store should not be attempting to handle data target \(context.dataTarget).", assert: true)
+            completion(.failure(.invalidContext))
+            return
         }
 
         guard countMismatch == false else {

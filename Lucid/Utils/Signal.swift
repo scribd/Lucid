@@ -117,12 +117,23 @@ public extension ManagerError {
             return true
         }
     }
+
+    var shouldFallBackToLocalStore: Bool {
+        switch self {
+        case .notSupported,
+             .conflict,
+             .logicalError,
+             .userAccessInvalid:
+            return false
+        case .store(let storeError):
+            return storeError.shouldFallBackToLocalStore
+        }
+    }
 }
 
 public extension StoreError {
 
     var isNetworkConnectionFailure: Bool {
-
         switch self {
         case .api(let apiError):
             return apiError.isNetworkConnectionFailure
@@ -136,9 +147,34 @@ public extension StoreError {
              .coreData,
              .invalidContext,
              .identifierNotSynced,
+             .identifierNotFound,
+             .emptyResponse:
+            return false
+        }
+    }
+
+    var isEmptyResponse: Bool {
+        switch self {
+        case .emptyResponse:
+            return true
+        case .api,
+             .composite,
+             .unknown,
+             .notSupported,
+             .notFoundInPayload,
+             .emptyStack,
+             .invalidCoreDataState,
+             .invalidCoreDataEntity,
+             .coreData,
+             .invalidContext,
+             .identifierNotSynced,
              .identifierNotFound:
             return false
         }
+    }
+    
+    var shouldFallBackToLocalStore: Bool {
+        return isNetworkConnectionFailure || isEmptyResponse
     }
 }
 

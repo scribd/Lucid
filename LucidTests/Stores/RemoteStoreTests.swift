@@ -822,6 +822,35 @@ final class RemoteStoreTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 
+    func test_should_post_a_request_to_the_client_queue_using_request_endpoint_for_multiple_entities() {
+
+        clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
+
+        let expectation = self.expectation(description: "entity")
+        let entities = (1...3).map { EntitySpy(idValue: .remote($0, nil)) }
+
+        let writeContext = WriteContext<EntitySpy>(dataTarget:
+            .remote(endpoint: .request(requestConfig))
+        )
+
+        store.set(entities, in: writeContext) { result in
+            switch result {
+            case .some(.success(let resultEntities)):
+                XCTAssertEqual(resultEntities.array, entities)
+                XCTAssertNotNil(self.clientQueueSpy.appendInvocations.first)
+                XCTAssertEqual(self.clientQueueSpy.appendInvocations.first?.identifiers as? [EntitySpyIdentifier], entities.map { $0.identifier })
+            case .some(.failure(let error)):
+                XCTFail("Unexpected error: \(error)")
+            case .none:
+                XCTAssertEqual(self.store.level, .remote)
+            }
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
+
+
     // MARK: remove(atID:in:completion:)
 
     func test_should_post_a_delete_request_to_the_client_queue_using_request_endpoint() {

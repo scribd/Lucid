@@ -282,7 +282,7 @@ private func _shouldGenerateDataModel(byComparing oldEntity: Entity,
     }
     
     if oldEntity.lastRemoteRead != newEntity.lastRemoteRead {
-        logger.warn("'\(newEntity.name).lastRemoteRead' value changed from '\(oldEntity.lastRemoteRead)' to '\(newEntity.lastRemoteRead)'.")
+        logger.warn("'\(newEntity.name).last_remote_read' value changed from '\(oldEntity.lastRemoteRead)' to '\(newEntity.lastRemoteRead)'.")
         result = true
     }
     
@@ -337,7 +337,7 @@ private func _shouldGenerateDataModel(byComparing oldEntity: Entity,
     }
 
     if oldEntity.versionHistory != newEntity.versionHistory {
-        logger.warn("'\(newEntity.name).versionHistory' value changed from '\(oldEntity.versionHistory.description)' to '\(newEntity.versionHistory.description)'.")
+        logger.warn("'\(newEntity.name).version_history' value changed from '\(oldEntity.versionHistory.description)' to '\(newEntity.versionHistory.description)'.")
         result = true
     }
 
@@ -358,7 +358,7 @@ private func _shouldGenerateDataModel(byComparing oldProperty: EntityProperty,
     }
 
     if oldProperty.propertyType != newProperty.propertyType {
-        logger.warn("'\(entityName).\(newProperty.name).propertyType' value changed from '\(oldProperty.propertyType)' to '\(newProperty.propertyType)'.")
+        logger.warn("'\(entityName).\(newProperty.name).property_type' value changed from '\(oldProperty.propertyType)' to '\(newProperty.propertyType)'.")
         result = true
     }
 
@@ -373,12 +373,12 @@ private func _shouldGenerateDataModel(byComparing oldProperty: EntityProperty,
     }
 
     if oldProperty.defaultValue != newProperty.defaultValue {
-        logger.warn("'\(entityName).\(newProperty.name).defaultValue' value changed from '\(oldProperty.defaultValue?.description ?? "nil")' to '\(newProperty.defaultValue?.description ?? "nil")'.")
+        logger.warn("'\(entityName).\(newProperty.name).default_value' value changed from '\(oldProperty.defaultValue?.description ?? "nil")' to '\(newProperty.defaultValue?.description ?? "nil")'.")
         result = true
     }
 
     if oldProperty.useForEquality != newProperty.useForEquality {
-        logger.warn("'\(entityName).\(newProperty.name).useForEquality' value changed from '\(oldProperty.useForEquality)' to '\(newProperty.useForEquality)'.")
+        logger.warn("'\(entityName).\(newProperty.name).use_for_equality' value changed from '\(oldProperty.useForEquality)' to '\(newProperty.useForEquality)'.")
         result = true
     }
 
@@ -386,7 +386,7 @@ private func _shouldGenerateDataModel(byComparing oldProperty: EntityProperty,
         try logger.throwError("'\(newProperty.name).previous_name': '\(oldPropertyName)' was deleted. Please restore it.")
     }
     if oldProperty.previousName != newProperty.previousName {
-        logger.warn("'\(entityName).\(newProperty.name).previousName' value changed from '\(oldProperty.previousName ?? "nil")' to '\(newProperty.previousName ?? "nil")'.")
+        logger.warn("'\(entityName).\(newProperty.name).previous_name' value changed from '\(oldProperty.previousName ?? "nil")' to '\(newProperty.previousName ?? "nil")'.")
         result = true
     }
 
@@ -404,10 +404,10 @@ private func _shouldGenerateDataModel(byComparing oldProperty: EntityProperty,
 
         case (true, false):
             guard oldProperty.previousName == nil else {
-                try logger.throwError("Property \(newProperty.name) is being changed from unused to used. It should use `added_at_version` rather than 'previous_name'. Update description and run again.")
+                try logger.throwError("Property \(newProperty.name) is being changed from unused to used. It should use `version_history` rather than 'previous_name'. Update description and run again.")
             }
             guard newProperty.addedAtVersion == appVersion else {
-                try logger.throwError("Property \(newProperty.name) is being changed from unused to used but its 'added_at_version' isn't set to '\(appVersion)'. Update description and run again.")
+                try logger.throwError("Property \(newProperty.name) is being changed from unused to used but its 'version_history' isn't set to '\(appVersion)'. Update description and run again.")
             }
             logger.warn("Detected property '\(newProperty.name)' changed from unused to used.")
             result = true
@@ -431,7 +431,7 @@ func validateDescriptions(byComparing oldDescriptions: Descriptions,
         guard let addedAtVersion = newEntity.addedAtVersion else {
             try logger.throwError("Entity \(newEntity.name) does not have a valid version history.")
         }
-        guard addedAtVersion > oldDescriptions.version || Version.isMatchingRelease(addedAtVersion, oldDescriptions.version) else {
+        if addedAtVersion > oldDescriptions.version {
             continue
         }
         let previousName = newEntity.nameForVersion(oldDescriptions.version)

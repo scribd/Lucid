@@ -123,14 +123,14 @@ public final class Movie: Codable {
     public let title: String
 
     // relationships
-    public let genres: Extra<AnySequence<GenreIdentifier>>
+    public let genres: Lazy<AnySequence<GenreIdentifier>>
 
     init(identifier: MovieIdentifiable,
          overview: String,
          popularity: Double,
          posterPath: URL,
          title: String,
-         genres: Extra<AnySequence<GenreIdentifier>>) {
+         genres: Lazy<AnySequence<GenreIdentifier>>) {
 
         self.identifier = identifier.movieIdentifier
         self.overview = overview
@@ -279,7 +279,7 @@ extension Movie: CoreDataEntity {
         coreDataEntity._poster_path = posterPath.coreDataValue()
         coreDataEntity._title = title.coreDataValue()
         coreDataEntity._genres = genres.value().coreDataValue()
-        coreDataEntity.setProperty("__genres_extra_flag", value: genres.coreDataFlagValue)
+        coreDataEntity.setProperty("__genres_lazy_flag", value: genres.coreDataFlagValue)
     }
 
     private convenience init(coreDataEntity: ManagedMovie_1_0_0) throws {
@@ -293,9 +293,9 @@ extension Movie: CoreDataEntity {
             popularity: coreDataEntity._popularity.doubleValue(),
             posterPath: try coreDataEntity._poster_path.urlValue(propertyName: "_poster_path"),
             title: try coreDataEntity._title.stringValue(propertyName: "_title"),
-            genres: try Extra(
+            genres: try Lazy(
                 value: coreDataEntity._genres.genreArrayValue(),
-                requested: coreDataEntity.boolValue(propertyName: "__genres_extra_flag")
+                requested: coreDataEntity.boolValue(propertyName: "__genres_lazy_flag")
             )
         )
     }
@@ -362,40 +362,5 @@ extension MovieIndexName: QueryResultConvertible {
         case .title:
             return "title"
         }
-    }
-}
-
-// MARK: - ExtrasIndexName
-
-public indirect enum MovieExtrasIndexName: Hashable {
-    case genres
-}
-
-extension MovieExtrasIndexName: RemoteEntityExtrasIndexName {
-    public var requestValue: String {
-        switch self {
-        case .genres:
-            return "genres"
-        }
-    }
-}
-
-extension Movie {
-
-    public static var shouldValidate: Bool {
-        return true
-    }
-
-    public func isEntityValid(for query: Query<Movie>) -> Bool {
-        guard let requestedExtras = query.extras else { return true }
-
-        for requestedExtra in requestedExtras {
-            switch requestedExtra {
-            case .genres:
-                if genres.wasRequested == false { return false }
-            }
-        }
-
-        return true
     }
 }

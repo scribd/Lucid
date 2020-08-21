@@ -1,7 +1,11 @@
 {
     "name": "movie",
     "uid": "movie",
-    "added_at_version": "1.0.0",
+    "version_history": [
+        {
+            "version": "1.0.0"
+        }
+    ],
     "persist": true,
     "identifier": {
         "type": "int"
@@ -18,7 +22,7 @@
                 "entity_name": "genre",
                 "association": "to_many"
             },
-            "extra": true
+            "lazy": true
         },
         {
             "name": "popularity",

@@ -19,14 +19,14 @@ final class MoviePayload: ArrayConvertable {
     let title: String
 
     // relationships
-    let genrePayloads: Extra<AnySequence<PayloadRelationship<DefaultEndpointGenrePayload>>>
+    let genrePayloads: Lazy<AnySequence<PayloadRelationship<DefaultEndpointGenrePayload>>>
 
     init(id: Int,
          overview: String,
          popularity: Double,
          posterPath: URL,
          title: String,
-         genrePayloads: Extra<AnySequence<PayloadRelationship<DefaultEndpointGenrePayload>>>) {
+         genrePayloads: Lazy<AnySequence<PayloadRelationship<DefaultEndpointGenrePayload>>>) {
 
         self.id = id
         self.overview = overview

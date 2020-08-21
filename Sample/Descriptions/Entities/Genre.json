@@ -1,7 +1,11 @@
 {
     "name": "genre",
     "uid": "genre",
-    "added_at_version": "1.0.0",
+    "version_history": [
+        {
+            "version": "1.0.0"
+        }
+    ],
     "persist": true,
     "identifier": {
         "type": "int"

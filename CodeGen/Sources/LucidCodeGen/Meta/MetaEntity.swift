@@ -361,7 +361,6 @@ struct MetaEntity {
             .adding(inheritedType: entity.inheritenceType.isLocal ? .localEntity : nil)
             .adding(inheritedType: entity.inheritenceType.isRemote ? .remoteEntity : nil)
             .adding(inheritedType: entity.inheritenceType.isBasic ? .entity : nil)
-            .adding(members: try extrasTypeAlias(entity))
             .adding(member: EmptyLine())
             .adding(member: try indexValueFunction())
             .adding(member: EmptyLine())
@@ -371,17 +370,6 @@ struct MetaEntity {
             .adding(member: EmptyLine())
             .adding(member: try equalityFunction())
             .adding(members: try shouldOverwriteFunction())
-    }
-
-    private func extrasTypeAlias(_ entity: Entity) throws -> [TypeBodyMember] {
-        guard entity.remote else { return [] }
-        return [
-            EmptyLine(),
-            TypeAlias(
-                identifier: TypeAliasIdentifier(name: "ExtrasIndexName"),
-                value: try entity.extrasIndexNameTypeID(descriptions)
-            ).with(accessLevel: .public)
-        ]
     }
 
     private func indexValueFunction() throws -> Function {
@@ -527,16 +515,14 @@ struct MetaEntity {
             EmptyLine(),
             Function(kind: .named("shouldOverwrite"))
                 .with(accessLevel: .public)
-                .with(static: true)
-                .adding(parameter: FunctionParameter(alias: "_", name: "updated", type: entity.typeID()))
-                .adding(parameter: FunctionParameter(alias: "_", name: "local", type: entity.typeID()))
+                .adding(parameter: FunctionParameter(alias: "with", name: "updated", type: entity.typeID()))
                 .with(resultType: .bool)
                 .adding(members: entity.extendedPropertyNamesForShouldOverwrite.map { extendedProperty in
-                    If(condition: (.named("updated") + Reference.named(extendedProperty)) != (.named("local") + Reference.named(extendedProperty)))
+                    If(condition: (.named("updated") + Reference.named(extendedProperty)) != Reference.named(extendedProperty))
                         .adding(member: Return(value: Value.bool(true)))
                 })
                 .adding(member:
-                    If(condition: .named("updated") != .named("local"))
+                    If(condition: .named("updated") != .named("self"))
                         .adding(member: Return(value: Value.bool(true)))
                 )
                 .adding(member: Return(value: Value.bool(false)))

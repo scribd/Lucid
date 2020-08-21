@@ -148,7 +148,7 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
                             return true
                         case .some(.createResponse),
                              .none:
-                            return E.shouldOverwrite(entity, cachedEntity)
+                            return entity.shouldOverwrite(with: cachedEntity)
                         }
                     }
 

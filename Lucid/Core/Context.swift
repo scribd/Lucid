@@ -92,23 +92,29 @@ public final class _ReadContext<ResultPayload> where ResultPayload: ResultPayloa
 
     public let dataSource: DataSource
 
+    public let contract: EntityContract
+
     public let accessValidator: UserAccessValidating?
 
     /// Cache used to deduplicate API request to endpoints serving payloads with nested entities.
     let remoteStoreCache: RemoteStoreCache
 
     init(dataSource: DataSource,
+         contract: EntityContract,
          accessValidator: UserAccessValidating?,
          remoteStoreCache: RemoteStoreCache) {
         self.dataSource = dataSource.validating()
+        self.contract = contract
         self.accessValidator = accessValidator
         self.remoteStoreCache = remoteStoreCache
     }
 
     public convenience init(dataSource: DataSource = .local,
+                            contract: EntityContract = AlwaysValidContract(),
                             accessValidator: UserAccessValidating? = nil) {
 
         self.init(dataSource: dataSource,
+                  contract: contract,
                   accessValidator: accessValidator,
                   remoteStoreCache: RemoteStoreCache())
     }
@@ -232,6 +238,7 @@ extension _ReadContext {
 
     public func updatingDataSource(_ dataSource: DataSource) -> _ReadContext {
         return _ReadContext(dataSource: dataSource,
+                            contract: contract,
                             accessValidator: accessValidator,
                             remoteStoreCache: remoteStoreCache)
     }
@@ -283,6 +290,7 @@ extension _ReadContext {
         case .localThen(let remoteDataSource),
              .localOr(let remoteDataSource):
             return _ReadContext(dataSource: remoteDataSource,
+                                contract: contract,
                                 accessValidator: accessValidator,
                                 remoteStoreCache: remoteStoreCache)
         case ._remote,

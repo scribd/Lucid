@@ -15,7 +15,7 @@ import Lucid
 /**
  * This is just a simplified version of the InMemoryStore, altered to allow a fake StoreLevel.
  */
-public final class FakeStore<E: Entity>: StoringConvertible {
+public final class FakeStore<E>: StoringConvertible where E: LocalEntity {
 
     private var _cache = DualHashDictionary<E.Identifier, E>()
 

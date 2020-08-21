@@ -220,20 +220,9 @@ public struct EntitySpyMetadata: EntityMetadata, EntityIdentifiable {
     public var identifier: EntitySpyIdentifier { return EntitySpyIdentifier(value: .remote(remoteID, nil)) }
 }
 
-public enum EntitySpyExtrasIndexName: Hashable, RemoteEntityExtrasIndexName {
-    case lazy
-
-    public var requestValue: String {
-        switch self {
-        case .lazy: return "lazy"
-        }
-    }
-}
-
 public final class EntitySpy: RemoteEntity {
 
     public typealias Metadata = EntitySpyMetadata
-    public typealias ExtrasIndexName = EntitySpyExtrasIndexName
     public typealias ResultPayload = EntityEndpointResultPayloadSpy
     public typealias QueryContext = Never
 
@@ -342,23 +331,6 @@ public final class EntitySpy: RemoteEntity {
         guard lhs.lazy == rhs.lazy else { return false }
         guard lhs.oneRelationship == rhs.oneRelationship else { return false }
         guard lhs.manyRelationships == rhs.manyRelationships else { return false }
-        return true
-    }
-
-    public static var shouldValidate: Bool {
-        return true
-    }
-
-    public func isEntityValid(for query: Query<EntitySpy>) -> Bool {
-
-        guard let requestedExtras = query.extras else { return true }
-
-        for requestedExtra in requestedExtras {
-            switch requestedExtra {
-            case .lazy: return lazy != .unrequested
-            }
-        }
-
         return true
     }
 }

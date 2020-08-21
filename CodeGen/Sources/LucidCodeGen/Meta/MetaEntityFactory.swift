@@ -111,7 +111,7 @@ struct MetaEntityFactory {
                     typeID = subtype.factoryTypeID
                     typeID = property.isArray ? .anySequence(element: typeID) : typeID
                     typeID = property.optional ? .optional(wrapped: typeID) : typeID
-                    typeID = property.extra ? .extraValue(of: typeID) : typeID
+                    typeID = property.lazy ? .lazyValue(of: typeID) : typeID
                 }
             case .array,
                  .relationship,
@@ -157,7 +157,7 @@ struct MetaEntityFactory {
             .adding(members: try entity.valuesThenRelationships.map { property in
 
                 let propertyValue: VariableValue = try {
-                    if property.extra {
+                    if property.lazy {
                         return Value.reference(Reference.named(".requested") | .call(Tuple()
                             .adding(parameter:
                                 TupleParameter(value: try property.defaultValue(

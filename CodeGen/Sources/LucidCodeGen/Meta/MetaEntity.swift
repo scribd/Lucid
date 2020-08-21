@@ -245,7 +245,7 @@ struct MetaEntity {
             switch relationship.association {
             case .toOne where relationshipEntity.identifier.isRelationship:
                 let value: Reference
-                if property.extra {
+                if property.lazy {
                     value = Reference.named("payload") +
                         .named(property.payloadName) +
                         .named("identifier") | .call(Tuple()
@@ -266,7 +266,7 @@ struct MetaEntity {
 
             case .toOne:
                 let value: Reference
-                if property.extra {
+                if property.lazy {
                     value = Reference.named("payload") +
                         .named(property.payloadName) +
                         .named("identifier") | .call()
@@ -280,7 +280,7 @@ struct MetaEntity {
 
             case .toMany:
                 let value: Reference
-                if property.extra {
+                if property.lazy {
                     value = Reference.named("payload") +
                         .named(property.payloadName) +
                         .named("identifiers") | .call()
@@ -434,7 +434,7 @@ struct MetaEntity {
                     return nil
                 }
                 
-                if try property.valueTypeID(descriptions).isOptionalOrExtra {
+                if try property.valueTypeID(descriptions).isOptionalOrLazy {
                     return SwitchCase(name: property.transformedName(ignoreLexicon: false))
                         .adding(member: Return(value: (property.entityReferenceValue + .named("flatMap") | .block(FunctionBody()
                             .adding(parameter: FunctionBodyParameter(name: property.transformedName()))
@@ -699,10 +699,10 @@ struct MetaEntity {
             )
             .adding(members: try entity.valuesThenRelationships.flatMap { property -> [FunctionBodyMember] in
                 let coreDataPropertyName = "_\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))"
-                let extraFlagBodyMember: FunctionBodyMember = {
-                    guard property.extra else { return Reference.none }
+                let lazyFlagBodyMember: FunctionBodyMember = {
+                    guard property.lazy else { return Reference.none }
                     return coreDataEntity + .named("setProperty") | .call(Tuple()
-                        .adding(parameter: TupleParameter(value: Value.string("_\(coreDataPropertyName)\(useCoreDataLegacyNaming ? "ExtraFlag" : "_extra_flag")")))
+                        .adding(parameter: TupleParameter(value: Value.string("_\(coreDataPropertyName)\(useCoreDataLegacyNaming ? "ExtraFlag" : "_lazy_flag")")))
                         .adding(parameter: TupleParameter(name: "value", value: property.reference + Reference.named("coreDataFlagValue")))
                     )
                 }()
@@ -714,42 +714,42 @@ struct MetaEntity {
                         remoteProperty = coreDataEntity + .named("setProperty") | .call(Tuple()
                             .adding(parameter: TupleParameter(value: Value.string("_\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))")))
                             .adding(parameter: TupleParameter(name: "value", value: property.entityReference |
-                                (property.extra == false && property.optional ? .unwrap : .none) |
-                                (property.extra ? .none + .named("extraValue") | .call() : .none) +
+                                (property.lazy == false && property.optional ? .unwrap : .none) |
+                                (property.lazy ? .none + .lazyValue | .call() : .none) +
                                 .named("remoteCoreDataValue") |
                                 .call()))
                         )
                     } else {
                         remoteProperty = Assignment(variable: coreDataEntity + .named("_\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))"),
                                                     value: property.entityReference |
-                                                        (property.extra ? .none + .named("extraValue") | .call() : .none) +
+                                                        (property.lazy ? .none + .lazyValue | .call() : .none) +
                                                         .named("remoteCoreDataValue") | .call())
                     }
 
                     let localProperty = Assignment(variable: coreDataEntity + .named("__\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))"),
                                                    value: property.entityReference |
-                                                    (property.extra ? .none + .named("extraValue") | .call() : .none) +
+                                                    (property.lazy ? .none + .lazyValue | .call() : .none) +
                                                     .named("localCoreDataValue") | .call())
                     
                     let propertyTypeID = try property.valueTypeID(descriptions)
                     let identifierTypeIDProperty = Assignment(variable: coreDataEntity + .named("__\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))\(useCoreDataLegacyNaming ? "TypeUID" : "_type_uid")"),
                                                               value: property.entityReference |
-                                                                (property.extra ? .none + .named("extraValue") | .call() : .none) |
-                                                                (propertyTypeID.isOptionalOrExtra ? .unwrap : .none) +
+                                                                (property.lazy ? .none + .lazyValue | .call() : .none) |
+                                                                (propertyTypeID.isOptionalOrLazy ? .unwrap : .none) +
                                                                 .named("identifierTypeID"))
                     
                     return [
                         remoteProperty,
                         localProperty,
                         identifierTypeIDProperty,
-                        extraFlagBodyMember
+                        lazyFlagBodyMember
                     ]
                 } else {
                     let isStoredAsOptional = try property.propertyType.isStoredAsOptional(descriptions)
                     let propertyValueTypeID = try property.valueTypeID(descriptions)
 
                     let bodyMember: FunctionBodyMember = {
-                        if propertyValueTypeID.isOptionalOrExtra && isStoredAsOptional == false {
+                        if propertyValueTypeID.isOptionalOrLazy && isStoredAsOptional == false {
                             return coreDataEntity + .named("setProperty") | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: Value.string(coreDataPropertyName)))
                                 .adding(parameter: TupleParameter(name: "value", value: property.referenceValue + coreDataValue))
@@ -762,7 +762,7 @@ struct MetaEntity {
 
                     return [
                         bodyMember,
-                        extraFlagBodyMember
+                        lazyFlagBodyMember
                     ]
                 }
             })
@@ -822,18 +822,18 @@ struct MetaEntity {
                     )
                 }()
 
-                if property.extra {
+                if property.lazy {
                     return TupleParameter(
                         name: property.transformedName(),
-                        value: (propertyValueTypeID.isOptional && property.extra == false ? .none : .try) |
-                            .named("Extra") | .call(Tuple()
+                        value: (propertyValueTypeID.isOptional && property.lazy == false ? .none : .try) |
+                            .named("Lazy") | .call(Tuple()
                                 .adding(parameter: TupleParameter(name: "value", value: relationshipValueReference))
                                 .adding(parameter: TupleParameter(
                                     name: "requested",
                                     value: Reference.named("coreDataEntity") + .named("boolValue") | .call(Tuple()
                                         .adding(parameter: TupleParameter(
                                             name: "propertyName",
-                                            value: Value.string("_\(coreDataPropertyName)\(useCoreDataLegacyNaming ? "ExtraFlag" : "_extra_flag")")
+                                            value: Value.string("_\(coreDataPropertyName)\(useCoreDataLegacyNaming ? "ExtraFlag" : "_lazy_flag")")
                                         ))
                                     )
                                 ))
@@ -842,7 +842,7 @@ struct MetaEntity {
                 } else {
                     return TupleParameter(
                         name: property.transformedName(),
-                        value: (propertyValueTypeID.isOptionalOrExtra ? .none : .try) | relationshipValueReference
+                        value: (propertyValueTypeID.isOptionalOrLazy ? .none : .try) | relationshipValueReference
                     )
                 }
             } else {
@@ -851,9 +851,9 @@ struct MetaEntity {
                     "\(coreDataValueAccessorName(for: property.propertyType))Value".variableCased()
                 )
 
-                let isOptional = propertyValueTypeID.isOptionalOrExtra == false && isStoredAsOptional
-                let shouldTry = isOptional || property.extra
-                let shouldUsePropertyDirectly = propertyValueTypeID.isOptionalOrExtra == false || isStoredAsOptional
+                let isOptional = propertyValueTypeID.isOptionalOrLazy == false && isStoredAsOptional
+                let shouldTry = isOptional || property.lazy
+                let shouldUsePropertyDirectly = propertyValueTypeID.isOptionalOrLazy == false || isStoredAsOptional
                 let shouldPassPropertyName = isOptional || shouldUsePropertyDirectly == false
 
                 let propertyValueReference: Reference = {
@@ -866,16 +866,16 @@ struct MetaEntity {
 
                 let tryValue: Reference = (shouldTry ? .try : .none)
 
-                if property.extra {
+                if property.lazy {
                     return TupleParameter(
                         name: property.transformedName(),
                         value: tryValue |
-                            .named("Extra") | .call(Tuple()
+                            .named("Lazy") | .call(Tuple()
                                 .adding(parameter: TupleParameter(name: "value", value: propertyValueReference))
                                 .adding(parameter: TupleParameter(name: "requested", value:
                                     Reference.named("coreDataEntity") + .named("boolValue") |
                                         .call(Tuple()
-                                            .adding(parameter: TupleParameter(name: "propertyName", value: Value.string("_\(coreDataPropertyName)\(useCoreDataLegacyNaming ? "ExtraFlag" : "_extra_flag")")))
+                                            .adding(parameter: TupleParameter(name: "propertyName", value: Value.string("_\(coreDataPropertyName)\(useCoreDataLegacyNaming ? "ExtraFlag" : "_lazy_flag")")))
                                     )
                                 ))
                         )
@@ -993,13 +993,13 @@ struct MetaEntity {
     }
 
     private func entityMergingFunctionBodyMembers(_ entity: Entity) throws -> [FunctionBodyMember] {
-        if entity.hasPropertyExtras {
+        if entity.hasLazyProperties {
             return [
                 Return(value:
                     entity.typeID().reference | .call(Tuple()
                         .adding(parameter: TupleParameter(name: "identifier", value: Reference.named("updated") + .named("identifier")))
                         .adding(parameters: entity.valuesThenRelationships.map { property in
-                            property.extra ?
+                            property.lazy ?
                                 TupleParameter(name: property.transformedName(), value: Reference.named(property.transformedName()) + .named("merging") | .call(Tuple()
                                     .adding(parameter: TupleParameter(name: "with", value: Reference.named("updated") + .named(property.transformedName())))
                                 )) :

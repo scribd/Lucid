@@ -751,7 +751,7 @@ private extension CoreManager {
                     case .success(let queryResult):
 
                         if context.shouldOverwriteInLocalStores {
-                            self.localStore.search(withQuery: query, in: context) { localResult in
+                            self.localStore.search(withQuery: query.order([]), in: context) { localResult in
 
                                 switch localResult {
                                 case .success(let localResults):

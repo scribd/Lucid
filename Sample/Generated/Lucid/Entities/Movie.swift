@@ -165,7 +165,7 @@ extension Movie: LocalEntity, RemoteEntity {
     public func entityIndexValue(for indexName: MovieIndexName) -> EntityIndexValue<EntityRelationshipIdentifier, EntitySubtype> {
         switch indexName {
         case .genres:
-            return genres.extraValue().flatMap { (genres) in .optional(.array(genres.lazy.map { .relationship(.genre($0)) }.any)) } ?? .none
+            return genres.value().flatMap { (genres) in .optional(.array(genres.lazy.map { .relationship(.genre($0)) }.any)) } ?? .none
         case .overview:
             return .string(overview)
         case .popularity:
@@ -278,7 +278,7 @@ extension Movie: CoreDataEntity {
         coreDataEntity._popularity = popularity.coreDataValue()
         coreDataEntity._poster_path = posterPath.coreDataValue()
         coreDataEntity._title = title.coreDataValue()
-        coreDataEntity._genres = genres.extraValue().coreDataValue()
+        coreDataEntity._genres = genres.value().coreDataValue()
         coreDataEntity.setProperty("__genres_extra_flag", value: genres.coreDataFlagValue)
     }
 

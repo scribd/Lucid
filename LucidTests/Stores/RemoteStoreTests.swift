@@ -38,14 +38,14 @@ final class RemoteStoreTests: XCTestCase {
             EntitySpy(identifier: EntitySpyIdentifier(value: .remote(42, nil)),
                       title: "fake_title",
                       subtitle: "fake_subtitle",
-                      extra: .unrequested,
+                      lazy: .unrequested,
                       oneRelationship: EntityRelationshipSpyIdentifier(value: .remote(24, "24")),
                       manyRelationships: []
             ),
             EntitySpy(identifier: EntitySpyIdentifier(value: .remote(24, nil)),
                       title: "fake_title",
                       subtitle: "fake_subtitle",
-                      extra: .unrequested,
+                      lazy: .unrequested,
                       oneRelationship: EntityRelationshipSpyIdentifier(value: .remote(42, "42")),
                       manyRelationships: []
             )

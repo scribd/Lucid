@@ -2772,9 +2772,9 @@ final class CoreManagerTests: XCTestCase {
 
     // MARK: Test Updates For Extras Changes
 
-    func test_manager_should_not_send_entity_update_to_provider_when_extra_changes_from_unrequested_to_unrequested() {
+    func test_manager_should_not_send_entity_update_to_provider_when_lazy_value_changes_from_unrequested_to_unrequested() {
 
-        let entity = EntitySpy(idValue: .remote(42, nil), extra: .unrequested)
+        let entity = EntitySpy(idValue: .remote(42, nil), lazy: .unrequested)
         remoteStoreSpy.searchResultStub = .success(.entities([entity]))
         memoryStoreSpy.searchResultStub = .success(.entities([entity]))
         memoryStoreSpy.setResultStub = .success([entity])
@@ -2800,10 +2800,10 @@ final class CoreManagerTests: XCTestCase {
             .observe { event in
                 switch event {
                 case .next(let documents):
-                    XCTAssertEqual(documents.first?.extra, .unrequested)
+                    XCTAssertEqual(documents.first?.lazy, .unrequested)
                     XCTAssertEqual(documents.count, 1)
 
-                    let updatedEntity = EntitySpy(idValue: .remote(42, nil), extra: .unrequested)
+                    let updatedEntity = EntitySpy(idValue: .remote(42, nil), lazy: .unrequested)
                     let mergedEntity = entity.merging(updatedEntity)
                     self.remoteStoreSpy.getResultStub = .success(QueryResult(from: mergedEntity))
                     let getContext = ReadContext<EntitySpy>(dataSource: .remote(
@@ -2826,7 +2826,7 @@ final class CoreManagerTests: XCTestCase {
                 switch event {
                 case .next(let documents):
                     if continuousCount == 0 {
-                        XCTAssertEqual(documents.first?.extra, .unrequested)
+                        XCTAssertEqual(documents.first?.lazy, .unrequested)
                         XCTAssertEqual(documents.count, 1)
                         continuousExpectation.fulfill()
                     } else {
@@ -2852,9 +2852,9 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [additionalSignalExpectation], timeout: 1.0)
     }
 
-    func test_manager_should_not_send_entity_update_to_provider_when_extra_changes_from_requested_to_unrequested() {
+    func test_manager_should_not_send_entity_update_to_provider_when_lazy_value_changes_from_requested_to_unrequested() {
 
-        let entity = EntitySpy(idValue: .remote(42, nil), extra: .requested(6))
+        let entity = EntitySpy(idValue: .remote(42, nil), lazy: .requested(6))
         remoteStoreSpy.searchResultStub = .success(.entities([entity]))
         memoryStoreSpy.searchResultStub = .success(.entities([entity]))
         memoryStoreSpy.setResultStub = .success([entity])
@@ -2880,10 +2880,10 @@ final class CoreManagerTests: XCTestCase {
             .observe { event in
                 switch event {
                 case .next(let documents):
-                    XCTAssertEqual(documents.first?.extra, .requested(6))
+                    XCTAssertEqual(documents.first?.lazy, .requested(6))
                     XCTAssertEqual(documents.count, 1)
 
-                    let updatedEntity = EntitySpy(idValue: .remote(42, nil), extra: .unrequested)
+                    let updatedEntity = EntitySpy(idValue: .remote(42, nil), lazy: .unrequested)
                     let mergedEntity = entity.merging(updatedEntity)
                     self.remoteStoreSpy.getResultStub = .success(QueryResult(from: mergedEntity))
                     let getContext = ReadContext<EntitySpy>(dataSource: .remote(
@@ -2906,7 +2906,7 @@ final class CoreManagerTests: XCTestCase {
                 switch event {
                 case .next(let documents):
                     if continuousCount == 0 {
-                        XCTAssertEqual(documents.first?.extra, .requested(6))
+                        XCTAssertEqual(documents.first?.lazy, .requested(6))
                         XCTAssertEqual(documents.count, 1)
                         continuousExpectation.fulfill()
                     } else {
@@ -2932,9 +2932,9 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [additionalSignalExpectation], timeout: 1.0)
     }
 
-    func test_manager_should_not_send_entity_update_to_provider_when_extra_changes_from_requested_to_same_requested_value() {
+    func test_manager_should_not_send_entity_update_to_provider_when_lazy_value_changes_from_requested_to_same_requested_value() {
 
-        let entity = EntitySpy(idValue: .remote(42, nil), extra: .requested(6))
+        let entity = EntitySpy(idValue: .remote(42, nil), lazy: .requested(6))
         remoteStoreSpy.searchResultStub = .success(.entities([entity]))
         memoryStoreSpy.searchResultStub = .success(.entities([entity]))
         memoryStoreSpy.setResultStub = .success([entity])
@@ -2960,10 +2960,10 @@ final class CoreManagerTests: XCTestCase {
             .observe { event in
                 switch event {
                 case .next(let documents):
-                    XCTAssertEqual(documents.first?.extra, .requested(6))
+                    XCTAssertEqual(documents.first?.lazy, .requested(6))
                     XCTAssertEqual(documents.count, 1)
 
-                    let updatedEntity = EntitySpy(idValue: .remote(42, nil), extra: .requested(6))
+                    let updatedEntity = EntitySpy(idValue: .remote(42, nil), lazy: .requested(6))
                     let mergedEntity = entity.merging(updatedEntity)
                     self.remoteStoreSpy.getResultStub = .success(QueryResult(from: mergedEntity))
                     let getContext = ReadContext<EntitySpy>(dataSource: .remote(
@@ -2986,7 +2986,7 @@ final class CoreManagerTests: XCTestCase {
                 switch event {
                 case .next(let documents):
                     if continuousCount == 0 {
-                        XCTAssertEqual(documents.first?.extra, .requested(6))
+                        XCTAssertEqual(documents.first?.lazy, .requested(6))
                         XCTAssertEqual(documents.count, 1)
                         continuousExpectation.fulfill()
                     } else {
@@ -3012,9 +3012,9 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [additionalSignalExpectation], timeout: 1.0)
     }
 
-    func test_manager_should_send_entity_update_to_provider_when_extra_changes_from_unrequested_to_requested() {
+    func test_manager_should_send_entity_update_to_provider_when_lazy_value_changes_from_unrequested_to_requested() {
 
-        let entity = EntitySpy(idValue: .remote(42, nil), extra: .unrequested)
+        let entity = EntitySpy(idValue: .remote(42, nil), lazy: .unrequested)
         remoteStoreSpy.searchResultStub = .success(.entities([entity]))
         memoryStoreSpy.searchResultStub = .success(.entities([entity]))
         memoryStoreSpy.setResultStub = .success([entity])
@@ -3041,10 +3041,10 @@ final class CoreManagerTests: XCTestCase {
             .observe { event in
                 switch event {
                 case .next(let documents):
-                    XCTAssertEqual(documents.first?.extra, .unrequested)
+                    XCTAssertEqual(documents.first?.lazy, .unrequested)
                     XCTAssertEqual(documents.count, 1)
 
-                    let updatedEntity = EntitySpy(idValue: .remote(42, nil), extra: .requested(5))
+                    let updatedEntity = EntitySpy(idValue: .remote(42, nil), lazy: .requested(5))
                     let mergedEntity = entity.merging(updatedEntity)
                     self.remoteStoreSpy.getResultStub = .success(QueryResult(from: mergedEntity))
                     let getContext = ReadContext<EntitySpy>(dataSource: .remote(
@@ -3067,10 +3067,10 @@ final class CoreManagerTests: XCTestCase {
                 switch event {
                 case .next(let documents):
                     if continuousCount == 0 {
-                        XCTAssertEqual(documents.first?.extra, .unrequested)
+                        XCTAssertEqual(documents.first?.lazy, .unrequested)
                         XCTAssertEqual(documents.count, 1)
                     } else {
-                        XCTAssertEqual(documents.first?.extra, .requested(5))
+                        XCTAssertEqual(documents.first?.lazy, .requested(5))
                         XCTAssertEqual(documents.count, 1)
                     }
                     continuousCount += 1
@@ -3086,9 +3086,9 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
     }
 
-    func test_manager_should_send_entity_update_to_provider_when_extra_changes_from_requested_to_new_requested_value() {
+    func test_manager_should_send_entity_update_to_provider_when_lazy_value_changes_from_requested_to_new_requested_value() {
 
-        let entity = EntitySpy(idValue: .remote(42, nil), extra: .requested(7))
+        let entity = EntitySpy(idValue: .remote(42, nil), lazy: .requested(7))
         remoteStoreSpy.searchResultStub = .success(.entities([entity]))
         memoryStoreSpy.searchResultStub = .success(.entities([entity]))
         memoryStoreSpy.setResultStub = .success([entity])
@@ -3115,10 +3115,10 @@ final class CoreManagerTests: XCTestCase {
             .observe { event in
                 switch event {
                 case .next(let documents):
-                    XCTAssertEqual(documents.first?.extra, .requested(7))
+                    XCTAssertEqual(documents.first?.lazy, .requested(7))
                     XCTAssertEqual(documents.count, 1)
 
-                    let updatedEntity = EntitySpy(idValue: .remote(42, nil), extra: .requested(99))
+                    let updatedEntity = EntitySpy(idValue: .remote(42, nil), lazy: .requested(99))
                     let mergedEntity = entity.merging(updatedEntity)
                     self.remoteStoreSpy.getResultStub = .success(QueryResult(from: mergedEntity))
                     let getContext = ReadContext<EntitySpy>(dataSource: .remote(
@@ -3141,10 +3141,10 @@ final class CoreManagerTests: XCTestCase {
                 switch event {
                 case .next(let documents):
                     if continuousCount == 0 {
-                        XCTAssertEqual(documents.first?.extra, .requested(7))
+                        XCTAssertEqual(documents.first?.lazy, .requested(7))
                         XCTAssertEqual(documents.count, 1)
                     } else {
-                        XCTAssertEqual(documents.first?.extra, .requested(99))
+                        XCTAssertEqual(documents.first?.lazy, .requested(99))
                         XCTAssertEqual(documents.count, 1)
                     }
                     continuousCount += 1

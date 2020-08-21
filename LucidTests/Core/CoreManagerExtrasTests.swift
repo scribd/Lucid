@@ -66,7 +66,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .local)
 
         memoryStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested)
         ))
 
         let onceExpectation = self.expectation(description: "once")
@@ -92,18 +92,18 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_get_should_return_complete_results_when_extra_is_requested_and_entity_has_extra_data() {
+    func test_core_manager_get_should_return_complete_results_when_extra_is_requested_and_entity_has_lazy_data() {
 
         buildManager(for: .local)
 
         memoryStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(1))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(1))
         ))
 
         let onceExpectation = self.expectation(description: "once")
 
         manager
-            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)), extras: [.extra])
+            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)), extras: [.lazy])
             .observe { event in
                 switch event {
                 case .next(let queryResult):
@@ -123,18 +123,18 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_get_should_filter_results_when_extras_are_requested_and_entity_is_missing_extra_data() {
+    func test_core_manager_get_should_filter_results_when_extras_are_requested_and_entity_is_missing_lazy_data() {
 
         buildManager(for: .local)
 
         memoryStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested)
         ))
 
         let onceExpectation = self.expectation(description: "once")
 
         manager
-            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)), extras: [.extra])
+            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)), extras: [.lazy])
             .observe { event in
                 switch event {
                 case .next(let queryResult):
@@ -160,8 +160,8 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .local)
 
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(2))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(2))
         ]))
 
         let onceExpectation = self.expectation(description: "once")
@@ -189,19 +189,19 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_should_return_complete_results_when_extra_is_requested_and_entities_have_extra_data() {
+    func test_core_manager_search_should_return_complete_results_when_extra_is_requested_and_entities_have_lazy_data() {
 
         buildManager(for: .local)
 
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(1)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(2))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(1)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(2))
         ]))
 
         let onceExpectation = self.expectation(description: "once")
 
         manager
-            .search(withQuery: Query(extras: [.extra]))
+            .search(withQuery: Query(extras: [.lazy]))
             .once
             .observe { event in
                 switch event {
@@ -223,19 +223,19 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_should_return_filtered_results_when_extra_is_requested_and_some_entities_are_missing_extra_data() {
+    func test_core_manager_search_should_return_filtered_results_when_extra_is_requested_and_some_entities_are_missing_lazy_data() {
 
         buildManager(for: .local)
 
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(2))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(2))
         ]))
 
         let onceExpectation = self.expectation(description: "once")
 
         manager
-            .search(withQuery: Query(extras: [.extra]))
+            .search(withQuery: Query(extras: [.lazy]))
             .once
             .observe { event in
                 switch event {
@@ -269,7 +269,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         let continuousCompletedExpectation = self.expectation(description: "continuous")
 
         manager
-            .search(withQuery: Query(extras: [.extra]))
+            .search(withQuery: Query(extras: [.lazy]))
             .continuous
             .observe { event in
                 switch event {
@@ -298,13 +298,13 @@ final class CoreManagerExtrasTests: XCTestCase {
         wait(for: [continuousSetupExpectation], timeout: 1)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(2))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(2))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(2))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(2))
         ])
 
         let onceExpectation = self.expectation(description: "once")
@@ -349,7 +349,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         memoryStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested)
         ))
 
         let onceExpectation = self.expectation(description: "once")
@@ -358,7 +358,7 @@ final class CoreManagerExtrasTests: XCTestCase {
 
         manager
             .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 extras: [.extra],
+                 extras: [.lazy],
                  in: context)
             .observe { event in
                 switch event {
@@ -383,13 +383,13 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9))
         ))
         memoryStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested)
         ))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9))
         ])
 
         let onceExpectation = self.expectation(description: "once")
@@ -407,13 +407,13 @@ final class CoreManagerExtrasTests: XCTestCase {
 
         manager
             .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 extras: [.extra],
+                 extras: [.lazy],
                  in: context)
             .observe { event in
                 switch event {
                 case .next(let queryResult):
                     XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.extra.extraValue(), 9)
+                    XCTAssertEqual(queryResult.first?.lazy.value(), 9)
 
                 case .failed(let error):
                     XCTFail("Unexpected error: \(error)")
@@ -433,13 +433,13 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9))
         ))
         memoryStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested)
         ))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9))
         ])
 
         let onceExpectation = self.expectation(description: "once")
@@ -457,13 +457,13 @@ final class CoreManagerExtrasTests: XCTestCase {
 
         manager
             .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 extras: [.extra],
+                 extras: [.lazy],
                  in: context)
             .observe { event in
                 switch event {
                 case .next(let queryResult):
                     XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.extra.extraValue(), 9)
+                    XCTAssertEqual(queryResult.first?.lazy.value(), 9)
 
                 case .failed(let error):
                     XCTFail("Unexpected error: \(error)")
@@ -483,13 +483,13 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested)
         ))
         memoryStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9))
         ))
         memoryStoreSpy.setResultStub = .success([
-        EntitySpy(idValue: .remote(1, nil), extra: .requested(9))
+        EntitySpy(idValue: .remote(1, nil), lazy: .requested(9))
         ])
 
         let onceExpectation = self.expectation(description: "once")
@@ -505,13 +505,13 @@ final class CoreManagerExtrasTests: XCTestCase {
 
         manager
             .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 extras: [.extra],
+                 extras: [.lazy],
                  in: context)
             .observe { event in
                 switch event {
                 case .next(let queryResult):
                     XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.extra.extraValue(), 9)
+                    XCTAssertEqual(queryResult.first?.lazy.value(), 9)
 
                 case .failed(let error):
                     XCTFail("Unexpected error: \(error)")
@@ -531,7 +531,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested)
         ))
 
         let onceExpectation = self.expectation(description: "once")
@@ -547,7 +547,7 @@ final class CoreManagerExtrasTests: XCTestCase {
 
         manager
             .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 extras: [.extra],
+                 extras: [.lazy],
                  in: context)
             .observe { event in
                 switch event {
@@ -573,8 +573,8 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
 
         let onceExpectation = self.expectation(description: "once")
@@ -583,7 +583,7 @@ final class CoreManagerExtrasTests: XCTestCase {
 
         manager
             .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 extras: [.extra],
+                 extras: [.lazy],
                  in: context)
             .once
             .observe { event in
@@ -610,16 +610,16 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
@@ -637,7 +637,7 @@ final class CoreManagerExtrasTests: XCTestCase {
 
         manager
             .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 extras: [.extra],
+                 extras: [.lazy],
                  in: context)
             .once
             .observe { event in
@@ -665,16 +665,16 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
@@ -692,7 +692,7 @@ final class CoreManagerExtrasTests: XCTestCase {
 
         manager
             .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 extras: [.extra],
+                 extras: [.lazy],
                  in: context)
             .once
             .observe { event in
@@ -720,16 +720,16 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
@@ -745,7 +745,7 @@ final class CoreManagerExtrasTests: XCTestCase {
 
         manager
             .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 extras: [.extra],
+                 extras: [.lazy],
                  in: context)
             .once
             .observe { event in
@@ -772,12 +772,12 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .unrequested)
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
         ])
@@ -795,7 +795,7 @@ final class CoreManagerExtrasTests: XCTestCase {
 
         manager
             .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 extras: [.extra],
+                 extras: [.lazy],
                  in: context)
             .once
             .observe { event in
@@ -821,8 +821,8 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .unrequested)
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
         ]))
@@ -842,7 +842,7 @@ final class CoreManagerExtrasTests: XCTestCase {
 
         manager
             .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 extras: [.extra],
+                 extras: [.lazy],
                  in: context)
             .once
             .observe { event in
@@ -870,15 +870,15 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), title: "test", extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), title: "test", extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), title: "test", lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), title: "test", lazy: .requested(5))
         ]))
 
         let onceExpectation = self.expectation(description: "once")
 
         let context = ReadContext<EntitySpy>(dataSource: .local)
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.lazy])
 
         manager
             .search(withQuery: query, in: context)
@@ -907,16 +907,16 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), title: "test", extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), title: "test", extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), title: "test", lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), title: "test", lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), title: "test", extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), title: "test", extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), title: "test", lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), title: "test", lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), title: "test", extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), title: "test", extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), title: "test", lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), title: "test", lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
@@ -932,7 +932,7 @@ final class CoreManagerExtrasTests: XCTestCase {
             )
         )
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.lazy])
 
         manager
             .search(withQuery: query, in: context)
@@ -961,16 +961,16 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), title: "test", extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), title: "test", extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), title: "test", lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), title: "test", lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), title: "test", extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), title: "test", extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), title: "test", lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), title: "test", lazy: .unrequested)
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), title: "test", extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), title: "test", extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), title: "test", lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), title: "test", lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
@@ -986,7 +986,7 @@ final class CoreManagerExtrasTests: XCTestCase {
             )
         )
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.lazy])
 
         manager
             .search(withQuery: query, in: context)
@@ -1016,16 +1016,16 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
@@ -1041,7 +1041,7 @@ final class CoreManagerExtrasTests: XCTestCase {
             )
         )
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.lazy])
 
         manager
             .search(withQuery: query, in: context)
@@ -1070,16 +1070,16 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .unrequested)
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
@@ -1095,7 +1095,7 @@ final class CoreManagerExtrasTests: XCTestCase {
             )
         )
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.lazy])
 
         manager
             .search(withQuery: query, in: context)
@@ -1125,16 +1125,16 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
@@ -1148,7 +1148,7 @@ final class CoreManagerExtrasTests: XCTestCase {
             )
         )
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.lazy])
 
         manager
             .search(withQuery: query, in: context)
@@ -1177,12 +1177,12 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .unrequested)
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
         ])
@@ -1198,7 +1198,7 @@ final class CoreManagerExtrasTests: XCTestCase {
             )
         )
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.lazy])
 
         manager
             .search(withQuery: query, in: context)
@@ -1226,12 +1226,12 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .unrequested)
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
         ])
@@ -1247,7 +1247,7 @@ final class CoreManagerExtrasTests: XCTestCase {
             )
         )
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.lazy])
 
         manager
             .search(withQuery: query, in: context)

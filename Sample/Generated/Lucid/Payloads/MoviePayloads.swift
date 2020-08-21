@@ -116,7 +116,7 @@ extension DefaultEndpointMoviePayload: PayloadIdentifierDecodableKeyProvider {
 
 extension MoviePayload {
     var genres: AnySequence<Genre> {
-        let genrePayloads = self.genrePayloads.extraValue().values().lazy.map { Genre(payload: $0.rootPayload) }.any
+        let genrePayloads = self.genrePayloads.value().values().lazy.map { Genre(payload: $0.rootPayload) }.any
         return Array(arrayLiteral: genrePayloads).joined().any
     }
 }

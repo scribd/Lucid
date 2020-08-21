@@ -76,7 +76,7 @@ public final class EntitySpyIdentifier: RemoteIdentifier, CoreDataIdentifier {
 public enum EntitySpyIndexName {
     case title
     case subtitle
-    case extra
+    case lazy
     case oneRelationship
     case manyRelationships
 }
@@ -89,8 +89,8 @@ extension EntitySpyIndexName: CoreDataIndexName {
             return "_title"
         case .subtitle:
             return "_subtitle"
-        case .extra:
-            return "_extra"
+        case .lazy:
+            return "_lazy"
         case .oneRelationship:
             return "_oneRelationship"
         case .manyRelationships:
@@ -102,7 +102,7 @@ extension EntitySpyIndexName: CoreDataIndexName {
         switch self {
         case .title,
              .subtitle,
-             .extra,
+             .lazy,
              .manyRelationships:
             return false
         case .oneRelationship:
@@ -114,7 +114,7 @@ extension EntitySpyIndexName: CoreDataIndexName {
         switch self {
         case .title,
              .subtitle,
-             .extra,
+             .lazy,
              .manyRelationships:
             return nil
         case .oneRelationship:
@@ -131,8 +131,8 @@ extension EntitySpyIndexName: QueryResultConvertible {
             return "title"
         case .subtitle:
             return "subtitle"
-        case .extra:
-            return "extra"
+        case .lazy:
+            return "lazy"
         case .manyRelationships:
             return "many_relationships"
         case .oneRelationship:
@@ -221,11 +221,11 @@ public struct EntitySpyMetadata: EntityMetadata, EntityIdentifiable {
 }
 
 public enum EntitySpyExtrasIndexName: Hashable, RemoteEntityExtrasIndexName {
-    case extra
+    case lazy
 
     public var requestValue: String {
         switch self {
-        case .extra: return "extra"
+        case .lazy: return "lazy"
         }
     }
 }
@@ -267,7 +267,7 @@ public final class EntitySpy: RemoteEntity {
     public let identifier: EntitySpyIdentifier
     public let title: String
     public let subtitle: String
-    public let extra: Extra<Int>
+    public let lazy: Lazy<Int>
     public let oneRelationship: EntityRelationshipSpyIdentifier
 
     public let manyRelationships: AnySequence<EntityRelationshipSpyIdentifier>
@@ -275,14 +275,14 @@ public final class EntitySpy: RemoteEntity {
     public init<S>(identifier: EntitySpyIdentifier,
                    title: String,
                    subtitle: String,
-                   extra: Extra<Int>,
+                   lazy: Lazy<Int>,
                    oneRelationship: EntityRelationshipSpyIdentifier,
                    manyRelationships: S) where S: Sequence, S.Element == EntityRelationshipSpyIdentifier {
 
         self.identifier = identifier
         self.title = title
         self.subtitle = subtitle
-        self.extra = extra
+        self.lazy = lazy
         self.oneRelationship = oneRelationship
         self.manyRelationships = manyRelationships.any
     }
@@ -293,7 +293,7 @@ public final class EntitySpy: RemoteEntity {
             identifier: updated.identifier,
             title: updated.title,
             subtitle: updated.subtitle,
-            extra: extra.merging(with: updated.extra),
+            lazy: lazy.merging(with: updated.lazy),
             oneRelationship: updated.oneRelationship,
             manyRelationships: updated.manyRelationships
         )
@@ -306,8 +306,8 @@ public final class EntitySpy: RemoteEntity {
             return .string(title)
         case .subtitle:
             return .string(subtitle)
-        case .extra:
-            return extra.extraValue().flatMap { (extraValue) in .optional(.int(extraValue)) } ?? .none
+        case .lazy:
+            return lazy.value().flatMap { lazyValue in .optional(.int(lazyValue)) } ?? .none
         case .oneRelationship:
             return .relationship(oneRelationship)
         case .manyRelationships:
@@ -339,7 +339,7 @@ public final class EntitySpy: RemoteEntity {
     public static func == (lhs: EntitySpy, rhs: EntitySpy) -> Bool {
         guard lhs.identifier == rhs.identifier else { return false }
         guard lhs.title == rhs.title else { return false }
-        guard lhs.extra == rhs.extra else { return false }
+        guard lhs.lazy == rhs.lazy else { return false }
         guard lhs.oneRelationship == rhs.oneRelationship else { return false }
         guard lhs.manyRelationships == rhs.manyRelationships else { return false }
         return true
@@ -355,7 +355,7 @@ public final class EntitySpy: RemoteEntity {
 
         for requestedExtra in requestedExtras {
             switch requestedExtra {
-            case .extra: return extra != .unrequested
+            case .lazy: return lazy != .unrequested
             }
         }
 
@@ -384,8 +384,8 @@ extension EntitySpy: CoreDataEntity {
         coreDataEntity.__oneRelationship = oneRelationship.localCoreDataValue()
         coreDataEntity.__oneRelationshipTypeUID = oneRelationship.identifierTypeID
         coreDataEntity._manyRelationships = manyRelationships.coreDataValue()
-        coreDataEntity.setProperty("_extra", value: extra.extraValue().coreDataValue())
-        coreDataEntity.setProperty("__extraExtraFlag", value: extra.coreDataFlagValue)
+        coreDataEntity.setProperty("_lazy", value: lazy.value().coreDataValue())
+        coreDataEntity.setProperty("__lazyLazyFlag", value: lazy.coreDataFlagValue)
     }
 
     private convenience init(coreDataEntity: ManagedEntitySpy) throws {
@@ -393,9 +393,9 @@ extension EntitySpy: CoreDataEntity {
             identifier: try coreDataEntity.identifierValueType(EntitySpyIdentifier.self, identifierTypeID: EntitySpy.identifierTypeID),
             title: try coreDataEntity._title.stringValue(propertyName: "_title"),
             subtitle: try coreDataEntity._subtitle.stringValue(propertyName: "_subtitle"),
-            extra: try Extra(
-                value: coreDataEntity.intValue(propertyName: "_extra"),
-                requested: coreDataEntity.boolValue(propertyName: "__extraExtraFlag")
+            lazy: try Lazy(
+                value: coreDataEntity.intValue(propertyName: "_lazy"),
+                requested: coreDataEntity.boolValue(propertyName: "__lazyLazyFlag")
             ),
             oneRelationship: try coreDataEntity.identifierValueType(EntityRelationshipSpyIdentifier.self, identifierTypeID: EntityRelationshipSpy.identifierTypeID, propertyName: "_oneRelationship"),
             manyRelationships: coreDataEntity._manyRelationships.entityRelationshipSpyArrayValue()
@@ -409,7 +409,7 @@ extension EntitySpy {
                             remoteSynchronizationState: RemoteSynchronizationState = .outOfSync,
                             title: String? = nil,
                             subtitle: String? = nil,
-                            extra: Extra<Int> = .unrequested,
+                            lazy: Lazy<Int> = .unrequested,
                             oneRelationshipIdValue: IdentifierValueType<String, Int> = .remote(1, nil),
                             manyRelationshipsIdValues: [IdentifierValueType<String, Int>] = []) {
 
@@ -417,7 +417,7 @@ extension EntitySpy {
             identifier: EntitySpyIdentifier(value: idValue, remoteSynchronizationState: remoteSynchronizationState),
             title: title ?? "fake_title_\(idValue.remoteValue?.description ?? "none")",
             subtitle: subtitle ?? "fake_subtitle_\(idValue.remoteValue?.description ?? "none")",
-            extra: extra,
+            lazy: lazy,
             oneRelationship: EntityRelationshipSpyIdentifier(value: oneRelationshipIdValue),
             manyRelationships: manyRelationshipsIdValues.map { EntityRelationshipSpyIdentifier(value: $0) }
         )

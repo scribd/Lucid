@@ -294,10 +294,12 @@ public final class RelationshipController<RelationshipManager, Graph>
                                 return Signal(just: ())
                             }
 
+                            let depth = path.count
+
                             let entities = self.relationshipManager?.get(
                                 byIDs: identifiers.any,
                                 entityType: entityType,
-                                in: context.updatingDeltaStrategy(.retainExtraLocalData)
+                                in: context.updateForRelationshipController(at: depth, deltaStrategy: .retainExtraLocalData)
                             ).toSignal() ?? Signal(just: [].any)
 
                             let recurse = {
@@ -312,16 +314,16 @@ public final class RelationshipController<RelationshipManager, Graph>
                             let globalDepthLimit = LucidConfiguration.relationshipControllerMaxRecursionDepth
 
                             switch recursiveMethod {
-                            case .depthLimit(let limit) where path.count < limit && path.count < globalDepthLimit:
+                            case .depthLimit(let limit) where depth < limit && depth < globalDepthLimit:
                                 return recurse()
 
-                            case .full where path.count < globalDepthLimit:
+                            case .full where depth < globalDepthLimit:
                                 return recurse()
 
                             case .none,
                                  .depthLimit,
                                  .full:
-                                if path.count >= globalDepthLimit {
+                                if depth >= globalDepthLimit {
                                     Logger.log(.error, "\(RelationshipController.self): Recursion depth limit (\(globalDepthLimit)) has been reached.", assert: true)
                                 }
                                 return entities.map { entities in

@@ -22,9 +22,21 @@ public protocol EntityGraphContract: EntityContract {
     func contract(at depth: Int) -> EntityGraphContract
 }
 
+public extension EntityGraphContract {
+
+    func contract(at depth: Int) -> EntityGraphContract {
+        // This currently mirrors existing functionality, will be completed with ticket IPT-4054
+        if depth == 0 {
+            return self
+        } else {
+            return AlwaysValidContract()
+        }
+    }
+}
+
 // MARK: Contracts
 
-public struct AlwaysValidContract: EntityContract {
+public struct AlwaysValidContract: EntityGraphContract {
 
     public init() { }
 
@@ -54,4 +66,22 @@ struct SampleContract: EntityContract {
         }
     }
 }
+ */
+
+/*
+struct SampleGraphContract: EntityGraphContract {
+
+    let levelContextualData: SomeData
+
+    func contract(at depth: Int) -> EntityGraphContract {
+
+        let contexualData = contextualContractData(depth: depth)
+
+        return SampleGraphContract(levelContextualData: levelContextualData)
+    }
+
+    private func contextualContractData(depth: Int) -> ContextualData {
+         // return some data
+    }
+ }
  */

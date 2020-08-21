@@ -336,7 +336,7 @@ public struct EntityProperty {
     
     public let unused: Bool
     
-    public let extra: Bool
+    public let lazy: Bool
     
     public let platforms: Set<Platform>
 }

@@ -23,7 +23,7 @@ private enum Defaults {
     static let objcNoneCase = false
     static let unused = false
     static let logError = true
-    static let extra = false
+    static let lazy = false
     static let matchExactKey = false
     static let platforms = Set<Platform>()
     static let lastRemoteRead = false
@@ -332,7 +332,7 @@ extension EntityProperty: Decodable {
         case mutable
         case objc
         case unused
-        case extra
+        case lazy
         case matchExactKey
         case platforms
         case persistedName
@@ -376,7 +376,7 @@ extension EntityProperty: Decodable {
         mutable = try container.decodeIfPresent(Bool.self, forKey: .mutable) ?? Defaults.mutable
         objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? Defaults.objc
         unused = try container.decodeIfPresent(Bool.self, forKey: .unused) ?? Defaults.unused
-        extra = try container.decodeIfPresent(Bool.self, forKey: .extra) ?? Defaults.extra
+        lazy = try container.decodeIfPresent(Bool.self, forKey: .lazy) ?? Defaults.lazy
         platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? Defaults.platforms
         persistedName = try container.decodeIfPresent(String.self, forKey: .persistedName)
     }

@@ -329,7 +329,7 @@ struct MetaEntityPayload {
                              .scalar,
                              .array:
                             
-                            let valueTypeID = try property.valueTypeID(descriptions, includeExtra: false).wrappedOrSelf
+                            let valueTypeID = try property.valueTypeID(descriptions, includeLazy: false).wrappedOrSelf
                             let value = .try | container.reference + .named(property.isArray ? "decodeSequence" : "decode") | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: valueTypeID.reference + .named(.`self`)))
                                 .adding(parameter: TupleParameter(name: "forKeys", value: Value.array(container.lastKeys.map { .reference(+.named($0)) })))
@@ -371,14 +371,14 @@ struct MetaEntityPayload {
                     return Assignment(
                         variable: .named("entityMetadata") | .unwrap + property.variable.reference,
                         value: .named("rootPayload")  + property.payloadName.reference |
-                            (property.extra ? .none + .named("extraValue") | .call() : .none ) +
+                            (property.lazy ? .none + .lazyValue | .call() : .none ) +
                             .named("values") | .call()
                     )
                 } else {
                     return Assignment(
                         variable: .named("entityMetadata") | .unwrap + property.variable.reference,
                         value: .named("rootPayload") + property.payloadName.reference |
-                            (property.extra ? .none + .named("extraValue") | .call() | .unwrap : .none ) |
+                            (property.lazy ? .none + .lazyValue | .call() | .unwrap : .none ) |
                             (property.optional ? .unwrap : .none) + .named("value") | .unwrap + .named("entityMetadata")
                     )
                 }
@@ -472,7 +472,7 @@ struct MetaEntityPayload {
 
                         return Assignment(
                             variable: Variable(name: property.payloadName),
-                            value: .named(.`self`) + .named(property.payloadName) | (property.extra ? .none + .named("extraValue") | .call() : .none) + .named("values") | .call() + .named("lazy") + .named(.map) | .block(FunctionBody()
+                            value: .named(.`self`) + .named(property.payloadName) | (property.lazy ? .none + .lazyValue | .call() : .none) + .named("values") | .call() + .named("lazy") + .named(.map) | .block(FunctionBody()
                                 .adding(member: relationshipEntity.typeID().reference | .call(Tuple()
                                     .adding(parameter: relationshipEntity.identifier.isRelationship ?
                                         TupleParameter(name: "identifier", value: .named(.`self`) + .named("identifier")) : nil
@@ -495,7 +495,7 @@ struct MetaEntityPayload {
                     let indirectRelationshipVariables: [Assignment] = indirectRelationships.map { property in
                         return Assignment(
                             variable: Variable(name: "_\(property.payloadName)"),
-                            value: .named(.`self`) + .named(property.payloadName) | (property.extra ? .none + .named("extraValue") | .call() : .none) + .named("values") | .call() + .named("lazy") + .named(.flatMap) | .block(FunctionBody()
+                            value: .named(.`self`) + .named(property.payloadName) | (property.lazy ? .none + .lazyValue | .call() : .none) + .named("values") | .call() + .named("lazy") + .named(.flatMap) | .block(FunctionBody()
                                 .adding(member: .named("$0") + .named("rootPayload") + relationshipEntity.payloadEntityAccessorVariable.reference)
                             ) + .named("any")
                         )

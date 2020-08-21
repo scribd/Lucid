@@ -34,12 +34,12 @@ public extension TypeIdentifier {
         return wrapped != nil
     }
 
-    var isExtra: Bool {
-        return name == .custom("Extra")
+    var isLazy: Bool {
+        return name == .custom("Lazy")
     }
 
-    var isOptionalOrExtra: Bool {
-        return isOptional || isExtra
+    var isOptionalOrLazy: Bool {
+        return isOptional || isLazy
     }
 
     var wrapped: TypeIdentifier? {
@@ -134,12 +134,12 @@ public extension TypeIdentifier {
         return failableValue.adding(genericParameter: type)
     }
 
-    static var extraValue: TypeIdentifier {
-        return TypeIdentifier(name: "Extra")
+    static var lazyValue: TypeIdentifier {
+        return TypeIdentifier(name: "Lazy")
     }
 
-    static func extraValue(of type: TypeIdentifier? = nil) -> TypeIdentifier {
-        return extraValue.adding(genericParameter: type)
+    static func lazyValue(of type: TypeIdentifier? = nil) -> TypeIdentifier {
+        return lazyValue.adding(genericParameter: type)
     }
 
     static var payloadRelationship: TypeIdentifier {
@@ -579,6 +579,10 @@ public extension Reference {
             .adding(parameter: TupleParameter(name: "assert", value: Value.bool(true)))
         )
     }
+
+    static var lazyValue: Reference {
+        return .named("value")
+    }
 }
 
 // MARK: - Static Functions
@@ -657,8 +661,8 @@ public extension Entity {
     }
 
     func extrasIndexNameTypeID(_ descriptions: Descriptions) throws -> TypeIdentifier {
-        let hasExtras = try self.hasExtras(descriptions)
-        return hasExtras ? TypeIdentifier(name: "\(transformedName)ExtrasIndexName") : TypeIdentifier(name: "VoidExtrasIndexName")
+        let hasLazyValues = try self.hasLazyValues(descriptions)
+        return hasLazyValues ? TypeIdentifier(name: "\(transformedName)ExtrasIndexName") : TypeIdentifier(name: "VoidExtrasIndexName")
     }
 
     func coreDataEntityTypeID(for version: Version? = nil) throws -> TypeIdentifier {
@@ -749,7 +753,7 @@ public extension Entity {
 
     func extraIndexes(_ descriptions: Descriptions) throws -> [EntityProperty] {
         return try usedProperties.compactMap { property in
-            guard try property.hasExtras(descriptions, [name: hasPropertyExtras]) else { return nil }
+            guard try property.hasLazyValues(descriptions, [name: hasLazyProperties]) else { return nil }
             return property
         }
     }
@@ -780,7 +784,7 @@ public extension EntityProperty {
         return try propertyType.remoteIdentifierValueTypeID(descriptions, persist: persist)
     }
     
-    func valueTypeID(_ descriptions: Descriptions, objc: Bool = false, includeExtra: Bool = true) throws -> TypeIdentifier {
+    func valueTypeID(_ descriptions: Descriptions, objc: Bool = false, includeLazy: Bool = true) throws -> TypeIdentifier {
         var typeID = try propertyType.valueTypeID(descriptions, objc: objc)
 
         if objc {
@@ -793,7 +797,7 @@ public extension EntityProperty {
         }
 
         let rootTypeID = optional ? .optional(wrapped: typeID) : typeID
-        return (extra && includeExtra) ? .extraValue(of: rootTypeID) : rootTypeID
+        return (lazy && includeLazy) ? .lazyValue(of: rootTypeID) : rootTypeID
     }
     
     var reference: Reference {
@@ -801,7 +805,7 @@ public extension EntityProperty {
     }
 
     var referenceValue: Reference {
-        return extra ? reference + .named("extraValue") | .call() : reference
+        return lazy ? reference + .lazyValue | .call() : reference
     }
 
     var entityReference: Reference {
@@ -809,7 +813,7 @@ public extension EntityProperty {
     }
 
     var entityReferenceValue: Reference {
-        return extra ? entityReference + .named("extraValue") | .call() : entityReference
+        return lazy ? entityReference + .lazyValue | .call() : entityReference
     }
 }
 
@@ -1051,7 +1055,7 @@ public extension Subtype {
                 guard try property.propertyType.subtype(descriptions)?.name == name else {
                     return false
                 }
-                return property.optional || property.extra
+                return property.optional || property.lazy
             }
         }
     }
@@ -1082,7 +1086,7 @@ public extension Subtype.Property.PropertyType {
     }
 }
 
-// MARK: - Extras
+// MARK: - Lazy
 
 public extension Entity {
 
@@ -1090,33 +1094,33 @@ public extension Entity {
         return try indexes(descriptions).isEmpty == false
     }
 
-    func hasExtras(_ descriptions: Descriptions, _ parsedEntities: [String: Bool] = [:]) throws -> Bool {
+    func hasLazyValues(_ descriptions: Descriptions, _ parsedEntities: [String: Bool] = [:]) throws -> Bool {
 
         if let preparsedResult = parsedEntities[name] {
             return preparsedResult
         }
 
-        let updatedEntities = parsedEntities.merging([name: hasPropertyExtras]) { _, new in new }
-        let hasRelationshipExtras = try properties.contains { try $0.hasRelationshipExtras(descriptions, updatedEntities) }
+        let updatedEntities = parsedEntities.merging([name: hasLazyProperties]) { _, new in new }
+        let hasLazyRelationships = try properties.contains { try $0.hasLazyRelationships(descriptions, updatedEntities) }
 
-        return hasPropertyExtras || hasRelationshipExtras
+        return hasLazyProperties || hasLazyRelationships
     }
 
-    var hasPropertyExtras: Bool {
-        return properties.contains { $0.extra }
+    var hasLazyProperties: Bool {
+        return properties.contains { $0.lazy }
     }
 }
 
 public extension EntityProperty {
 
-    func hasExtras(_ descriptions: Descriptions, _ parsedEntities: [String: Bool] = [:]) throws -> Bool {
-        return try extra || hasRelationshipExtras(descriptions, parsedEntities)
+    func hasLazyValues(_ descriptions: Descriptions, _ parsedEntities: [String: Bool] = [:]) throws -> Bool {
+        return try lazy || hasLazyRelationships(descriptions, parsedEntities)
     }
 
-    func hasRelationshipExtras(_ descriptions: Descriptions, _ parsedEntities: [String: Bool] = [:]) throws -> Bool {
+    func hasLazyRelationships(_ descriptions: Descriptions, _ parsedEntities: [String: Bool] = [:]) throws -> Bool {
         if let relationship = self.relationship, relationship.idOnly == false {
             let entity = try descriptions.entity(for: relationship.entityName)
-            return try entity.hasExtras(descriptions, parsedEntities)
+            return try entity.hasLazyValues(descriptions, parsedEntities)
         } else {
             return false
         }
@@ -1266,7 +1270,7 @@ public extension EntityProperty {
         let valueTypeID = try propertyType.payloadValueTypeID(descriptions)
         let isOptional = optional
         let rootTypeID = isOptional ? .optional(wrapped: valueTypeID) : valueTypeID
-        return extra ? .extraValue(of: rootTypeID) : rootTypeID
+        return lazy ? .lazyValue(of: rootTypeID) : rootTypeID
     }
 }
 

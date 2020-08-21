@@ -138,7 +138,7 @@ struct MetaCoreDataMigrationTests {
                             .adding(parameter: TupleParameter(value: .value(Reference.named("result.entity") |
                                             .unwrap +
                                             property.reference |
-                                            (property.extra ? .none + .named("extraValue") | .call() : .none) |
+                                            (property.lazy ? .none + .lazyValue | .call() : .none) |
                                             (property.optional ? .unwrap : .none) +
                                             .named("isEmpty")) ?? .value(Value.bool(false))))
                         )

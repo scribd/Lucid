@@ -308,7 +308,7 @@ private func _shouldGenerateDataModel(byComparing oldEntity: Entity,
             guard newProperty.addedAtVersion == appVersion else {
                 try logger.throwError("Property '\(newEntity.name).\(newProperty.name)' is new but its 'added_at_version' isn't set to '\(appVersion)'.")
             }
-            if newProperty.defaultValue == nil && newProperty.optional == false && newProperty.extra == false {
+            if newProperty.defaultValue == nil && newProperty.optional == false && newProperty.lazy == false {
                 try logger.throwError("Property '\(newEntity.name).\(newProperty.name)' is new in \(appVersion) and non-optional, but it does not have a default value for migrations.")
             }
             logger.warn("Detected new property '\(newEntity.name).\(newProperty.name)'.")
@@ -367,8 +367,8 @@ private func _shouldGenerateDataModel(byComparing oldProperty: EntityProperty,
         result = true
     }
 
-    if oldProperty.extra != newProperty.extra {
-        logger.warn("'\(entityName).\(newProperty.name).extra' value changed from '\(oldProperty.extra)' to '\(newProperty.extra)'.")
+    if oldProperty.lazy != newProperty.lazy {
+        logger.warn("'\(entityName).\(newProperty.name).lazy' value changed from '\(oldProperty.lazy)' to '\(newProperty.lazy)'.")
         result = true
     }
 

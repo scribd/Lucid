@@ -102,7 +102,7 @@ final class RemoteStoreTests: XCTestCase {
                 }
                 XCTAssertEqual(entity.identifier.value.remoteValue, 42)
                 XCTAssertEqual(EntitySpy.remotePathRecords.count, 1)
-                XCTAssertEqual(EntitySpy.remotePathRecords.first, .get(EntitySpyIdentifier(value: .remote(42, nil)), extras: nil))
+                XCTAssertEqual(EntitySpy.remotePathRecords.first, .get(EntitySpyIdentifier(value: .remote(42, nil))))
                 XCTAssertEqual(EntitySpy.endpointInvocationCount, 1)
 
             case .failure(let error):
@@ -246,7 +246,7 @@ final class RemoteStoreTests: XCTestCase {
             switch result {
             case .failure(.api(.api(httpStatusCode: 400, errorPayload: nil, _))):
                 XCTAssertEqual(EntitySpy.remotePathRecords.count, 1)
-                XCTAssertEqual(EntitySpy.remotePathRecords.first, .get(EntitySpyIdentifier(value: .remote(42, nil)), extras: nil))
+                XCTAssertEqual(EntitySpy.remotePathRecords.first, .get(EntitySpyIdentifier(value: .remote(42, nil))))
                 XCTAssertEqual(EntitySpy.endpointInvocationCount, 0)
 
             case .failure(let error):

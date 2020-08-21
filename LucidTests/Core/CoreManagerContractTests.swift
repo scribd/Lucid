@@ -1,5 +1,5 @@
 //
-//  CoreManagerExtrasTests.swift
+//  CoreManagerContractTests.swift
 //  LucidTests
 //
 //  Created by Stephane Magne on 6/4/20.
@@ -12,7 +12,7 @@ import XCTest
 @testable import Lucid_ReactiveKit
 @testable import LucidTestKit_ReactiveKit
 
-final class CoreManagerExtrasTests: XCTestCase {
+final class CoreManagerContractTests: XCTestCase {
 
     private var remoteStoreSpy: StoreSpy<EntitySpy>!
 
@@ -59,9 +59,11 @@ final class CoreManagerExtrasTests: XCTestCase {
         }
     }
 
-    // MARK: - GET
+    // MARK: - Base EntityContext Tests
 
-    func test_core_manager_get_should_return_complete_results_when_no_extras_are_requested() {
+    // MARK: GET
+
+    func test_core_manager_get_should_return_complete_results_when_no_contract_is_provided() {
 
         buildManager(for: .local)
 
@@ -72,7 +74,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         let onceExpectation = self.expectation(description: "once")
 
         manager
-            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)), extras: [])
+            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)))
             .observe { event in
                 switch event {
                 case .next(let queryResult):
@@ -155,7 +157,7 @@ final class CoreManagerExtrasTests: XCTestCase {
 
     // MARK: - SEARCH
 
-    func test_core_manager_search_should_return_complete_results_when_no_extras_are_requested() {
+    func test_core_manager_search_should_return_complete_results_when_no_contract_is_provided() {
 
         buildManager(for: .local)
 
@@ -167,7 +169,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         let onceExpectation = self.expectation(description: "once")
 
         manager
-            .search(withQuery: Query(extras: []))
+            .search(withQuery: .all)
             .once
             .observe { event in
                 switch event {
@@ -258,7 +260,7 @@ final class CoreManagerExtrasTests: XCTestCase {
 
     // MARK: - CONTINUOUS
 
-    func test_continuous_obvserver_should_get_filtered_results_matching_extras_in_query() {
+    func test_continuous_obvserver_should_get_filtered_results_matching_entities_that_meet_contract_requirements() {
 
         buildManager(for: .remoteAndLocal)
 
@@ -318,7 +320,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         )
 
         manager
-            .search(withQuery: Query(extras: []), in: context)
+            .search(withQuery: .all, in: context)
             .once
             .observe { event in
                 switch event {
@@ -340,11 +342,11 @@ final class CoreManagerExtrasTests: XCTestCase {
         wait(for: [continuousCompletedExpectation, onceExpectation], timeout: 1)
     }
 
-    // MARK: - ReadContext.DataSource
+    // MARK: - ReadContext.DataSource Tests
 
     // MARK: GET
 
-    func test_core_manager_get_should_return_empty_results_when_no_entities_match_in_local_store_for_local_data_source() {
+    func test_core_manager_get_should_return_empty_results_when_no_entities_in_local_store_meet_contract_requirements() {
 
         buildManager(for: .remoteAndLocal)
 
@@ -378,7 +380,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_get_should_return_results_from_remote_when_no_entities_match_in_local_store_for_local_or_remote_data_source() {
+    func test_core_manager_get_should_return_results_from_remote_when_no_entities_in_local_store_meet_contract_requirements_for_local_or_remote_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
@@ -428,7 +430,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_get_should_return_results_from_remote_when_no_entities_match_in_local_store_for_local_then_remote_data_source() {
+    func test_core_manager_get_should_return_results_from_remote_when_no_entities_meet_contract_requirements_in_local_store_for_local_then_remote_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
@@ -478,7 +480,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_get_should_return_local_result_when_no_entities_match_in_remote_store_for_remote_or_local_data_source() {
+    func test_core_manager_get_should_return_local_result_when_no_entities_meet_contract_requirements_in_remote_store_for_remote_or_local_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
@@ -526,7 +528,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_get_should_return_empty_results_when_no_entities_match_in_remote_store_for_remote_data_source() {
+    func test_core_manager_get_should_return_empty_results_when_no_entities_meet_contract_requirements_in_remote_store_for_remote_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
@@ -605,7 +607,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_by_ids_should_return_remote_results_when_at_least_one_entity_doesnt_match_in_local_store_for_local_or_remote_data_source() {
+    func test_core_manager_search_by_ids_should_return_remote_results_when_at_least_one_entity_doesnt_meet_contract_requirements_in_local_store_for_local_or_remote_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
@@ -660,7 +662,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_by_ids_should_return_remote_results_when_at_least_one_entity_doesnt_match_in_local_store_for_local_then_remote_data_source() {
+    func test_core_manager_search_by_ids_should_return_remote_results_when_at_least_one_entity_doesnt_meet_contract_requirements_in_local_store_for_local_then_remote_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
@@ -767,7 +769,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_by_ids_should_trust_remote_results_when_filtering_extras_for_remote_or_local_data_source() {
+    func test_core_manager_search_by_ids_should_trust_remote_results_when_applying_contract_for_remote_or_local_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
@@ -816,7 +818,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_by_ids_should_trust_remote_results_when_filtering_extras_for_remote_data_source() {
+    func test_core_manager_search_by_ids_should_trust_remote_results_when_applying_contract_for_remote_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
@@ -1172,7 +1174,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_by_query_should_trust_remote_results_when_filtering_extras_for_remote_or_local_data_source() {
+    func test_core_manager_search_by_query_should_trust_remote_results_when_applying_contract_for_remote_or_local_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
@@ -1221,7 +1223,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_by_query_should_trust_remote_results_when_filtering_extras_for_remote_data_source() {
+    func test_core_manager_search_by_query_should_trust_remote_results_when_applying_contract_for_remote_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
@@ -1268,5 +1270,48 @@ final class CoreManagerExtrasTests: XCTestCase {
         .dispose(in: disposeBag)
 
         waitForExpectations(timeout: 1, handler: nil)
+    }
+}
+
+// MARK: - Contract Helpers
+
+private struct IdentifierContract: EntityContract {
+
+    let successfulIdentifiers: [EntitySpyIdentifier]
+
+    init(successfulIdentifiers: [EntitySpyIdentifier]) {
+        self.successfulIdentifiers = successfulIdentifiers
+    }
+
+    public func shouldValidate<E>(_ entityType: E.Type) -> Bool where E: Entity {
+        return true
+    }
+
+    func isEntityValid<E>(_ entity: E, for query: Query<E>) -> Bool where E: Entity {
+        switch entity {
+        case let entity as EntitySpy:
+            return successfulIdentifiers.contains(entity.identifier)
+        default:
+            return true
+        }
+    }
+}
+
+private struct LazyPropertyContract: EntityContract {
+
+    public func shouldValidate<E>(_ entityType: E.Type) -> Bool where E: Entity {
+        return true
+    }
+
+    func isEntityValid<E>(_ entity: E, for query: Query<E>) -> Bool where E: Entity {
+        switch entity {
+        case let entity as EntitySpy:
+            switch entity.lazy {
+            case .requested: return true
+            case .unrequested: return false
+            }
+        default:
+            return true
+        }
     }
 }

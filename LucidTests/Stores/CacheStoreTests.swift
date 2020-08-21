@@ -433,9 +433,9 @@ private final class CacheStoreEntitySpy: LocalEntity {
         return true
     }
 
-    public static func shouldOverwrite(_ updated: CacheStoreEntitySpy, _ local: CacheStoreEntitySpy) -> Bool {
-        if updated.additionalValue != local.additionalValue { return true }
-        if updated != local { return true }
+    public func shouldOverwrite(with updated: CacheStoreEntitySpy) -> Bool {
+        if updated.additionalValue != additionalValue { return true }
+        if updated != self { return true }
         return false
     }
 }

@@ -189,10 +189,6 @@ public extension TypeIdentifier {
             .adding(genericParameter: .entitySubtype)
     }
 
-    static var remoteEntityExtrasIndexName: TypeIdentifier {
-        return TypeIdentifier(name: "RemoteEntityExtrasIndexName")
-    }
-
     static var coreDataIndexName: TypeIdentifier {
         return TypeIdentifier(name: "CoreDataIndexName")
     }
@@ -660,11 +656,6 @@ public extension Entity {
         return hasIndexes ? TypeIdentifier(name: "\(transformedName)IndexName") : TypeIdentifier(name: "VoidIndexName")
     }
 
-    func extrasIndexNameTypeID(_ descriptions: Descriptions) throws -> TypeIdentifier {
-        let hasLazyValues = try self.hasLazyValues(descriptions)
-        return hasLazyValues ? TypeIdentifier(name: "\(transformedName)ExtrasIndexName") : TypeIdentifier(name: "VoidExtrasIndexName")
-    }
-
     func coreDataEntityTypeID(for version: Version? = nil) throws -> TypeIdentifier {
         guard let version = version ?? versionHistory.last?.version else {
             throw CodeGenError.entityAddedAtVersionNotFound(name)
@@ -749,13 +740,6 @@ public extension Entity {
     
     func indexes(_ descriptions: Descriptions) throws -> [EntityProperty] {
         return try usedProperties.filter { try $0.propertyType.isIndexSearchable(descriptions) }
-    }
-
-    func extraIndexes(_ descriptions: Descriptions) throws -> [EntityProperty] {
-        return try usedProperties.compactMap { property in
-            guard try property.hasLazyValues(descriptions, [name: hasLazyProperties]) else { return nil }
-            return property
-        }
     }
 
     var reference: Reference {

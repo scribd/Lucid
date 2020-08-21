@@ -800,11 +800,16 @@ extension Publisher where Output: QueryResultInterface, Failure == ManagerError 
 private extension _ReadContext {
 
     var transformedForRelationshipFetching: _ReadContext {
-        return _ReadContext(dataSource: dataSource.transformedForRelationshipFetching, accessValidator: accessValidator, remoteStoreCache: remoteStoreCache)
+        return _ReadContext(dataSource: dataSource.transformedForRelationshipFetching,
+                            contract: contract,
+                            accessValidator: accessValidator,
+                            remoteStoreCache: remoteStoreCache)
     }
 
     var discardingRemoteStoreCache: _ReadContext {
-        return _ReadContext(dataSource: dataSource, accessValidator: accessValidator)
+        return _ReadContext(dataSource: dataSource,
+                            contract: contract,
+                            accessValidator: accessValidator)
     }
 }
 

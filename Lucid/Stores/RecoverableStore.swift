@@ -6,7 +6,7 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
-public final class RecoverableStore<E: Entity> {
+public final class RecoverableStore<E> where E: LocalEntity {
 
     private let mainStore: Storing<E>
     private let recoveryStore: Storing<E>

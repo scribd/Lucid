@@ -26,7 +26,7 @@ private final class LinkedListElement<T> {
 
 // MARK: - Store
 
-public final class LRUStore<E: Entity>: StoringConvertible {
+public final class LRUStore<E>: StoringConvertible where E: LocalEntity {
 
     private let store: Storing<E>
 

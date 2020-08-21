@@ -60,7 +60,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
         let request: APIRequest<Data>
         let hasCachedResponse: Bool
 
-        let path = RemotePath<E>.get(identifier, extras: query.extras)
+        let path = RemotePath<E>.get(identifier)
 
         switch context.dataSource {
         case ._remote(.derivedFromEntityType, _, _, _):

@@ -16,7 +16,7 @@
         <attribute name="_remote_synchronization_state" attributeType="String" syncable="YES" optional="YES"/>
 
         <attribute name="_genres" optional="YES" attributeType="Binary" syncable="YES"/>
-        <attribute name="__genres_extra_flag" optional="NO" attributeType="Integer 64" usesScalarValueType="YES" syncable="YES" defaultValueString="0"/>
+        <attribute name="__genres_lazy_flag" optional="NO" attributeType="Integer 64" usesScalarValueType="YES" syncable="YES" defaultValueString="0"/>
         <attribute name="_overview" attributeType="String" syncable="YES"/>
         <attribute name="_popularity" attributeType="Double" usesScalarValueType="YES" syncable="YES"/>
         <attribute name="_poster_path" attributeType="String" syncable="YES"/>

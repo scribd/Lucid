@@ -179,7 +179,6 @@ public final class EntityRelationshipEndpointResultPayloadSpy: ResultPayloadConv
 public final class EntityRelationshipSpy: RemoteEntity {
 
     public typealias Metadata = VoidMetadata
-    public typealias ExtrasIndexName = VoidExtrasIndexName
     public typealias ResultPayload = EntityRelationshipEndpointResultPayloadSpy
     public typealias QueryContext = Never
 

@@ -13,12 +13,12 @@ import XCTest
 
 final class DataTypeTests: XCTestCase {
 
-    func test_encoding_and_decoding_an_extra_value() {
+    func test_encoding_and_decoding_a_lazy_value() {
 
         struct Object: Codable, Equatable {
             let name: String
             let age: Int
-            let petName: Extra<String>
+            let petName: Lazy<String>
         }
 
         let object1 = Object(name: "Steve", age: 40, petName: .unrequested)

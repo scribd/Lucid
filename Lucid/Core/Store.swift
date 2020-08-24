@@ -333,7 +333,7 @@ final class StoreStack<E: Entity> {
         store.get(withQuery: query, in: context) { result in
             switch result {
             case .success(var queryResult):
-                queryResult = queryResult.validatingExtras(with: query)
+                queryResult = queryResult.validatingContract(context.contract, with: query)
                 if queryResult.entity != nil {
                     self.readWriteQueue.async {
                         completion(.success(queryResult))
@@ -397,7 +397,7 @@ final class StoreStack<E: Entity> {
         store.search(withQuery: query, in: context) { result in
             switch result {
             case .success(var queryResult):
-                queryResult = queryResult.validatingExtras(with: query)
+                queryResult = queryResult.validatingContract(context.contract, with: query)
                 self.readWriteQueue.async {
                     completion(.success(queryResult))
                 }

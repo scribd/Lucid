@@ -23,6 +23,7 @@ public enum CodeGenError: Error, CustomStringConvertible {
     case cannotPersistIdentifier(String)
     case incompatiblePropertyKey(String)
     case unsupportedCaseConvertion
+    case `extension`(String)
 }
 
 // MARK: - Description
@@ -61,6 +62,8 @@ public extension CodeGenError {
             return "Incompatible property key: \(key)."
         case .unsupportedCaseConvertion:
             return "Unsupported case convertion."
+        case .extension(let error):
+            return "Extension: \(error)"
         }
     }
 }

@@ -77,17 +77,17 @@ public enum FailableValue<T> {
     }
 }
 
-// MARK: - Extra
+// MARK: - Lazy
 
-public enum Extra<T> {
+public enum Lazy<T> {
 
     case requested(T)
     case unrequested
 }
 
-public extension Extra where T: PayloadIdentifiable {
+public extension Lazy where T: PayloadIdentifiable {
 
-    func identifier() -> Extra<T.Identifier> {
+    func identifier() -> Lazy<T.Identifier> {
         switch self {
         case .requested(let payload):
             return .requested(payload.identifier)
@@ -97,7 +97,7 @@ public extension Extra where T: PayloadIdentifiable {
     }
 }
 
-public extension Extra {
+public extension Lazy {
 
     var wasRequested: Bool {
         switch self {
@@ -108,7 +108,7 @@ public extension Extra {
         }
     }
 
-    func merging(with updated: Extra) -> Extra {
+    func merging(with updated: Lazy) -> Lazy {
         switch updated {
         case .requested:
             return updated
@@ -117,7 +117,7 @@ public extension Extra {
         }
     }
 
-    func identifier<P>() -> Extra<P.Identifier?> where P: PayloadIdentifiable, T == P? {
+    func identifier<P>() -> Lazy<P.Identifier?> where P: PayloadIdentifiable, T == P? {
         switch self {
         case .requested(let payload):
             return .requested(payload?.identifier)
@@ -126,7 +126,7 @@ public extension Extra {
         }
     }
 
-    func identifier<R: RemoteIdentifier>(from entityIdentifier: R) -> Extra<R> {
+    func identifier<R: RemoteIdentifier>(from entityIdentifier: R) -> Lazy<R> {
         switch self {
         case .requested:
             return .requested(entityIdentifier)
@@ -135,7 +135,7 @@ public extension Extra {
         }
     }
 
-    func identifier<R: RemoteIdentifier>(from entityIdentifier: R) -> Extra<R?> {
+    func identifier<R: RemoteIdentifier>(from entityIdentifier: R) -> Lazy<R?> {
         switch self {
         case .requested:
             return .requested(entityIdentifier)
@@ -144,7 +144,7 @@ public extension Extra {
         }
     }
 
-    func identifiers<P>() -> Extra<AnySequence<P.Identifier>> where P: PayloadIdentifiable, T == AnySequence<P> {
+    func identifiers<P>() -> Lazy<AnySequence<P.Identifier>> where P: PayloadIdentifiable, T == AnySequence<P> {
         switch self {
         case .requested(let payload):
             return .requested(payload.lazy.map { $0.identifier }.any)
@@ -153,7 +153,7 @@ public extension Extra {
         }
     }
 
-    func identifiers<P>() -> Extra<AnySequence<P.Identifier>?> where P: PayloadIdentifiable, T == AnySequence<P>? {
+    func identifiers<P>() -> Lazy<AnySequence<P.Identifier>?> where P: PayloadIdentifiable, T == AnySequence<P>? {
         switch self {
         case .requested(let payload):
             return .requested(payload?.lazy.map { $0.identifier }.any)
@@ -163,21 +163,21 @@ public extension Extra {
     }
 }
 
-public extension Extra {
+public extension Lazy {
 
-    func extraValue(logError: Bool = false) -> T? {
+    func value(logError: Bool = false) -> T? {
         switch self {
         case .requested(let value):
             return value
         case .unrequested:
             if logError {
-                Logger.log(.debug, "\(Extra.self): Attempting to access unrequested extra.")
+                Logger.log(.debug, "\(Lazy.self): Attempting to access unrequested lazy value.")
             }
             return nil
         }
     }
 
-    func extraValue<K>(logError: Bool = false) -> K? where T == K? {
+    func value<K>(logError: Bool = false) -> K? where T == K? {
         switch self {
         case .requested(.some(let value)):
             return value
@@ -185,29 +185,18 @@ public extension Extra {
             return nil
         case .unrequested:
             if logError {
-                Logger.log(.debug, "\(Extra.self): Attempting to access unrequested extra.")
+                Logger.log(.debug, "\(Lazy.self): Attempting to access unrequested lazy value.")
             }
             return nil
         }
     }
-}
 
-public extension Extra {
-
-    func value(logError: Bool = true) -> T? {
-        return extraValue(logError: logError)
-    }
-
-    func value<K>(logError: Bool = true) -> K? where T == K? {
-        return extraValue(logError: logError)
-    }
-
-    static func ?? <K>(lhs: Extra<K?>, rhs: Extra<K?>) -> K? where T == K? {
+    static func ?? <K>(lhs: Lazy<K?>, rhs: Lazy<K?>) -> K? where T == K? {
         return lhs.value()?.flatMap({ $0 }) ?? rhs.value()?.flatMap({ $0 })
     }
 }
 
-extension Extra: Equatable where T: Equatable { }
+extension Lazy: Equatable where T: Equatable { }
 
 // MARK: - Conversions to Array
 

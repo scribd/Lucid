@@ -646,6 +646,43 @@ final class RelationshipControllerTests: XCTestCase {
 
         waitForExpectations(timeout: 1)
     }
+
+    // MARK: Contracts
+
+    // This test only exists to verify that the current behavior is not changed. We currently only apply filtering at the root level.
+    // This will be updated and properly managed recursively down the graph in IPT-4054.
+    func test_relationship_controller_should_not_filter_out_relationships_that_do_not_meet_contract_requirements() {
+
+        coreManager.getByIDsStubs = [Signal(just: [
+            .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
+        ])]
+
+        let expectation = self.expectation(description: "graph")
+        expectation.expectedFulfillmentCount = 2
+
+        let contract = RelationshipControllerContract(isValid: false)
+        let context = RelationshipController<RelationshipCoreManagerSpy, GraphStub>.ReadContext(dataSource: .local, contract: contract)
+
+        entity(EntitySpy())
+            .relationships(from: coreManager, in: context)
+            .includingAllRelationships(recursive: .none)
+            .perform(GraphStub.self)
+            .once
+            .observe { event in
+                switch event {
+                case .next(let graph):
+                    XCTAssertEqual(graph.entitySpies.count, 1)
+                    XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
+                    expectation.fulfill()
+                case .completed:
+                    expectation.fulfill()
+                case .failed(let error):
+                    XCTFail("Unexpected error: \(error)")
+                }
+            }.dispose(in: bag)
+
+        waitForExpectations(timeout: 1)
+    }
 }
 
 // MARK: - Utils
@@ -658,5 +695,20 @@ private extension RelationshipControllerTests {
 
     func entity<E>(_ entity: E) -> Signal<QueryResult<E>, ManagerError> where E: Entity {
         return entities([entity])
+    }
+}
+
+// MARK: - Contract Helpers
+
+private struct RelationshipControllerContract: EntityGraphContract {
+
+    let isValid: Bool
+
+    func shouldValidate<E>(_ entityType: E.Type) -> Bool where E : Entity {
+        return true
+    }
+
+    func isEntityValid<E>(_ entity: E, for query: Query<E>) -> Bool where E : Entity {
+        return isValid
     }
 }

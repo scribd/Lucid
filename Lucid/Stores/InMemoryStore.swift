@@ -8,7 +8,7 @@
 
 import Foundation
 
-public final class InMemoryStore<E: Entity>: StoringConvertible {
+public final class InMemoryStore<E>: StoringConvertible where E: LocalEntity {
 
     private var _cache = DualHashDictionary<E.Identifier, E>()
 

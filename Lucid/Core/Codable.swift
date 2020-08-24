@@ -199,41 +199,41 @@ extension PayloadRelationship: Decodable where P: Decodable {
     }
 }
 
-// MARK: - Extra
+// MARK: - Lazy
 
-private enum ExtraKeys: String, CodingKey {
+private enum LazyKeys: String, CodingKey {
     case value
     case requested
 }
 
-extension Extra: Decodable where T: Decodable {
+extension Lazy: Decodable where T: Decodable {
 
     public init(from decoder: Decoder) throws {
         do {
-            let container = try decoder.container(keyedBy: ExtraKeys.self)
+            let container = try decoder.container(keyedBy: LazyKeys.self)
             let value = try container.decode(T?.self, forKey: .value)
             let requested = try container.decode(Bool.self, forKey: .requested)
-            self = Extra<T>(value: value, requested: requested)
+            self = Lazy<T>(value: value, requested: requested)
         } catch {
             let container = try decoder.singleValueContainer()
             let value = try container.decode(T?.self)
-            self = Extra<T>(value: value, requested: true)
+            self = Lazy<T>(value: value, requested: true)
         }
     }
 }
 
-extension Extra: Encodable where T: Encodable {
+extension Lazy: Encodable where T: Encodable {
 
     public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: ExtraKeys.self)
-        try container.encode(extraValue(), forKey: .value)
+        var container = encoder.container(keyedBy: LazyKeys.self)
+        try container.encode(value(), forKey: .value)
         try container.encode(wasRequested, forKey: .requested)
     }
 }
 
-public extension Extra {
+public extension Lazy {
 
-    func lazyAny<K>() -> Extra<AnySequence<K>> where T == [K] {
+    func lazyAny<K>() -> Lazy<AnySequence<K>> where T == [K] {
         switch self {
         case .requested(let array):
             return .requested(array.lazy.any)
@@ -242,7 +242,7 @@ public extension Extra {
         }
     }
 
-    func lazyAny<K>() -> Extra<AnySequence<K>?> where T == [K]? {
+    func lazyAny<K>() -> Lazy<AnySequence<K>?> where T == [K]? {
         switch self {
         case .requested(let array):
             return .requested(array?.lazy.any)
@@ -539,22 +539,22 @@ public extension KeyedDecodingContainer {
         }
     }
 
-    // MARK: - Extra
+    // MARK: - Lazy
 
-    func decode<O>(_ type: O.Type, forKeys keys: [Key], defaultValue: O? = nil, logError: Bool) throws -> Extra<O> where O: Decodable {
+    func decode<O>(_ type: O.Type, forKeys keys: [Key], defaultValue: O? = nil, logError: Bool) throws -> Lazy<O> where O: Decodable {
         let key = try resolveKey(from: keys)
         if contains(key) == false {
             return .unrequested
-        } else if let value = try decodeIfPresent(Extra<O>.self, forKey: key) {
+        } else if let value = try decodeIfPresent(Lazy<O>.self, forKey: key) {
             return value
         } else if let defaultValue = defaultValue {
             return .requested(defaultValue)
         } else {
-            return try decode(Extra<O>.self, forKey: key)
+            return try decode(Lazy<O>.self, forKey: key)
         }
     }
 
-    func decode<O>(_ type: O?.Type, forKeys keys: [Key], defaultValue: O? = nil, logError: Bool) throws -> Extra<O?> where O: Decodable {
+    func decode<O>(_ type: O?.Type, forKeys keys: [Key], defaultValue: O? = nil, logError: Bool) throws -> Lazy<O?> where O: Decodable {
         do {
             let key = try resolveKey(from: keys)
             if contains(key) == false {
@@ -571,31 +571,31 @@ public extension KeyedDecodingContainer {
         }
     }
 
-    func decode<O>(_ type: O.Type, forKeys keys: [Key], defaultValue: O? = nil, logError: Bool) throws -> Extra<O?> where O: Decodable {
+    func decode<O>(_ type: O.Type, forKeys keys: [Key], defaultValue: O? = nil, logError: Bool) throws -> Lazy<O?> where O: Decodable {
         return try decode(O?.self, forKeys: keys, defaultValue: defaultValue, logError: logError)
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> Extra<AnySequence<O>> where O: Decodable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> Lazy<AnySequence<O>> where O: Decodable {
         return try decode([O].self, forKeys: keys, defaultValue: defaultValue, logError: logError).lazyAny()
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> Extra<AnySequence<O>?> where O: Decodable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> Lazy<AnySequence<O>?> where O: Decodable {
         return try decode([O]?.self, forKeys: keys, defaultValue: defaultValue, logError: logError).lazyAny()
     }
 
-    func decode<O>(_ type: O.Type, forKeys keys: [Key], logError: Bool) throws -> Extra<PayloadRelationship<O>> where O: Decodable {
+    func decode<O>(_ type: O.Type, forKeys keys: [Key], logError: Bool) throws -> Lazy<PayloadRelationship<O>> where O: Decodable {
         return try decode(PayloadRelationship<O>.self, forKeys: keys, defaultValue: nil, logError: logError)
     }
 
-    func decode<O>(_ type: O.Type, forKeys keys: [Key], logError: Bool) throws -> Extra<PayloadRelationship<O>?> where O: Decodable {
+    func decode<O>(_ type: O.Type, forKeys keys: [Key], logError: Bool) throws -> Lazy<PayloadRelationship<O>?> where O: Decodable {
         return try decode(PayloadRelationship<O>?.self, forKeys: keys, defaultValue: nil, logError: logError)
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> Extra<AnySequence<PayloadRelationship<O>>> where O: Decodable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> Lazy<AnySequence<PayloadRelationship<O>>> where O: Decodable {
         return try decode([PayloadRelationship<O>].self, forKeys: keys, defaultValue: nil, logError: logError).lazyAny()
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> Extra<AnySequence<PayloadRelationship<O>>?> where O: Decodable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> Lazy<AnySequence<PayloadRelationship<O>>?> where O: Decodable {
         return try decode([PayloadRelationship<O>]?.self, forKeys: keys, defaultValue: nil, logError: logError).lazyAny()
     }
 }

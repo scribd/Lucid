@@ -159,56 +159,6 @@ public struct Query<E>: Equatable where E: Entity {
     }
 
     public static var all: Query { return Query(filter: .all) }
-
-    // MARK: Private RemoteEntity Addition
-
-    private var _extras: AnyEquatable?
-}
-
-extension Query where E: RemoteEntity {
-
-    public init(filter: Filter? = nil,
-                groupedBy: E.IndexName? = nil,
-                uniquely: Bool = false,
-                order: [Order] = [.asc(by: .identifier)],
-                offset: Int? = nil,
-                limit: Int? = nil,
-                context: E.QueryContext? = nil,
-                extras: [E.ExtrasIndexName] = []) {
-        self.filter = filter
-        self.groupedBy = groupedBy
-        self.uniquely = uniquely
-        self.order = order
-        self.offset = offset
-        self.limit = limit
-        self.context = context
-        self._extras = AnyEquatable(typedTarget: extras)
-    }
-
-    public static func allWithExtras(_ extras: [E.ExtrasIndexName]) -> Query {
-        return Query(filter: .all, extras: extras)
-    }
-
-    public static func identifier(_ identifier: E.Identifier, extras: [E.ExtrasIndexName]) -> Query {
-        return Query(
-            filter: .binary(
-                .property(.identifier),
-                .equalTo,
-                .value(.identifier(identifier))
-            ),
-            extras: extras
-        )
-    }
-
-    public func extras<S>(_ extras: S) -> Query where S: Sequence, S.Element == E.ExtrasIndexName {
-        var query = self
-        query._extras = AnyEquatable(typedTarget: extras.array)
-        return query
-    }
-
-    public var extras: [E.ExtrasIndexName]? {
-        return _extras?.target as? [E.ExtrasIndexName]
-    }
 }
 
 // MARK: - QueryResultConvertible
@@ -707,28 +657,28 @@ extension Query.Value {
     }
 }
 
-// MARK: - Extras Support
+// MARK: - Contract Support
 
 extension QueryResult {
 
-    func validatingExtras(with query: Query<E>) -> QueryResult {
+    func validatingContract(_ contract: EntityContract, with query: Query<E>) -> QueryResult {
 
-        guard E.shouldValidate else { return self }
+        guard contract.shouldValidate(E.self) else { return self }
 
         var queryResult: QueryResult
 
         switch data {   
         case .groups(var dictionary):
             dictionary.forEach { index, entities in
-                dictionary[index] = entities.filter { $0.isEntityValid(for: query) }
+                dictionary[index] = entities.filter { contract.isEntityValid($0, for: query) }
             }
             queryResult = QueryResult(data: .groups(dictionary))
 
         case .entitiesSequence(let sequence):
-            queryResult = QueryResult(data: .entitiesSequence(sequence.filter { $0.isEntityValid(for: query) }.any))
+            queryResult = QueryResult(data: .entitiesSequence(sequence.filter { contract.isEntityValid($0, for: query) }.any))
 
         case .entitiesArray(let entities):
-            queryResult = QueryResult(data: .entitiesArray(entities.filter { $0.isEntityValid(for: query) }))
+            queryResult = QueryResult(data: .entitiesArray(entities.filter { contract.isEntityValid($0, for: query) }))
         }
 
         queryResult._metadata = _metadata

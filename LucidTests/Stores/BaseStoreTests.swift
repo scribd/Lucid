@@ -1020,7 +1020,7 @@ class StoreTests: XCTestCase {
         let updatedEntity = EntitySpy(identifier: EntitySpyIdentifier(value: .remote(42, nil)),
                                       title: "another_title",
                                       subtitle: "another_subtitle",
-                                      extra: .unrequested,
+                                      lazy: .unrequested,
                                       oneRelationship: EntityRelationshipSpyIdentifier(value: .remote(2, nil)),
                                       manyRelationships: [EntityRelationshipSpyIdentifier(value: .remote(3, nil))])
 
@@ -1045,12 +1045,12 @@ class StoreTests: XCTestCase {
         _wait(for: [expectation], timeout: 1)
     }
 
-    func test_that_merging_entities_updates_unrequested_extras_with_requested_extras() {
+    func test_that_merging_entities_updates_unrequested_lazy_value_with_requested_lazy_value() {
         let entity = EntitySpy(idValue: .remote(42, nil), oneRelationshipIdValue: .remote(1, "local_id_1"))
 
         let updatedEntity = EntitySpy(idValue: .remote(42, nil),
                                       title: "another_title",
-                                      extra: .requested(7))
+                                      lazy: .requested(7))
 
         let expectation = self.expectation(description: "merging")
 
@@ -1060,7 +1060,7 @@ class StoreTests: XCTestCase {
                     switch result {
                     case .success(let queryResult):
                         if let resultEntity = queryResult.entity {
-                            XCTAssertEqual(resultEntity.extra, .requested(7))
+                            XCTAssertEqual(resultEntity.lazy, .requested(7))
                             expectation.fulfill()
                         }
                     case .failure(let error):
@@ -1073,14 +1073,14 @@ class StoreTests: XCTestCase {
         _wait(for: [expectation], timeout: 1)
     }
 
-    func test_that_merging_entities_updates_requested_extras_with_requested_extras() {
+    func test_that_merging_entities_updates_requested_lazy_value_with_requested_lazy_value() {
         let entity = EntitySpy(idValue: .remote(42, nil),
                                title: "another_title",
-                               extra: .requested(4))
+                               lazy: .requested(4))
 
         let updatedEntity = EntitySpy(idValue: .remote(42, nil),
                                       title: "another_title",
-                                      extra: .requested(7))
+                                      lazy: .requested(7))
 
         let expectation = self.expectation(description: "merging")
 
@@ -1090,7 +1090,7 @@ class StoreTests: XCTestCase {
                     switch result {
                     case .success(let queryResult):
                         if let resultEntity = queryResult.entity {
-                            XCTAssertEqual(resultEntity.extra, .requested(7))
+                            XCTAssertEqual(resultEntity.lazy, .requested(7))
                             expectation.fulfill()
                         }
                     case .failure(let error):
@@ -1103,14 +1103,14 @@ class StoreTests: XCTestCase {
         _wait(for: [expectation], timeout: 1)
     }
 
-    func test_that_merging_entities_does_not_replace_requested_extras_with_unrequested_extras() {
+    func test_that_merging_entities_does_not_replace_requested_lazy_value_with_unrequested_lazy_value() {
         let entity = EntitySpy(idValue: .remote(42, nil),
                                title: "another_title",
-                               extra: .requested(4))
+                               lazy: .requested(4))
 
         let updatedEntity = EntitySpy(idValue: .remote(42, nil),
                                       title: "another_title",
-                                      extra: .unrequested)
+                                      lazy: .unrequested)
 
         let expectation = self.expectation(description: "merging")
 
@@ -1120,7 +1120,7 @@ class StoreTests: XCTestCase {
                     switch result {
                     case .success(let queryResult):
                         if let resultEntity = queryResult.entity {
-                            XCTAssertEqual(resultEntity.extra, .requested(4))
+                            XCTAssertEqual(resultEntity.lazy, .requested(4))
                             expectation.fulfill()
                         }
                     case .failure(let error):

@@ -324,26 +324,6 @@ public protocol Entity: Equatable, EntityIdentifiable, EntityIdentifierTypeIDCon
 
     /// Contextual information a store could need for retrieving the entities' data.
     associatedtype QueryContext: Equatable
-
-    /// Merge two entities and return the result. New properties overwrite existing ones, except for unrequested Extras.
-    func merging(_ updated: Self) -> Self
-
-    /// Extras
-
-    /// Declare if this type should be validated. Returning false prevents O(n) filtering on results.
-    static var shouldValidate: Bool { get }
-
-    /// Determine if the entity meets the requirements of the query. Only called if `shouldValidate` returns true.
-    func isEntityValid(for query: Query<Self>) -> Bool
-}
-
-extension Entity {
-
-    public static var shouldValidate: Bool { return false }
-
-    public func isEntityValid(for query: Query<Self>) -> Bool {
-        return true
-    }
 }
 
 public protocol EntityConvertible: CustomStringConvertible {
@@ -392,12 +372,16 @@ public protocol LocalEntity: Entity {
 
     /// Determine if the entity is sufficiently different from the locally stored vesion. If `false`, the CacheStore will
     /// ignore the change on a `set` action.
-    static func shouldOverwrite(_ updated: Self, _ stored: Self) -> Bool
+    func shouldOverwrite(with updated: Self) -> Bool
+
+    /// Merge two entities and return the result. New properties overwrite existing ones, except for unrequested Extras.
+    func merging(_ updated: Self) -> Self
 }
 
 extension LocalEntity {
-    public static func shouldOverwrite(_ updated: Self, _ stored: Self) -> Bool {
-        return updated != stored
+
+    public func shouldOverwrite(with updated: Self) -> Bool {
+        return updated != self
     }
 }
 
@@ -405,9 +389,6 @@ extension LocalEntity {
 
 /// An `Entity` which can be used with a `RemoteStore`.
 public protocol RemoteEntity: Entity where Identifier: RemoteIdentifier {
-
-    /// Property descriptions which can be added to an APIRequest to include additional values in the response.
-    associatedtype ExtrasIndexName: RemoteEntityExtrasIndexName
 
     /// Build a read request configuration associated to the combination CRUD method / application context.
     ///
@@ -458,7 +439,7 @@ public enum RemoteSynchronizationState: String {
 
 /// Represent a CRUD method with its parameters.
 public enum RemotePath<E>: Equatable where E: RemoteEntity {
-    case get(E.Identifier, extras: [E.ExtrasIndexName]?)
+    case get(E.Identifier)
     case search(Query<E>)
     case set(RemoteSetPath<E>)
     case remove(E.Identifier)
@@ -466,7 +447,7 @@ public enum RemotePath<E>: Equatable where E: RemoteEntity {
 
     public func identifier<ID>() -> ID? where ID: RemoteIdentifier, ID == E.Identifier {
         switch self {
-        case .get(let identifier, _),
+        case .get(let identifier),
              .remove(let identifier):
             return identifier
 
@@ -648,25 +629,10 @@ extension VoidIndexName: CoreDataIndexName {
     }
 }
 
-// MARK: - EntityExtrasIndexName
+// MARK: - QueryResultConvertible
 
 public protocol QueryResultConvertible {
     var requestValue: String { get }
-}
-
-public protocol RemoteEntityExtrasIndexName: Equatable, QueryResultConvertible { }
-
-public extension Array where Element: RemoteEntityExtrasIndexName {
-    static var none: [Element]? {
-        return nil
-    }
-}
-
-// MARK: - VoidExtrasIndexName
-
-/// A void type to represent an absence of index.
-public enum VoidExtrasIndexName: RemoteEntityExtrasIndexName {
-    public var requestValue: String { return String() }
 }
 
 // MARK: - VoidRelationshipIdentifier

@@ -364,7 +364,7 @@ private final class CacheStoreEntitySpy: LocalEntity {
     public let identifier: EntitySpyIdentifier
     let title: String
     let subtitle: String
-    let extra: Extra<Int>
+    let lazy: Lazy<Int>
     let additionalValue: Bool
 
     let oneRelationship: EntityRelationshipSpyIdentifier?
@@ -373,13 +373,13 @@ private final class CacheStoreEntitySpy: LocalEntity {
     init(identifier: EntitySpyIdentifier = EntitySpyIdentifier(value: .remote(1, nil)),
          title: String = "title",
          subtitle: String = "subtitle",
-         extra: Extra<Int> = .unrequested,
+         lazy: Lazy<Int> = .unrequested,
          additionalValue: Bool) {
 
         self.identifier = identifier
         self.title = title
         self.subtitle = subtitle
-        self.extra = extra
+        self.lazy = lazy
         self.additionalValue = additionalValue
         self.oneRelationship = nil
         self.manyRelationships = nil
@@ -391,7 +391,7 @@ private final class CacheStoreEntitySpy: LocalEntity {
             identifier: updated.identifier,
             title: updated.title,
             subtitle: updated.subtitle,
-            extra: extra.merging(with: updated.extra),
+            lazy: lazy.merging(with: updated.lazy),
             additionalValue: additionalValue
         )
     }
@@ -403,8 +403,8 @@ private final class CacheStoreEntitySpy: LocalEntity {
             return .string(title)
         case .subtitle:
             return .string(subtitle)
-        case .extra:
-            return extra.extraValue().flatMap { (extraValue) in .optional(.int(extraValue)) } ?? .none
+        case .lazy:
+            return lazy.value().flatMap { lazyValue in .optional(.int(lazyValue)) } ?? .none
         case .oneRelationship:
             return oneRelationship.flatMap { .optional(.relationship($0)) } ?? .none
         case .manyRelationships:
@@ -427,15 +427,15 @@ private final class CacheStoreEntitySpy: LocalEntity {
     public static func == (lhs: CacheStoreEntitySpy, rhs: CacheStoreEntitySpy) -> Bool {
         guard lhs.identifier == rhs.identifier else { return false }
         guard lhs.title == rhs.title else { return false }
-        guard lhs.extra == rhs.extra else { return false }
+        guard lhs.lazy == rhs.lazy else { return false }
         guard lhs.oneRelationship == rhs.oneRelationship else { return false }
         guard lhs.manyRelationships == rhs.manyRelationships else { return false }
         return true
     }
 
-    public static func shouldOverwrite(_ updated: CacheStoreEntitySpy, _ local: CacheStoreEntitySpy) -> Bool {
-        if updated.additionalValue != local.additionalValue { return true }
-        if updated != local { return true }
+    public func shouldOverwrite(with updated: CacheStoreEntitySpy) -> Bool {
+        if updated.additionalValue != additionalValue { return true }
+        if updated != self { return true }
         return false
     }
 }

@@ -446,63 +446,6 @@ public extension CoreManaging where E: RemoteEntity {
         }.eraseToAnyPublisher()
     }
     #endif
-
-    /// Retrieve entity that matches the given identifier.
-    ///
-    /// - Parameters:
-    ///     - identifier: Identifiers used to build an OR query.
-    ///     - extras: Any extras you require on the entity.
-    ///     - context: Context associated to the query.
-    ///
-    /// - Returns:
-    ///     - A Signal to be observed. It will return a single response of either `QueryResult<Entity>` or `ManagerError`.
-    #if LUCID_REACTIVE_KIT
-    func get(byID identifier: E.Identifier,
-             extras: [E.ExtrasIndexName],
-             in context: ReadContext<E> = ReadContext<E>()) -> Signal<QueryResult<E>, ManagerError> {
-        let query = Query<E>.identifier(identifier, extras: extras)
-        return getEntity(query, context)
-    }
-    #else
-    func get(byID identifier: E.Identifier,
-             extras: [E.ExtrasIndexName],
-             in context: ReadContext<E> = ReadContext<E>()) -> AnyPublisher<QueryResult<E>, ManagerError> {
-        let query = Query<E>.identifier(identifier, extras: extras)
-        return getEntity(query, context)
-    }
-    #endif
-
-    /// Retrieve entities that match one of the given identifiers.
-    ///
-    /// - Parameters:
-    ///     - identifiers: List of identifiers used to build a OR query.
-    ///     - extras: Any extras you require on the entity.
-    ///     - context: Context associated to the query.
-    ///
-    /// - Returns:
-    ///     - Two Signals, `once` and `continuous`.
-    ///     - `once` will return a single response of either `QueryResult<Entity>` or `ManagerError`.
-    ///     - `continuous` will return a response of either `[Entity]` or `ManagerError` every time changes occur that
-    ///        match the query. It will never be completed and will be retained until you release the dispose bag.
-    #if LUCID_REACTIVE_KIT
-    func get<S>(byIDs identifiers: S,
-                extras: [E.ExtrasIndexName],
-                in context: ReadContext<E> = ReadContext<E>()) -> (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>)
-        where S: Sequence, S.Element == E.Identifier {
-
-            let query = Query<E>.filter(.identifier >> identifiers).order([.identifiers(identifiers.any)]).extras(extras)
-            return search(withQuery: query, in: context)
-    }
-    #else
-    func get<S>(byIDs identifiers: S,
-                extras: [E.ExtrasIndexName],
-                in context: ReadContext<E> = ReadContext<E>()) -> (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>)
-        where S: Sequence, S.Element == E.Identifier {
-
-            let query = Query<E>.filter(.identifier >> identifiers).order([.identifiers(identifiers.any)]).extras(extras)
-            return search(withQuery: query, in: context)
-    }
-    #endif
 }
 
 public extension CoreManaging where E.Identifier == VoidEntityIdentifier {
@@ -603,7 +546,7 @@ private extension CoreManager {
         }
 
         if let remoteContext = context.remoteContextAfterMakingLocalRequest {
-            let localContext = ReadContext<E>(dataSource: .local, accessValidator: context.accessValidator)
+            let localContext = ReadContext<E>(dataSource: .local, contract: context.contract, accessValidator: context.accessValidator)
             return get(withQuery: query, in: localContext)
                 .flatMapError { _ -> Signal<QueryResult<E>, ManagerError> in
                     return Signal(just: .empty())
@@ -674,7 +617,7 @@ private extension CoreManager {
                                             break
                                         }
                                         guardedPromise(.success(queryResult))
-                                        self.raiseUpdateEvents(withQuery: .identifier(identifier), results: .entities([entity]), returnsCompleteResultSet: context.returnsCompleteResultSet)
+                                        self.raiseUpdateEvents(withQuery: .identifier(identifier), results: .entities([entity]), contract: context.contract, returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
                                 } else {
                                     self.localStore.remove(atID: identifier, in: WriteContext(dataTarget: .local)) { result in
@@ -721,7 +664,7 @@ private extension CoreManager {
                 in context: ReadContext<E>) -> (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>) {
 
         if let remoteContext = context.remoteContextAfterMakingLocalRequest {
-            let localContext = ReadContext<E>(dataSource: .local, accessValidator: context.accessValidator)
+            let localContext = ReadContext<E>(dataSource: .local, contract: context.contract, accessValidator: context.accessValidator)
             let cacheSearches = search(withQuery: query, in: localContext)
 
             let dispatchQueue = DispatchQueue(label: "\(CoreManager.self)_search_prefer_cache_synchronization_queue")
@@ -777,7 +720,7 @@ private extension CoreManager {
                 continuous: cacheSearches.continuous)
         }
 
-        let property = preparePropertiesForSearchUpdate(forQuery: query, accessValidator: context.accessValidator)
+        let property = preparePropertiesForSearchUpdate(forQuery: query, context: context)
 
         let future = FutureSubject<QueryResult<E>, ManagerError> { promise in
 
@@ -808,7 +751,7 @@ private extension CoreManager {
                     case .success(let queryResult):
 
                         if context.shouldOverwriteInLocalStores {
-                            self.localStore.search(withQuery: query, in: context) { localResult in
+                            self.localStore.search(withQuery: query.order([]), in: context) { localResult in
 
                                 switch localResult {
                                 case .success(let localResults):
@@ -854,7 +797,7 @@ private extension CoreManager {
 
                                     dispatchGroup.notify(queue: self.storeStackQueues.writeResultsQueue) {
                                         guardedPromise(.success(remoteResults))
-                                        self.raiseUpdateEvents(withQuery: query, results: remoteResults, returnsCompleteResultSet: context.returnsCompleteResultSet)
+                                        self.raiseUpdateEvents(withQuery: query, results: remoteResults, contract: context.contract, returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
 
                                 case .failure(let error):
@@ -872,7 +815,7 @@ private extension CoreManager {
                                             Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
                                         }
                                         guardedPromise(.success(queryResult))
-                                        self.raiseUpdateEvents(withQuery: query, results: queryResult, returnsCompleteResultSet: context.returnsCompleteResultSet)
+                                        self.raiseUpdateEvents(withQuery: query, results: queryResult, contract: context.contract, returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
                                 }
                             }
@@ -1399,6 +1342,7 @@ private extension CoreManager {
     final class PropertyEntry {
 
         let query: Query<E>
+        let contract: EntityContract
         let accessValidator: UserAccessValidating?
 
         private let propertyDispatchQueue = DispatchQueue(label: "\(PropertyEntry.self):property")
@@ -1411,9 +1355,11 @@ private extension CoreManager {
 
         init(_ query: Query<E>,
              property: Property<QueryResult<E>?>,
+             contract: EntityContract,
              accessValidator: UserAccessValidating?) {
             self.query = query
             self._weakProperty = property
+            self.contract = contract
             self.accessValidator = accessValidator
         }
 
@@ -1427,7 +1373,7 @@ private extension CoreManager {
         func update(with value: QueryResult<E>) {
             let shouldAllowRequest = accessValidator?.userAccess.allowsStoreRequest ?? true
             if shouldAllowRequest {
-                property?.update(with: value)
+                property?.update(with: value.validatingContract(contract, with: query))
             } else {
                 property?.update(with: .entities([]))
             }
@@ -1439,7 +1385,7 @@ private extension CoreManager {
         }
     }
 
-    func preparePropertiesForSearchUpdate(forQuery query: Query<E>, accessValidator: UserAccessValidating?) -> Property<QueryResult<E>?> {
+    func preparePropertiesForSearchUpdate(forQuery query: Query<E>, context: ReadContext<E>) -> Property<QueryResult<E>?> {
 
         if let property = propertiesQueue.sync(execute: { (_properties + _pendingProperties).first { $0.query == query }?.property }) {
             return property
@@ -1448,7 +1394,7 @@ private extension CoreManager {
         let subject = CoreManagerSubject<QueryResult<E>?, Never>()
         let property = Property<QueryResult<E>?>(nil, subject: subject)
 
-        let entry = PropertyEntry(query, property: property, accessValidator: accessValidator)
+        let entry = PropertyEntry(query, property: property, contract: context.contract, accessValidator: context.accessValidator)
         propertiesQueue.async(flags: .barrier) {
             self._pendingProperties.removeAll { $0.property == nil }
             self._pendingProperties.append(entry)
@@ -1571,7 +1517,7 @@ private extension CoreManager {
     ///     - At least one entity in the search results changed.
     ///     - The search results has less entities than before.
     ///     - The search results has more entities than before, ONLY when the order IS DETERMINISTIC.
-    func raiseUpdateEvents(withQuery query: Query<E>, results: QueryResult<E>, returnsCompleteResultSet: Bool = true) {
+    func raiseUpdateEvents(withQuery query: Query<E>, results: QueryResult<E>, contract: EntityContract = AlwaysValidContract(), returnsCompleteResultSet: Bool = true) {
         raiseEventsQueue.async {
 
             let properties = self.propertiesQueue.sync { self._properties + self._pendingProperties }
@@ -1594,7 +1540,7 @@ private extension CoreManager {
                     newEntities = newEntities.lazy.filter(with: !(.identifier >> newEntityIDsExclusion))
 
                     let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)
-                    element.update(with: newValue.validatingExtras(with: element.query))
+                    element.update(with: newValue)
                 } else if element.query == query || query.filter == .all {
                     if returnsCompleteResultSet == false,
                         let propertyValue = element.property?.value {
@@ -1604,14 +1550,14 @@ private extension CoreManager {
                             newEntities = newEntities.order(with: query.order)
                         }
                         let newValue = QueryResult(fromProcessedEntities: newEntities, for: query)
-                        element.update(with: newValue.validatingExtras(with: element.query))
+                        element.update(with: newValue)
                     } else if element.query.order != query.order,
                         element.query.order.contains(where: { $0.isDeterministic }) {
                         let orderedEntities = results.order(with: element.query.order)
                         let orderedResults = QueryResult(fromProcessedEntities: orderedEntities, for: element.query)
-                        element.update(with: orderedResults.validatingExtras(with: element.query))
+                        element.update(with: orderedResults)
                     } else {
-                        element.update(with: results.validatingExtras(with: element.query))
+                        element.update(with: results)
                     }
                 } else if let propertyValue = element.property?.value {
                     let newEntitiesByID = results.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
@@ -1623,7 +1569,7 @@ private extension CoreManager {
                         newEntities = newEntities.order(with: element.query.order)
                     }
                     let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)
-                    element.update(with: newValue.validatingExtras(with: element.query))
+                    element.update(with: newValue)
                 }
             }
         }
@@ -1768,19 +1714,17 @@ public extension CoreManaging {
 public extension CoreManaging where E: RemoteEntity {
 
     func rootEntity<Graph>(byID identifier: E.Identifier,
-                           extras: [E.ExtrasIndexName],
                            in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery
         where Graph: MutableGraph, Graph.AnyEntity == RelationshipManager.AnyEntity {
 
-            return get(byID: identifier, extras: extras, in: context).relationships(from: relationshipManager, in: context)
+            return get(byID: identifier, in: context).relationships(from: relationshipManager, in: context)
     }
 
     func rootEntities<S, Graph>(for identifiers: S,
-                                extras: [E.ExtrasIndexName],
                                 in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery
         where S: Sequence, S.Element == E.Identifier, Graph: MutableGraph, Graph.AnyEntity == RelationshipManager.AnyEntity {
 
-            return RelationshipController.RelationshipQuery(rootEntities: get(byIDs: identifiers, extras: extras, in: context),
+            return RelationshipController.RelationshipQuery(rootEntities: get(byIDs: identifiers, in: context),
                                                             in: context,
                                                             relationshipManager: relationshipManager)
     }

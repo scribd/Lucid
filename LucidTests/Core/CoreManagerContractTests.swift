@@ -1,5 +1,5 @@
 //
-//  CoreManagerExtrasTests.swift
+//  CoreManagerContractTests.swift
 //  LucidTests
 //
 //  Created by Stephane Magne on 6/4/20.
@@ -12,7 +12,7 @@ import XCTest
 @testable import Lucid_ReactiveKit
 @testable import LucidTestKit_ReactiveKit
 
-final class CoreManagerExtrasTests: XCTestCase {
+final class CoreManagerContractTests: XCTestCase {
 
     private var remoteStoreSpy: StoreSpy<EntitySpy>!
 
@@ -59,20 +59,22 @@ final class CoreManagerExtrasTests: XCTestCase {
         }
     }
 
-    // MARK: - GET
+    // MARK: - Base EntityContext Tests
 
-    func test_core_manager_get_should_return_complete_results_when_no_extras_are_requested() {
+    // MARK: GET
+
+    func test_core_manager_get_should_return_complete_results_when_no_contract_is_provided() {
 
         buildManager(for: .local)
 
         memoryStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested)
         ))
 
         let onceExpectation = self.expectation(description: "once")
 
         manager
-            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)), extras: [])
+            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)))
             .observe { event in
                 switch event {
                 case .next(let queryResult):
@@ -92,18 +94,23 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_get_should_return_complete_results_when_extra_is_requested_and_entity_has_extra_data() {
+    func test_core_manager_get_should_return_complete_results_when_entity_meets_contract_requirements() {
 
         buildManager(for: .local)
 
         memoryStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(1))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(1))
         ))
 
         let onceExpectation = self.expectation(description: "once")
 
+        let contract = IdentifierContract(successfulIdentifiers: [
+            EntitySpyIdentifier(value: .remote(1, nil))
+        ])
+        let context = ReadContext<EntitySpy>(dataSource: .local, contract: contract)
+
         manager
-            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)), extras: [.extra])
+            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)), in: context)
             .observe { event in
                 switch event {
                 case .next(let queryResult):
@@ -123,18 +130,21 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_get_should_filter_results_when_extras_are_requested_and_entity_is_missing_extra_data() {
+    func test_core_manager_get_should_filter_results_when_enity_does_not_meet_contract_requirements() {
 
         buildManager(for: .local)
 
         memoryStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested)
         ))
 
         let onceExpectation = self.expectation(description: "once")
 
+        let contract = IdentifierContract(successfulIdentifiers: [])
+        let context = ReadContext<EntitySpy>(dataSource: .local, contract: contract)
+
         manager
-            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)), extras: [.extra])
+            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)), in: context)
             .observe { event in
                 switch event {
                 case .next(let queryResult):
@@ -155,19 +165,19 @@ final class CoreManagerExtrasTests: XCTestCase {
 
     // MARK: - SEARCH
 
-    func test_core_manager_search_should_return_complete_results_when_no_extras_are_requested() {
+    func test_core_manager_search_should_return_complete_results_when_no_contract_is_provided() {
 
         buildManager(for: .local)
 
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(2))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(2))
         ]))
 
         let onceExpectation = self.expectation(description: "once")
 
         manager
-            .search(withQuery: Query(extras: []))
+            .search(withQuery: .all)
             .once
             .observe { event in
                 switch event {
@@ -189,19 +199,25 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_should_return_complete_results_when_extra_is_requested_and_entities_have_extra_data() {
+    func test_core_manager_search_should_return_complete_results_when_all_entities_meet_contract_requirements() {
 
         buildManager(for: .local)
 
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(1)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(2))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(1)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(2))
         ]))
 
         let onceExpectation = self.expectation(description: "once")
 
+        let contract = IdentifierContract(successfulIdentifiers: [
+            EntitySpyIdentifier(value: .remote(1, nil)),
+            EntitySpyIdentifier(value: .remote(2, nil))
+        ])
+        let context = ReadContext<EntitySpy>(dataSource: .local, contract: contract)
+
         manager
-            .search(withQuery: Query(extras: [.extra]))
+            .search(withQuery: .all, in: context)
             .once
             .observe { event in
                 switch event {
@@ -223,19 +239,24 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_should_return_filtered_results_when_extra_is_requested_and_some_entities_are_missing_extra_data() {
+    func test_core_manager_search_should_return_filtered_results_when_partial_entities_meet_contract_requirements() {
 
         buildManager(for: .local)
 
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(2))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(2))
         ]))
 
         let onceExpectation = self.expectation(description: "once")
 
+        let contract = IdentifierContract(successfulIdentifiers: [
+            EntitySpyIdentifier(value: .remote(2, nil))
+        ])
+        let context = ReadContext<EntitySpy>(dataSource: .local, contract: contract)
+
         manager
-            .search(withQuery: Query(extras: [.extra]))
+            .search(withQuery: .all, in: context)
             .once
             .observe { event in
                 switch event {
@@ -258,7 +279,7 @@ final class CoreManagerExtrasTests: XCTestCase {
 
     // MARK: - CONTINUOUS
 
-    func test_continuous_obvserver_should_get_filtered_results_matching_extras_in_query() {
+    func test_continuous_obvserver_should_get_filtered_results_matching_entities_that_meet_contract_requirements() {
 
         buildManager(for: .remoteAndLocal)
 
@@ -268,8 +289,13 @@ final class CoreManagerExtrasTests: XCTestCase {
         let continuousSetupExpectation = self.expectation(description: "continuous")
         let continuousCompletedExpectation = self.expectation(description: "continuous")
 
+        let continuousContract = IdentifierContract(successfulIdentifiers: [
+            EntitySpyIdentifier(value: .remote(2, nil))
+        ])
+        let continuousContext = ReadContext<EntitySpy>(dataSource: .local, contract: continuousContract)
+
         manager
-            .search(withQuery: Query(extras: [.extra]))
+            .search(withQuery: .all, in: continuousContext)
             .continuous
             .observe { event in
                 switch event {
@@ -298,13 +324,13 @@ final class CoreManagerExtrasTests: XCTestCase {
         wait(for: [continuousSetupExpectation], timeout: 1)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(2))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(2))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(2))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(2))
         ])
 
         let onceExpectation = self.expectation(description: "once")
@@ -318,7 +344,7 @@ final class CoreManagerExtrasTests: XCTestCase {
         )
 
         manager
-            .search(withQuery: Query(extras: []), in: context)
+            .search(withQuery: .all, in: context)
             .once
             .observe { event in
                 switch event {
@@ -340,25 +366,25 @@ final class CoreManagerExtrasTests: XCTestCase {
         wait(for: [continuousCompletedExpectation, onceExpectation], timeout: 1)
     }
 
-    // MARK: - ReadContext.DataSource
+    // MARK: - ReadContext.DataSource Tests
 
     // MARK: GET
 
-    func test_core_manager_get_should_return_empty_results_when_no_entities_match_in_local_store_for_local_data_source() {
+    func test_core_manager_get_should_return_empty_results_when_no_entities_in_local_store_meet_contract_requirements() {
 
         buildManager(for: .remoteAndLocal)
 
         memoryStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested)
         ))
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource: .local)
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(dataSource: .local, contract: contract)
 
         manager
             .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 extras: [.extra],
                  in: context)
             .observe { event in
                 switch event {
@@ -378,42 +404,43 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_get_should_return_results_from_remote_when_no_entities_match_in_local_store_for_local_or_remote_data_source() {
+    func test_core_manager_get_should_return_results_from_remote_when_no_entities_in_local_store_meet_contract_requirements_for_local_or_remote_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9))
         ))
         memoryStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested)
         ))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9))
         ])
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            .localOr(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: .localOr(
                 ._remote(
                     endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                     persistenceStrategy: .persist(.retainExtraLocalData),
                     orLocal: false,
                     trustRemoteFiltering: true
                 )
-            )
+            ),
+            contract: contract
         )
 
         manager
             .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 extras: [.extra],
                  in: context)
             .observe { event in
                 switch event {
                 case .next(let queryResult):
                     XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.extra.extraValue(), 9)
+                    XCTAssertEqual(queryResult.first?.lazy.value(), 9)
 
                 case .failed(let error):
                     XCTFail("Unexpected error: \(error)")
@@ -428,42 +455,43 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_get_should_return_results_from_remote_when_no_entities_match_in_local_store_for_local_then_remote_data_source() {
+    func test_core_manager_get_should_return_results_from_remote_when_no_entities_meet_contract_requirements_in_local_store_for_local_then_remote_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9))
         ))
         memoryStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested)
         ))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9))
         ])
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            .localThen(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: .localThen(
                 ._remote(
                     endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                     persistenceStrategy: .persist(.retainExtraLocalData),
                     orLocal: false,
                     trustRemoteFiltering: true
                 )
-            )
+            ),
+            contract: contract
         )
 
         manager
             .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 extras: [.extra],
                  in: context)
             .observe { event in
                 switch event {
                 case .next(let queryResult):
                     XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.extra.extraValue(), 9)
+                    XCTAssertEqual(queryResult.first?.lazy.value(), 9)
 
                 case .failed(let error):
                     XCTFail("Unexpected error: \(error)")
@@ -478,40 +506,41 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_get_should_return_local_result_when_no_entities_match_in_remote_store_for_remote_or_local_data_source() {
+    func test_core_manager_get_should_return_local_result_when_no_entities_meet_contract_requirements_in_remote_store_for_remote_or_local_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested)
         ))
         memoryStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9))
         ))
         memoryStoreSpy.setResultStub = .success([
-        EntitySpy(idValue: .remote(1, nil), extra: .requested(9))
+        EntitySpy(idValue: .remote(1, nil), lazy: .requested(9))
         ])
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            ._remote(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: ._remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                 persistenceStrategy: .persist(.retainExtraLocalData),
                 orLocal: true,
                 trustRemoteFiltering: true
-            )
+            ),
+            contract: contract
         )
 
         manager
             .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 extras: [.extra],
                  in: context)
             .observe { event in
                 switch event {
                 case .next(let queryResult):
                     XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.extra.extraValue(), 9)
+                    XCTAssertEqual(queryResult.first?.lazy.value(), 9)
 
                 case .failed(let error):
                     XCTFail("Unexpected error: \(error)")
@@ -526,28 +555,29 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_get_should_return_empty_results_when_no_entities_match_in_remote_store_for_remote_data_source() {
+    func test_core_manager_get_should_return_empty_results_when_no_entities_meet_contract_requirements_in_remote_store_for_remote_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.getResultStub = .success(.entity(
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested)
         ))
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            ._remote(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: ._remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                 persistenceStrategy: .doNotPersist,
                 orLocal: false,
                 trustRemoteFiltering: true
-            )
+            ),
+            contract: contract
         )
 
         manager
             .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 extras: [.extra],
                  in: context)
             .observe { event in
                 switch event {
@@ -573,17 +603,17 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource: .local)
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(dataSource: .local, contract: contract)
 
         manager
             .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 extras: [.extra],
                  in: context)
             .once
             .observe { event in
@@ -605,39 +635,40 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_by_ids_should_return_remote_results_when_at_least_one_entity_doesnt_match_in_local_store_for_local_or_remote_data_source() {
+    func test_core_manager_search_by_ids_should_return_remote_results_when_at_least_one_entity_doesnt_meet_contract_requirements_in_local_store_for_local_or_remote_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            .localOr(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: .localOr(
                 ._remote(
                     endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                     persistenceStrategy: .persist(.retainExtraLocalData),
                     orLocal: false,
                     trustRemoteFiltering: true
                 )
-            )
+            ),
+            contract: contract
         )
 
         manager
             .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 extras: [.extra],
                  in: context)
             .once
             .observe { event in
@@ -660,39 +691,40 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_by_ids_should_return_remote_results_when_at_least_one_entity_doesnt_match_in_local_store_for_local_then_remote_data_source() {
+    func test_core_manager_search_by_ids_should_return_remote_results_when_at_least_one_entity_doesnt_meet_contract_requirements_in_local_store_for_local_then_remote_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            .localThen(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: .localThen(
                 ._remote(
                     endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                     persistenceStrategy: .persist(.retainExtraLocalData),
                     orLocal: false,
                     trustRemoteFiltering: true
                 )
-            )
+            ),
+            contract: contract
         )
 
         manager
             .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 extras: [.extra],
                  in: context)
             .once
             .observe { event in
@@ -720,32 +752,33 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            ._remote(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: ._remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                 persistenceStrategy: .persist(.retainExtraLocalData),
                 orLocal: true,
                 trustRemoteFiltering: true
-            )
+            ),
+            contract: contract
         )
 
         manager
             .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 extras: [.extra],
                  in: context)
             .once
             .observe { event in
@@ -767,35 +800,36 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_by_ids_should_trust_remote_results_when_filtering_extras_for_remote_or_local_data_source() {
+    func test_core_manager_search_by_ids_should_trust_remote_results_when_applying_contract_for_remote_or_local_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .unrequested)
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
         ])
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            ._remote(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: ._remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                 persistenceStrategy: .persist(.retainExtraLocalData),
                 orLocal: true,
                 trustRemoteFiltering: true
-            )
+            ),
+            contract: contract
         )
 
         manager
             .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 extras: [.extra],
                  in: context)
             .once
             .observe { event in
@@ -816,13 +850,13 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_by_ids_should_trust_remote_results_when_filtering_extras_for_remote_data_source() {
+    func test_core_manager_search_by_ids_should_trust_remote_results_when_applying_contract_for_remote_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .unrequested)
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
         ]))
@@ -831,18 +865,19 @@ final class CoreManagerExtrasTests: XCTestCase {
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            ._remote(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: ._remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                 persistenceStrategy: .persist(.retainExtraLocalData),
                 orLocal: false,
                 trustRemoteFiltering: true
-            )
+            ),
+            contract: contract
         )
 
         manager
             .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 extras: [.extra],
                  in: context)
             .once
             .observe { event in
@@ -870,15 +905,16 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), title: "test", extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), title: "test", extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), title: "test", lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), title: "test", lazy: .requested(5))
         ]))
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource: .local)
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(dataSource: .local, contract: contract)
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"))
 
         manager
             .search(withQuery: query, in: context)
@@ -907,32 +943,34 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), title: "test", extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), title: "test", extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), title: "test", lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), title: "test", lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), title: "test", extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), title: "test", extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), title: "test", lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), title: "test", lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), title: "test", extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), title: "test", extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), title: "test", lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), title: "test", lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            .localOr(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: .localOr(
                 ._remote(
                     endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                     persistenceStrategy: .persist(.retainExtraLocalData),
                     orLocal: false,
                     trustRemoteFiltering: true
                 )
-            )
+            ),
+            contract: contract
         )
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"))
 
         manager
             .search(withQuery: query, in: context)
@@ -961,32 +999,34 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), title: "test", extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), title: "test", extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), title: "test", lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), title: "test", lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), title: "test", extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), title: "test", extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), title: "test", lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), title: "test", lazy: .unrequested)
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), title: "test", extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), title: "test", extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), title: "test", lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), title: "test", lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            .localOr(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: .localOr(
                 ._remote(
                     endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                     persistenceStrategy: .persist(.retainExtraLocalData),
                     orLocal: false,
                     trustRemoteFiltering: true
                 )
-            )
+            ),
+            contract: contract
         )
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"))
 
         manager
             .search(withQuery: query, in: context)
@@ -1016,32 +1056,34 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            .localThen(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: .localThen(
                 ._remote(
                     endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                     persistenceStrategy: .persist(.retainExtraLocalData),
                     orLocal: false,
                     trustRemoteFiltering: true
                 )
-            )
+            ),
+            contract: contract
         )
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"))
 
         manager
             .search(withQuery: query, in: context)
@@ -1070,32 +1112,34 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .unrequested)
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            .localThen(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: .localThen(
                 ._remote(
                     endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                     persistenceStrategy: .persist(.retainExtraLocalData),
                     orLocal: false,
                     trustRemoteFiltering: true
                 )
-            )
+            ),
+            contract: contract
         )
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"))
 
         manager
             .search(withQuery: query, in: context)
@@ -1125,30 +1169,32 @@ final class CoreManagerExtrasTests: XCTestCase {
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ])
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            ._remote(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: ._remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                 persistenceStrategy: .persist(.retainExtraLocalData),
                 orLocal: true,
                 trustRemoteFiltering: true
-            )
+            ),
+            contract: contract
         )
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"))
 
         manager
             .search(withQuery: query, in: context)
@@ -1172,33 +1218,35 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_by_query_should_trust_remote_results_when_filtering_extras_for_remote_or_local_data_source() {
+    func test_core_manager_search_by_query_should_trust_remote_results_when_applying_contract_for_remote_or_local_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .unrequested)
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
         ])
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            ._remote(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: ._remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                 persistenceStrategy: .persist(.retainExtraLocalData),
                 orLocal: true,
                 trustRemoteFiltering: true
-            )
+            ),
+            contract: contract
         )
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"))
 
         manager
             .search(withQuery: query, in: context)
@@ -1221,33 +1269,35 @@ final class CoreManagerExtrasTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_by_query_should_trust_remote_results_when_filtering_extras_for_remote_data_source() {
+    func test_core_manager_search_by_query_should_trust_remote_results_when_applying_contract_for_remote_data_source() {
 
         buildManager(for: .remoteAndLocal)
 
         remoteStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .unrequested),
-            EntitySpy(idValue: .remote(2, nil), extra: .unrequested)
+            EntitySpy(idValue: .remote(1, nil), lazy: .unrequested),
+            EntitySpy(idValue: .remote(2, nil), lazy: .unrequested)
         ]))
         memoryStoreSpy.searchResultStub = .success(.entities([
-            EntitySpy(idValue: .remote(1, nil), extra: .requested(9)),
-            EntitySpy(idValue: .remote(2, nil), extra: .requested(5))
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(5))
         ]))
         memoryStoreSpy.setResultStub = .success([
         ])
 
         let onceExpectation = self.expectation(description: "once")
 
-        let context = ReadContext<EntitySpy>(dataSource:
-            ._remote(
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: ._remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                 persistenceStrategy: .persist(.retainExtraLocalData),
                 orLocal: false,
                 trustRemoteFiltering: true
-            )
+            ),
+            contract: contract
         )
 
-        let query = Query<EntitySpy>(filter: .title == .string("test"), extras: [.extra])
+        let query = Query<EntitySpy>(filter: .title == .string("test"))
 
         manager
             .search(withQuery: query, in: context)
@@ -1268,5 +1318,48 @@ final class CoreManagerExtrasTests: XCTestCase {
         .dispose(in: disposeBag)
 
         waitForExpectations(timeout: 1, handler: nil)
+    }
+}
+
+// MARK: - Contract Helpers
+
+private struct IdentifierContract: EntityContract {
+
+    let successfulIdentifiers: [EntitySpyIdentifier]
+
+    init(successfulIdentifiers: [EntitySpyIdentifier]) {
+        self.successfulIdentifiers = successfulIdentifiers
+    }
+
+    public func shouldValidate<E>(_ entityType: E.Type) -> Bool where E: Entity {
+        return true
+    }
+
+    func isEntityValid<E>(_ entity: E, for query: Query<E>) -> Bool where E: Entity {
+        switch entity {
+        case let entity as EntitySpy:
+            return successfulIdentifiers.contains(entity.identifier)
+        default:
+            return true
+        }
+    }
+}
+
+private struct LazyPropertyContract: EntityContract {
+
+    public func shouldValidate<E>(_ entityType: E.Type) -> Bool where E: Entity {
+        return true
+    }
+
+    func isEntityValid<E>(_ entity: E, for query: Query<E>) -> Bool where E: Entity {
+        switch entity {
+        case let entity as EntitySpy:
+            switch entity.lazy {
+            case .requested: return true
+            case .unrequested: return false
+            }
+        default:
+            return true
+        }
     }
 }

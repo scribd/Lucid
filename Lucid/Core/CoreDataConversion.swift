@@ -629,16 +629,16 @@ public extension Optional where Wrapped == String {
     }
 }
 
-// MARK: - Extra
+// MARK: - Lazy
 
-public extension Extra {
+public extension Lazy {
 
     init(value: T?, requested: Bool) {
         if let value = value, requested {
             self = .requested(value)
         } else {
             if value == nil, requested {
-                Logger.log(.debug, "\(Extra.self): We appear to be storing nil for a requested value of a non-optional extra. Check the API Object to make sure the description is correct.", assert: true)
+                Logger.log(.debug, "\(Lazy.self): We appear to be storing nil for a requested value of a non-optional lazy value. Check the API Object to make sure the description is correct.", assert: true)
             }
             self = .unrequested
         }

@@ -502,7 +502,7 @@ public struct OrderedDictionary<Key, Value>: Sequence where Key: Hashable {
     }
 }
 
-// MARK: - OrderedDictionary
+// MARK: - OrderedSet
 
 /// Set which keeps track of the order in which elements have been inserted.
 ///
@@ -524,7 +524,7 @@ public struct OrderedDictionary<Key, Value>: Sequence where Key: Hashable {
 ///     ```
 public struct OrderedSet<Element>: Sequence where Element: Hashable {
 
-    private var data = OrderedDictionary<Element, Element>()
+    private var data = OrderedDictionary<Element, Void>()
 
     public init() {
         // no-op
@@ -532,7 +532,7 @@ public struct OrderedSet<Element>: Sequence where Element: Hashable {
 
     public init<S>(_ values: S) where S: Sequence, S.Element == Element {
         values.forEach { value in
-            data.append(key: value, value: value)
+            data.append(key: value, value: ())
         }
     }
 
@@ -545,36 +545,36 @@ public struct OrderedSet<Element>: Sequence where Element: Hashable {
     }
 
     public mutating func append(_ element: Element) {
-        data.append(key: element, value: element)
+        data.append(key: element, value: ())
     }
 
     public mutating func prepend(_ element: Element) {
-        data.prepend(key: element, value: element)
+        data.prepend(key: element, value: ())
     }
 
     public mutating func popFirst() -> Element? {
-        return data.popFirst()?.value
+        return data.popFirst()?.key
     }
 
     public mutating func popLast() -> Element? {
-        return data.popLast()?.value
+        return data.popLast()?.key
     }
 
     @discardableResult
     public mutating func remove(at index: Int) -> Element {
-        let key = data.orderedKeys[index]
-        defer { data[key] = nil }
-        return data.orderedValues[index]
+        let member = data.orderedKeys[index]
+        defer { data[member] = nil }
+        return member
     }
 
     @discardableResult
     public mutating func remove(_ member: Element) -> Element? {
-        guard let index = data.orderedValues.firstIndex(of: member) else { return nil }
-        return remove(at: index)
+        defer { data[member] = nil }
+        return data[member] != nil ? member : nil
     }
 
     public var array: [Element] {
-        return data.orderedValues
+        return data.orderedKeys
     }
 
     public var count: Int {
@@ -814,13 +814,34 @@ extension Optional: DualHashable where Wrapped: DualHashable {
 
 extension OrderedDictionary: Decodable where Key: Decodable, Value: Decodable {}
 
-extension OrderedSet: Decodable where Element: Decodable {}
+extension OrderedSet: Decodable where Element: Decodable {
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        // Retro compatibility with previous implementations
+        if let keys = try? container.decode([Element].self) {
+            data = OrderedDictionary(keys.lazy.map { ($0, ()) })
+        } else {
+            data = OrderedDictionary(
+                try container
+                    .decode(OrderedDictionary<Element, Element>.self)
+                    .map { key, _ in (key, ()) }
+            )
+        }
+    }
+}
 
 // MARK: - Encodable
 
 extension OrderedDictionary: Encodable where Key: Encodable, Value: Encodable {}
 
-extension OrderedSet: Encodable where Element: Encodable {}
+extension OrderedSet: Encodable where Element: Encodable {
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(data.orderedKeys)
+    }
+}
 
 // MARK: - Sort
 

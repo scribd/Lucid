@@ -465,6 +465,85 @@ final class OrderedDictionaryTests: XCTestCase {
 
 // MARK: - Set
 
+final class OrderedSetTests: XCTestCase {
+
+    private var set: OrderedSet<String>!
+
+    override func setUp() {
+        super.setUp()
+        set = OrderedSet()
+    }
+
+    override func tearDown() {
+        defer { super.tearDown() }
+        set = nil
+    }
+
+    func test_should_add_elements_and_retrieve_them_in_order_of_insertion() {
+        set.append("0")
+        set.append("1")
+        set.append("2")
+        set.append("3")
+        XCTAssertEqual(set.array, ["0", "1", "2", "3"])
+    }
+
+    func test_should_add_an_element_twice_and_retrieve_it_once_in_order_of_insertion() {
+        set.append("0")
+        set.append("1")
+        set.append("2")
+        set.append("0")
+        XCTAssertEqual(set.array, ["1", "2", "0"])
+    }
+
+    func test_should_add_an_element_twice_and_count_a_correct_amount_of_elements() {
+        set.append("0")
+        set.append("1")
+        set.append("2")
+        set.append("0")
+        XCTAssertEqual(set.count, 3)
+    }
+
+    func test_should_initialize_from_key_values_and_retrieve_elements_in_order_of_insertion() {
+        set = OrderedSet(["0", "1", "2", "0"])
+        XCTAssertEqual(set.array, ["1", "2", "0"])
+    }
+
+    func test_should_remove_member() {
+        set.append("0")
+        set.append("1")
+        set.append("2")
+        set.append("0")
+        set.remove("2")
+        XCTAssertEqual(set.array, ["1", "0"])
+    }
+
+    func test_should_decode_from_legacy_encoded_data() throws {
+        let jsonEncoder = JSONEncoder()
+        let jsonDecoder = JSONDecoder()
+
+        var dictionary = OrderedDictionary<String, String>()
+        dictionary["0"] = "0"
+        dictionary["3"] = "3"
+        dictionary["2"] = "2"
+        dictionary["1"] = "1"
+
+        let data = try jsonEncoder.encode(dictionary)
+        set = try jsonDecoder.decode(OrderedSet<String>.self, from: data)
+
+        XCTAssertEqual(set.array, ["0", "3", "2", "1"])
+    }
+
+    func test_should_decode_from_encoded_data() throws {
+        let jsonEncoder = JSONEncoder()
+        let jsonDecoder = JSONDecoder()
+
+        let data = try jsonEncoder.encode(OrderedSet(["0", "3", "2", "1"]))
+        set = try jsonDecoder.decode(OrderedSet<String>.self, from: data)
+
+        XCTAssertEqual(set.array, ["0", "3", "2", "1"])
+    }
+}
+
 final class DualHashSetDictionaryTests: XCTestCase {
 
     private var set: DualHashSet<IdentifierValueType<String, Int>>!

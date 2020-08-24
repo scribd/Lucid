@@ -110,7 +110,7 @@ struct MetaEntityFactory {
                 case .properties:
                     typeID = subtype.factoryTypeID
                     typeID = property.isArray ? .anySequence(element: typeID) : typeID
-                    typeID = property.optional ? .optional(wrapped: typeID) : typeID
+                    typeID = property.nullable ? .optional(wrapped: typeID) : typeID
                     typeID = property.lazy ? .lazyValue(of: typeID) : typeID
                 }
             case .array,

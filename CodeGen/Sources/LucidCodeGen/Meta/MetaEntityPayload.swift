@@ -379,7 +379,7 @@ struct MetaEntityPayload {
                         variable: .named("entityMetadata") | .unwrap + property.variable.reference,
                         value: .named("rootPayload") + property.payloadName.reference |
                             (property.lazy ? .none + .lazyValue | .call() | .unwrap : .none ) |
-                            (property.optional ? .unwrap : .none) + .named("value") | .unwrap + .named("entityMetadata")
+                            (property.nullable ? .unwrap : .none) + .named("value") | .unwrap + .named("entityMetadata")
                     )
                 }
             } : [])
@@ -410,7 +410,7 @@ struct MetaEntityPayload {
                     ))
                 )
                 
-                if property.optional {
+                if property.nullable {
                     containerReference = .call(Tuple()
                         .adding(parameter: TupleParameter(value: .optionalTry | containerReference))
                     ) | .unwrap

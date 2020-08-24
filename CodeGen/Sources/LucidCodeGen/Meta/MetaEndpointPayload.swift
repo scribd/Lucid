@@ -156,7 +156,7 @@ struct MetaEndpointPayload {
         let endpoint = try descriptions.endpoint(for: endpointName)
 
         var function = Function.initFromDecoder.with(accessLevel: .public)
-        let decodeMethod: Reference = endpoint.entity.optional ? .named("decodeIfPresent") : .named("decode")
+        let decodeMethod: Reference = endpoint.entity.nullable ? .named("decodeIfPresent") : .named("decode")
         
         let container = Assignment(
             variable: Variable(name: "container"),

@@ -251,7 +251,7 @@ struct MetaEntity {
                         .named("identifier") | .call(Tuple()
                             .adding(parameter:  TupleParameter(name: "from", value: .named("payload") + .named("identifier") + relationshipEntity.identifierVariable.reference))
                         )
-                } else if property.optional {
+                } else if property.nullable {
                     value = Reference.named("payload") +
                         .named(property.payloadName) +
                         .named(.flatMap) |
@@ -273,7 +273,7 @@ struct MetaEntity {
                 } else {
                     value = Reference.named("payload") +
                         .named(property.payloadName) |
-                        (property.optional ? .unwrap : .none) +
+                        (property.nullable ? .unwrap : .none) +
                         .named("identifier")
                 }
                 return TupleParameter(name: property.transformedName(), value: value)
@@ -287,7 +287,7 @@ struct MetaEntity {
                 } else {
                     value = Reference.named("payload") +
                         .named(property.payloadName) |
-                        (property.optional ? .unwrap : .none) +
+                        (property.nullable ? .unwrap : .none) +
                         .named("lazy") +
                         .named(.map) |
                         .block(FunctionBody()
@@ -700,7 +700,7 @@ struct MetaEntity {
                         remoteProperty = coreDataEntity + .named("setProperty") | .call(Tuple()
                             .adding(parameter: TupleParameter(value: Value.string("_\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))")))
                             .adding(parameter: TupleParameter(name: "value", value: property.entityReference |
-                                (property.lazy == false && property.optional ? .unwrap : .none) |
+                                (property.lazy == false && property.nullable ? .unwrap : .none) |
                                 (property.lazy ? .none + .lazyValue | .call() : .none) +
                                 .named("remoteCoreDataValue") |
                                 .call()))

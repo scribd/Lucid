@@ -775,12 +775,12 @@ public extension EntityProperty {
             let isEnumSubtype = try propertyType.subtype(descriptions)?.isEnum ?? false
             if isEnumSubtype {
                 return typeID
-            } else if optional, let optionalObjcTypeID = propertyType.scalarType?.objcOptionableTypeID {
+            } else if nullable, let optionalObjcTypeID = propertyType.scalarType?.objcOptionableTypeID {
                 typeID = optionalObjcTypeID
             }
         }
 
-        let rootTypeID = optional ? .optional(wrapped: typeID) : typeID
+        let rootTypeID = nullable ? .optional(wrapped: typeID) : typeID
         return (lazy && includeLazy) ? .lazyValue(of: rootTypeID) : rootTypeID
     }
     
@@ -1039,7 +1039,7 @@ public extension Subtype {
                 guard try property.propertyType.subtype(descriptions)?.name == name else {
                     return false
                 }
-                return property.optional || property.lazy
+                return property.nullable || property.lazy
             }
         }
     }
@@ -1049,7 +1049,7 @@ public extension Subtype.Property {
     
     func typeID(objc: Bool = false) -> TypeIdentifier {
         let typeID = propertyType.typeID(objc: objc)
-        if optional {
+        if nullable {
             return .optional(wrapped: typeID)
         } else {
             return typeID
@@ -1252,7 +1252,7 @@ public extension EntityProperty {
     
     func payloadValueTypeID(_ descriptions: Descriptions) throws -> TypeIdentifier {
         let valueTypeID = try propertyType.payloadValueTypeID(descriptions)
-        let isOptional = optional
+        let isOptional = nullable
         let rootTypeID = isOptional ? .optional(wrapped: valueTypeID) : valueTypeID
         return lazy ? .lazyValue(of: rootTypeID) : rootTypeID
     }
@@ -1362,7 +1362,7 @@ public extension MetadataProperty {
     }
     
     var typeID: TypeIdentifier {
-        return optional ? .optional(wrapped: propertyType.typeID) : propertyType.typeID
+        return nullable ? .optional(wrapped: propertyType.typeID) : propertyType.typeID
     }
 }
 
@@ -1392,7 +1392,7 @@ public extension EntityProperty {
                 .wrappedOrSelf
                 .arrayElementOrSelf
             typeID = .dualHashDictionary(key: identifierTypeID, value: typeID)
-            if optional {
+            if nullable {
                 typeID = .optional(wrapped: typeID)
             }
             return typeID
@@ -1450,7 +1450,7 @@ public extension EndpointPayloadEntity {
         if structure.isArray {
             typeID = .anySequence(element: typeID)
         }
-        if optional {
+        if nullable {
             typeID = .optional(wrapped: typeID)
         }
         return typeID

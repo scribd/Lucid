@@ -111,12 +111,12 @@ private extension MetaEntityObjc {
 
         func propertyValueReference(with typeID: TypeIdentifier) throws -> Reference {
             if property.isArray {
-                return baseReference | (property.optional ? .unwrap : .none) + .named(.map) | .block(FunctionBody()
+                return baseReference | (property.nullable ? .unwrap : .none) + .named(.map) | .block(FunctionBody()
                     .adding(member: typeID.reference | .call(Tuple()
                         .adding(parameter: TupleParameter(value: Reference.named("$0")))
                     ))
                 )
-            } else if property.optional && isEnumSubtype == false {
+            } else if property.nullable && isEnumSubtype == false {
                 return baseReference + .named(.flatMap) | .block(FunctionBody()
                     .adding(member: typeID.reference | .call(Tuple()
                         .adding(parameter: TupleParameter(value: Reference.named("$0")))
@@ -172,14 +172,14 @@ private extension MetaEntityObjc {
              .array(.scalar(.seconds)):
             let isEnumSubtype = try property.propertyType.subtype(descriptions)?.isEnum ?? false
             var valueMethod: Reference = .named("value") | (isEnumSubtype ? .call() : .none)
-            if let defaultValue = property.defaultValue, property.optional {
+            if let defaultValue = property.defaultValue, property.nullable {
                 valueMethod = valueMethod | .named("??") | .named(defaultValue.variableValue.swiftString)
             }
             if property.isArray {
-                return baseReference | (property.optional ? .unwrap : .none) + .named("lazy") + .named(.map) | .block(FunctionBody()
+                return baseReference | (property.nullable ? .unwrap : .none) + .named("lazy") + .named(.map) | .block(FunctionBody()
                     .adding(member: .named("$0") + valueMethod)
                 ) + .named("any")
-            } else if property.optional && isEnumSubtype == false {
+            } else if property.nullable && isEnumSubtype == false {
                 return baseReference + .named(.flatMap) | .block(FunctionBody()
                     .adding(member: .named("$0") + valueMethod)
                 )

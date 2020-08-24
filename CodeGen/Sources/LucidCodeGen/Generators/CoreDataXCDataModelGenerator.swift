@@ -110,7 +110,7 @@ public final class CoreDataXCDataModelGenerator: Generator {
                         <attribute name="__\(propertyCoreDataName)\(useCoreDataLegacyNaming ? "TypeUID" : "_type_uid")" optional="YES" attributeType="String" syncable="YES"\(_typeUIDElementIDText)/>
                 """
             } else {
-                let optional = property.optional || property.lazy
+                let optional = property.nullable || property.lazy
                 let optionalText = optional ? " optional=\"YES\"" : ""
                 let defaultValueText = property.defaultValue.flatMap { " \($0.coreDataAttributeName)=\"\($0.coreDataValue)\"" } ?? ""
 

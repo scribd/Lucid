@@ -163,7 +163,7 @@ public struct EndpointPayloadEntity {
 
     public let structure: Structure
 
-    public let optional: Bool
+    public let nullable: Bool
 }
 
 // MARK: - Variations
@@ -209,7 +209,7 @@ public struct MetadataProperty: Equatable {
 
     public let propertyType: PropertyType
 
-    public let optional: Bool
+    public let nullable: Bool
 }
 
 // MARK: - Entities
@@ -322,7 +322,7 @@ public struct EntityProperty {
 
     public let propertyType: PropertyType
 
-    public let optional: Bool
+    public let nullable: Bool
 
     public let defaultValue: DefaultValue?
     
@@ -385,7 +385,7 @@ public struct Subtype {
         public let name: String
         public let key: String?
         public let propertyType: PropertyType
-        public let optional: Bool
+        public let nullable: Bool
         public let objc: Bool
         public let unused: Bool
         public let defaultValue: DefaultValue?

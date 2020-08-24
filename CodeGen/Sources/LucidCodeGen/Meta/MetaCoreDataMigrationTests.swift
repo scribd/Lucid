@@ -139,7 +139,7 @@ struct MetaCoreDataMigrationTests {
                                             .unwrap +
                                             property.reference |
                                             (property.lazy ? .none + .lazyValue | .call() : .none) |
-                                            (property.optional ? .unwrap : .none) +
+                                            (property.nullable ? .unwrap : .none) +
                                             .named("isEmpty")) ?? .value(Value.bool(false))))
                         )
                     } else {

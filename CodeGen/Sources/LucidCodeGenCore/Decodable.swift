@@ -17,7 +17,7 @@ private enum Defaults {
     static let idOnly = false
     static let failableItems = true
     static let isTarget = false
-    static let optional = false
+    static let nullable = false
     static let mutable = false
     static let objc = false
     static let objcNoneCase = false
@@ -115,7 +115,8 @@ extension EndpointPayloadEntity: Decodable {
         case entityKey
         case entityName
         case structure
-        case optional
+        case nullable
+        case legacyOptional = "optional"
     }
     
     public init(from decoder: Decoder) throws {
@@ -124,7 +125,7 @@ extension EndpointPayloadEntity: Decodable {
         entityKey = try container.decodeIfPresent(String.self, forKey: .entityKey)
         entityName = try container.decode(String.self, forKey: .entityName)
         structure = try container.decode(Structure.self, forKey: .structure)
-        optional = try container.decodeIfPresent(Bool.self, forKey: .optional) ?? Defaults.optional
+        nullable = try container.decodeIfPresent(Bool.self, forKey: .nullable) ?? container.decodeIfPresent(Bool.self, forKey: .legacyOptional) ?? Defaults.nullable
     }
 }
 
@@ -295,7 +296,8 @@ extension MetadataProperty: Decodable {
         case name
         case key
         case propertyType
-        case optional
+        case nullable
+        case legacyOptional = "optional"
     }
     
     public init(from decoder: Decoder) throws {
@@ -313,7 +315,7 @@ extension MetadataProperty: Decodable {
             self.propertyType = propertyType
         }
         
-        optional = try container.decodeIfPresent(Bool.self, forKey: .optional) ?? Defaults.optional
+        nullable = try container.decodeIfPresent(Bool.self, forKey: .nullable) ?? container.decodeIfPresent(Bool.self, forKey: .legacyOptional) ?? Defaults.nullable
     }
 }
 
@@ -325,7 +327,8 @@ extension EntityProperty: Decodable {
         case addedAtVersion
         case key
         case propertyType
-        case optional
+        case nullable
+        case legacyOptional = "optional"
         case defaultValue
         case logError
         case useForEquality
@@ -333,6 +336,7 @@ extension EntityProperty: Decodable {
         case objc
         case unused
         case lazy
+        case legacyExtra = "extra"
         case matchExactKey
         case platforms
         case persistedName
@@ -369,14 +373,14 @@ extension EntityProperty: Decodable {
         
         key = try container.decodeIfPresent(String.self, forKey: .key) ?? container.decode(String.self, forKey: .name)
         matchExactKey = try container.decodeIfPresent(Bool.self, forKey: .matchExactKey) ?? Defaults.matchExactKey
-        optional = try container.decodeIfPresent(Bool.self, forKey: .optional) ?? Defaults.optional
+        nullable = try container.decodeIfPresent(Bool.self, forKey: .nullable) ?? container.decodeIfPresent(Bool.self, forKey: .legacyOptional) ?? Defaults.nullable
         defaultValue = try container.decodeIfPresent(DefaultValue.self, forKey: .defaultValue)
         logError = try container.decodeIfPresent(Bool.self, forKey: .logError) ?? Defaults.logError
         useForEquality = try container.decodeIfPresent(Bool.self, forKey: .useForEquality) ?? Defaults.useForEquality
         mutable = try container.decodeIfPresent(Bool.self, forKey: .mutable) ?? Defaults.mutable
         objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? Defaults.objc
         unused = try container.decodeIfPresent(Bool.self, forKey: .unused) ?? Defaults.unused
-        lazy = try container.decodeIfPresent(Bool.self, forKey: .lazy) ?? Defaults.lazy
+        lazy = try container.decodeIfPresent(Bool.self, forKey: .lazy) ?? container.decodeIfPresent(Bool.self, forKey: .legacyExtra) ?? Defaults.lazy
         platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? Defaults.platforms
         persistedName = try container.decodeIfPresent(String.self, forKey: .persistedName)
     }
@@ -464,7 +468,8 @@ extension Subtype.Property: Decodable {
         case name
         case key
         case propertyType
-        case optional
+        case nullable
+        case legacyOptional = "optional"
         case objc
         case unused
         case defaultValue
@@ -480,7 +485,7 @@ extension Subtype.Property: Decodable {
         propertyType = try container.decode(PropertyType.self, forKey: .propertyType)
         objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? Defaults.objc
         unused = try container.decodeIfPresent(Bool.self, forKey: .unused) ?? Defaults.unused
-        optional = try container.decodeIfPresent(Bool.self, forKey: .optional) ?? Defaults.optional
+        nullable = try container.decodeIfPresent(Bool.self, forKey: .nullable) ?? container.decodeIfPresent(Bool.self, forKey: .legacyOptional) ?? Defaults.nullable
 
         let defaultValue = try container.decodeIfPresent(DefaultValue.self, forKey: .defaultValue)
         let logError = try container.decodeIfPresent(Bool.self, forKey: .logError) ?? Defaults.logError

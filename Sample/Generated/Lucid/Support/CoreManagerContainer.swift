@@ -137,7 +137,7 @@ extension CoreManagerContainer: RelationshipCoreManaging {
 // static func stores(with client: APIClient) -> [Storing<E>]
 // to an individual class adopting the Entity protocol to provide custom functionality
 
-extension Entity {
+extension LocalEntity {
     static func stores(with client: APIClient,
                        clientQueue: inout APIClientQueue,
                        coreDataManager: CoreDataManager,

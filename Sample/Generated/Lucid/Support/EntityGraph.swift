@@ -70,18 +70,9 @@ extension Sequence where Element: Entity {
     }
 }
 
-public enum AppAnyEntityIndexName: Hashable, QueryResultConvertible {
+public enum AppAnyEntityIndexName: Hashable {
     case genre(Genre.IndexName)
     case movie(Movie.IndexName)
-
-    public var requestValue: String {
-        switch self {
-        case .genre(let index):
-            return index.requestValue
-        case .movie(let index):
-            return index.requestValue
-        }
-    }
 }
 
 final class EntityGraph: MutableGraph {

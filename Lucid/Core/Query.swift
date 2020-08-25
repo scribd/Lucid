@@ -161,20 +161,6 @@ public struct Query<E>: Equatable where E: Entity {
     public static var all: Query { return Query(filter: .all) }
 }
 
-// MARK: - QueryResultConvertible
-
-extension Query.Property: QueryResultConvertible {
-
-    public var requestValue: String {
-        switch self {
-        case .identifier:
-            return "identifier"
-        case .index(let index):
-            return index.requestValue
-        }
-    }
-}
-
 // MARK: - Result
 
 /// Contain the result of a search query.

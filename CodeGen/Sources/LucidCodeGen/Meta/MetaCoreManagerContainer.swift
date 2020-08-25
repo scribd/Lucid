@@ -255,9 +255,14 @@ struct MetaCoreManagerContainer {
     
     private var defaultImplementationsExtensions: PlainCode {
         return PlainCode(code: """
-        // Manually add the function:
-        // static func stores(with client: APIClient) -> [Storing<E>]
-        // to an individual class adopting the Entity protocol to provide custom functionality
+        /// Manually add the function:
+        /// ```
+        /// static func stores(with client: APIClient,
+        ///                    clientQueue: inout APIClientQueue,
+        ///                    coreDataManager: CoreDataManager,
+        ///                    cacheLimit: Int) -> Array<Storing<Self>>
+        /// ```
+        /// to an individual class adopting the Entity protocol to provide custom functionality
 
         extension LocalEntity {
             static func stores(with client: APIClient,

@@ -178,27 +178,10 @@ struct MetaEntityGraph {
             .with(kind: .enum(indirect: false))
             .with(accessLevel: .public)
             .adding(inheritedType: .hashable)
-            .adding(inheritedType: .queryResultConvertible)
             .adding(members: descriptions.entities.map { entity in
                 Case(name: entity.name.camelCased().variableCased())
                     .adding(parameter: CaseParameter(type: TypeIdentifier(name: "\(entity.transformedName).IndexName")))
             })
-            .adding(member: EmptyLine())
-            .adding(member:
-                ComputedProperty(variable: Variable(name: "requestValue")
-                    .with(type: .string))
-                    .with(accessLevel: .public)
-                    .adding(member: PlainCode(code: """
-                    switch self {
-                    \(descriptions.entities.map { entity in
-                        return """
-                        case .\(entity.name.camelCased().variableCased(ignoreLexicon: false))(let index):
-                            return index.requestValue
-                        """
-                    }.joined(separator: "\n"))
-                    }
-                    """))
-            )
     }
     
     private func entityGraph() -> Type {

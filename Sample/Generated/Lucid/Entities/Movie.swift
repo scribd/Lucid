@@ -160,8 +160,6 @@ extension Movie {
 
 extension Movie: LocalEntity, RemoteEntity {
 
-    public typealias ExtrasIndexName = MovieExtrasIndexName
-
     public func entityIndexValue(for indexName: MovieIndexName) -> EntityIndexValue<EntityRelationshipIdentifier, EntitySubtype> {
         switch indexName {
         case .genres:
@@ -346,21 +344,4 @@ public enum MovieIndexName {
     case popularity
     case posterPath
     case title
-}
-
-extension MovieIndexName: QueryResultConvertible {
-    public var requestValue: String {
-        switch self {
-        case .genres:
-            return "genres"
-        case .overview:
-            return "overview"
-        case .popularity:
-            return "popularity"
-        case .posterPath:
-            return "poster_path"
-        case .title:
-            return "title"
-        }
-    }
 }

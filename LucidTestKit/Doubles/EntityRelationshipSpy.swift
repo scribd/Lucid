@@ -90,7 +90,7 @@ public enum EntityRelationshipSpyIndexName {
     case relationships
 }
 
-extension EntityRelationshipSpyIndexName: CoreDataIndexName, QueryResultConvertible {
+extension EntityRelationshipSpyIndexName: CoreDataIndexName {
 
     public var predicateString: String {
         switch self {
@@ -115,15 +115,6 @@ extension EntityRelationshipSpyIndexName: CoreDataIndexName, QueryResultConverti
         case .title,
              .relationships:
             return nil
-        }
-    }
-
-    public var requestValue: String {
-        switch self {
-        case .title:
-            return "title"
-        case .relationships:
-            return "relationships"
         }
     }
 }

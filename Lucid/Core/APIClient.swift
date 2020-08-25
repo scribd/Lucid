@@ -70,20 +70,12 @@ public struct APIRequestConfig: Codable, Hashable {
             return value.flatMap { ._value($0) }
         }
 
-        public static func value(_ value: QueryResultConvertible?) -> QueryValue? {
-            return .value(value?.requestValue)
-        }
-
         public static func value(_ array: [QueryValue]?) -> QueryValue? {
             return array.flatMap { ._array($0) }
         }
 
         public static func value(_ strings: [String]?) -> QueryValue? {
             return .value(strings?.map { ._value($0) })
-        }
-
-        public static func value(_ strings: [QueryResultConvertible]?) -> QueryValue? {
-            return .value(strings?.map { ._value($0.requestValue) })
         }
 
         public static func + (lhs: QueryValue, rhs: QueryValue) -> QueryValue {

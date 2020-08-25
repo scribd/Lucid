@@ -521,10 +521,6 @@ public extension TypeIdentifier {
     static var subtypeFactory: TypeIdentifier {
         return TypeIdentifier(name: "SubtypeFactory")
     }
-
-    static var queryResultConvertible: TypeIdentifier {
-        return TypeIdentifier(name: "QueryResultConvertible")
-    }
 }
 
 // MARK: - Static References

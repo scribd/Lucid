@@ -23,7 +23,7 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
         // no-op
     }
 
-    public private(set) var getByIDsInstanciations = [(
+    public private(set) var getByIDsInvocations = [(
         identifiers: [AnyRelationshipIdentifierConvertible],
         entityType: String,
         context: _ReadContext<EntityEndpointResultPayloadSpy>
@@ -36,14 +36,14 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
                     entityType: String,
                     in context: _ReadContext<EntityEndpointResultPayloadSpy>) -> Signal<AnySequence<AnyEntitySpy>, ManagerError> {
 
-        getByIDsInstanciations.append((identifiers.array, entityType, context))
+        getByIDsInvocations.append((identifiers.array, entityType, context))
 
-        guard getByIDsStubs.count >= getByIDsInstanciations.count else {
-            XCTFail("Expected stub for call number \(getByIDsInstanciations.count - 1)")
+        guard getByIDsStubs.count >= getByIDsInvocations.count else {
+            XCTFail("Expected stub for call number \(getByIDsInvocations.count - 1)")
             return Signal(just: [].any)
         }
 
-        return getByIDsStubs[getByIDsInstanciations.count - 1].map { $0.any }
+        return getByIDsStubs[getByIDsInvocations.count - 1].map { $0.any }
     }
 
     #else
@@ -55,16 +55,16 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
                     entityType: String,
                     in context: _ReadContext<EntityEndpointResultPayloadSpy>) -> AnyPublisher<AnySequence<AnyEntitySpy>, ManagerError> {
 
-        getByIDsInstanciations.append((identifiers.array, entityType, context))
+        getByIDsInvocations.append((identifiers.array, entityType, context))
 
-        guard getByIDsStubs.count >= getByIDsInstanciations.count else {
-            XCTFail("Expected stub for call number \(getByIDsInstanciations.count - 1)")
+        guard getByIDsStubs.count >= getByIDsInvocations.count else {
+            XCTFail("Expected stub for call number \(getByIDsInvocations.count - 1)")
             return Just([].any)
                 .setFailureType(to: ManagerError.self)
                 .eraseToAnyPublisher()
         }
 
-        return getByIDsStubs[getByIDsInstanciations.count - 1].map { $0.any }.eraseToAnyPublisher()
+        return getByIDsStubs[getByIDsInvocations.count - 1].map { $0.any }.eraseToAnyPublisher()
     }
     #endif
 }

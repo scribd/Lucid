@@ -12,7 +12,7 @@ struct MetaSubtypeExtensions {
 
     var extensions: [MetaExtension] {
         return [
-            /* MySubtypeExtension(name: subtypeName)*/
+            /* MySubtypeExtension(subtypeName: subtypeName)*/
         ]
     }
 }
@@ -20,16 +20,18 @@ struct MetaSubtypeExtensions {
 /*
 private struct MySubtypeExtension: MetaExtension {
 
-    let name: String
+    let subtypeName: String
 
-    let extensionName: String = "CustomExtension"
+    var filename: String { return subtypeName.camelCased().suffixedName() }
+
+    let extensionName: String? = "CustomExtension"
 
     func imports() throws -> [Import] {
         return []
     }
 
     func meta(for descriptions: Descriptions) throws -> [FileBodyMember] {
-        let subtype = try descriptions.subtype(for: name)
+        let subtype = try descriptions.subtype(for: subtypeName)
         return [
             Comment.mark("Custom \(subtype.name.camelCased()) Extension"),
             EmptyLine(),

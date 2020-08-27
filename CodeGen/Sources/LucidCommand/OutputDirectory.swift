@@ -86,6 +86,7 @@ enum Extensions {
 
         static let extensionsFileGenerator = Path("ExtensionsFileGenerator.swift")
 
+        static let metaAllExtensions = Path("MetaAllExtensions.swift")
         static let metaEntityExtensions = Path("MetaEntityExtensions.swift")
         static let metaSubtypeExtensions = Path("MetaSubtypeExtensions.swift")
     }
@@ -111,6 +112,7 @@ enum Extensions {
 
             static let extensionsFileGenerator = Directory.generators + FileName.extensionsFileGenerator
 
+            static let metaAllExtensions = Directory.lucidCodeGenExtensions + Path(".MetaAllExtensions.swift")
             static let metaEntityExtensions = Directory.lucidCodeGenExtensions + Path(".MetaEntityExtensions.swift")
             static let metaSubtypeExtensions = Directory.lucidCodeGenExtensions + Path(".MetaSubtypeExtensions.swift")
         }

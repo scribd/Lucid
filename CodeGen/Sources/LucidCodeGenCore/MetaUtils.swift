@@ -1074,7 +1074,7 @@ public extension Entity {
         return try indexes(descriptions).isEmpty == false
     }
 
-    func hasLazyValues(_ descriptions: Descriptions, _ parsedEntities: [String: Bool] = [:]) throws -> Bool {
+    func hasAnyLazy(_ descriptions: Descriptions, _ parsedEntities: [String: Bool] = [:]) throws -> Bool {
 
         if let preparsedResult = parsedEntities[name] {
             return preparsedResult
@@ -1093,14 +1093,14 @@ public extension Entity {
 
 public extension EntityProperty {
 
-    func hasLazyValues(_ descriptions: Descriptions, _ parsedEntities: [String: Bool] = [:]) throws -> Bool {
+    func hasAnyLazy(_ descriptions: Descriptions, _ parsedEntities: [String: Bool] = [:]) throws -> Bool {
         return try lazy || hasLazyRelationships(descriptions, parsedEntities)
     }
 
     func hasLazyRelationships(_ descriptions: Descriptions, _ parsedEntities: [String: Bool] = [:]) throws -> Bool {
         if let relationship = self.relationship, relationship.idOnly == false {
             let entity = try descriptions.entity(for: relationship.entityName)
-            return try entity.hasLazyValues(descriptions, parsedEntities)
+            return try entity.hasAnyLazy(descriptions, parsedEntities)
         } else {
             return false
         }

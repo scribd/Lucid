@@ -166,6 +166,15 @@ final class Bootstrap {
                 logger.info("File \(targetSwiftVersionPath) already exists.")
             }
 
+            let targetMetaAllFile = targetMetaCodeDirectory + Extensions.FileName.metaAllExtensions
+            if targetMetaAllFile.exists == false {
+                logger.info("Adding \(targetMetaAllFile).")
+                let sourceMetaAllFile = lucidSourcePath + Extensions.SourcePath.File.metaAllExtensions
+                try sourceMetaAllFile.copy(targetMetaAllFile)
+            } else {
+                logger.info("File \(targetMetaAllFile) already exists.")
+            }
+
             let targetMetaEntityFile = targetMetaCodeDirectory + Extensions.FileName.metaEntityExtensions
             if targetMetaEntityFile.exists == false {
                 logger.info("Adding \(targetMetaEntityFile).")
@@ -193,6 +202,15 @@ final class Bootstrap {
                 try targetGeneratorLink.relativeSymlink(sourceGeneratorLink)
             } else {
                 logger.info("File symlink \(targetGeneratorLink) already exists.")
+            }
+
+            let targetMetaAllLink = extensionsPath + Extensions.DirectoryName.sources + Extensions.DirectoryName.lucidCodeGenExtensions + Extensions.DirectoryName.meta + Extensions.FileName.metaAllExtensions
+            if targetMetaAllLink.exists == false {
+                let sourceMetaAllLink = extensionsPath + Extensions.DirectoryName.metaCode + Extensions.FileName.metaAllExtensions
+                logger.info("Adding symlink \(targetMetaAllLink) from \(sourceMetaAllLink).")
+                try targetMetaAllLink.relativeSymlink(sourceMetaAllLink)
+            } else {
+                logger.info("File symlink \(targetMetaAllLink) already exists.")
             }
 
             let targetMetaEntityLink = extensionsPath + Extensions.DirectoryName.sources + Extensions.DirectoryName.lucidCodeGenExtensions + Extensions.DirectoryName.meta + Extensions.FileName.metaEntityExtensions

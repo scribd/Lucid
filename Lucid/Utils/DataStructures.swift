@@ -92,6 +92,12 @@ extension DualHashable {
     }
 }
 
+extension Array: DualHashable where Element: DualHashable {
+    public func hash(into hasher: inout DualHasher) {
+        forEach { hasher.combine($0) }
+    }
+}
+
 private extension DualHashable {
 
     var dualKey: DualHasher.Key<Self> {

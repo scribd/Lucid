@@ -86,9 +86,8 @@ public final class ThreadSafeGraph<Graph>: MutableGraph where Graph: MutableGrap
 
     public var value: SafeSignal<Graph> {
         return SafeSignal { observer in
-            self.dispatchQueue.async {
-                observer.receive(lastElement: self._value)
-            }
+            let value = self.dispatchQueue.sync { self._value }
+            observer.receive(lastElement: value)
             return SimpleDisposable()
         }
     }
@@ -229,7 +228,7 @@ public final class RelationshipController<RelationshipManager, Graph>
         Logger.log(.debug, "\(RelationshipController.self): Creating graph for \(relationshipContext).")
 
         let graph = ThreadSafeGraph<Graph>()
-        return self._fill(graph).flatMapLatest { _ -> Signal<Graph, ManagerError> in
+        return self._fill(graph, nestedContext: self.relationshipContext).flatMapLatest { _ -> Signal<Graph, ManagerError> in
             let processingInterval = Date().timeIntervalSince(createdAt)
 
             Logger.log(.debug, "\(RelationshipController.self): Took \(processingInterval)s to build graph for \(self.relationshipContext.debugDescription).")
@@ -251,7 +250,7 @@ public final class RelationshipController<RelationshipManager, Graph>
     }
     #endif
 
-    private func _fill(_ graph: ThreadSafeGraph<Graph>, path: [String] = []) -> Signal<(), ManagerError> {
+    private func _fill(_ graph: ThreadSafeGraph<Graph>, nestedContext: ReadContext, path: [String] = []) -> Signal<(), ManagerError> {
 
         return rootEntities.flatMapLatest { (entities: AnySequence<Graph.AnyEntity>) -> Signal<(), ManagerError>  in
             let entities = entities.array
@@ -278,82 +277,87 @@ public final class RelationshipController<RelationshipManager, Graph>
                 return Signal(just: ())
             }
 
-            return Signal(
-                combiningLatest: relationshipIdentifiers.keys.sorted()
-                    .compactMap { entityType -> Signal<(), ManagerError>? in
-                        guard let _identifiers = relationshipIdentifiers[entityType] else { return nil }
-                        let identifiers = graph.filterOutContainedIDs(of: _identifiers)
+            return graph.value.flatMapLatest { graphAtCurrentDepth -> Signal<(), ManagerError> in
+                return Signal(
+                    combiningLatest: relationshipIdentifiers.keys.sorted()
+                        .compactMap { entityType -> Signal<(), ManagerError>? in
+                            guard let _identifiers = relationshipIdentifiers[entityType] else { return nil }
+                            let identifiers = graph.filterOutContainedIDs(of: _identifiers)
 
-                        let automaticallyFetchRelationships = { (
-                            identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
-                            recursiveMethod: RelationshipFetcher.RecursiveMethod,
-                            context: ReadContext
-                        ) -> Signal<(), ManagerError> in
+                            let pathAtCurrentDepth = path + [entityType]
+                            let depth = pathAtCurrentDepth.count
 
-                            guard identifiers.isEmpty == false else {
+                            let automaticallyFetchRelationships = { (
+                                identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
+                                recursiveMethod: RelationshipFetcher.RecursiveMethod,
+                                context: ReadContext
+                                ) -> Signal<(), ManagerError> in
+
+                                guard identifiers.isEmpty == false else {
+                                    return Signal(just: ())
+                                }
+
+                                let updatedContext = context.updateForRelationshipController(at: pathAtCurrentDepth, graph: graphAtCurrentDepth, deltaStrategy: .retainExtraLocalData)
+
+                                let entities = self.relationshipManager?.get(
+                                    byIDs: identifiers.any,
+                                    entityType: entityType,
+                                    in: updatedContext
+                                ).toSignal() ?? Signal(just: [].any)
+
+                                let recurse = {
+                                    return RelationshipController(
+                                        rootEntities: entities,
+                                        relationshipContext: context,
+                                        relationshipManager: self.relationshipManager,
+                                        relationshipFetcher: self.relationshipFetcher
+                                    )._fill(graph, nestedContext: updatedContext, path: pathAtCurrentDepth)
+                                }
+
+                                let globalDepthLimit = LucidConfiguration.relationshipControllerMaxRecursionDepth
+
+                                switch recursiveMethod {
+                                case .depthLimit(let limit) where depth < limit && depth < globalDepthLimit:
+                                    return recurse()
+
+                                case .full where depth < globalDepthLimit:
+                                    return recurse()
+
+                                case .none,
+                                     .depthLimit,
+                                     .full:
+                                    if depth >= globalDepthLimit {
+                                        Logger.log(.error, "\(RelationshipController.self): Recursion depth limit (\(globalDepthLimit)) has been reached.", assert: true)
+                                    }
+                                    return entities.map { entities in
+                                        graph.insert(entities)
+                                    }
+                                }
+                            }
+
+                            switch self.relationshipFetcher.fetch(pathAtCurrentDepth, identifiers.any, graph) {
+                            case .custom(let signal):
+                                return signal.toSignal()
+                            case .all(let recursive, let context):
+                                return automaticallyFetchRelationships(identifiers.any, recursive, context ?? nestedContext)
+                            case .filtered(let identifiers, let recursive, let context):
+                                return automaticallyFetchRelationships(identifiers.any, recursive, context ?? nestedContext)
+                            case .none:
                                 return Signal(just: ())
                             }
-
-                            let depth = path.count
-
-                            let entities = self.relationshipManager?.get(
-                                byIDs: identifiers.any,
-                                entityType: entityType,
-                                in: context.updateForRelationshipController(at: depth, deltaStrategy: .retainExtraLocalData)
-                            ).toSignal() ?? Signal(just: [].any)
-
-                            let recurse = {
-                                return RelationshipController(
-                                    rootEntities: entities,
-                                    relationshipContext: context,
-                                    relationshipManager: self.relationshipManager,
-                                    relationshipFetcher: self.relationshipFetcher
-                                )._fill(graph, path: path + [entityType])
-                            }
-
-                            let globalDepthLimit = LucidConfiguration.relationshipControllerMaxRecursionDepth
-
-                            switch recursiveMethod {
-                            case .depthLimit(let limit) where depth < limit && depth < globalDepthLimit:
-                                return recurse()
-
-                            case .full where depth < globalDepthLimit:
-                                return recurse()
-
-                            case .none,
-                                 .depthLimit,
-                                 .full:
-                                if depth >= globalDepthLimit {
-                                    Logger.log(.error, "\(RelationshipController.self): Recursion depth limit (\(globalDepthLimit)) has been reached.", assert: true)
-                                }
-                                return entities.map { entities in
-                                    graph.insert(entities)
-                                }
-                            }
-                        }
-
-                        switch self.relationshipFetcher.fetch(path + [entityType], identifiers.any, graph) {
-                        case .custom(let signal):
-                            return signal.toSignal()
-                        case .all(let recursive, let context):
-                            return automaticallyFetchRelationships(identifiers.any, recursive, context ?? self.relationshipContext)
-                        case .filtered(let identifiers, let recursive, let context):
-                            return automaticallyFetchRelationships(identifiers.any, recursive, context ?? self.relationshipContext)
-                        case .none:
-                            return Signal(just: ())
-                        }
-                }
-            ) { _ in () }
+                    }
+                ) { _ in () }
+            }
         }
     }
 
     #if LUCID_REACTIVE_KIT
-    public func fill(_ graph: ThreadSafeGraph<Graph>, path: [String] = []) -> Signal<(), ManagerError> {
-        return _fill(graph, path: path)
+    public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> Signal<(), ManagerError> {
+        return _fill(graph, nestedContext: context, path: path)
     }
     #else
-    public func fill(_ graph: ThreadSafeGraph<Graph>, path: [String] = []) -> AnyPublisher<(), ManagerError> {
-        return _fill(graph, path: path).toPublisher().eraseToAnyPublisher()
+    public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> AnyPublisher<(), ManagerError> {
+        return _fill(graph, nestedContext: context, path: path).toPublisher().eraseToAnyPublisher()
     }
     #endif
 }
@@ -578,19 +582,19 @@ public extension RelationshipController {
         }
         #endif
 
-        private func _fill(_ graph: ThreadSafeGraph<Graph>, path: [String] = []) -> Signal<(), ManagerError> {
+        private func _fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> Signal<(), ManagerError> {
             return rootEntities.once.flatMapLatest { entities -> Signal<(), ManagerError> in
-                self.controller(for: entities, context: self.mainContext).fill(graph, path: path).toSignal()
+                self.controller(for: entities, context: self.mainContext).fill(graph, context: context, path: path).toSignal()
             }
         }
 
         #if LUCID_REACTIVE_KIT
-        public func fill(_ graph: ThreadSafeGraph<Graph>, path: [String] = []) -> Signal<(), ManagerError> {
-            return _fill(graph, path: path)
+        public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> Signal<(), ManagerError> {
+            return _fill(graph, context: context, path: path)
         }
         #else
-        public func fill(_ graph: ThreadSafeGraph<Graph>, path: [String] = []) -> AnyPublisher<(), ManagerError> {
-            return _fill(graph, path: path).toPublisher().eraseToAnyPublisher()
+        public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> AnyPublisher<(), ManagerError> {
+            return _fill(graph, context: context, path: path).toPublisher().eraseToAnyPublisher()
         }
         #endif
 

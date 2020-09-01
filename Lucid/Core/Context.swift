@@ -222,28 +222,33 @@ extension PersistenceStrategy: CustomDebugStringConvertible {
 
 extension _ReadContext {
 
-    public func updateForRelationshipController(at depth: Int, deltaStrategy: PersistenceStrategy.DeltaStrategy) -> _ReadContext {
+    public func updateForRelationshipController(at path: [String], graph: Any, deltaStrategy: PersistenceStrategy.DeltaStrategy) -> _ReadContext {
+
+        let updatedContract: EntityContract
+        if let graphContract = contract as? EntityGraphContract {
+            updatedContract = graphContract.contract(at: path, for: graph)
+        } else {
+            Logger.log(.error, "\(_ReadContext.self) contract used to build graph must conform to \(EntityGraphContract.self). Defaulting to \(AlwaysValidContract.self) instead.", assert: true)
+            updatedContract = AlwaysValidContract()
+        }
+
         switch dataSource {
         case ._remote(let endpoint, .persist, let orLocal, let trustRemoteFiltering):
-            let nextDepthContract: EntityContract
-            if let graphContract = contract as? EntityGraphContract {
-                nextDepthContract = graphContract.contract(at: depth)
-            } else {
-                Logger.log(.error, "\(_ReadContext.self) contract used to build graph must conform to \(EntityGraphContract.self). Defaulting to \(AlwaysValidContract.self) instead.", assert: true)
-                nextDepthContract = AlwaysValidContract()
-            }
 
             return _ReadContext(dataSource: ._remote(endpoint: endpoint, persistenceStrategy: .persist(deltaStrategy),
                                                      orLocal: orLocal,
                                                      trustRemoteFiltering: trustRemoteFiltering),
-                                contract: nextDepthContract,
+                                contract: updatedContract,
                                 accessValidator: accessValidator,
                                 remoteStoreCache: remoteStoreCache)
         case ._remote,
              .local,
              .localThen,
              .localOr:
-            return self
+            return _ReadContext(dataSource: dataSource,
+                                contract: updatedContract,
+                                accessValidator: accessValidator,
+                                remoteStoreCache: remoteStoreCache)
         }
     }
 

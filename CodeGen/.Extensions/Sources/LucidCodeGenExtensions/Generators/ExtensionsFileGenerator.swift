@@ -15,9 +15,9 @@ public protocol MetaExtension {
 
     // File will be named "\(name)+\(extensionName).swift"
 
-    var name: String { get }
+    var filename: String { get }
 
-    var extensionName: String { get }
+    var extensionName: String? { get }
 
     func imports() throws -> [Import]
 
@@ -49,9 +49,12 @@ public final class ExtensionsFileGenerator: ExtensionsGenerator {
             let subtypeExtensions = MetaSubtypeExtensions(subtypeName: subtypeName)
             extensions = subtypeExtensions.extensions
 
-        case .all,
-             .endpoint:
-            /// No support for extensions of .all or .endpoint. Only .entity and .subtype are supported.
+        case .all:
+            let allExtensions = MetaAllExtensions()
+            extensions = allExtensions.extensions
+
+        case .endpoint:
+            /// No support for extensions of .endpoint.
             return []
         }
 
@@ -68,7 +71,12 @@ private extension ExtensionsFileGenerator {
 
         guard body.isEmpty == false else { return nil }
 
-        let filename = "\(metaExtension.name.camelCased().suffixedName())+\(metaExtension.extensionName).swift"
+        let filename: String
+        if let extensionName = metaExtension.extensionName {
+            filename = "\(metaExtension.filename)+\(extensionName).swift"
+        } else {
+            filename = "\(metaExtension.filename).swift"
+        }
         let header = MetaHeader(filename: filename, organizationName: organizationName)
 
         return Meta.File(name: filename)

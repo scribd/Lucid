@@ -219,8 +219,8 @@ final class RelationshipControllerTests: XCTestCase {
                     XCTAssertEqual(graph.entitySpies.count, 1)
                     XCTAssertEqual(graph.entityRelationshipSpies.count, 3)
 
-                    XCTAssertEqual(self.coreManager.getByIDsInstanciations.count, 1)
-                    XCTAssertEqual(self.coreManager.getByIDsInstanciations.first?.identifiers.count, 3)
+                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 1)
+                    XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 3)
                     expectation.fulfill()
                 case .completed:
                     expectation.fulfill()
@@ -265,8 +265,8 @@ final class RelationshipControllerTests: XCTestCase {
                         XCTAssertEqual(graph.entitySpies.count, 2)
                         XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
 
-                        XCTAssertEqual(self.coreManager.getByIDsInstanciations.count, 1)
-                        XCTAssertEqual(self.coreManager.getByIDsInstanciations.first?.identifiers.count, 6)
+                        XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 1)
+                        XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 6)
                         expectation.fulfill()
                     case .completed:
                         expectation.fulfill()
@@ -319,7 +319,7 @@ final class RelationshipControllerTests: XCTestCase {
                     XCTAssertEqual(graph.entitySpies.count, 2)
                     XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
 
-                    XCTAssertEqual(self.coreManager.getByIDsInstanciations.count, 0)
+                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 0)
                     expectation.fulfill()
                 case .completed:
                     expectation.fulfill()
@@ -370,8 +370,8 @@ final class RelationshipControllerTests: XCTestCase {
                     XCTAssertEqual(graph.entitySpies.count, 2)
                     XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
 
-                    XCTAssertEqual(self.coreManager.getByIDsInstanciations.count, 1)
-                    XCTAssertEqual(self.coreManager.getByIDsInstanciations.first?.identifiers.count, 1)
+                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 1)
+                    XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 1)
                     expectation.fulfill()
                 case .completed:
                     expectation.fulfill()
@@ -419,7 +419,7 @@ final class RelationshipControllerTests: XCTestCase {
                     XCTAssertEqual(graph.entitySpies.count, 2)
                     XCTAssertEqual(graph.entityRelationshipSpies.count, 0)
 
-                    XCTAssertEqual(self.coreManager.getByIDsInstanciations.count, 0)
+                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 0)
                     expectation.fulfill()
                 case .completed:
                     expectation.fulfill()
@@ -460,7 +460,7 @@ final class RelationshipControllerTests: XCTestCase {
                     XCTAssertEqual(graph.entitySpies.count, 2)
                     XCTAssertEqual(graph.entityRelationshipSpies.count, 0)
 
-                    XCTAssertEqual(self.coreManager.getByIDsInstanciations.count, 0)
+                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 0)
                     expectation.fulfill()
                 case .completed:
                     expectation.fulfill()
@@ -505,11 +505,11 @@ final class RelationshipControllerTests: XCTestCase {
                     XCTAssertEqual(graph.entitySpies.count, 2)
                     XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
 
-                    XCTAssertEqual(self.coreManager.getByIDsInstanciations.count, 1)
-                    XCTAssertEqual(self.coreManager.getByIDsInstanciations.first?.identifiers.count, 6)
+                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 1)
+                    XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 6)
 
                     let givenIDs: [EntityRelationshipSpyIdentifier] = self.coreManager
-                        .getByIDsInstanciations
+                        .getByIDsInvocations
                         .first?
                         .identifiers
                         .compactMap { $0.toRelationshipID() } ?? []
@@ -572,11 +572,11 @@ final class RelationshipControllerTests: XCTestCase {
                     XCTAssertEqual(graph.entitySpies.count, 1)
                     XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
 
-                    XCTAssertEqual(self.coreManager.getByIDsInstanciations.count, 5)
+                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 5)
 
                     let givenIDs: [EntityRelationshipSpyIdentifier] = self
                         .coreManager
-                        .getByIDsInstanciations
+                        .getByIDsInvocations
                         .flatMap { $0.identifiers }
                         .compactMap { $0.toRelationshipID() }
 
@@ -626,11 +626,11 @@ final class RelationshipControllerTests: XCTestCase {
                     XCTAssertEqual(graph.entitySpies.count, 1)
                     XCTAssertEqual(graph.entityRelationshipSpies.count, 2)
 
-                    XCTAssertEqual(self.coreManager.getByIDsInstanciations.count, 1)
-                    XCTAssertEqual(self.coreManager.getByIDsInstanciations.first?.identifiers.count, 2)
+                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 1)
+                    XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 2)
 
                     let givenIDs: [EntityRelationshipSpyIdentifier] = self.coreManager
-                        .getByIDsInstanciations
+                        .getByIDsInvocations
                         .first?
                         .identifiers
                         .compactMap { $0.toRelationshipID() } ?? []
@@ -649,9 +649,7 @@ final class RelationshipControllerTests: XCTestCase {
 
     // MARK: Contracts
 
-    // This test only exists to verify that the current behavior is not changed. We currently only apply filtering at the root level.
-    // This will be updated and properly managed recursively down the graph in IPT-4054.
-    func test_relationship_controller_should_not_filter_out_relationships_that_do_not_meet_contract_requirements() {
+    func test_relationship_controller_should_pass_down_relationship_contract_to_relationship_calls() {
 
         coreManager.getByIDsStubs = [Signal(just: [
             .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
@@ -660,19 +658,23 @@ final class RelationshipControllerTests: XCTestCase {
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
 
-        let contract = RelationshipControllerContract(isValid: false)
+        let contract = RootControllerContract(isValid: false)
         let context = RelationshipController<RelationshipCoreManagerSpy, GraphStub>.ReadContext(dataSource: .local, contract: contract)
 
         entity(EntitySpy())
             .relationships(from: coreManager, in: context)
-            .includingAllRelationships(recursive: .none)
+            .includingAllRelationships(recursive: .full)
             .perform(GraphStub.self)
             .once
             .observe { event in
                 switch event {
-                case .next(let graph):
-                    XCTAssertEqual(graph.entitySpies.count, 1)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
+                case .next:
+                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 1)
+                    guard let relationshipContract = self.coreManager.getByIDsInvocations.first?.context.contract as? RelationshipControllerContract else {
+                        XCTFail("Received unexpected contract type.")
+                        return
+                    }
+                    XCTAssertEqual(relationshipContract.path, [EntityRelationshipSpy.Identifier.entityTypeUID])
                     expectation.fulfill()
                 case .completed:
                     expectation.fulfill()
@@ -700,7 +702,7 @@ private extension RelationshipControllerTests {
 
 // MARK: - Contract Helpers
 
-private struct RelationshipControllerContract: EntityGraphContract {
+private struct RootControllerContract: EntityGraphContract {
 
     let isValid: Bool
 
@@ -710,5 +712,28 @@ private struct RelationshipControllerContract: EntityGraphContract {
 
     func isEntityValid<E>(_ entity: E, for query: Query<E>) -> Bool where E : Entity {
         return isValid
+    }
+
+    func contract(at path: [String], for graph: Any) -> EntityGraphContract {
+        return RelationshipControllerContract(path: path, isValid: isValid)
+    }
+}
+
+private struct RelationshipControllerContract: EntityGraphContract {
+
+    let path: [String]
+
+    let isValid: Bool
+
+    func shouldValidate<E>(_ entityType: E.Type) -> Bool where E : Entity {
+        return true
+    }
+
+    func isEntityValid<E>(_ entity: E, for query: Query<E>) -> Bool where E : Entity {
+        return isValid
+    }
+
+    func contract(at path: [String], for graph: Any) -> EntityGraphContract {
+        return self
     }
 }

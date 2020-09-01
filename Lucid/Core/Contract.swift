@@ -19,19 +19,7 @@ public protocol EntityContract {
 
 public protocol EntityGraphContract: EntityContract {
 
-    func contract(at depth: Int) -> EntityGraphContract
-}
-
-public extension EntityGraphContract {
-
-    func contract(at depth: Int) -> EntityGraphContract {
-        // This currently mirrors existing functionality, will be completed with ticket IPT-4054
-        if depth == 0 {
-            return self
-        } else {
-            return AlwaysValidContract()
-        }
-    }
+    func contract(at path: [String], for graph: Any) -> EntityGraphContract
 }
 
 // MARK: Contracts
@@ -46,6 +34,10 @@ public struct AlwaysValidContract: EntityGraphContract {
 
     public func isEntityValid<E>(_ entity: E, for query: Query<E>) -> Bool where E: Entity {
         return true
+    }
+
+    public func contract(at path: [String], for graph: Any) -> EntityGraphContract {
+        return self
     }
 }
 
@@ -73,14 +65,16 @@ struct SampleGraphContract: EntityGraphContract {
 
     let levelContextualData: SomeData
 
-    func contract(at depth: Int) -> EntityGraphContract {
+    func contract(at path: [String], for graph: Any) -> EntityGraphContract {
 
-        let contexualData = contextualContractData(depth: depth)
+        guard let myGraph = graph as? MyGraphType else { return AlwaysValidContract() }
+
+        let contexualData = contextualContractData(depth: path.count, path: path, graph: myGraph)
 
         return SampleGraphContract(levelContextualData: levelContextualData)
     }
 
-    private func contextualContractData(depth: Int) -> ContextualData {
+    private func contextualContractData(depth: Int, path: [String], graph: MyGraphType) -> ContextualData {
          // return some data
     }
  }

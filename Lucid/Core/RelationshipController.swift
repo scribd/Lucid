@@ -84,13 +84,8 @@ public final class ThreadSafeGraph<Graph>: MutableGraph where Graph: MutableGrap
     private var _dates = [Set<String>: (requested: Date, inserted: Date?)]()
     private var _rootKey = Set<String>()
 
-    public var value: SafeSignal<Graph> {
-        return SafeSignal { observer in
-            self.dispatchQueue.async {
-                observer.receive(lastElement: self._value)
-            }
-            return SimpleDisposable()
-        }
+    public var value: Graph {
+        return dispatchQueue.sync { _value }
     }
 
     public init() {
@@ -229,7 +224,7 @@ public final class RelationshipController<RelationshipManager, Graph>
         Logger.log(.debug, "\(RelationshipController.self): Creating graph for \(relationshipContext).")
 
         let graph = ThreadSafeGraph<Graph>()
-        return self._fill(graph).flatMapLatest { _ -> Signal<Graph, ManagerError> in
+        return self._fill(graph, nestedContext: self.relationshipContext).flatMapLatest { _ -> Signal<Graph, ManagerError> in
             let processingInterval = Date().timeIntervalSince(createdAt)
 
             Logger.log(.debug, "\(RelationshipController.self): Took \(processingInterval)s to build graph for \(self.relationshipContext.debugDescription).")
@@ -237,7 +232,7 @@ public final class RelationshipController<RelationshipManager, Graph>
                 graph.logPerformanceAnomaly(prefix: "\(RelationshipController.self)")
             }
 
-            return graph.value.castError()
+            return Signal(just: graph.value)
         }
     }
 
@@ -251,7 +246,7 @@ public final class RelationshipController<RelationshipManager, Graph>
     }
     #endif
 
-    private func _fill(_ graph: ThreadSafeGraph<Graph>, path: [String] = []) -> Signal<(), ManagerError> {
+    private func _fill(_ graph: ThreadSafeGraph<Graph>, nestedContext: ReadContext, path: [String] = []) -> Signal<(), ManagerError> {
 
         return rootEntities.flatMapLatest { (entities: AnySequence<Graph.AnyEntity>) -> Signal<(), ManagerError>  in
             let entities = entities.array
@@ -278,28 +273,33 @@ public final class RelationshipController<RelationshipManager, Graph>
                 return Signal(just: ())
             }
 
+            let graphAtCurrentDepth = graph.value
+
             return Signal(
                 combiningLatest: relationshipIdentifiers.keys.sorted()
                     .compactMap { entityType -> Signal<(), ManagerError>? in
                         guard let _identifiers = relationshipIdentifiers[entityType] else { return nil }
                         let identifiers = graph.filterOutContainedIDs(of: _identifiers)
 
+                        let pathAtCurrentDepth = path + [entityType]
+                        let depth = pathAtCurrentDepth.count
+
                         let automaticallyFetchRelationships = { (
                             identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
                             recursiveMethod: RelationshipFetcher.RecursiveMethod,
                             context: ReadContext
-                        ) -> Signal<(), ManagerError> in
+                            ) -> Signal<(), ManagerError> in
 
                             guard identifiers.isEmpty == false else {
                                 return Signal(just: ())
                             }
 
-                            let depth = path.count
+                            let updatedContext = context.updateForRelationshipController(at: pathAtCurrentDepth, graph: graphAtCurrentDepth, deltaStrategy: .retainExtraLocalData)
 
                             let entities = self.relationshipManager?.get(
                                 byIDs: identifiers.any,
                                 entityType: entityType,
-                                in: context.updateForRelationshipController(at: depth, deltaStrategy: .retainExtraLocalData)
+                                in: updatedContext
                             ).toSignal() ?? Signal(just: [].any)
 
                             let recurse = {
@@ -308,7 +308,7 @@ public final class RelationshipController<RelationshipManager, Graph>
                                     relationshipContext: context,
                                     relationshipManager: self.relationshipManager,
                                     relationshipFetcher: self.relationshipFetcher
-                                )._fill(graph, path: path + [entityType])
+                                )._fill(graph, nestedContext: updatedContext, path: pathAtCurrentDepth)
                             }
 
                             let globalDepthLimit = LucidConfiguration.relationshipControllerMaxRecursionDepth
@@ -332,13 +332,13 @@ public final class RelationshipController<RelationshipManager, Graph>
                             }
                         }
 
-                        switch self.relationshipFetcher.fetch(path + [entityType], identifiers.any, graph) {
+                        switch self.relationshipFetcher.fetch(pathAtCurrentDepth, identifiers.any, graph) {
                         case .custom(let signal):
                             return signal.toSignal()
                         case .all(let recursive, let context):
-                            return automaticallyFetchRelationships(identifiers.any, recursive, context ?? self.relationshipContext)
+                            return automaticallyFetchRelationships(identifiers.any, recursive, context ?? nestedContext)
                         case .filtered(let identifiers, let recursive, let context):
-                            return automaticallyFetchRelationships(identifiers.any, recursive, context ?? self.relationshipContext)
+                            return automaticallyFetchRelationships(identifiers.any, recursive, context ?? nestedContext)
                         case .none:
                             return Signal(just: ())
                         }
@@ -348,12 +348,12 @@ public final class RelationshipController<RelationshipManager, Graph>
     }
 
     #if LUCID_REACTIVE_KIT
-    public func fill(_ graph: ThreadSafeGraph<Graph>, path: [String] = []) -> Signal<(), ManagerError> {
-        return _fill(graph, path: path)
+    public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> Signal<(), ManagerError> {
+        return _fill(graph, nestedContext: context, path: path)
     }
     #else
-    public func fill(_ graph: ThreadSafeGraph<Graph>, path: [String] = []) -> AnyPublisher<(), ManagerError> {
-        return _fill(graph, path: path).toPublisher().eraseToAnyPublisher()
+    public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> AnyPublisher<(), ManagerError> {
+        return _fill(graph, nestedContext: context, path: path).toPublisher().eraseToAnyPublisher()
     }
     #endif
 }
@@ -578,19 +578,19 @@ public extension RelationshipController {
         }
         #endif
 
-        private func _fill(_ graph: ThreadSafeGraph<Graph>, path: [String] = []) -> Signal<(), ManagerError> {
+        private func _fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> Signal<(), ManagerError> {
             return rootEntities.once.flatMapLatest { entities -> Signal<(), ManagerError> in
-                self.controller(for: entities, context: self.mainContext).fill(graph, path: path).toSignal()
+                self.controller(for: entities, context: self.mainContext).fill(graph, context: context, path: path).toSignal()
             }
         }
 
         #if LUCID_REACTIVE_KIT
-        public func fill(_ graph: ThreadSafeGraph<Graph>, path: [String] = []) -> Signal<(), ManagerError> {
-            return _fill(graph, path: path)
+        public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> Signal<(), ManagerError> {
+            return _fill(graph, context: context, path: path)
         }
         #else
-        public func fill(_ graph: ThreadSafeGraph<Graph>, path: [String] = []) -> AnyPublisher<(), ManagerError> {
-            return _fill(graph, path: path).toPublisher().eraseToAnyPublisher()
+        public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> AnyPublisher<(), ManagerError> {
+            return _fill(graph, context: context, path: path).toPublisher().eraseToAnyPublisher()
         }
         #endif
 

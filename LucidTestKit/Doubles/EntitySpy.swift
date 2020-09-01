@@ -73,12 +73,16 @@ public final class EntitySpyIdentifier: RemoteIdentifier, CoreDataIdentifier {
     }
 }
 
-public enum EntitySpyIndexName {
+public enum EntitySpyIndexName: String, CustomStringConvertible {
     case title
     case subtitle
     case lazy
     case oneRelationship
     case manyRelationships
+
+    public var description: String {
+        return rawValue
+    }
 }
 
 extension EntitySpyIndexName: CoreDataIndexName {

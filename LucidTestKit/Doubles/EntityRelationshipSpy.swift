@@ -85,9 +85,13 @@ public final class EntityRelationshipSpyIdentifier: RemoteIdentifier, CoreDataId
     }
 }
 
-public enum EntityRelationshipSpyIndexName {
+public enum EntityRelationshipSpyIndexName: String, CustomStringConvertible {
     case title
     case relationships
+
+    public var description: String {
+        return rawValue
+    }
 }
 
 extension EntityRelationshipSpyIndexName: CoreDataIndexName, QueryResultConvertible {

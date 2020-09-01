@@ -292,7 +292,7 @@ public protocol EntityIdentifiable {
 public protocol EntityIndexing {
 
     /// Property descriptions which can be used to perform search queries.
-    associatedtype IndexName: Hashable, QueryResultConvertible
+    associatedtype IndexName: Hashable, QueryResultConvertible, CustomStringConvertible
 
     /// Identifier type used for referencing any type of relationships.
     associatedtype RelationshipIdentifier: AnyRelationshipIdentifier
@@ -302,9 +302,6 @@ public protocol EntityIndexing {
 
     /// Retrieve the entity's relationships' index.
     var entityRelationshipIndices: [IndexName] { get }
-
-    /// Retrieve the entity's relationships' type UID.
-    var entityRelationshipEntityTypeUIDs: [String] { get }
 
     /// Retrieve an index's associated value.
     func entityIndexValue(for indexName: IndexName) -> EntityIndexValue<RelationshipIdentifier, Subtype>
@@ -594,9 +591,13 @@ public protocol BatchEntity: RemoteEntity where Identifier == VoidEntityIdentifi
 // MARK: - VoidIndexName
 
 /// A void type to represent an absence of index.
-public struct VoidIndexName: Hashable, QueryResultConvertible {
+public struct VoidIndexName: Hashable, QueryResultConvertible, CustomStringConvertible {
 
     public let requestValue: String = String()
+
+    public var description: String {
+        return "void"
+    }
 }
 
 public extension Entity where IndexName == VoidIndexName {

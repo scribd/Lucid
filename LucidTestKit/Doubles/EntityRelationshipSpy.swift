@@ -249,10 +249,6 @@ public final class EntityRelationshipSpy: RemoteEntity {
         return [.relationships]
     }
 
-    public var entityRelationshipEntityTypeUIDs: [String] {
-        return [EntityRelationshipSpyIdentifier.entityTypeUID]
-    }
-
     public static func requestConfig(for remotePath: RemotePath<EntityRelationshipSpy>) -> APIRequestConfig? {
         EntityRelationshipSpy.remotePathRecords.append(remotePath)
         return APIRequestConfig(method: .get, path: .path("fake_relationship_entity") / remotePath.identifier())

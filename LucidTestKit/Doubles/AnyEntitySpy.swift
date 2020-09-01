@@ -38,6 +38,14 @@ public enum AnyEntitySpyIndexName: Hashable, QueryResultConvertible, CustomStrin
     }
 }
 
+public enum AnyRelationshipSpyPath: RelationshipPathConvertible {
+    public typealias AnyEntity = AnyEntitySpy
+
+    public var paths: [[AnyEntitySpyIndexName]] {
+        return []
+    }
+}
+
 public enum AnyEntitySpy: EntityIndexing, EntityConvertible {
     case entitySpy(EntitySpy)
     case entityRelationshipSpy(EntityRelationshipSpy)

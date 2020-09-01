@@ -18,10 +18,19 @@ private enum Constants {
     static let processingIntervalThreshold: TimeInterval = 0.5
 }
 
-/// Mutable graph object
-public protocol MutableGraph: AnyObject {
+public protocol RelationshipPathConvertible {
 
-    associatedtype AnyEntity: EntityIndexing, EntityConvertible
+    associatedtype AnyEntity: EntityIndexing
+
+    var paths: [[AnyEntity.IndexName]] { get }
+}
+
+/// Mutable graph object
+public protocol MutableGraph: AnyObject where AnyEntity == AnyRelationshipPath.AnyEntity {
+
+    associatedtype AnyEntity: EntityConvertible
+
+    associatedtype AnyRelationshipPath: RelationshipPathConvertible
 
     /// Initialize an empty graph
     init()
@@ -74,6 +83,8 @@ extension RelationshipCoreManaging {
 public final class ThreadSafeGraph<Graph>: MutableGraph where Graph: MutableGraph {
 
     public typealias AnyEntity = Graph.AnyEntity
+
+    public typealias AnyRelationshipPath = Graph.AnyRelationshipPath
 
     private let dispatchQueue = DispatchQueue(label: "\(ThreadSafeGraph.self)")
 
@@ -399,39 +410,6 @@ public extension RelationshipController {
     }
 }
 
-// MARK: - RelationshipPath
-
-public struct RelationshipPath<Graph> where Graph: MutableGraph {
-
-    private let indexName: Graph.AnyEntity.IndexName?
-
-    private let children: [RelationshipPath]
-
-    public static func path(_ indexName: Graph.AnyEntity.IndexName, _ children: [RelationshipPath] = []) -> RelationshipPath {
-        return RelationshipPath(indexName: indexName, children: children)
-    }
-
-    public static func path(_ indexName: Graph.AnyEntity.IndexName, _ path: RelationshipPath) -> RelationshipPath {
-        return .path(indexName, [path])
-    }
-
-    public static func path(_ rootIndexName: Graph.AnyEntity.IndexName, _ childIndexName: Graph.AnyEntity.IndexName) -> RelationshipPath {
-        return .path(rootIndexName, [.path(childIndexName)])
-    }
-
-    public static func root(_ children: [RelationshipPath]) -> RelationshipPath {
-        return RelationshipPath(indexName: nil, children: children)
-    }
-
-    fileprivate var buildPaths: [[Graph.AnyEntity.IndexName]] {
-        return (indexName.flatMap { [[$0]] } ?? []) + children.flatMap { child -> [[Graph.AnyEntity.IndexName]] in
-            child.buildPaths.map { paths -> [Graph.AnyEntity.IndexName] in
-                (indexName.flatMap { [$0] } ?? []) + paths
-            }
-        }
-    }
-}
-
 // MARK: - Utils
 
 private extension EntityIndexValue {
@@ -605,8 +583,8 @@ public extension RelationshipController {
             return self
         }
 
-        public func excluding(_ tree: RelationshipPath<Graph>) -> RelationshipQuery {
-            for path in tree.buildPaths {
+        public func excluding(_ tree: Graph.AnyRelationshipPath) -> RelationshipQuery {
+            for path in tree.paths {
                 excluding(path: path)
             }
             return self
@@ -628,18 +606,18 @@ public extension RelationshipController {
             return self
         }
 
-        public func including(_ tree: RelationshipPath<Graph>,
+        public func including(_ tree: Graph.AnyRelationshipPath,
                               recursive: RelationshipFetcher.RecursiveMethod = .none,
                               in context: ReadContext? = nil) -> RelationshipQuery {
 
-            for path in tree.buildPaths {
+            for path in tree.paths {
                 including(path: path, recursive: recursive, in: context)
             }
             return self
         }
 
-        public func including(_ tree: RelationshipPath<Graph>, with fetcher: RelationshipFetcher) -> RelationshipQuery {
-            for path in tree.buildPaths {
+        public func including(_ tree: Graph.AnyRelationshipPath, with fetcher: RelationshipFetcher) -> RelationshipQuery {
+            for path in tree.paths {
                 fetchers[path] = fetcher
             }
             return self

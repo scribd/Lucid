@@ -13,13 +13,15 @@ on:
   push: 
     tags:
       - 'v*'
+env:
+  DEVELOPER_DIR: /Applications/Xcode_11.6.app/Contents/Developer
+
 jobs:
   carthage_archive:
     name: Build Framework for binary export
     runs-on: macos-latest
     env:
       GITHUB_ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-      DEVELOPER_DIR: /Applications/Xcode_11.2.1.app/Contents/Developer
       CARTHAGE_BOOTSTRAP_OUTPUT: carthage_bootstrap_output.log
       CARTHAGE_BUILD_OUTPUT: carthage_build_output.log
     steps:
@@ -71,7 +73,6 @@ jobs:
     runs-on: macos-latest
     needs: release
     env: 
-      DEVELOPER_DIR: /Applications/Xcode_11.2.1.app/Contents/Developer
       GITHUB_ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
       CARTHAGE_OUTPUT: carthage_output.txt
     steps:

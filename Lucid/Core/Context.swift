@@ -7,6 +7,11 @@
 //
 
 import Foundation
+import ReactiveKit
+
+#if !LUCID_REACTIVE_KIT
+import Combine
+#endif
 
 // MARK: - V3 Parameters
 
@@ -111,12 +116,21 @@ public final class _ReadContext<ResultPayload> where ResultPayload: ResultPayloa
 
     public convenience init(dataSource: DataSource = .local,
                             contract: EntityContract = AlwaysValidContract(),
-                            accessValidator: UserAccessValidating? = nil) {
+                            accessValidator: UserAccessValidating? = nil,
+                            persistenceManager: RemoteStoreCachePersistenceManaging? = nil) {
+
+        let _persistenceManager: RemoteStoreCachePersistenceManaging?
+        switch dataSource.persistenceStrategy {
+        case .doNotPersist:
+            _persistenceManager = nil
+        case .persist:
+            _persistenceManager = persistenceManager
+        }
 
         self.init(dataSource: dataSource,
                   contract: contract,
                   accessValidator: accessValidator,
-                  remoteStoreCache: RemoteStoreCache())
+                  remoteStoreCache: RemoteStoreCache(persistenceManager: _persistenceManager, accessValidator: accessValidator))
     }
 
     // RemoteCache Accessors
@@ -491,6 +505,18 @@ public enum RemoteResponseSource {
     case server(_ header: APIResponseHeader)
 }
 
+// MARK: - Persistence Manager
+
+/// In charge of persisting the the entities they contained in the payloads passing through `RemoteStoreCache`.
+public protocol RemoteStoreCachePersistenceManaging: AnyObject {
+
+    /// Persists the entities contained in a given payload.
+    /// - Parameters:
+    ///   - payload: Payload which just came from a server.
+    ///   - accessValidator: Validates that the entities are permitted to be stored in the current user session.
+    func persistEntities(from payload: AnyResultPayloadConvertible, accessValidator: UserAccessValidating?)
+}
+
 // MARK: - Cache
 
 /// Cache used to deduplicate API requests to endpoints serving payloads with nested entities.
@@ -565,6 +591,9 @@ final class RemoteStoreCache {
     private let dispatchQueue: DispatchQueue = DispatchQueue(label: "\(RemoteStoreCache.self)_dispatch_queue")
     private let broadcastQueue: DispatchQueue = DispatchQueue(label: "\(RemoteStoreCache.self)_broadcast_queue")
 
+    private let persistenceManager: RemoteStoreCachePersistenceManaging?
+    private let accessValidator: UserAccessValidating?
+
     private var _payloadRequest: APIRequestConfig?
     var payloadRequest: APIRequestConfig? {
         return dispatchQueue.sync { _payloadRequest }
@@ -572,6 +601,12 @@ final class RemoteStoreCache {
 
     private var payload: Payload?
     private var listeners = [EndpointResponseListener]()
+
+    init(persistenceManager: RemoteStoreCachePersistenceManaging?,
+         accessValidator: UserAccessValidating?) {
+        self.persistenceManager = persistenceManager
+        self.accessValidator = accessValidator
+    }
 
     /// Check to see if a request already has a cached response, this is dependent on the existence of a cached entry.
     ///
@@ -632,6 +667,11 @@ final class RemoteStoreCache {
 
             self._payloadRequest = request
             self.payload = Payload(result: payloadResult, source: source)
+
+            if let payload = payloadResult.value?._unbox {
+                self.persistenceManager?.persistEntities(from: payload, accessValidator: self.accessValidator)
+            }
+
             let existingListeners = self.listeners
             self.listeners = []
             self.broadcastQueue.async {

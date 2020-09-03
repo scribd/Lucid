@@ -43,6 +43,10 @@ struct MetaCoreManagerContainer {
                 EmptyLine(),
                 relationshipCoreManagerExtension(),
                 EmptyLine(),
+                Comment.mark("Persistence Manager"),
+                EmptyLine(),
+                persistenceManagerExtension(),
+                EmptyLine(),
                 Comment.mark("Default Entity Stores"),
                 EmptyLine(),
                 defaultImplementationsExtensions
@@ -91,6 +95,8 @@ struct MetaCoreManagerContainer {
 
                 public let clientQueues: Set<APIClientQueue>
                 public let mainClientQueue: APIClientQueue
+
+                private let disposeBag = DisposeBag()
                 """)
             )
             .adding(members: descriptions.entities.flatMap { entity -> [TypeBodyMember] in
@@ -249,6 +255,30 @@ struct MetaCoreManagerContainer {
                             ) + .named("eraseToAnyPublisher") | .call())
                         )
                     )
+                )
+            )
+    }
+
+    private func persistenceManagerExtension() -> Extension {
+        return Extension(type: .coreManagerContainer)
+            .adding(inheritedType: .remoteStoreCachePersistenceManaging)
+            .adding(member: EmptyLine())
+            .adding(member: Function(kind: .named("persistEntities"))
+                .with(accessLevel: .public)
+                .adding(parameter: FunctionParameter(alias: "from", name: "payload", type: .anyResultPayloadConvertible))
+                .adding(parameter: FunctionParameter(name: "accessValidator", type: .optional(wrapped: .userAccessValidating)))
+                .adding(members: descriptions
+                    .entities
+                    .filter { $0.persist }
+                    .map { entity in
+                        PlainCode(code: """
+
+                        \(entity.coreManagerVariable.reference.swiftString)
+                            .set(payload.allEntities(), in: WriteContext(dataTarget: .local, accessValidator: accessValidator))
+                            .observeNext { _ in }
+                            .dispose(in: disposeBag)
+                        """)
+                    }
                 )
             )
     }

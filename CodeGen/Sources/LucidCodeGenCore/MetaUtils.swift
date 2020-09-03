@@ -477,9 +477,17 @@ public extension TypeIdentifier {
     static var relationshipCoreManaging: TypeIdentifier {
         return TypeIdentifier(name: "RelationshipCoreManaging")
     }
+
+    static var remoteStoreCachePersistenceManaging: TypeIdentifier {
+        return TypeIdentifier(name: "RemoteStoreCachePersistenceManaging")
+    }
     
     static var anyRelationshipIdentifierConvertible: TypeIdentifier {
         return TypeIdentifier(name: "AnyRelationshipIdentifierConvertible")
+    }
+
+    static var anyResultPayloadConvertible: TypeIdentifier {
+        return TypeIdentifier(name: "AnyResultPayloadConvertible")
     }
     
     static var cacheStrategy: TypeIdentifier {
@@ -520,6 +528,10 @@ public extension TypeIdentifier {
     
     static var subtypeFactory: TypeIdentifier {
         return TypeIdentifier(name: "SubtypeFactory")
+    }
+
+    static var userAccessValidating: TypeIdentifier {
+        return TypeIdentifier(name: "UserAccessValidating")
     }
 }
 

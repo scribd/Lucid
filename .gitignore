@@ -93,4 +93,5 @@ fastlane/test_output/*
 iOSInjectionProject/
 
 xcuserdata
-Carthage
+Carthage/Checkouts
+Carthage/Build

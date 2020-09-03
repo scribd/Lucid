@@ -39,6 +39,7 @@ extension String: CoreDataPrimitiveValue {}
 extension Int: CoreDataPrimitiveValue {}
 extension Float: CoreDataPrimitiveValue {}
 extension Double: CoreDataPrimitiveValue {}
+extension Date: CoreDataPrimitiveValue {}
 
 // MARK: - NSManagedObject Utils
 
@@ -444,6 +445,16 @@ public extension Optional where Wrapped == Date {
             throw CoreDataConversionError.corruptedProperty(name: propertyName)
         }
         return date
+    }
+}
+
+public extension NSManagedObject {
+    func dateValue(propertyName: String) -> Date? {
+        return propertyValue(for: propertyName)
+    }
+
+    func dateValue(propertyName: String) throws -> Date {
+        return try propertyValue(for: propertyName)
     }
 }
 

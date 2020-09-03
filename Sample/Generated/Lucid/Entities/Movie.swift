@@ -345,3 +345,20 @@ public enum MovieIndexName {
     case posterPath
     case title
 }
+
+extension MovieIndexName: QueryResultConvertible {
+    public var requestValue: String {
+        switch self {
+        case .genres:
+            return "genres"
+        case .overview:
+            return "overview"
+        case .popularity:
+            return "popularity"
+        case .posterPath:
+            return "poster_path"
+        case .title:
+            return "title"
+        }
+    }
+}

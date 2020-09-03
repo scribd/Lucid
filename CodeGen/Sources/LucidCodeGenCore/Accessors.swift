@@ -50,13 +50,13 @@ public extension Descriptions {
         var names = Set(entities.map { $0.clientQueueName })
         names.insert(Entity.mainClientQueueName)
         return names.sorted { lhs, rhs in
-                if lhs == Entity.mainClientQueueName {
-                    return true
-                } else if rhs == Entity.mainClientQueueName {
-                    return false
-                } else {
-                    return lhs < rhs
-                }
+            if lhs == Entity.mainClientQueueName {
+                return true
+            } else if rhs == Entity.mainClientQueueName {
+                return false
+            } else {
+                return lhs < rhs
+            }
         }
     }
 }

@@ -250,3 +250,12 @@ extension Genre {
 public enum GenreIndexName {
     case name
 }
+
+extension GenreIndexName: QueryResultConvertible {
+    public var requestValue: String {
+        switch self {
+        case .name:
+            return "name"
+        }
+    }
+}

@@ -30,6 +30,23 @@ struct MetaEntityIndexName {
                 .with(accessLevel: .public)
                 .with(body: try entity.indexes(descriptions).map { Case(name: $0.transformedName(ignoreLexicon: false)) })
                 .adding(member: entity.lastRemoteRead ? Case(name: "lastRemoteRead") : nil),
+            EmptyLine(),
+            Extension(type: try entity.indexNameTypeID(descriptions))
+                .adding(inheritedType: .queryResultConvertible)
+                .adding(member:
+                    ComputedProperty(variable: Variable(name: "requestValue")
+                        .with(type: .string))
+                        .with(accessLevel: .public)
+                        .adding(member: Switch(reference: .named(.`self`))
+                            .adding(cases: try entity.indexes(descriptions).map {
+                                SwitchCase(name: $0.transformedName(ignoreLexicon: false))
+                                    .adding(member: Return(value: Value.string($0.transformedName().snakeCased)))
+                            })
+                            .adding(case: entity.lastRemoteRead ?
+                                SwitchCase(name: "lastRemoteRead").adding(member: Return(value: Value.string("last_remote_read"))) : nil
+                            )
+                        )
+                )
         ]
     }
 }

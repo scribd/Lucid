@@ -20,7 +20,7 @@ extension Movie {
     
     public static func requestConfig(for remotePath: RemotePath<Movie>) -> APIRequestConfig? {
         switch remotePath {
-        case .get(let identifier, _):
+        case .get(let identifier):
             return APIRequestConfig(method: .get, path: .path("movie") / identifier)
         case .search(let query) where query.context == .discover:
             return APIRequestConfig(
@@ -77,7 +77,7 @@ final class MovieManager {
     func movie(for movieID: MovieIdentifiable) -> AnyPublisher<MovieGraph?, ManagerError> {
         let context = ReadContext<Movie>(dataSource: .remoteOrLocal())
         return coreManagers.movieManager
-            .rootEntity(byID: movieID.movieIdentifier, extras: [.genres], in: context)
+            .rootEntity(byID: movieID.movieIdentifier, in: context)
             .including(path: Genre.self)
             .perform()
             .once

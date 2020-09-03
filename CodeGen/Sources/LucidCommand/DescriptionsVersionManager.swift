@@ -35,12 +35,17 @@ final class DescriptionsVersionManager {
         return repositoryPath + inputPath
     }
 
-    init(workingPath: Path,
-         outputPath: Path,
-         inputPath: Path,
-         gitRemote: String?,
-         noRepoUpdate: Bool,
-         logger: Logger) throws {
+    init?(workingPath: Path,
+          outputPath: Path,
+          inputPath: Path,
+          gitRemote: String?,
+          noRepoUpdate: Bool,
+          logger: Logger) throws {
+
+        guard (workingPath + ".git").exists else {
+            logger.info("Working directory isn't a git repository. Versioning is deactivated.")
+            return nil
+        }
 
         self.workingPath = workingPath
         self.outputPath = outputPath
@@ -135,10 +140,6 @@ final class DescriptionsVersionManager {
     }
 
     private func cacheRepository() throws {
-        guard (workingPath + ".git").exists else {
-            try logger.throwError("Working directory needs to be a git repository.")
-        }
-
         if (repositoryPath + ".git").exists == false {
             if repositoryPath.exists {
                 try repositoryPath.delete()
@@ -156,7 +157,7 @@ final class DescriptionsVersionManager {
         }
     }
 
-    func descriptionsHash(absoluteInputPath: Path) throws -> String {
+    static func descriptionsHash(absoluteInputPath: Path) throws -> String {
         return try absoluteInputPath
             .recursiveChildren()
             .filter { $0.extension == "json" }

@@ -1,0 +1,2 @@
+ENABLE_BITCODE = NO
+WATCHOS_DEPLOYMENT_TARGET = 6.0 // This is necessary for ReacktiveKit. Since ReactiveKit doesn't have a minimum_deployment_target, it tries to build it using the Xcode's default which might be too high for the build to succeed.

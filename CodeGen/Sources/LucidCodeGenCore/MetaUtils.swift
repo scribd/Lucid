@@ -533,6 +533,10 @@ public extension TypeIdentifier {
     static var userAccessValidating: TypeIdentifier {
         return TypeIdentifier(name: "UserAccessValidating")
     }
+
+    static var queryResultConvertible: TypeIdentifier {
+        return TypeIdentifier(name: "QueryResultConvertible")
+    }
 }
 
 // MARK: - Static References

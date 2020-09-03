@@ -123,6 +123,24 @@ extension EntitySpyIndexName: CoreDataIndexName {
     }
 }
 
+extension EntitySpyIndexName: QueryResultConvertible {
+
+    public var requestValue: String {
+        switch self {
+        case .title:
+            return "title"
+        case .subtitle:
+            return "subtitle"
+        case .lazy:
+            return "lazy"
+        case .manyRelationships:
+            return "many_relationships"
+        case .oneRelationship:
+            return "one_relationship"
+        }
+    }
+}
+
 public struct EndpointStubData {
 
     public var stubEntities: [EntitySpy]?

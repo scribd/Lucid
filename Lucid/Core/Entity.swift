@@ -345,6 +345,8 @@ public protocol AnyResultPayloadConvertible {
 
     /// Metadata type representing the singular endpoint
     var metadata: EndpointResultMetadata { get }
+
+    func allEntities<E>() -> AnySequence<E> where E: Entity
 }
 
 /// Type convertible to any type of endpoint payload.
@@ -362,8 +364,6 @@ public protocol ResultPayloadConvertible: AnyResultPayloadConvertible {
     init(from data: Data, endpoint: Endpoint, decoder: JSONDecoder) throws
 
     func getEntity<E>(for identifier: E.Identifier) -> E? where E: Entity
-
-    func allEntities<E>() -> AnySequence<E> where E: Entity
 }
 
 // MARK: - LocalEntity

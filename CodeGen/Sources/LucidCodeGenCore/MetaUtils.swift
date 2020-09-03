@@ -478,8 +478,8 @@ public extension TypeIdentifier {
         return TypeIdentifier(name: "RelationshipCoreManaging")
     }
 
-    static var remoteStoreCachePersistenceManaging: TypeIdentifier {
-        return TypeIdentifier(name: "RemoteStoreCachePersistenceManaging")
+    static var remoteStoreCachePayloadPersistenceManaging: TypeIdentifier {
+        return TypeIdentifier(name: "RemoteStoreCachePayloadPersistenceManaging")
     }
     
     static var anyRelationshipIdentifierConvertible: TypeIdentifier {

@@ -117,20 +117,20 @@ public final class _ReadContext<ResultPayload> where ResultPayload: ResultPayloa
     public convenience init(dataSource: DataSource = .local,
                             contract: EntityContract = AlwaysValidContract(),
                             accessValidator: UserAccessValidating? = nil,
-                            persistenceManager: RemoteStoreCachePersistenceManaging? = nil) {
+                            payloadPersistenceManager: RemoteStoreCachePayloadPersistenceManaging? = nil) {
 
-        let _persistenceManager: RemoteStoreCachePersistenceManaging?
+        let _payloadPersistenceManager: RemoteStoreCachePayloadPersistenceManaging?
         switch dataSource.persistenceStrategy {
         case .doNotPersist:
-            _persistenceManager = nil
+            _payloadPersistenceManager = nil
         case .persist:
-            _persistenceManager = persistenceManager
+            _payloadPersistenceManager = payloadPersistenceManager
         }
 
         self.init(dataSource: dataSource,
                   contract: contract,
                   accessValidator: accessValidator,
-                  remoteStoreCache: RemoteStoreCache(persistenceManager: _persistenceManager, accessValidator: accessValidator))
+                  remoteStoreCache: RemoteStoreCache(payloadPersistenceManager: _payloadPersistenceManager, accessValidator: accessValidator))
     }
 
     // RemoteCache Accessors
@@ -508,7 +508,7 @@ public enum RemoteResponseSource {
 // MARK: - Persistence Manager
 
 /// In charge of persisting the the entities they contained in the payloads passing through `RemoteStoreCache`.
-public protocol RemoteStoreCachePersistenceManaging: AnyObject {
+public protocol RemoteStoreCachePayloadPersistenceManaging: AnyObject {
 
     /// Persists the entities contained in a given payload.
     /// - Parameters:
@@ -591,7 +591,7 @@ final class RemoteStoreCache {
     private let dispatchQueue: DispatchQueue = DispatchQueue(label: "\(RemoteStoreCache.self)_dispatch_queue")
     private let broadcastQueue: DispatchQueue = DispatchQueue(label: "\(RemoteStoreCache.self)_broadcast_queue")
 
-    private let persistenceManager: RemoteStoreCachePersistenceManaging?
+    private let payloadPersistenceManager: RemoteStoreCachePayloadPersistenceManaging?
     private let accessValidator: UserAccessValidating?
 
     private var _payloadRequest: APIRequestConfig?
@@ -602,9 +602,9 @@ final class RemoteStoreCache {
     private var payload: Payload?
     private var listeners = [EndpointResponseListener]()
 
-    init(persistenceManager: RemoteStoreCachePersistenceManaging?,
+    init(payloadPersistenceManager: RemoteStoreCachePayloadPersistenceManaging?,
          accessValidator: UserAccessValidating?) {
-        self.persistenceManager = persistenceManager
+        self.payloadPersistenceManager = payloadPersistenceManager
         self.accessValidator = accessValidator
     }
 
@@ -669,7 +669,7 @@ final class RemoteStoreCache {
             self.payload = Payload(result: payloadResult, source: source)
 
             if let payload = payloadResult.value?._unbox {
-                self.persistenceManager?.persistEntities(from: payload, accessValidator: self.accessValidator)
+                self.payloadPersistenceManager?.persistEntities(from: payload, accessValidator: self.accessValidator)
             }
 
             let existingListeners = self.listeners

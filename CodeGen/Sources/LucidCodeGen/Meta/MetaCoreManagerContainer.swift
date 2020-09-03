@@ -45,7 +45,7 @@ struct MetaCoreManagerContainer {
                 EmptyLine(),
                 Comment.mark("Persistence Manager"),
                 EmptyLine(),
-                persistenceManagerExtension(),
+                payloadPersistenceManagerExtension(),
                 EmptyLine(),
                 Comment.mark("Default Entity Stores"),
                 EmptyLine(),
@@ -259,9 +259,9 @@ struct MetaCoreManagerContainer {
             )
     }
 
-    private func persistenceManagerExtension() -> Extension {
+    private func payloadPersistenceManagerExtension() -> Extension {
         return Extension(type: .coreManagerContainer)
-            .adding(inheritedType: .remoteStoreCachePersistenceManaging)
+            .adding(inheritedType: .remoteStoreCachePayloadPersistenceManaging)
             .adding(member: EmptyLine())
             .adding(member: Function(kind: .named("persistEntities"))
                 .with(accessLevel: .public)

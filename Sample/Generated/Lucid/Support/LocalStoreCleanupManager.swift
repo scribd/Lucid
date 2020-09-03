@@ -33,17 +33,17 @@ public final class LocalStoreCleanupManager: LocalStoreCleanupManaging {
     // MARK: API
 
     public func removeAllLocalData() -> AnyPublisher<Void, [LocalStoreCleanupError]> {
-        return [eraseLocalStore(coreManagerProvider.genreManager), eraseLocalStore(coreManagerProvider.movieManager)]
+        return [Genre.eraseLocalStore(coreManagerProvider.genreManager), Movie.eraseLocalStore(coreManagerProvider.movieManager)]
             .publisher
             .flatMap { $0 }
             .collect()
-            .map { $0.reduce(EraseResult.success) { $0.merged(with: $1) } }
+            .map { $0.reduce(LocalStoreCleanupResult.success) { $0.merged(with: $1) } }
             .setFailureType(to: [LocalStoreCleanupError].self)
             .flatMap { erasedResults -> AnyPublisher<Void, [LocalStoreCleanupError]> in
                 switch erasedResults {
                 case .success:
                     return Just(()).setFailureType(to: [LocalStoreCleanupError].self).eraseToAnyPublisher()
-                case .error(let cleanupErrors):
+                case .failure(let cleanupErrors):
                     return Fail(outputType: Void.self, failure: cleanupErrors).eraseToAnyPublisher()
                 }
             }
@@ -52,36 +52,39 @@ public final class LocalStoreCleanupManager: LocalStoreCleanupManaging {
     }
 }
 
-// MARK: - Private
+// MARK: - Utils
 
-private extension LocalStoreCleanupManager {
+enum LocalStoreCleanupResult {
+    case success
+    case failure([LocalStoreCleanupError])
 
-    enum EraseResult {
-        case success
-        case error([LocalStoreCleanupError])
-
-        func merged(with result: EraseResult) -> EraseResult {
-            switch (self, result) {
-            case (.success, .error(let error)),
-                 (.error(let error), .success):
-                return .error(error)
-            case (.error(let lhsError), .error(let rhsError)):
-                return .error(lhsError + rhsError)
-            case (.success, .success):
-                return .success
-            }
+    func merged(with result: LocalStoreCleanupResult) -> LocalStoreCleanupResult {
+        switch (self, result) {
+        case (.success, .failure(let error)),
+             (.failure(let error), .success):
+            return .failure(error)
+        case (.failure(let lhsError), .failure(let rhsError)):
+            return .failure(lhsError + rhsError)
+        case (.success, .success):
+            return .success
         }
     }
+}
 
-    private func eraseLocalStore<E>(_ manager: CoreManaging<E, AppAnyEntity>) -> AnyPublisher<EraseResult, Never> {
+extension LocalEntity {
+
+    /// Manually add the function:
+    /// `static func eraseLocalStore(_ manager: CoreManaging<Self, AppAnyEntity>) -> AnyPublisher<LocalStoreCleanupResult, Never>`
+    /// to an individual class adopting the Entity protocol to provide custom functionality
+
+    static func eraseLocalStore(_ manager: CoreManaging<Self, AppAnyEntity>) -> AnyPublisher<LocalStoreCleanupResult, Never> {
         return manager
-            .removeAll(withQuery: .all, in: WriteContext<E>(dataTarget: .local))
-            .map { _ in EraseResult.success }
-            .catch { managerError -> Just<EraseResult> in
+            .removeAll(withQuery: .all, in: WriteContext<Self>(dataTarget: .local))
+            .map { _ in LocalStoreCleanupResult.success }
+            .catch { managerError -> Just<LocalStoreCleanupResult> in
                 let cleanupError = LocalStoreCleanupError.manager(name: "\(manager.self)", error: managerError)
-                return Just(EraseResult.error([cleanupError]))
+                return Just(.failure([cleanupError]))
             }
             .eraseToAnyPublisher()
-
     }
 }

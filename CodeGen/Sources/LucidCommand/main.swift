@@ -62,11 +62,12 @@ let main = Group {
                                                                         noRepoUpdate: configuration.noRepoUpdate,
                                                                         logger: logger)
 
-        var modelMappingHistoryVersions = try currentDescriptions.modelMappingHistory(derivedFrom: descriptionsVersionManager.allVersionsFromGitTags())
+        var modelMappingHistoryVersions = try currentDescriptions.modelMappingHistory(derivedFrom: descriptionsVersionManager?.allVersionsFromGitTags() ?? [])
         modelMappingHistoryVersions.removeAll { $0 == currentAppVersion }
 
         var descriptions = try modelMappingHistoryVersions.reduce(into: [Version: Descriptions]()) { descriptions, appVersion in
             guard appVersion < currentAppVersion else { return }
+            guard let descriptionsVersionManager = descriptionsVersionManager else { return }
             let releaseTag = try descriptionsVersionManager.resolveLatestReleaseTag(excluding: false, appVersion: appVersion)
             let descriptionsPath = try descriptionsVersionManager.fetchDescriptionsVersion(releaseTag: releaseTag)
             let descriptionsParser = DescriptionsParser(inputPath: descriptionsPath, logger: Logger(level: .none))
@@ -78,32 +79,33 @@ let main = Group {
         let _shouldGenerateDataModel: Bool
         if configuration.forceBuildNewDBModel || forceBuildNewDBModelForVersions.contains(currentVersion) {
             _shouldGenerateDataModel = true
-        } else if let latestReleaseTag = try? descriptionsVersionManager.resolveLatestReleaseTag(excluding: true,
-                                                                                                 appVersion: currentAppVersion) {
-            
-            let latestDescriptionsPath = try descriptionsVersionManager.fetchDescriptionsVersion(releaseTag: latestReleaseTag)
-            let latestDescriptionsParser = DescriptionsParser(inputPath: latestDescriptionsPath,
-                                                              targets: configuration.targets,
-                                                              logger: Logger(level: .none))
-            let appVersion = try Version(latestReleaseTag, source: .description)
-            let latestDescriptions = try latestDescriptionsParser.parse(version: appVersion)
+        } else if
+            let descriptionsVersionManager = descriptionsVersionManager,
+            let latestReleaseTag = try? descriptionsVersionManager.resolveLatestReleaseTag(excluding: true, appVersion: currentAppVersion) {
 
-            _shouldGenerateDataModel = try shouldGenerateDataModel(byComparing: latestDescriptions,
-                                                                   to: currentDescriptions,
-                                                                   appVersion: currentAppVersion,
-                                                                   logger: logger)
-            
-            try validateDescriptions(byComparing: latestDescriptions,
-                                     to: currentDescriptions,
-                                     logger: logger)
+                let latestDescriptionsPath = try descriptionsVersionManager.fetchDescriptionsVersion(releaseTag: latestReleaseTag)
+                let latestDescriptionsParser = DescriptionsParser(inputPath: latestDescriptionsPath,
+                                                                  targets: configuration.targets,
+                                                                  logger: Logger(level: .none))
+                let appVersion = try Version(latestReleaseTag, source: .description)
+                let latestDescriptions = try latestDescriptionsParser.parse(version: appVersion)
+
+                _shouldGenerateDataModel = try shouldGenerateDataModel(byComparing: latestDescriptions,
+                                                                       to: currentDescriptions,
+                                                                       appVersion: currentAppVersion,
+                                                                       logger: logger)
+
+                try validateDescriptions(byComparing: latestDescriptions,
+                                         to: currentDescriptions,
+                                         logger: logger)
         } else {
-            _shouldGenerateDataModel = false
+            _shouldGenerateDataModel = true
         }
         logger.moveToParent()
         
         logger.moveToChild("Starting code generation...")
         for target in configuration.targets.all where target.isSelected {
-            let descriptionsHash = try descriptionsVersionManager.descriptionsHash(absoluteInputPath: configuration.inputPath)
+            let descriptionsHash = try DescriptionsVersionManager.descriptionsHash(absoluteInputPath: configuration.inputPath)
             let generator = try SwiftCodeGenerator(to: target,
                                                    descriptions: descriptions,
                                                    appVersion: currentAppVersion,

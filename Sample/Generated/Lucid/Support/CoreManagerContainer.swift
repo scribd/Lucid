@@ -41,6 +41,8 @@ public final class CoreManagerContainer {
     public let clientQueues: Set<APIClientQueue>
     public let mainClientQueue: APIClientQueue
 
+    private var cancellableStore = Set<AnyCancellable>()
+
     private let _genreManager: CoreManager<Genre>
     private lazy var _genreRelationshipManager = CoreManaging<Genre, AppAnyEntity>.RelationshipManager(self)
     var genreManager: CoreManaging<Genre, AppAnyEntity> {
@@ -131,13 +133,37 @@ extension CoreManagerContainer: RelationshipCoreManaging {
     }
 }
 
+// MARK: - Persistence Manager
+
+extension CoreManagerContainer: RemoteStoreCachePayloadPersistenceManaging {
+
+    public func persistEntities(from payload: AnyResultPayloadConvertible,
+                                accessValidator: Optional<UserAccessValidating>) {
+
+        genreManager
+            .set(payload.allEntities(), in: WriteContext(dataTarget: .local, accessValidator: accessValidator))
+            .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
+            .store(in: &cancellableStore)
+
+        movieManager
+            .set(payload.allEntities(), in: WriteContext(dataTarget: .local, accessValidator: accessValidator))
+            .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
+            .store(in: &cancellableStore)
+    }
+}
+
 // MARK: - Default Entity Stores
 
-// Manually add the function:
-// static func stores(with client: APIClient) -> [Storing<E>]
-// to an individual class adopting the Entity protocol to provide custom functionality
+/// Manually add the function:
+/// ```
+/// static func stores(with client: APIClient,
+///                    clientQueue: inout APIClientQueue,
+///                    coreDataManager: CoreDataManager,
+///                    cacheLimit: Int) -> Array<Storing<Self>>
+/// ```
+/// to an individual class adopting the Entity protocol to provide custom functionality
 
-extension Entity {
+extension LocalEntity {
     static func stores(with client: APIClient,
                        clientQueue: inout APIClientQueue,
                        coreDataManager: CoreDataManager,

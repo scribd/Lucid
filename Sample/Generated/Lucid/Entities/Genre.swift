@@ -134,8 +134,6 @@ extension Genre {
 
 extension Genre: LocalEntity, RemoteEntity {
 
-    public typealias ExtrasIndexName = VoidExtrasIndexName
-
     public func entityIndexValue(for indexName: GenreIndexName) -> EntityIndexValue<EntityRelationshipIdentifier, EntitySubtype> {
         switch indexName {
         case .name:

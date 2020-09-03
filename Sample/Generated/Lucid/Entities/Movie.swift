@@ -160,8 +160,6 @@ extension Movie {
 
 extension Movie: LocalEntity, RemoteEntity {
 
-    public typealias ExtrasIndexName = MovieExtrasIndexName
-
     public func entityIndexValue(for indexName: MovieIndexName) -> EntityIndexValue<EntityRelationshipIdentifier, EntitySubtype> {
         switch indexName {
         case .genres:

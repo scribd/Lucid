@@ -96,7 +96,7 @@ struct MetaCoreManagerContainer {
                 public let clientQueues: Set<APIClientQueue>
                 public let mainClientQueue: APIClientQueue
 
-                private let disposeBag = DisposeBag()
+                \(reactiveKit ? "private let disposeBag = DisposeBag()" : "private var cancellableStore = Set<AnyCancellable>()")
                 """)
             )
             .adding(members: descriptions.entities.flatMap { entity -> [TypeBodyMember] in
@@ -275,8 +275,8 @@ struct MetaCoreManagerContainer {
 
                         \(entity.coreManagerVariable.reference.swiftString)
                             .set(payload.allEntities(), in: WriteContext(dataTarget: .local, accessValidator: accessValidator))
-                            .observeNext { _ in }
-                            .dispose(in: disposeBag)
+                            \(reactiveKit ? ".observeNext { _ in }" : ".sink(receiveCompletion: { _ in }, receiveValue: { _ in })")
+                            \(reactiveKit ? ".dispose(in: disposeBag)" : ".store(in: &cancellableStore)")
                         """)
                     }
                 )

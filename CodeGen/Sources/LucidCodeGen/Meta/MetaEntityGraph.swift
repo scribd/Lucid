@@ -45,8 +45,6 @@ struct MetaEntityGraph {
             .adding(member: EmptyLine())
             .adding(member: entityRelationshipIndicesComputedProperty())
             .adding(member: EmptyLine())
-            .adding(member: entityRelationshipEntityTypeUIDsComputedProperty())
-            .adding(member: EmptyLine())
             .adding(member: entityIndexValueFunction())
             .adding(member: EmptyLine())
             .adding(member: initWithEntityFunction())
@@ -100,19 +98,6 @@ struct MetaEntityGraph {
                                 .adding(parameter: TupleParameter(value: Reference.named("$0")))
                             ))
                         )))
-                })
-            )
-    }
-    
-    private func entityRelationshipEntityTypeUIDsComputedProperty() -> ComputedProperty {
-        return ComputedProperty(variable: Variable(name: "entityRelationshipEntityTypeUIDs")
-            .with(type: .array(element: .string)))
-            .with(accessLevel: .public)
-            .adding(member: Switch(reference: .named(.`self`))
-                .adding(cases: descriptions.entities.map { entity in
-                    SwitchCase(name: entity.name.camelCased().variableCased())
-                        .adding(value: Reference.named("let entity"))
-                        .adding(member: Return(value: .named("entity") + .named("entityRelationshipEntityTypeUIDs")))
                 })
             )
     }
@@ -200,7 +185,7 @@ struct MetaEntityGraph {
                     """))
             )
     }
-    
+
     private func entityGraph() -> Type {
         return Type(identifier: .entityGraph)
             .with(kind: .class(final: true))

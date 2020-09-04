@@ -93,6 +93,10 @@ struct MetaEntity {
                         identifier: TypeAliasIdentifier(name: "QueryContext"),
                         value: entity.queryContext ? TypeIdentifier(name: "\(entity.transformedName)QueryContext") : .never
                     ).with(accessLevel: .public),
+                    TypeAlias(
+                        identifier: TypeAliasIdentifier(name: "RelationshipIndexName"),
+                        value: try entity.relationshipIndexNameTypeID(descriptions)
+                    ).with(accessLevel: .public),
                     EmptyLine(),
                     Comment.comment("IdentifierTypeID"),
                     Property(variable: Variable(name: "identifierTypeID")
@@ -366,8 +370,6 @@ struct MetaEntity {
             .adding(member: EmptyLine())
             .adding(member: try entityRelationshipIndicesProperty())
             .adding(member: EmptyLine())
-            .adding(member: try entityRelationshipEntityTypeUIDsProperty())
-            .adding(member: EmptyLine())
             .adding(member: try equalityFunction())
             .adding(members: try shouldOverwriteFunction())
     }
@@ -463,25 +465,6 @@ struct MetaEntity {
                 case .relationship,
                      .array(.relationship):
                     return .reference(+.named(property.transformedName()))
-                case .scalar,
-                     .subtype,
-                     .array:
-                    return nil
-                }
-            })))
-    }
-    
-    private func entityRelationshipEntityTypeUIDsProperty() throws -> ComputedProperty {
-        let entity = try descriptions.entity(for: entityName)
-        
-        return ComputedProperty(variable: Variable(name: "entityRelationshipEntityTypeUIDs")
-            .with(type: .array(element: .string)))
-            .with(accessLevel: .public)
-            .adding(member: Return(value: Value.array(try entity.indexes(descriptions).compactMap { property in
-                switch property.propertyType {
-                case .relationship(let entityRelationship),
-                     .array(.relationship(let entityRelationship)):
-                    return .reference(try entityRelationship.identifierTypeID(descriptions).arrayElementOrSelf.reference + .named("entityTypeUID"))
                 case .scalar,
                      .subtype,
                      .array:

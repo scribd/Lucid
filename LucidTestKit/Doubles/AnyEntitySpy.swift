@@ -15,7 +15,7 @@ import Lucid_ReactiveKit
 import Lucid
 #endif
 
-public enum AnyEntitySpyIndexName: Hashable, QueryResultConvertible, CustomStringConvertible {
+public enum AnyEntitySpyIndexName: Hashable, QueryResultConvertible {
     case entitySpy(EntitySpy.IndexName)
     case entityRelationshipSpy(EntityRelationshipSpy.IndexName)
 
@@ -25,15 +25,6 @@ public enum AnyEntitySpyIndexName: Hashable, QueryResultConvertible, CustomStrin
             return index.requestValue
         case .entityRelationshipSpy(let index):
             return index.requestValue
-        }
-    }
-
-    public var description: String {
-        switch self {
-        case .entitySpy(let indexName):
-            return indexName.description
-        case .entityRelationshipSpy(let indexName):
-            return indexName.description
         }
     }
 }

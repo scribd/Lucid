@@ -1686,14 +1686,14 @@ public extension CoreManaging {
     }
 
     func rootEntity<Graph>(byID identifier: E.Identifier,
-                           in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery
+                           in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery<E>
         where Graph: MutableGraph, Graph.AnyEntity == RelationshipManager.AnyEntity {
 
             return get(byID: identifier, in: context).relationships(from: relationshipManager, in: context)
     }
 
     func rootEntities<S, Graph>(for identifiers: S,
-                                in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery
+                                in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery<E>
         where S: Sequence, S.Element == E.Identifier, Graph: MutableGraph, Graph.AnyEntity == RelationshipManager.AnyEntity {
 
             return RelationshipController.RelationshipQuery(rootEntities: get(byIDs: identifiers, in: context),
@@ -1702,7 +1702,7 @@ public extension CoreManaging {
     }
 
     func rootEntities<Graph>(for query: Query<E> = .all,
-                             in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery
+                             in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery<E>
         where Graph: MutableGraph, Graph.AnyEntity == RelationshipManager.AnyEntity {
 
             return RelationshipController.RelationshipQuery(rootEntities: search(withQuery: query, in: context),
@@ -1714,14 +1714,14 @@ public extension CoreManaging {
 public extension CoreManaging where E: RemoteEntity {
 
     func rootEntity<Graph>(byID identifier: E.Identifier,
-                           in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery
+                           in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery<E>
         where Graph: MutableGraph, Graph.AnyEntity == RelationshipManager.AnyEntity {
 
             return get(byID: identifier, in: context).relationships(from: relationshipManager, in: context)
     }
 
     func rootEntities<S, Graph>(for identifiers: S,
-                                in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery
+                                in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery<E>
         where S: Sequence, S.Element == E.Identifier, Graph: MutableGraph, Graph.AnyEntity == RelationshipManager.AnyEntity {
 
             return RelationshipController.RelationshipQuery(rootEntities: get(byIDs: identifiers, in: context),
@@ -1732,7 +1732,7 @@ public extension CoreManaging where E: RemoteEntity {
 
 public extension CoreManaging where E.Identifier == VoidEntityIdentifier {
 
-    func rootEntity<Graph>(in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery
+    func rootEntity<Graph>(in context: ReadContext<E>) -> RelationshipController<RelationshipManager, Graph>.RelationshipQuery<E>
         where Graph: MutableGraph, Graph.AnyEntity == RelationshipManager.AnyEntity {
 
             return rootEntity(byID: VoidEntityIdentifier(), in: context)

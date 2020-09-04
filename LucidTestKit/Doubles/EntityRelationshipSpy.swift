@@ -85,13 +85,9 @@ public final class EntityRelationshipSpyIdentifier: RemoteIdentifier, CoreDataId
     }
 }
 
-public enum EntityRelationshipSpyIndexName: String, CustomStringConvertible {
+public enum EntityRelationshipSpyIndexName {
     case title
     case relationships
-
-    public var description: String {
-        return rawValue
-    }
 }
 
 extension EntityRelationshipSpyIndexName: CoreDataIndexName, QueryResultConvertible {
@@ -128,6 +124,23 @@ extension EntityRelationshipSpyIndexName: CoreDataIndexName, QueryResultConverti
             return "title"
         case .relationships:
             return "relationships"
+        }
+    }
+}
+
+public indirect enum EntityRelationshipSpyRelationshipIndexName: RelationshipPathConvertible {
+    public typealias AnyEntity = AnyEntitySpy
+
+    case relationships([EntitySpyRelationshipIndexName]?)
+
+    public var paths: [[AnyEntitySpyIndexName]] {
+        switch self {
+        case .relationships(let children):
+            return [[.entityRelationshipSpy(.relationships)]] + (children ?? []).flatMap { child in
+                child.paths.map { path in
+                    [.entityRelationshipSpy(.relationships)] + path
+                }
+            }
         }
     }
 }
@@ -218,6 +231,7 @@ public final class EntityRelationshipSpy: RemoteEntity {
 
     public typealias Identifier = EntityRelationshipSpyIdentifier
     public typealias IndexName = EntityRelationshipSpyIndexName
+    public typealias RelationshipIndexName = EntityRelationshipSpyRelationshipIndexName
 
     public let identifier: EntityRelationshipSpyIdentifier
     public let title: String

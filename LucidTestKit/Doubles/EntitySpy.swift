@@ -145,6 +145,30 @@ extension EntitySpyIndexName: QueryResultConvertible {
     }
 }
 
+public indirect enum EntitySpyRelationshipIndexName: RelationshipPathConvertible {
+    public typealias AnyEntity = AnyEntitySpy
+
+    case oneRelationship([EntityRelationshipSpyRelationshipIndexName]?)
+    case manyRelationships([EntityRelationshipSpyRelationshipIndexName]?)
+
+    public var paths: [[AnyEntitySpyIndexName]] {
+        switch self {
+        case .oneRelationship(let children):
+            return [[.entitySpy(.manyRelationships)]] + (children ?? []).flatMap { child in
+                child.paths.map { path in
+                    [.entitySpy(.manyRelationships)] + path
+                }
+            }
+        case .manyRelationships(let children):
+            return [[.entitySpy(.manyRelationships)]] + (children ?? []).flatMap { child in
+                child.paths.map { path in
+                    [.entitySpy(.manyRelationships)] + path
+                }
+            }
+        }
+    }
+}
+
 public struct EndpointStubData {
 
     public var stubEntities: [EntitySpy]?
@@ -256,6 +280,7 @@ public final class EntitySpy: RemoteEntity {
 
     public typealias Identifier = EntitySpyIdentifier
     public typealias IndexName = EntitySpyIndexName
+    public typealias RelationshipIndexName = EntitySpyRelationshipIndexName
 
     public let identifier: EntitySpyIdentifier
     public let title: String

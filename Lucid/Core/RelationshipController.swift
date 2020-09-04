@@ -26,11 +26,9 @@ public protocol RelationshipPathConvertible {
 }
 
 /// Mutable graph object
-public protocol MutableGraph: AnyObject where AnyEntity == AnyRelationshipPath.AnyEntity {
+public protocol MutableGraph: AnyObject {
 
-    associatedtype AnyEntity: EntityConvertible
-
-    associatedtype AnyRelationshipPath: RelationshipPathConvertible
+    associatedtype AnyEntity: EntityIndexing, EntityConvertible
 
     /// Initialize an empty graph
     init()
@@ -83,8 +81,6 @@ extension RelationshipCoreManaging {
 public final class ThreadSafeGraph<Graph>: MutableGraph where Graph: MutableGraph {
 
     public typealias AnyEntity = Graph.AnyEntity
-
-    public typealias AnyRelationshipPath = Graph.AnyRelationshipPath
 
     private let dispatchQueue = DispatchQueue(label: "\(ThreadSafeGraph.self)")
 
@@ -282,7 +278,7 @@ public final class RelationshipController<RelationshipManager, Graph>
             let graphAtCurrentDepth = graph.value
 
             return Signal(
-                combiningLatest: relationshipIdentifiersByIndex.keys.sorted { $0.description < $1.description }
+                combiningLatest: relationshipIdentifiersByIndex.keys.sorted { "\($0)" < "\($1)" }
                     .compactMap { indexName -> Signal<(), ManagerError>? in
                         guard let _identifiers = relationshipIdentifiersByIndex[indexName] else { return nil }
                         let identifiers = graph.filterOutContainedIDs(of: _identifiers)
@@ -430,7 +426,7 @@ private extension EntityIndexValue {
 
 public extension RelationshipController {
 
-    final class RelationshipQuery {
+    final class RelationshipQuery<E> where E: Entity, E.ResultPayload == RelationshipManager.ResultPayload, E.RelationshipIndexName.AnyEntity == RelationshipManager.AnyEntity {
 
         private var includeAll: (value: Bool, recursive: RelationshipFetcher.RecursiveMethod) = (false, .full)
 
@@ -446,10 +442,9 @@ public extension RelationshipController {
 
         private let relationshipManager: RelationshipManager?
 
-        private init<E>(_ rootEntities: (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>),
-                        in mainContext: ReadContext,
-                        relationshipManager: RelationshipManager?)
-            where E: Entity, E.ResultPayload == RelationshipManager.ResultPayload {
+        private init(_ rootEntities: (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>),
+                     in mainContext: ReadContext,
+                     relationshipManager: RelationshipManager?) {
 
                 self.rootEntities = (
                     rootEntities.once.map { $0.lazy.compactMap { Graph.AnyEntity($0) }.any },
@@ -462,18 +457,16 @@ public extension RelationshipController {
         }
 
         #if LUCID_REACTIVE_KIT
-        public convenience init<E>(rootEntities: (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>),
-                                   in mainContext: ReadContext,
-                                   relationshipManager: RelationshipManager?)
-            where E: Entity, E.ResultPayload == RelationshipManager.ResultPayload {
+        public convenience init(rootEntities: (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>),
+                                in mainContext: ReadContext,
+                                relationshipManager: RelationshipManager?) {
 
             self.init(rootEntities, in: mainContext, relationshipManager: relationshipManager)
         }
         #else
-        public convenience init<E>(rootEntities: (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>),
-                                   in mainContext: ReadContext,
-                                   relationshipManager: RelationshipManager?)
-            where E: Entity, E.ResultPayload == RelationshipManager.ResultPayload {
+        public convenience init(rootEntities: (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>),
+                                in mainContext: ReadContext,
+                                relationshipManager: RelationshipManager?) {
 
                 self.init((rootEntities.once.toSignal(), rootEntities.continuous.toSignal()),
                           in: mainContext,
@@ -583,8 +576,8 @@ public extension RelationshipController {
             return self
         }
 
-        public func excluding(_ tree: Graph.AnyRelationshipPath) -> RelationshipQuery {
-            for path in tree.paths {
+        public func excluding(_ relationships: [E.RelationshipIndexName]) -> RelationshipQuery {
+            for path in relationships.flatMap({ $0.paths }) {
                 excluding(path: path)
             }
             return self
@@ -606,18 +599,18 @@ public extension RelationshipController {
             return self
         }
 
-        public func including(_ tree: Graph.AnyRelationshipPath,
+        public func including(_ relationships: [E.RelationshipIndexName],
                               recursive: RelationshipFetcher.RecursiveMethod = .none,
                               in context: ReadContext? = nil) -> RelationshipQuery {
 
-            for path in tree.paths {
+            for path in relationships.flatMap({ $0.paths }) {
                 including(path: path, recursive: recursive, in: context)
             }
             return self
         }
 
-        public func including(_ tree: Graph.AnyRelationshipPath, with fetcher: RelationshipFetcher) -> RelationshipQuery {
-            for path in tree.paths {
+        public func including(_ relationships: [E.RelationshipIndexName], with fetcher: RelationshipFetcher) -> RelationshipQuery {
+            for path in relationships.flatMap({ $0.paths }) {
                 fetchers[path] = fetcher
             }
             return self
@@ -641,7 +634,7 @@ public extension RelationshipController {
 extension Signal where Element: QueryResultInterface, Error == ManagerError {
 
     func relationships<Manager, Graph>(from relationshipManager: Manager?,
-                                       in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery
+                                       in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery<Element.E>
         where Manager: RelationshipCoreManaging, Graph: MutableGraph, Graph.AnyEntity == Manager.AnyEntity, Manager.ResultPayload == Element.E.ResultPayload {
 
             return RelationshipController<Manager, Graph>.RelationshipQuery(rootEntities: (map { $0.materialized }, PassthroughSubject().toSignal()),
@@ -649,7 +642,7 @@ extension Signal where Element: QueryResultInterface, Error == ManagerError {
                                                                             relationshipManager: relationshipManager)
     }
 
-    public func relationships<Manager, Graph>(from relationshipManager: Manager, in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery
+    public func relationships<Manager, Graph>(from relationshipManager: Manager, in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery<Element.E>
         where Manager: RelationshipCoreManaging, Graph: MutableGraph, Graph.AnyEntity == Manager.AnyEntity, Manager.ResultPayload == Element.E.ResultPayload {
 
             return relationships(from: .some(relationshipManager), in: context)
@@ -659,7 +652,7 @@ extension Signal where Element: QueryResultInterface, Error == ManagerError {
 extension Publisher where Output: QueryResultInterface, Failure == ManagerError {
 
     func relationships<Manager, Graph>(from relationshipManager: Manager?,
-                                       in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery
+                                       in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery<Output.E>
         where Manager: RelationshipCoreManaging, Graph: MutableGraph, Graph.AnyEntity == Manager.AnyEntity, Manager.ResultPayload == Output.E.ResultPayload {
 
             return RelationshipController<Manager, Graph>.RelationshipQuery(
@@ -672,7 +665,7 @@ extension Publisher where Output: QueryResultInterface, Failure == ManagerError 
             )
     }
 
-    public func relationships<Manager, Graph>(from relationshipManager: Manager, in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery
+    public func relationships<Manager, Graph>(from relationshipManager: Manager, in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery<Output.E>
         where Manager: RelationshipCoreManaging, Graph: MutableGraph, Graph.AnyEntity == Manager.AnyEntity, Manager.ResultPayload == Output.E.ResultPayload {
 
             return relationships(from: .some(relationshipManager), in: context)

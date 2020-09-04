@@ -29,6 +29,14 @@ public enum AnyEntitySpyIndexName: Hashable, QueryResultConvertible {
     }
 }
 
+public enum AnyRelationshipSpyPath: RelationshipPathConvertible {
+    public typealias AnyEntity = AnyEntitySpy
+
+    public var paths: [[AnyEntitySpyIndexName]] {
+        return []
+    }
+}
+
 public enum AnyEntitySpy: EntityIndexing, EntityConvertible {
     case entitySpy(EntitySpy)
     case entityRelationshipSpy(EntityRelationshipSpy)
@@ -50,15 +58,6 @@ public enum AnyEntitySpy: EntityIndexing, EntityConvertible {
             return entity.entityRelationshipIndices.map { .entitySpy($0) }
         case .entityRelationshipSpy(let entity):
             return entity.entityRelationshipIndices.map { .entityRelationshipSpy($0) }
-        }
-    }
-
-    public var entityRelationshipEntityTypeUIDs: [String] {
-        switch self {
-        case .entitySpy(let entity):
-            return entity.entityRelationshipEntityTypeUIDs
-        case .entityRelationshipSpy(let entity):
-            return entity.entityRelationshipEntityTypeUIDs
         }
     }
 

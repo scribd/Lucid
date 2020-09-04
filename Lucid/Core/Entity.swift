@@ -303,18 +303,21 @@ public protocol EntityIndexing {
     /// Retrieve the entity's relationships' index.
     var entityRelationshipIndices: [IndexName] { get }
 
-    /// Retrieve the entity's relationships' type UID.
-    var entityRelationshipEntityTypeUIDs: [String] { get }
-
     /// Retrieve an index's associated value.
     func entityIndexValue(for indexName: IndexName) -> EntityIndexValue<RelationshipIdentifier, Subtype>
+}
+
+public protocol EntityRelationshipIndexing {
+
+    /// Relationship descriptions used for automatic fetching of relationships.
+    associatedtype RelationshipIndexName: RelationshipPathConvertible
 }
 
 /// An `Entity` represents a type of data served by the backend.
 ///
 /// - Note: This is the central type of the `Lucid` architecture. Every `Store` and `CoreManager` are
 ///         derived from an `Entity` type.
-public protocol Entity: Equatable, EntityIdentifiable, EntityIdentifierTypeIDConvertible, EntityIndexing {
+public protocol Entity: Equatable, EntityIdentifiable, EntityIdentifierTypeIDConvertible, EntityIndexing, EntityRelationshipIndexing {
 
     /// Entity's metadata type
     associatedtype Metadata: EntityMetadata
@@ -608,10 +611,6 @@ public extension Entity where IndexName == VoidIndexName {
     var entityRelationshipIndices: [IndexName] {
         return []
     }
-
-    var entityRelationshipEntityTypeUIDs: [String] {
-        return []
-    }
 }
 
 extension VoidIndexName: CoreDataIndexName {
@@ -633,6 +632,17 @@ extension VoidIndexName: CoreDataIndexName {
 
 public protocol QueryResultConvertible {
     var requestValue: String { get }
+}
+
+// MARK: - VoidRelationshipIndexName
+
+public struct VoidRelationshipIndexName<AppAnyEntity>: RelationshipPathConvertible where AppAnyEntity: EntityIndexing {
+
+    public typealias AnyEntity = AppAnyEntity
+
+    public var paths: [[AppAnyEntity.IndexName]] {
+        return []
+    }
 }
 
 // MARK: - VoidRelationshipIdentifier

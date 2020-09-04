@@ -236,7 +236,7 @@ extension PersistenceStrategy: CustomDebugStringConvertible {
 
 extension _ReadContext {
 
-    public func updateForRelationshipController(at path: [String], graph: Any, deltaStrategy: PersistenceStrategy.DeltaStrategy) -> _ReadContext {
+    public func updateForRelationshipController<Graph>(at path: [Graph.AnyEntity.IndexName], graph: Graph, deltaStrategy: PersistenceStrategy.DeltaStrategy) -> _ReadContext where Graph: MutableGraph {
 
         let updatedContract: EntityContract
         if let graphContract = contract as? EntityGraphContract {

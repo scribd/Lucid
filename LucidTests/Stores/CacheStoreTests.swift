@@ -360,6 +360,7 @@ private final class CacheStoreEntitySpy: LocalEntity {
 
     public typealias Identifier = EntitySpyIdentifier
     public typealias IndexName = EntitySpyIndexName
+    public typealias RelationshipIndexName = EntitySpyRelationshipIndexName
 
     public let identifier: EntitySpyIdentifier
     let title: String
@@ -418,10 +419,6 @@ private final class CacheStoreEntitySpy: LocalEntity {
             .oneRelationship,
             .manyRelationships
         ]
-    }
-
-    public var entityRelationshipEntityTypeUIDs: [String] {
-        return [EntityRelationshipSpyIdentifier.entityTypeUID]
     }
 
     public static func == (lhs: CacheStoreEntitySpy, rhs: CacheStoreEntitySpy) -> Bool {

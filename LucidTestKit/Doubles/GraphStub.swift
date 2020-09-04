@@ -19,6 +19,8 @@ public final class GraphStub: MutableGraph {
 
     public typealias AnyEntity = AnyEntitySpy
 
+    public typealias AnyRelationshipPath = AnyRelationshipSpyPath
+
     public private(set) var rootEntities: [AnyEntitySpy]
 
     public private(set) var entitySpies = DualHashDictionary<EntitySpyIdentifier, EntitySpy>()

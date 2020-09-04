@@ -517,7 +517,11 @@ public extension TypeIdentifier {
     static var appAnyEntityIndexName: TypeIdentifier {
         return TypeIdentifier(name: "AppAnyEntityIndexName")
     }
-    
+
+    static var appAnyRelationshipPath: TypeIdentifier {
+        return TypeIdentifier(name: "AppAnyRelationshipPath")
+    }
+
     static var entityIndexing: TypeIdentifier {
         return TypeIdentifier(name: "EntityIndexing")
     }
@@ -536,6 +540,10 @@ public extension TypeIdentifier {
 
     static var queryResultConvertible: TypeIdentifier {
         return TypeIdentifier(name: "QueryResultConvertible")
+    }
+
+    static var relationshipPathConvertible: TypeIdentifier {
+        return TypeIdentifier(name: "RelationshipPathConvertible")
     }
 }
 
@@ -666,6 +674,13 @@ public extension Entity {
     func indexNameTypeID(_ descriptions: Descriptions) throws -> TypeIdentifier {
         let hasIndexes = try self.hasIndexes(descriptions)
         return hasIndexes ? TypeIdentifier(name: "\(transformedName)IndexName") : TypeIdentifier(name: "VoidIndexName")
+    }
+
+    func relationshipIndexNameTypeID(_ descriptions: Descriptions) throws -> TypeIdentifier {
+        let hasIndexes = try self.hasRelationshipIndexes(descriptions)
+        return hasIndexes ?
+            TypeIdentifier(name: "\(transformedName)RelationshipIndexName") :
+            TypeIdentifier(name: "VoidRelationshipIndexName").adding(genericParameter: .appAnyEntity)
     }
 
     func coreDataEntityTypeID(for version: Version? = nil) throws -> TypeIdentifier {
@@ -1088,6 +1103,24 @@ public extension Entity {
 
     func hasIndexes(_ descriptions: Descriptions) throws -> Bool {
         return try indexes(descriptions).isEmpty == false
+    }
+
+    func hasRelationshipIndexes(_ descriptions: Descriptions) throws -> Bool {
+        return try indexes(descriptions).contains { $0.isRelationship }
+    }
+
+    func hasRelationshipLoop(_ descriptions: Descriptions) throws -> Bool {
+        var visitedEntities = Set<String>()
+        func hasLoop(for entityName: String) throws -> Bool {
+            guard visitedEntities.contains(entityName) == false else { return true }
+            visitedEntities.insert(entityName)
+            let entity = try descriptions.entity(for: entityName)
+            return try entity.indexes(descriptions).contains { property in
+                guard let relationship = property.relationship else { return false }
+                return try hasLoop(for: relationship.entityName)
+            }
+        }
+        return try hasLoop(for: name)
     }
 
     func hasAnyLazy(_ descriptions: Descriptions, _ parsedEntities: [String: Bool] = [:]) throws -> Bool {

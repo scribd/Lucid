@@ -19,7 +19,7 @@ public protocol EntityContract {
 
 public protocol EntityGraphContract: EntityContract {
 
-    func contract(at path: [String], for graph: Any) -> EntityGraphContract
+    func contract<Graph>(at path: [Graph.AnyEntity.IndexName], for graph: Graph) -> EntityGraphContract where Graph: MutableGraph
 }
 
 // MARK: Contracts
@@ -36,7 +36,7 @@ public struct AlwaysValidContract: EntityGraphContract {
         return true
     }
 
-    public func contract(at path: [String], for graph: Any) -> EntityGraphContract {
+    public func contract<Graph>(at path: [Graph.AnyEntity.IndexName], for graph: Graph) -> EntityGraphContract where Graph: MutableGraph {
         return self
     }
 }

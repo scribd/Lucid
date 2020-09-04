@@ -73,12 +73,16 @@ public final class EntitySpyIdentifier: RemoteIdentifier, CoreDataIdentifier {
     }
 }
 
-public enum EntitySpyIndexName {
+public enum EntitySpyIndexName: String, CustomStringConvertible {
     case title
     case subtitle
     case lazy
     case oneRelationship
     case manyRelationships
+
+    public var description: String {
+        return rawValue
+    }
 }
 
 extension EntitySpyIndexName: CoreDataIndexName {
@@ -137,6 +141,30 @@ extension EntitySpyIndexName: QueryResultConvertible {
             return "many_relationships"
         case .oneRelationship:
             return "one_relationship"
+        }
+    }
+}
+
+public indirect enum EntitySpyRelationshipIndexName: RelationshipPathConvertible {
+    public typealias AnyEntity = AnyEntitySpy
+
+    case oneRelationship([EntityRelationshipSpyRelationshipIndexName]?)
+    case manyRelationships([EntityRelationshipSpyRelationshipIndexName]?)
+
+    public var paths: [[AnyEntitySpyIndexName]] {
+        switch self {
+        case .oneRelationship(let children):
+            return [[.entitySpy(.manyRelationships)]] + (children ?? []).flatMap { child in
+                child.paths.map { path in
+                    [.entitySpy(.manyRelationships)] + path
+                }
+            }
+        case .manyRelationships(let children):
+            return [[.entitySpy(.manyRelationships)]] + (children ?? []).flatMap { child in
+                child.paths.map { path in
+                    [.entitySpy(.manyRelationships)] + path
+                }
+            }
         }
     }
 }
@@ -252,6 +280,7 @@ public final class EntitySpy: RemoteEntity {
 
     public typealias Identifier = EntitySpyIdentifier
     public typealias IndexName = EntitySpyIndexName
+    public typealias RelationshipIndexName = EntitySpyRelationshipIndexName
 
     public let identifier: EntitySpyIdentifier
     public let title: String
@@ -309,10 +338,6 @@ public final class EntitySpy: RemoteEntity {
             .oneRelationship,
             .manyRelationships
         ]
-    }
-
-    public var entityRelationshipEntityTypeUIDs: [String] {
-        return [EntityRelationshipSpyIdentifier.entityTypeUID]
     }
 
     public static func requestConfig(for remotePath: RemotePath<EntitySpy>) -> APIRequestConfig? {

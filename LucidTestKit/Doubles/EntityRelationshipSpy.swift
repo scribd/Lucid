@@ -128,6 +128,23 @@ extension EntityRelationshipSpyIndexName: CoreDataIndexName, QueryResultConverti
     }
 }
 
+public indirect enum EntityRelationshipSpyRelationshipIndexName: RelationshipPathConvertible {
+    public typealias AnyEntity = AnyEntitySpy
+
+    case relationships([EntitySpyRelationshipIndexName]?)
+
+    public var paths: [[AnyEntitySpyIndexName]] {
+        switch self {
+        case .relationships(let children):
+            return [[.entityRelationshipSpy(.relationships)]] + (children ?? []).flatMap { child in
+                child.paths.map { path in
+                    [.entityRelationshipSpy(.relationships)] + path
+                }
+            }
+        }
+    }
+}
+
 public final class EntityRelationshipEndpointResultPayloadSpy: ResultPayloadConvertible {
 
     public typealias Endpoint = Int
@@ -214,6 +231,7 @@ public final class EntityRelationshipSpy: RemoteEntity {
 
     public typealias Identifier = EntityRelationshipSpyIdentifier
     public typealias IndexName = EntityRelationshipSpyIndexName
+    public typealias RelationshipIndexName = EntityRelationshipSpyRelationshipIndexName
 
     public let identifier: EntityRelationshipSpyIdentifier
     public let title: String
@@ -243,10 +261,6 @@ public final class EntityRelationshipSpy: RemoteEntity {
 
     public var entityRelationshipIndices: [EntityRelationshipSpyIndexName] {
         return [.relationships]
-    }
-
-    public var entityRelationshipEntityTypeUIDs: [String] {
-        return [EntityRelationshipSpyIdentifier.entityTypeUID]
     }
 
     public static func requestConfig(for remotePath: RemotePath<EntityRelationshipSpy>) -> APIRequestConfig? {

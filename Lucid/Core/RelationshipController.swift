@@ -18,6 +18,13 @@ private enum Constants {
     static let processingIntervalThreshold: TimeInterval = 0.5
 }
 
+public protocol RelationshipPathConvertible {
+
+    associatedtype AnyEntity: EntityIndexing
+
+    var paths: [[AnyEntity.IndexName]] { get }
+}
+
 /// Mutable graph object
 public protocol MutableGraph: AnyObject {
 
@@ -246,7 +253,7 @@ public final class RelationshipController<RelationshipManager, Graph>
     }
     #endif
 
-    private func _fill(_ graph: ThreadSafeGraph<Graph>, nestedContext: ReadContext, path: [String] = []) -> Signal<(), ManagerError> {
+    private func _fill(_ graph: ThreadSafeGraph<Graph>, nestedContext: ReadContext, path: [Graph.AnyEntity.IndexName] = []) -> Signal<(), ManagerError> {
 
         return rootEntities.flatMapLatest { (entities: AnySequence<Graph.AnyEntity>) -> Signal<(), ManagerError>  in
             let entities = entities.array
@@ -256,49 +263,45 @@ public final class RelationshipController<RelationshipManager, Graph>
             }
             graph.insert(entities)
 
-            let relationshipIdentifiers: [String: [AnyRelationshipIdentifierConvertible]] = entities.reduce(into: [:]) { identifiers, entity in
-                for relationshipTypeUID in entity.entityRelationshipEntityTypeUIDs {
-                    identifiers[relationshipTypeUID] = identifiers[relationshipTypeUID] ?? []
-                }
+            let relationshipIdentifiersByIndex: [Graph.AnyEntity.IndexName: [AnyRelationshipIdentifierConvertible]] = entities.reduce(into: [:]) { identifiersByIndex, entity in
                 for relationshipIndex in entity.entityRelationshipIndices {
-                    for relationshipIdentifier in entity.entityIndexValue(for: relationshipIndex).toRelationshipTypeIdentifiers {
-                        var _identifiers = identifiers[relationshipIdentifier.entityTypeUID] ?? []
-                        _identifiers.append(relationshipIdentifier)
-                        identifiers[relationshipIdentifier.entityTypeUID] = _identifiers
-                    }
+                    var identifiers = identifiersByIndex[relationshipIndex] ?? []
+                    identifiers.append(contentsOf: entity.entityIndexValue(for: relationshipIndex).toRelationshipTypeIdentifiers)
+                    identifiersByIndex[relationshipIndex] = identifiers
                 }
             }
 
-            guard relationshipIdentifiers.isEmpty == false else {
+            guard relationshipIdentifiersByIndex.isEmpty == false else {
                 return Signal(just: ())
             }
 
             let graphAtCurrentDepth = graph.value
 
             return Signal(
-                combiningLatest: relationshipIdentifiers.keys.sorted()
-                    .compactMap { entityType -> Signal<(), ManagerError>? in
-                        guard let _identifiers = relationshipIdentifiers[entityType] else { return nil }
+                combiningLatest: relationshipIdentifiersByIndex.keys.sorted { "\($0)" < "\($1)" }
+                    .compactMap { indexName -> Signal<(), ManagerError>? in
+                        guard let _identifiers = relationshipIdentifiersByIndex[indexName] else { return nil }
                         let identifiers = graph.filterOutContainedIDs(of: _identifiers)
 
-                        let pathAtCurrentDepth = path + [entityType]
+                        let pathAtCurrentDepth = path + [indexName]
                         let depth = pathAtCurrentDepth.count
 
                         let automaticallyFetchRelationships = { (
                             identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
                             recursiveMethod: RelationshipFetcher.RecursiveMethod,
                             context: ReadContext
-                            ) -> Signal<(), ManagerError> in
+                        ) -> Signal<(), ManagerError> in
 
-                            guard identifiers.isEmpty == false else {
+                            // Identifiers should all have the same type at this point
+                            guard let entityTypeUID = identifiers.first?.entityTypeUID else {
                                 return Signal(just: ())
                             }
 
                             let updatedContext = context.updateForRelationshipController(at: pathAtCurrentDepth, graph: graphAtCurrentDepth, deltaStrategy: .retainExtraLocalData)
 
                             let entities = self.relationshipManager?.get(
-                                byIDs: identifiers.any,
-                                entityType: entityType,
+                                byIDs: identifiers,
+                                entityType: entityTypeUID,
                                 in: updatedContext
                             ).toSignal() ?? Signal(just: [].any)
 
@@ -348,11 +351,11 @@ public final class RelationshipController<RelationshipManager, Graph>
     }
 
     #if LUCID_REACTIVE_KIT
-    public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> Signal<(), ManagerError> {
+    public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [Graph.AnyEntity.IndexName] = []) -> Signal<(), ManagerError> {
         return _fill(graph, nestedContext: context, path: path)
     }
     #else
-    public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> AnyPublisher<(), ManagerError> {
+    public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [Graph.AnyEntity.IndexName] = []) -> AnyPublisher<(), ManagerError> {
         return _fill(graph, nestedContext: context, path: path).toPublisher().eraseToAnyPublisher()
     }
     #endif
@@ -382,7 +385,7 @@ public extension RelationshipController {
         }
 
         public typealias Fetch = (
-            _ entityTypePath: [String],
+            _ entityTypePath: [Graph.AnyEntity.IndexName],
             _ identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
             _ graph: ThreadSafeGraph<Graph>
         ) -> RelationshipFetchingMethod
@@ -399,39 +402,6 @@ public extension RelationshipController {
 
         public static func all(recursive: RelationshipFetcher.RecursiveMethod = .full, context: ReadContext? = nil) -> RelationshipFetcher {
             return fetcher { _, _, _ in .all(recursive: .full, context: context) }
-        }
-    }
-}
-
-// MARK: - RelationshipPath
-
-public struct RelationshipPath {
-
-    private let entityTypeUID: String?
-
-    private let children: [RelationshipPath]
-
-    public static func path<E>(_ entityType: E.Type, _ children: [RelationshipPath] = []) -> RelationshipPath where E: Entity {
-        return RelationshipPath(entityTypeUID: entityType.Identifier.entityTypeUID, children: children)
-    }
-
-    public static func path<E>(_ entityType: E.Type, _ path: RelationshipPath) -> RelationshipPath where E: Entity {
-        return .path(entityType, [path])
-    }
-
-    public static func path<E1, E2>(_ entityType1: E1.Type, _ entityType2: E2.Type) -> RelationshipPath where E1: Entity, E2: Entity {
-        return .path(entityType1, [.path(entityType2)])
-    }
-
-    public static func root(_ children: [RelationshipPath]) -> RelationshipPath {
-        return RelationshipPath(entityTypeUID: nil, children: children)
-    }
-
-    fileprivate var buildPaths: [[String]] {
-        return (entityTypeUID.flatMap { [[$0]] } ?? []) + children.flatMap { child -> [[String]] in
-            child.buildPaths.map { paths -> [String] in
-                (entityTypeUID.flatMap { [$0] } ?? []) + paths
-            }
         }
     }
 }
@@ -456,11 +426,11 @@ private extension EntityIndexValue {
 
 public extension RelationshipController {
 
-    final class RelationshipQuery {
+    final class RelationshipQuery<E> where E: Entity, E.ResultPayload == RelationshipManager.ResultPayload, E.RelationshipIndexName.AnyEntity == RelationshipManager.AnyEntity {
 
         private var includeAll: (value: Bool, recursive: RelationshipFetcher.RecursiveMethod) = (false, .full)
 
-        private var fetchers = [[String]: RelationshipFetcher?]()
+        private var fetchers = [[Graph.AnyEntity.IndexName]: RelationshipFetcher?]()
 
         private var mainContext: ReadContext
         private var contexts = [[String]: ReadContext?]()
@@ -472,10 +442,9 @@ public extension RelationshipController {
 
         private let relationshipManager: RelationshipManager?
 
-        private init<E>(_ rootEntities: (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>),
-                        in mainContext: ReadContext,
-                        relationshipManager: RelationshipManager?)
-            where E: Entity, E.ResultPayload == RelationshipManager.ResultPayload {
+        private init(_ rootEntities: (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>),
+                     in mainContext: ReadContext,
+                     relationshipManager: RelationshipManager?) {
 
                 self.rootEntities = (
                     rootEntities.once.map { $0.lazy.compactMap { Graph.AnyEntity($0) }.any },
@@ -488,18 +457,16 @@ public extension RelationshipController {
         }
 
         #if LUCID_REACTIVE_KIT
-        public convenience init<E>(rootEntities: (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>),
-                                   in mainContext: ReadContext,
-                                   relationshipManager: RelationshipManager?)
-            where E: Entity, E.ResultPayload == RelationshipManager.ResultPayload {
+        public convenience init(rootEntities: (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>),
+                                in mainContext: ReadContext,
+                                relationshipManager: RelationshipManager?) {
 
             self.init(rootEntities, in: mainContext, relationshipManager: relationshipManager)
         }
         #else
-        public convenience init<E>(rootEntities: (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>),
-                                   in mainContext: ReadContext,
-                                   relationshipManager: RelationshipManager?)
-            where E: Entity, E.ResultPayload == RelationshipManager.ResultPayload {
+        public convenience init(rootEntities: (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>),
+                                in mainContext: ReadContext,
+                                relationshipManager: RelationshipManager?) {
 
                 self.init((rootEntities.once.toSignal(), rootEntities.continuous.toSignal()),
                           in: mainContext,
@@ -578,74 +545,42 @@ public extension RelationshipController {
         }
         #endif
 
-        private func _fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> Signal<(), ManagerError> {
+        private func _fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [Graph.AnyEntity.IndexName] = []) -> Signal<(), ManagerError> {
             return rootEntities.once.flatMapLatest { entities -> Signal<(), ManagerError> in
                 self.controller(for: entities, context: self.mainContext).fill(graph, context: context, path: path).toSignal()
             }
         }
 
         #if LUCID_REACTIVE_KIT
-        public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> Signal<(), ManagerError> {
+        public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [Graph.AnyEntity.IndexName] = []) -> Signal<(), ManagerError> {
             return _fill(graph, context: context, path: path)
         }
         #else
-        public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [String] = []) -> AnyPublisher<(), ManagerError> {
+        public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [Graph.AnyEntity.IndexName] = []) -> AnyPublisher<(), ManagerError> {
             return _fill(graph, context: context, path: path).toPublisher().eraseToAnyPublisher()
         }
         #endif
 
         // MARK: - Fetcher
 
-        private func with(fetcher: RelationshipFetcher, forPath path: [String]) -> RelationshipQuery {
+        public func with(fetcher: RelationshipFetcher, forPath path: [Graph.AnyEntity.IndexName]) -> RelationshipQuery {
             fetchers[path] = fetcher
             return self
-        }
-
-        public func with<E>(fetcher: RelationshipFetcher, forPath entityType: E.Type) -> RelationshipQuery where E: Entity {
-            return with(fetcher: fetcher, forPath: [entityType.Identifier.entityTypeUID])
-        }
-
-        public func with<E1, E2>(fetcher: RelationshipFetcher, forPath entityType1: E1.Type, _ entityType2: E2.Type) -> RelationshipQuery where E1: Entity, E2: Entity {
-            return with(fetcher: fetcher, forPath: [entityType1.Identifier.entityTypeUID, entityType2.Identifier.entityTypeUID])
-        }
-
-        public func with<E1, E2, E3>(fetcher: RelationshipFetcher, forPath entityType1: E1.Type, _ entityType2: E2.Type, _ entityType3: E3.Type) -> RelationshipQuery where E1: Entity, E2: Entity, E3: Entity {
-            return with(fetcher: fetcher, forPath: [entityType1.Identifier.entityTypeUID, entityType2.Identifier.entityTypeUID, entityType3.Identifier.entityTypeUID])
-        }
-
-        public func with<E1, E2, E3, E4>(fetcher: RelationshipFetcher, forPath entityType1: E1.Type, _ entityType2: E2.Type, _ entityType3: E3.Type, _ entityType4: E4.Type) -> RelationshipQuery where E1: Entity, E2: Entity, E3: Entity, E4: Entity {
-            return with(fetcher: fetcher, forPath: [entityType1.Identifier.entityTypeUID, entityType2.Identifier.entityTypeUID, entityType3.Identifier.entityTypeUID, entityType4.Identifier.entityTypeUID])
         }
 
         // MARK: - Exclusions
 
         @discardableResult
-        private func excluding(path: [String]) -> RelationshipQuery {
+        public func excluding(path: [Graph.AnyEntity.IndexName]) -> RelationshipQuery {
             fetchers[path] = .some(nil)
             return self
         }
 
-        public func excluding(_ tree: RelationshipPath) -> RelationshipQuery {
-            for path in tree.buildPaths {
+        public func excluding(_ relationships: [E.RelationshipIndexName]) -> RelationshipQuery {
+            for path in relationships.flatMap({ $0.paths }) {
                 excluding(path: path)
             }
             return self
-        }
-
-        public func excluding<E>(path entityType: E.Type) -> RelationshipQuery where E: Entity {
-            return excluding(path: [entityType.Identifier.entityTypeUID])
-        }
-
-        public func excluding<E1, E2>(path entityType1: E1.Type, _ entityType2: E2.Type) -> RelationshipQuery where E1: Entity, E2: Entity {
-            return excluding(path: [entityType1.Identifier.entityTypeUID, entityType2.Identifier.entityTypeUID])
-        }
-
-        public func excluding<E1, E2, E3>(path entityType1: E1.Type, _ entityType2: E2.Type, _ entityType3: E3.Type) -> RelationshipQuery where E1: Entity, E2: Entity, E3: Entity {
-            return excluding(path: [entityType1.Identifier.entityTypeUID, entityType2.Identifier.entityTypeUID, entityType3.Identifier.entityTypeUID])
-        }
-
-        public func excluding<E1, E2, E3, E4>(path entityType1: E1.Type, _ entityType2: E2.Type, _ entityType3: E3.Type, _ entityType4: E4.Type) -> RelationshipQuery where E1: Entity, E2: Entity, E3: Entity, E4: Entity {
-            return excluding(path: [entityType1.Identifier.entityTypeUID, entityType2.Identifier.entityTypeUID, entityType3.Identifier.entityTypeUID, entityType4.Identifier.entityTypeUID])
         }
 
         // MARK: - Inclusions
@@ -656,92 +591,33 @@ public extension RelationshipController {
         }
 
         @discardableResult
-        private func including(path: [String],
-                               recursive: RelationshipFetcher.RecursiveMethod,
-                               in context: ReadContext? = nil) -> RelationshipQuery {
+        public func including(path: [Graph.AnyEntity.IndexName],
+                              recursive: RelationshipFetcher.RecursiveMethod = .none,
+                              in context: ReadContext? = nil) -> RelationshipQuery {
 
             fetchers[path] = .all(recursive: recursive, context: context ?? mainContext)
             return self
         }
 
-        public func including(_ tree: RelationshipPath,
+        public func including(_ relationships: [E.RelationshipIndexName],
                               recursive: RelationshipFetcher.RecursiveMethod = .none,
                               in context: ReadContext? = nil) -> RelationshipQuery {
 
-            for path in tree.buildPaths {
+            for path in relationships.flatMap({ $0.paths }) {
                 including(path: path, recursive: recursive, in: context)
             }
             return self
         }
 
-        public func including<E>(path entityType: E.Type,
-                                 recursive: RelationshipFetcher.RecursiveMethod = .none,
-                                 in context: ReadContext? = nil) -> RelationshipQuery where E: Entity {
-
-            return including(
-                path: [entityType.Identifier.entityTypeUID],
-                recursive: recursive,
-                in: context
-            )
-        }
-
-        public func including<E1, E2>(path entityType1: E1.Type, _ entityType2: E2.Type,
-                                      recursive: RelationshipFetcher.RecursiveMethod = .none,
-                                      in context: ReadContext? = nil) -> RelationshipQuery where E1: Entity, E2: Entity {
-
-            return including(
-                path: [entityType1.Identifier.entityTypeUID, entityType2.Identifier.entityTypeUID],
-                recursive: recursive,
-                in: context
-            )
-        }
-
-        public func including<E1, E2, E3>(path entityType1: E1.Type, _ entityType2: E2.Type, _ entityType3: E3.Type,
-                                          recursive: RelationshipFetcher.RecursiveMethod = .none,
-                                          in context: ReadContext? = nil) -> RelationshipQuery where E1: Entity, E2: Entity, E3: Entity {
-
-            return including(
-                path: [entityType1.Identifier.entityTypeUID, entityType2.Identifier.entityTypeUID, entityType3.Identifier.entityTypeUID],
-                recursive: recursive,
-                in: context
-            )
-        }
-
-        public func including<E1, E2, E3, E4>(path entityType1: E1.Type, _ entityType2: E2.Type, _ entityType3: E3.Type, _ entityType4: E4.Type,
-                                              recursive: RelationshipFetcher.RecursiveMethod = .none,
-                                              in context: ReadContext? = nil) -> RelationshipQuery where E1: Entity, E2: Entity, E3: Entity, E4: Entity {
-
-            return including(
-                path: [entityType1.Identifier.entityTypeUID, entityType2.Identifier.entityTypeUID, entityType3.Identifier.entityTypeUID, entityType4.Identifier.entityTypeUID],
-                recursive: recursive,
-                in: context
-            )
-        }
-
-        public func including(_ tree: RelationshipPath, with fetcher: RelationshipFetcher) -> RelationshipQuery {
-            for path in tree.buildPaths {
+        public func including(_ relationships: [E.RelationshipIndexName], with fetcher: RelationshipFetcher) -> RelationshipQuery {
+            for path in relationships.flatMap({ $0.paths }) {
                 fetchers[path] = fetcher
             }
             return self
         }
 
-        public func including<E>(path entityType: E.Type, with fetcher: RelationshipFetcher) -> RelationshipQuery where E: Entity {
-            fetchers[[entityType.Identifier.entityTypeUID]] = fetcher
-            return self
-        }
-
-        public func including<E1, E2>(path entityType1: E1.Type, _ entityType2: E2.Type, with fetcher: RelationshipFetcher) -> RelationshipQuery where E1: Entity, E2: Entity {
-            fetchers[[entityType1.Identifier.entityTypeUID, entityType2.Identifier.entityTypeUID]] = fetcher
-            return self
-        }
-
-        public func including<E1, E2, E3>(path entityType1: E1.Type, _ entityType2: E2.Type, _ entityType3: E3.Type, with fetcher: RelationshipFetcher) -> RelationshipQuery where E1: Entity, E2: Entity, E3: Entity {
-            fetchers[[entityType1.Identifier.entityTypeUID, entityType2.Identifier.entityTypeUID, entityType3.Identifier.entityTypeUID]] = fetcher
-            return self
-        }
-
-        public func including<E1, E2, E3, E4>(path entityType1: E1.Type, _ entityType2: E2.Type, _ entityType3: E3.Type, _ entityType4: E4.Type, with fetcher: RelationshipFetcher) -> RelationshipQuery where E1: Entity, E2: Entity, E3: Entity, E4: Entity {
-            fetchers[[entityType1.Identifier.entityTypeUID, entityType2.Identifier.entityTypeUID, entityType3.Identifier.entityTypeUID, entityType4.Identifier.entityTypeUID]] = fetcher
+        public func including(path: [Graph.AnyEntity.IndexName], with fetcher: RelationshipFetcher) -> RelationshipQuery {
+            fetchers[path] = fetcher
             return self
         }
 
@@ -758,7 +634,7 @@ public extension RelationshipController {
 extension Signal where Element: QueryResultInterface, Error == ManagerError {
 
     func relationships<Manager, Graph>(from relationshipManager: Manager?,
-                                       in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery
+                                       in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery<Element.E>
         where Manager: RelationshipCoreManaging, Graph: MutableGraph, Graph.AnyEntity == Manager.AnyEntity, Manager.ResultPayload == Element.E.ResultPayload {
 
             return RelationshipController<Manager, Graph>.RelationshipQuery(rootEntities: (map { $0.materialized }, PassthroughSubject().toSignal()),
@@ -766,7 +642,7 @@ extension Signal where Element: QueryResultInterface, Error == ManagerError {
                                                                             relationshipManager: relationshipManager)
     }
 
-    public func relationships<Manager, Graph>(from relationshipManager: Manager, in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery
+    public func relationships<Manager, Graph>(from relationshipManager: Manager, in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery<Element.E>
         where Manager: RelationshipCoreManaging, Graph: MutableGraph, Graph.AnyEntity == Manager.AnyEntity, Manager.ResultPayload == Element.E.ResultPayload {
 
             return relationships(from: .some(relationshipManager), in: context)
@@ -776,7 +652,7 @@ extension Signal where Element: QueryResultInterface, Error == ManagerError {
 extension Publisher where Output: QueryResultInterface, Failure == ManagerError {
 
     func relationships<Manager, Graph>(from relationshipManager: Manager?,
-                                       in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery
+                                       in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery<Output.E>
         where Manager: RelationshipCoreManaging, Graph: MutableGraph, Graph.AnyEntity == Manager.AnyEntity, Manager.ResultPayload == Output.E.ResultPayload {
 
             return RelationshipController<Manager, Graph>.RelationshipQuery(
@@ -789,7 +665,7 @@ extension Publisher where Output: QueryResultInterface, Failure == ManagerError 
             )
     }
 
-    public func relationships<Manager, Graph>(from relationshipManager: Manager, in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery
+    public func relationships<Manager, Graph>(from relationshipManager: Manager, in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery<Output.E>
         where Manager: RelationshipCoreManaging, Graph: MutableGraph, Graph.AnyEntity == Manager.AnyEntity, Manager.ResultPayload == Output.E.ResultPayload {
 
             return relationships(from: .some(relationshipManager), in: context)

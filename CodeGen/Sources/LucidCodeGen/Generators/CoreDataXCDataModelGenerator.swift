@@ -92,7 +92,7 @@ public final class CoreDataXCDataModelGenerator: Generator {
         )
         \(entity.lastRemoteRead ?
             """
-                    <attribute name="\(useCoreDataLegacyNaming ? "__lastRemoteRead" : "__last_remote_read")" attributeType="Date" syncable="YES" optional="NO"/>
+                    <attribute name="\(useCoreDataLegacyNaming ? "__lastRemoteRead" : "__last_remote_read")" attributeType="Date" syncable="YES" optional="\(entity.mutable ? "YES" : "NO")"/>
             """
             : String()
         )

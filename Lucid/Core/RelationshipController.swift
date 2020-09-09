@@ -484,7 +484,7 @@ public extension RelationshipController {
                         return fetcher?.fetch(path, identifiers, graph) ?? .none
                     } else {
                         if Constants.isDebugModeOn {
-                            Logger.log(.debug, "\(RelationshipController.self): Including path: \(path).")
+                            Logger.log(.debug, "\(RelationshipController.self): Including path: \(path.map { $0.requestValue }).")
                         }
                         return self.includeAll.value ? .all(recursive: self.includeAll.recursive, context: nil) : .none
                     }

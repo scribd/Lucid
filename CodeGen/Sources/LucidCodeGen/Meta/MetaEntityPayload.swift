@@ -508,8 +508,8 @@ struct MetaEntityPayload {
                             .adding(members: indirectRelationshipVariables)
                             .adding(member:
                                 Return(value: directRelationships.isEmpty && indirectRelationships.isEmpty ?
-                                    .array() + .named("lazy") :
-                                    .array(with: (
+                                    Reference.array() + .named("lazy") :
+                                    Reference.array(with: (
                                         directRelationships.map { Reference.named($0.property.payloadName) } +
                                         indirectRelationships.map { Reference.named("_\($0.payloadName)") }
                                     )) + .named("joined") | .call() + .named("any")

@@ -57,13 +57,13 @@ struct MetaExportSQLiteFileTest {
             override func setUp() {
                 super.setUp()
                 
-                Logger.shared = LoggerMock()
+                LucidConfiguration.logger = LoggerMock()
             }
                 
             override func tearDown() {
                 defer { super.tearDown() }
                 
-                Logger.shared = nil
+                LucidConfiguration.logger = nil
             }
                 
             func test_populate_database_and_export_sqlite_file() throws {

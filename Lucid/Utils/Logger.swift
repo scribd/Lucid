@@ -48,42 +48,45 @@ extension Logging {
     }
 }
 
-@objc public final class Logger: NSObject {
 
-    private static var _shared: Logging? = DefaultLogger()
-    private static let dispatchQueue = DispatchQueue(label: "\(Logger.self):shared", attributes: .concurrent)
+private var _logger: Logging? = DefaultLogger()
+private let dispatchQueue = DispatchQueue(label: "\(Logger.self):shared", attributes: .concurrent)
 
-    @objc(sharedLogger)
-    public static var shared: Logging? {
+public extension LucidConfiguration {
+
+    static var logger: Logging? {
         get {
-            return dispatchQueue.sync { _shared }
+            return dispatchQueue.sync { _logger }
         }
         set {
             dispatchQueue.async(flags: .barrier) {
-                self._shared = newValue
+                _logger = newValue
             }
         }
     }
+}
 
-    public static func log(_ type: LogType,
-                           _ message: @autoclosure () -> String,
-                           domain: String,
-                           assert: Bool = false,
-                           file: String = #file,
-                           function: String = #function,
-                           line: UInt = #line) {
+final class Logger: NSObject {
 
-        shared?.log(type,
-                    message(),
-                    domain: domain,
-                    assert: assert,
-                    file: file,
-                    function: function,
-                    line: line)
+    static func log(_ type: LogType,
+                    _ message: @autoclosure () -> String,
+                    domain: String,
+                    assert: Bool = false,
+                    file: String = #file,
+                    function: String = #function,
+                    line: UInt = #line) {
+
+        LucidConfiguration.logger?.log(type,
+                                       message(),
+                                       domain: domain,
+                                       assert: assert,
+                                       file: file,
+                                       function: function,
+                                       line: line)
     }
 
-    public static func loggableErrorString(_ error: Error) -> String {
-        return shared?.loggableErrorString(error) ?? String()
+    static func loggableErrorString(_ error: Error) -> String {
+        return LucidConfiguration.logger?.loggableErrorString(error) ?? String()
     }
 }
 

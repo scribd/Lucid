@@ -28,7 +28,7 @@ class StoreTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        Logger.shared = LoggerMock()
+        LucidConfiguration.logger = LoggerMock()
         context = ReadContext<EntitySpy>()
 
         let expectation = self.expectation(description: "set_up")

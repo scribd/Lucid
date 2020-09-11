@@ -80,12 +80,12 @@ struct MetaCoreDataMigrationTests {
 
             override func setUp() {
                 super.setUp()
-                Logger.shared = LoggerMock()
+                LucidConfiguration.logger = LoggerMock()
             }
             
             override func tearDown() {
                 defer { super.tearDown() }
-                Logger.shared = nil
+                LucidConfiguration.logger = nil
             }
 
             private func runTest(for sqliteFile: String, version: Version) throws {

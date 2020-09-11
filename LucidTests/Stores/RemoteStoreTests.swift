@@ -30,7 +30,7 @@ final class RemoteStoreTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        Logger.shared = LoggerMock()
+        LucidConfiguration.logger = LoggerMock()
 
         requestConfig = APIRequestConfig(method: .get, path: .path("fake_entity") / "42")
 
@@ -235,7 +235,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_fail_to_request_an_entity_from_the_client_using_endpoint_derived_from_entity_type() {
 
-        Logger.shared = LoggerMock(shouldCauseFailures: false)
+        LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
 
         clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.failure(.api(
             httpStatusCode: 400, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
@@ -561,7 +561,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_fail_to_search_using_an_entity_from_the_client_when_query_contains_local_identifiers_using_endpoint_derived_from_entity_type() {
 
-        Logger.shared = LoggerMock(shouldCauseFailures: false)
+        LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
 
         let localIdentifier = EntitySpyIdentifier(value: .local("local_identifier"))
         requestContext = ReadContext<EntitySpy>(dataSource: .remote(
@@ -742,7 +742,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_fail_to_request_an_entity_from_the_client_using_request_endpoint() {
 
-        Logger.shared = LoggerMock(shouldCauseFailures: false)
+        LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
 
         clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.failure(.api(
             httpStatusCode: 400, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
@@ -766,7 +766,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_fail_to_get_an_entity_from_the_client_when_query_contains_local_identifiers_using_request_endpoint() {
 
-        Logger.shared = LoggerMock(shouldCauseFailures: false)
+        LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
 
         let localIdentifier = EntitySpyIdentifier(value: .local("local_identifier"))
         requestContext = ReadContext<EntitySpy>(dataSource: .remote(
@@ -1132,7 +1132,7 @@ final class RemoteStoreTests: XCTestCase {
 
     func test_should_fail_to_search_for_an_entity_from_the_client_when_query_contains_local_identifiers_using_request_endpoint() {
 
-        Logger.shared = LoggerMock(shouldCauseFailures: false)
+        LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
 
         let localIdentifier = EntitySpyIdentifier(value: .local("local_identifier"))
         requestContext = ReadContext<EntitySpy>(dataSource: .remote(

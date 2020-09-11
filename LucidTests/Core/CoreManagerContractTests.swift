@@ -25,7 +25,7 @@ final class CoreManagerContractTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        Logger.shared = LoggerMock(shouldCauseFailures: false)
+        LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
 
         remoteStoreSpy = StoreSpy()
         remoteStoreSpy.levelStub = .remote

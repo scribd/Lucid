@@ -33,7 +33,7 @@ final class APIClientQueueTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        Logger.shared = LoggerMock()
+        LucidConfiguration.logger = LoggerMock()
 
         defaultQueueCache = DiskCacheSpy()
         uniquingQueueOrderingCache = DiskCacheSpy()

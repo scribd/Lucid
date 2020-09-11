@@ -40,7 +40,7 @@ struct MetaEntityCoreDataTests {
             override func setUp() {
                 super.setUp()
             
-                Logger.shared = LoggerMock()
+                LucidConfiguration.logger = LoggerMock()
                 store = CoreDataStore(coreDataManager: CoreDataManager(modelName: "\(descriptions.targets.app.moduleName)",
                                                                        in: Bundle(for: CoreManagerContainer.self),
                                                                        storeType: .memory))
@@ -50,7 +50,7 @@ struct MetaEntityCoreDataTests {
                 defer { super.tearDown() }
 
                 store = nil
-                Logger.shared = nil
+                LucidConfiguration.logger = nil
             }
             
             // MARK: - Tests

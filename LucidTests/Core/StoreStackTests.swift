@@ -22,7 +22,7 @@ final class StoreStackTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        Logger.shared = LoggerMock()
+        LucidConfiguration.logger = LoggerMock()
 
         remoteStoreSpy = StoreSpy<EntitySpy>()
         remoteStoreSpy.levelStub = .remote
@@ -453,7 +453,7 @@ final class StoreStackTests: XCTestCase {
 
     func test_should_only_search_in_remote_store_when_order_is_natural() {
 
-        Logger.shared = LoggerMock(shouldCauseFailures: false)
+        LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
 
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil))]))
 

@@ -35,7 +35,7 @@ final class CoreDataStoreTests: StoreTests {
     }
 
     func test_store_should_not_retrieve_documents_with_an_invalid_expression_equal_to_another_expression() {
-        Logger.shared = LoggerMock(shouldCauseFailures: false)
+        LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
 
         let expectation = self.expectation(description: "documents")
 
@@ -59,7 +59,7 @@ final class CoreDataStoreTests: StoreTests {
     }
 
     func test_store_should_not_retrieve_documents_with_an_invalid_expression_contained_in_another_expression() {
-        Logger.shared = LoggerMock(shouldCauseFailures: false)
+        LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
 
         let expectation = self.expectation(description: "documents")
 
@@ -86,7 +86,7 @@ final class CoreDataStoreTests: StoreTests {
     }
 
     func test_store_should_not_retrieve_documents_with_an_invalid_expression_matched_against_another_expression() {
-        Logger.shared = LoggerMock(shouldCauseFailures: false)
+        LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
 
         let expectation = self.expectation(description: "documents")
 

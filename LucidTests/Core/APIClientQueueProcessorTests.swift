@@ -40,7 +40,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        Logger.shared = LoggerMock(shouldCauseFailures: false)
+        LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
 
         clientSpy = APIClientSpy()
         backgroundTaskManagerSpy = BackgroundTaskManagerSpy()

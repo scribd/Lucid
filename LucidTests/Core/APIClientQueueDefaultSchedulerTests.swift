@@ -30,7 +30,7 @@ final class APIClientQueueDefaultSchedulerTests: XCTestCase {
         super.setUp()
         dispatchQueue = DispatchQueue(label: "\(APIClientQueueDefaultSchedulerTests.self)")
         timeInterval = 12345
-        Logger.shared = LoggerMock()
+        LucidConfiguration.logger = LoggerMock()
         timer = MockTimer()
         timerProvider = MockTimerProvider(timer: timer)
         delegate = APIClientQueueSchedulerDelegateSpy()

@@ -20,7 +20,7 @@ final class DiskQueueUnitTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        Logger.shared = LoggerMock()
+        LucidConfiguration.logger = LoggerMock()
 
         diskCacheSpy = DiskCacheSpy<TestData>()
         diskQueue = DiskQueue(diskCache: diskCacheSpy.caching)
@@ -31,7 +31,7 @@ final class DiskQueueUnitTests: XCTestCase {
 
         diskCacheSpy = nil
         diskQueue = nil
-        Logger.shared = nil
+        LucidConfiguration.logger = nil
     }
 
     func test_should_prepend_elements_in_the_queue() {
@@ -213,7 +213,7 @@ final class DiskQueueIntegrationTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        Logger.shared = LoggerMock()
+        LucidConfiguration.logger = LoggerMock()
 
         diskCache = DiskCache(basePath: "\(DiskQueueIntegrationTests.self)")
         diskCache.clear()
@@ -226,7 +226,7 @@ final class DiskQueueIntegrationTests: XCTestCase {
         diskCache.clear()
         diskCache = nil
         diskQueue = nil
-        Logger.shared = nil
+        LucidConfiguration.logger = nil
     }
 
     func test_should_prepend_elements_in_the_queue_then_drop_them_in_order() {

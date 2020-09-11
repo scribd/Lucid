@@ -21,7 +21,7 @@ final class DiskCacheTests: XCTestCase {
     override func setUp() {
         super.setUp()
         fileManager = FileManager()
-        Logger.shared = LoggerMock()
+        LucidConfiguration.logger = LoggerMock()
     }
 
     override func tearDown() {

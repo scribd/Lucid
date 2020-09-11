@@ -22,7 +22,7 @@ final class LRUStoreTests: XCTestCase {
     override func setUp() {
         super.setUp()
 
-        Logger.shared = LoggerMock()
+        LucidConfiguration.logger = LoggerMock()
 
         context = ReadContext<EntitySpy>()
         storeSpy = StoreSpy()

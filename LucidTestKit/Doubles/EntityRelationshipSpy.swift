@@ -308,7 +308,7 @@ extension EntityRelationshipSpy: CoreDataEntity {
         do {
             return try EntityRelationshipSpy(coreDataEntity: coreDataEntity)
         } catch {
-            Logger.log(.error, "\(EntityRelationshipSpy.self): \(error)", domain: "Tests", assert: true)
+            LucidConfiguration.logger?.log(.error, "\(EntityRelationshipSpy.self): \(error)", domain: "Tests", assert: true)
             return nil
         }
     }

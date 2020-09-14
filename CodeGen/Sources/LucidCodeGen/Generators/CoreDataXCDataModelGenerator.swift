@@ -84,19 +84,14 @@ public final class CoreDataXCDataModelGenerator: Generator {
                 <attribute name="_identifier" attributeType="\(try identifierCoreDataType(for: entity, in: descriptions))" usesScalarValueType="YES" syncable="YES" optional="YES"/>
                 <attribute name="__identifier" attributeType="\(entity.hasVoidIdentifier ? "Integer 64" : "String")" usesScalarValueType="YES" syncable="YES" optional="YES"/>
                 <attribute name="\(useCoreDataLegacyNaming ? "__typeUID" : "__type_uid")" attributeType="String" usesScalarValueType="YES" syncable="YES" optional="YES"/>
+
         \(entity.remote ?
             """
                     <attribute name="\(useCoreDataLegacyNaming ? "_remoteSynchronizationState" : "_remote_synchronization_state")" attributeType="String" syncable="YES" optional="YES"/>
             """
             : String()
         )
-        \(entity.lastRemoteRead ?
-            """
-                    <attribute name="\(useCoreDataLegacyNaming ? "__lastRemoteRead" : "__last_remote_read")" attributeType="Date" syncable="YES" optional="\(entity.mutable ? "YES" : "NO")"/>
-            """
-            : String()
-        )
-        \(try entity.usedProperties.map { property in
+        \(try (entity.usedProperties + entity.systemProperties.map { $0.property }).map { property in
             let propertyCoreDataName = property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming)
             let propertyElementIDText = property.previousName.flatMap { " elementID=\"_\($0)\"" } ?? ""
             var value = String()

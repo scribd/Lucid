@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Meta
 
 public extension Descriptions {
     
@@ -84,6 +85,10 @@ public extension Entity {
 
     var valuesThenRelationships: [EntityProperty] {
         return values + relationships
+    }
+
+    var valuesThenRelationshipsThenSystemProperties: [EntityProperty] {
+        return values + relationships + systemProperties.map { $0.property }
     }
 
     var relationshipsForIdentifierDerivation: [String: [(property: EntityProperty, relationship: EntityRelationship)]] {
@@ -168,6 +173,99 @@ public extension Entity {
 
     var previousNameForCoreData: String? {
         return versionHistory.first { $0.previousName != nil }?.previousName
+    }
+}
+
+// MARK: - SystemProperty
+
+public extension SystemProperty {
+
+    var property: EntityProperty {
+        return EntityProperty(
+            name: systemName,
+            key: systemName,
+            matchExactKey: false,
+            previousName: nil,
+            persistedName: useCoreDataLegacyNaming ? "_\(name.rawValue.camelCased().variableCased())" : nil,
+            addedAtVersion: addedAtVersion,
+            propertyType: propertyType,
+            nullable: isOptional,
+            defaultValue: defaultValue(isFromPayload: false),
+            logError: false,
+            useForEquality: false,
+            mutable: isMutable,
+            objc: false,
+            unused: false,
+            lazy: false,
+            platforms: Set()
+        )
+    }
+
+    var systemName: String {
+        return "\(name.rawValue)"
+    }
+
+    var coreDataAttributeType: String {
+        switch name {
+        case .isSynced:
+            return PropertyScalarType.bool.rawValue
+        case .lastRemoteRead:
+            return PropertyScalarType.date.rawValue
+        }
+    }
+
+    var isOptional: Bool {
+        switch name {
+        case .isSynced:
+            return false
+        case .lastRemoteRead:
+            return false
+        }
+    }
+
+    var propertyType: EntityProperty.PropertyType {
+        switch name {
+        case .isSynced:
+            return .scalar(.bool)
+        case .lastRemoteRead:
+            return .scalar(.date)
+        }
+    }
+
+    var isMutable: Bool {
+        switch name {
+        case .isSynced:
+            return true
+        case .lastRemoteRead:
+            return false
+        }
+    }
+
+    var requiresCustomShouldOverwriteFunction: Bool {
+        switch name {
+        case .isSynced:
+            return true
+        case .lastRemoteRead:
+            return true
+        }
+    }
+
+    var type: TypeIdentifier {
+        switch name {
+        case .isSynced:
+            return .bool
+        case .lastRemoteRead:
+            return .date
+        }
+    }
+
+    func defaultValue(isFromPayload: Bool) -> DefaultValue? {
+        switch name {
+        case .isSynced:
+            return .bool(isFromPayload)
+        case .lastRemoteRead:
+            return .date(.distantPast)
+        }
     }
 }
 

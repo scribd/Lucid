@@ -112,16 +112,8 @@ struct MetaEntity {
                         .with(accessLevel: .public),
                     EmptyLine(),
                 ],
-                try lastRemoteReadProperty(),
-                entity.mutable ? [
-                    Property(variable: Variable(name: "isSynced")
-                        .with(immutable: true)
-                        .with(type: .bool))
-                            .with(accessLevel: .public),
-                            EmptyLine()
-                    ] : [],
                 entity.values.isEmpty ? [] : [Comment.comment("properties")],
-                try properties(for: entity.values),
+                try properties(for: entity.values + entity.systemProperties.map { $0.property }),
                 entity.relationships.isEmpty ? [] : [Comment.comment("relationships")],
                 try properties(for: entity.relationships),
                 [try initializer()]
@@ -143,20 +135,6 @@ struct MetaEntity {
         }
     }
     
-    private func lastRemoteReadProperty() throws -> [TypeBodyMember] {
-        let entity = try descriptions.entity(for: entityName)
-        
-        guard entity.lastRemoteRead else { return [] }
-        
-        return [
-            Comment.comment("Last Remote Read"),
-            Property(variable: Variable(name: "lastRemoteRead")
-                .with(type: entity.mutable ? .optional(wrapped: .date) : .date))
-                .with(accessLevel: .public),
-            EmptyLine()
-        ]
-    }
-    
     // MARK: - Initializers
     
     private func initializer() throws -> Function {
@@ -174,11 +152,14 @@ struct MetaEntity {
                         ) : nil
                     )
             )
-            .adding(parameter: entity.lastRemoteRead ? FunctionParameter(name: "lastRemoteRead", type: entity.mutable ? .optional(wrapped: .date) : .date) : nil)
-            .adding(parameter: entity.mutable ? FunctionParameter(name: "isSynced", type: .bool).with(defaultValue: Value.bool(false)) : nil)
             .adding(parameters: try entity.valuesThenRelationships.map { property in
                 FunctionParameter(name: property.transformedName(), type: try property.valueTypeID(descriptions))
                     .with(defaultValue: property.defaultValue?.variableValue)
+            })
+            .adding(parameters: entity.systemProperties.map { systemProperty in
+                let property = systemProperty.property
+                return entity.mutable ? FunctionParameter(name: property.transformedName(), type: systemProperty.type).with(defaultValue: property.defaultValue?.variableValue) :
+                    FunctionParameter(name: property.transformedName(), type: systemProperty.type)
             })
             .adding(member: EmptyLine())
             .adding(member: Assignment(
@@ -187,20 +168,16 @@ struct MetaEntity {
                     entity.identifierTypeID().reference | .call() :
                     Reference.named("identifier") + entity.identifierVariable.reference
             ))
-            .adding(member: entity.lastRemoteRead ? Assignment(
-                variable: .named(.`self`) + .named("lastRemoteRead"),
-                value: Reference.named("lastRemoteRead")
-            ) : nil)
-            .adding(member: entity.mutable ? Assignment(
-                variable: .named(.`self`) + .named("isSynced"),
-                value: Reference.named("isSynced")
-            ) : nil)
-
             .adding(members: entity.valuesThenRelationships.map { property in
                 Assignment(
                     variable: .named(.`self`) + property.entityReference,
                     value: property.variable.reference
                 )
+            })
+            .adding(members: entity.systemProperties.map { systemProperty in
+                let property = systemProperty.property
+                return Assignment(variable: .named(.`self`) + .named(property.transformedName()),
+                                  value: Reference.named(property.transformedName()))
             })
     }
     
@@ -231,9 +208,11 @@ struct MetaEntity {
         case .void:
             identifierTupleParameter = nil
         }
-        
-        let lastRemoteReadTupleParameter = entity.lastRemoteRead ?
-            TupleParameter(name: "lastRemoteRead", value: TypeIdentifier.date.reference | .call()): nil
+
+        let systemPropertiesParameters = entity.systemProperties.map { systemProperty in
+            TupleParameter(name: systemProperty.property.transformedName(),
+                           value: systemProperty.defaultValue(isFromPayload: true)?.variableValue ?? systemProperty.type.reference | .call())
+        }
 
         return [
             EmptyLine(),
@@ -244,9 +223,8 @@ struct MetaEntity {
                     .adding(parameters: identifierFunctionParameter)
                     .adding(member: Reference.named(.`self`) + .named(.`init`) | .call(Tuple()
                         .adding(parameter: identifierTupleParameter)
-                        .adding(parameter: lastRemoteReadTupleParameter)
-                        .adding(parameter: entity.mutable ? TupleParameter(name: "isSynced", value: Value.bool(true)) : nil)
                         .adding(parameters: try entity.valuesThenRelationships.map { try payloadInitCallParameter(for: $0) })
+                        .adding(parameters: systemPropertiesParameters)
                     ))
                 )
         ]
@@ -322,7 +300,7 @@ struct MetaEntity {
     private func mutableSupportExtension() throws -> [FileBodyMember] {
         let entity = try descriptions.entity(for: entityName)
         guard entity.mutable else { return [] }
-        
+
         return [
             EmptyLine(),
             Comment.mark("Mutable support"),
@@ -358,8 +336,6 @@ struct MetaEntity {
                     .adding(member:
                         Return(value: entity.typeID().reference | .call(Tuple()
                             .adding(parameter: TupleParameter(name: "identifier", value: .named(.`self`) + .named("identifier")))
-                            .adding(parameter: entity.lastRemoteRead ? TupleParameter(name: "lastRemoteRead", value: .named(.`self`) + .named("lastRemoteRead")) : nil)
-                            .adding(parameter: entity.lastRemoteRead ? TupleParameter(name: "isSynced", value: Value.bool(false)) : nil)
                             .adding(parameters: entity.valuesThenRelationships.map { property in
                                 TupleParameter(
                                     name: property.transformedName(),
@@ -391,11 +367,10 @@ struct MetaEntity {
 
     private func indexValueFunction() throws -> Function {
         let entity = try descriptions.entity(for: entityName)
-        
-        let cases: [SwitchCase] = try entity
-            .indexes(descriptions)
-            .compactMap { property in
 
+        let entities = try entity.indexes(descriptions)
+        
+        let cases: [SwitchCase] = try entities.compactMap { property in
                 let returnReference: Reference
                 switch property.propertyType {
                 case .scalar(let type):
@@ -453,18 +428,6 @@ struct MetaEntity {
                 }
             }
 
-        let mutableSwitchCase =  SwitchCase(name: "lastRemoteRead").adding(member: Return(value: .named("lastRemoteRead") + .named(.flatMap) | .block(FunctionBody()
-            .adding(member: +.named("date") | .call(Tuple()
-                .adding(parameter: TupleParameter(value: Reference.named("$0")))
-            ))) ?? .value(+.named("none")))
-        )
-
-        let immutableSwitchCase = SwitchCase(name: "lastRemoteRead").adding(member: Return(value: +.named("date") | .call(Tuple()
-            .adding(parameter: TupleParameter(value: Reference.named("lastRemoteRead")))
-        )))
-
-        let switchCase = entity.mutable ? mutableSwitchCase : immutableSwitchCase
-
         return Function(kind: .named("entityIndexValue"))
             .with(accessLevel: .public)
             .adding(parameter: FunctionParameter(alias: "for", name: "indexName", type: try entity.indexNameTypeID(descriptions)))
@@ -473,9 +436,7 @@ struct MetaEntity {
                 Return(value: +.named("none")) :
                 Switch(reference: .named("indexName"))
                 .with(cases: cases)
-                    .adding(case: entity.lastRemoteRead ? switchCase : nil
-                )
-        )
+            )
     }
     
     private func entityRelationshipIndicesProperty() throws -> ComputedProperty {
@@ -515,8 +476,7 @@ struct MetaEntity {
 
     private func shouldOverwriteFunction() throws -> [TypeBodyMember] {
         let entity = try descriptions.entity(for: entityName)
-        guard entity.requiresCustomShouldOverwriteFunction,
-            entity.extendedPropertyNamesForShouldOverwrite.count > 0 else { return [] }
+        guard entity.requiresCustomShouldOverwriteFunction else { return [] }
 
         return [
             EmptyLine(),
@@ -524,10 +484,14 @@ struct MetaEntity {
                 .with(accessLevel: .public)
                 .adding(parameter: FunctionParameter(alias: "with", name: "updated", type: entity.typeID()))
                 .with(resultType: .bool)
-                .adding(members: entity.extendedPropertyNamesForShouldOverwrite.map { extendedProperty in
-                    If(condition: (.named("updated") + Reference.named(extendedProperty)) != Reference.named(extendedProperty))
-                        .adding(member: Return(value: Value.bool(true)))
-                })
+                .adding(members: entity
+                    .systemProperties
+                    .filter { $0.requiresCustomShouldOverwriteFunction }
+                    .map { systemProperty in
+                        If(condition: (.named("updated") + Reference.named(systemProperty.name.rawValue.camelCased(ignoreLexicon: false).variableCased(ignoreLexicon: false))) != Reference.named(systemProperty.name.rawValue.camelCased(ignoreLexicon: false).variableCased(ignoreLexicon: false)))
+                            .adding(member: Return(value: Value.bool(true)))
+                    }
+                )
                 .adding(member:
                     If(condition: .named("updated") != .named("self"))
                         .adding(member: Return(value: Value.bool(true)))
@@ -572,10 +536,7 @@ struct MetaEntity {
                         SwitchCase(name: property.transformedName(ignoreLexicon: false))
                             .adding(member: Return(value: Value.string("_\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))")))
                     })
-                    .adding(case: entity.lastRemoteRead ?
-                        SwitchCase(name: "lastRemoteRead")
-                            .adding(member: Return(value: Value.string(useCoreDataLegacyNaming ? "__lastRemoteRead" : "__last_remote_read"))) : nil
-                    )
+                    
                 )
             )
             .adding(member: EmptyLine())
@@ -588,10 +549,6 @@ struct MetaEntity {
                         return SwitchCase(name: property.transformedName(ignoreLexicon: false))
                             .adding(member: Return(value: Value.bool(isOneToOneRelationship)))
                     })
-                    .adding(case: entity.lastRemoteRead ?
-                        SwitchCase(name: "lastRemoteRead")
-                            .adding(member: Return(value: Value.bool(false))) : nil
-                    )
                 )
             )
             .adding(member: EmptyLine())
@@ -606,10 +563,6 @@ struct MetaEntity {
                                 Value.nil
                             ))
                         }
-                    )
-                    .adding(case: entity.lastRemoteRead ?
-                        SwitchCase(name: "lastRemoteRead")
-                            .adding(member: Return(value: Value.nil)) : nil
                     )
                 )
             )
@@ -687,24 +640,7 @@ struct MetaEntity {
                     value: .named("identifier") + .named("_remoteSynchronizationState") + .named("value") + coreDataValue
                 ) : nil
             )
-            .adding(member: entity.lastRemoteRead ?
-                entity.mutable ?
-                    coreDataEntity + .named("setProperty") | .call(Tuple()
-                        .adding(parameter: TupleParameter(
-                            value: Value.string(useCoreDataLegacyNaming ? "__lastRemoteRead" : "__last_remote_read")
-                        ))
-                        .adding(parameter: TupleParameter(
-                            name: "value",
-                            value: Reference.named("lastRemoteRead")
-                        ))
-                    ) as FunctionBodyMember :
-                    Assignment(
-                        variable: coreDataEntity + .named(useCoreDataLegacyNaming ? "__lastRemoteRead" : "__last_remote_read"),
-                        value: Reference.named("lastRemoteRead")
-                    ) as FunctionBodyMember
-                : nil
-            )
-            .adding(members: try entity.valuesThenRelationships.flatMap { property -> [FunctionBodyMember] in
+            .adding(members: try entity.valuesThenRelationshipsThenSystemProperties.flatMap { property -> [FunctionBodyMember] in
                 let coreDataPropertyName = "_\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))"
                 let lazyFlagBodyMember: FunctionBodyMember = {
                     guard property.lazy else { return Reference.none }
@@ -784,6 +720,7 @@ struct MetaEntity {
             } else if entity.identifier == .none {
                 return entity.identifierTypeID().reference | .call()
             } else {
+                
                 return .try | .named("coreDataEntity") + .named("identifierValueType") | .call(Tuple()
                     .adding(parameter: TupleParameter(value: entity.identifierTypeID().reference + .named(.`self`)))
                     .adding(parameter: TupleParameter(
@@ -804,21 +741,8 @@ struct MetaEntity {
             guard let identifierValue = identifierValue else { return [] }
             return [TupleParameter(name: "identifier", value: identifierValue)]
         }()
-        
-        let lastRemoteReadParameter = entity.lastRemoteRead ? [
-            TupleParameter(
-                name: "lastRemoteRead",
-                value: entity.mutable ?
-                    .named("coreDataEntity") + .named("dateValue") | .call(Tuple()
-                        .adding(parameter: TupleParameter(name: "propertyName", value: Value.string(useCoreDataLegacyNaming ? "__lastRemoteRead" : "__last_remote_read")))
-                    ) :
-                    .try | .named("coreDataEntity") + .named(useCoreDataLegacyNaming ? "__lastRemoteRead" : "__last_remote_read") + .named("dateValue") | .call(Tuple()
-                        .adding(parameter: TupleParameter(name: "propertyName", value: Value.string(useCoreDataLegacyNaming ? "__lastRemoteRead" : "__last_remote_read")))
-                    )
-            )
-        ] : []
-        
-        let propertyParameters = try wrappedIdentifierParameter + lastRemoteReadParameter + entity.valuesThenRelationships.map { property in
+
+        let propertyParameters = try wrappedIdentifierParameter + entity.valuesThenRelationshipsThenSystemProperties.map { property in
             let coreDataPropertyName = "_\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))"
             let propertyValueTypeID = try property.valueTypeID(descriptions)
 

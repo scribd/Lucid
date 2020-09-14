@@ -142,6 +142,7 @@ extension Entity: Decodable {
         case identifier
         case metadata
         case properties
+        case systemProperties
         case uid
         case legacyPreviousName
         case previousName
@@ -164,20 +165,34 @@ extension Entity: Decodable {
         identifier = try container.decodeIfPresent(EntityIdentifier.self, forKey: .identifier) ?? Defaults.identifier
         metadata = try container.decodeIfPresent([MetadataProperty].self, forKey: .metadata)
         properties = try container.decode([EntityProperty].self, forKey: .properties).sorted(by: { $0.name < $1.name })
+        systemProperties = try container.decodeIfPresent([SystemProperty].self, forKey: .systemProperties)?.sorted(by: { $0.name.rawValue < $1.name.rawValue }) ?? []
         identifierTypeID = try container.decodeIfPresent(String.self, forKey: .uid)
         legacyPreviousName = try container.decodeIfPresent(String.self, forKey: .legacyPreviousName) ?? container.decodeIfPresent(String.self, forKey: .previousName)
         versionHistory = try container.decodeIfPresent([VersionHistoryItem].self, forKey: .versionHistory) ?? []
-        let legacyAddedAtVersionString = try container.decodeIfPresent(String.self, forKey: .addedAtVersion)
-        if versionHistory.isEmpty, let addedAtVersionString = legacyAddedAtVersionString {
-            legacyAddedAtVersion = try? Version(addedAtVersionString, source: .description)
+        if versionHistory.isEmpty {
+            legacyAddedAtVersion = try container.decodeIfPresent(Version.self, forKey: .addedAtVersion)
         } else {
             legacyAddedAtVersion = nil
         }
         persistedName = try container.decodeIfPresent(String.self, forKey: .persistedName)
         platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? Defaults.platforms
-        lastRemoteRead = try container.decodeIfPresent(Bool.self, forKey: .lastRemoteRead) ?? Defaults.lastRemoteRead
         queryContext = try container.decodeIfPresent(Bool.self, forKey: .queryContext) ?? Defaults.queryContext
         clientQueueName = try container.decodeIfPresent(String.self, forKey: .clientQueueName) ?? Defaults.clientQueueName
+
+        let systemPropertiesSet = Set(SystemPropertyName.allCases.map { $0.rawValue })
+        for property in properties where systemPropertiesSet.contains(property.name) {
+           throw CodeGenError.systemPropertyNameCollision(property.name)
+        }
+
+        if let legacyLastRemoteRead = try container.decodeIfPresent(Bool.self, forKey: .lastRemoteRead) {
+            let systemPropertyNames = systemProperties.map { $0.name }
+            guard systemPropertyNames.contains(.lastRemoteRead) == false else {
+                throw CodeGenError.incompatiblePropertyKey("last_remote_read")
+            }
+            if legacyLastRemoteRead {
+                systemProperties.append(SystemProperty(name: .lastRemoteRead, useCoreDataLegacyNaming: true, addedAtVersion: nil))
+            }
+        }
     }
 }
 
@@ -347,11 +362,7 @@ extension EntityProperty: Decodable {
         
         name = try container.decode(String.self, forKey: .name)
         previousName = try container.decodeIfPresent(String.self, forKey: .previousName)
-        if let addedAtVersionString = try container.decodeIfPresent(String.self, forKey: .addedAtVersion) {
-            addedAtVersion = try Version(addedAtVersionString, source: .description)
-        } else {
-            addedAtVersion = nil
-        }
+        addedAtVersion = try container.decodeIfPresent(Version.self, forKey: .addedAtVersion)
 
         do {
             let relationship = try container.decode(EntityRelationship.self, forKey: .propertyType)
@@ -513,5 +524,29 @@ extension Subtype.Property.PropertyType: Decodable {
         } else {
             self = .custom(value)
         }
+    }
+}
+
+extension SystemProperty: Decodable {
+
+    private enum Keys: String, CodingKey {
+        case name
+        case addedAtVersion
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: Keys.self)
+
+        name = try container.decode(SystemPropertyName.self, forKey: .name)
+        addedAtVersion = try container.decodeIfPresent(Version.self, forKey: .addedAtVersion)
+        useCoreDataLegacyNaming = false
+    }
+}
+
+extension Version: Decodable {
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        try self.init(try container.decode(String.self), source: .description)
     }
 }

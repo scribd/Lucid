@@ -194,7 +194,7 @@ public final class _ReadContext<ResultPayload> where ResultPayload: ResultPayloa
 extension _ReadContext: CustomDebugStringConvertible {
 
     public var debugDescription: String {
-        return "(\(ObjectIdentifier(self).debugDescription)) - ReadContext: \(dataSource.debugDescription)"
+        return "ReadContext: \(dataSource.debugDescription)"
     }
 }
 

@@ -39,6 +39,8 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
     private let client: APIClient
 
+    private let decodingQueue = DispatchQueue(label: "\(RemoteStore.self):decoding", attributes: .concurrent)
+
     // MARK: - Inits
 
     public init(client: APIClient,
@@ -130,29 +132,31 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                     return
                 }
 
-                do {
-                    switch context.dataSource {
-                    case ._remote(.request(_, let endpoint), _, _, _):
-                        let payload = try E.ResultPayload(from: response.data,
-                                                          endpoint: endpoint,
-                                                          decoder: response.jsonCoderConfig.decoder)
-                        context.set(payloadResult: .success(payload), source: source, for: request.config)
+                self.decodingQueue.async {
+                    do {
+                        switch context.dataSource {
+                        case ._remote(.request(_, let endpoint), _, _, _):
+                            let payload = try E.ResultPayload(from: response.data,
+                                                              endpoint: endpoint,
+                                                              decoder: response.jsonCoderConfig.decoder)
+                            context.set(payloadResult: .success(payload), source: source, for: request.config)
 
-                    case ._remote(.derivedFromEntityType, _, _, _):
-                        let payload = try E.ResultPayload(from: response.data,
-                                                          endpoint: try E.unwrappedEndpoint(for: path),
-                                                          decoder: response.jsonCoderConfig.decoder)
-                        context.set(payloadResult: .success(payload), source: source, for: request.config)
+                        case ._remote(.derivedFromEntityType, _, _, _):
+                            let payload = try E.ResultPayload(from: response.data,
+                                                              endpoint: try E.unwrappedEndpoint(for: path),
+                                                              decoder: response.jsonCoderConfig.decoder)
+                            context.set(payloadResult: .success(payload), source: source, for: request.config)
 
-                    case .local,
-                         .localOr,
-                         .localThen:
-                        Logger.log(.error, "\(Self.self): Remote store should not be attempting to handle data source \(context.dataSource).", assert: true)
-                        return
+                        case .local,
+                             .localOr,
+                             .localThen:
+                            Logger.log(.error, "\(Self.self): Remote store should not be attempting to handle data source \(context.dataSource).", assert: true)
+                            return
+                        }
+
+                    } catch {
+                        context.set(payloadResult: .failure(.deserialization(error)), source: source, for: request.config)
                     }
-
-                } catch {
-                    context.set(payloadResult: .failure(.deserialization(error)), source: source, for: request.config)
                 }
 
             case .aborted:
@@ -252,29 +256,32 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                     return
                 }
 
-                do {
-                    switch context.dataSource {
-                    case ._remote(.request(_, let endpoint), _, _, _):
-                        let payload = try E.ResultPayload(from: response.data,
-                                                          endpoint: endpoint,
-                                                          decoder: response.jsonCoderConfig.decoder)
-                        context.set(payloadResult: .success(payload), source: source, for: request.config)
+                self.decodingQueue.async {
+                    do {
+                        switch context.dataSource {
+                        case ._remote(.request(_, let endpoint), _, _, _):
 
-                    case ._remote(.derivedFromEntityType, _, _, _):
-                        let path = RemotePath<E>.search(query)
-                        let payload = try E.ResultPayload(from: response.data,
-                                                          endpoint: try E.unwrappedEndpoint(for: path),
-                                                          decoder: response.jsonCoderConfig.decoder)
-                        context.set(payloadResult: .success(payload), source: source, for: request.config)
+                            let payload = try E.ResultPayload(from: response.data,
+                                                              endpoint: endpoint,
+                                                              decoder: response.jsonCoderConfig.decoder)
+                            context.set(payloadResult: .success(payload), source: source, for: request.config)
 
-                    case .local,
-                         .localOr,
-                         .localThen:
-                        Logger.log(.error, "\(Self.self): Remote store should not be attempting to handle data source \(context.dataSource).", assert: true)
-                        return
+                        case ._remote(.derivedFromEntityType, _, _, _):
+                            let path = RemotePath<E>.search(query)
+                            let payload = try E.ResultPayload(from: response.data,
+                                                              endpoint: try E.unwrappedEndpoint(for: path),
+                                                              decoder: response.jsonCoderConfig.decoder)
+                            context.set(payloadResult: .success(payload), source: source, for: request.config)
+
+                        case .local,
+                             .localOr,
+                             .localThen:
+                            Logger.log(.error, "\(Self.self): Remote store should not be attempting to handle data source \(context.dataSource).", assert: true)
+                            return
+                        }
+                    } catch {
+                        context.set(payloadResult: .failure(.deserialization(error)), source: source, for: request.config)
                     }
-                } catch {
-                    context.set(payloadResult: .failure(.deserialization(error)), source: source, for: request.config)
                 }
 
             case .aborted:
@@ -301,7 +308,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
         // This is due to the fact that payloads made of a tree structure get their data automatically flattened.
         coreSearch(withQuery: query, in: context) { result in
             switch result {
-            case .success(let queryResult, let isFromCache):
+            case .success((let queryResult, let isFromCache)):
 
                 guard let allItems = queryResult.metadata?.allItems else {
                     completion(.success(queryResult))

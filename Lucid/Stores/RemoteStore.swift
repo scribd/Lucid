@@ -311,29 +311,29 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
         // This is due to the fact that payloads made of a tree structure get their data automatically flattened.
         coreSearch(withQuery: query, in: context) { result in
             switch result {
-            case .success((let queryResult, let isFromCache)):
+            case .success(let response):
 
-                guard let allItems = queryResult.metadata?.allItems else {
-                    completion(.success(queryResult))
+                guard let allItems = response.result.metadata?.allItems else {
+                    completion(.success(response.result))
                     return
                 }
 
                 let rootIdentifiers = DualHashSet<E.Identifier>(allItems.lazy.compactMap { $0.entityIdentifier() })
                 guard rootIdentifiers.isEmpty == false else {
-                    completion(.success(queryResult))
+                    completion(.success(response.result))
                     return
                 }
 
-                guard isFromCache == false else {
-                    completion(.success(queryResult))
+                guard response.isFromCache == false else {
+                    completion(.success(response.result))
                     return
                 }
 
-                let filteredEntities = queryResult.filter { rootIdentifiers.contains($0.identifier) }
+                let filteredEntities = response.result.filter { rootIdentifiers.contains($0.identifier) }
 
                 completion(.success(QueryResult<E>(fromProcessedEntities: filteredEntities,
                                                    for: query,
-                                                   metadata: queryResult.metadata)))
+                                                   metadata: response.result.metadata)))
 
             case .failure(let error):
                 completion(.failure(error))

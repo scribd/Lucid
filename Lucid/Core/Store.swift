@@ -288,6 +288,7 @@ public extension Storing {
 final class StoreStack<E: Entity> {
 
     private let readWriteQueue: DispatchQueue
+    private let contractQueue: DispatchQueue
     private let writeResultsQueue: DispatchQueue
 
     private let stores: [Storing<E>]
@@ -298,6 +299,7 @@ final class StoreStack<E: Entity> {
         self.stores = stores
         self.readWriteQueue = queues.readWriteQueue
         self.writeResultsQueue = queues.writeResultsQueue
+        self.contractQueue = queues.contractQueue
     }
 
     // MARK: - Get
@@ -333,13 +335,15 @@ final class StoreStack<E: Entity> {
         store.get(withQuery: query, in: context) { result in
             switch result {
             case .success(var queryResult):
-                queryResult = queryResult.validatingContract(context.contract, with: query)
-                if queryResult.entity != nil {
-                    self.readWriteQueue.async {
-                        completion(.success(queryResult))
+                self.contractQueue.async {
+                    queryResult = queryResult.validatingContract(context.contract, with: query)
+                    if queryResult.entity != nil {
+                        self.readWriteQueue.async {
+                            completion(.success(queryResult))
+                        }
+                    } else {
+                        self.get(withQuery: query, in: context, stores: stores, error: error, completion: completion)
                     }
-                } else {
-                    self.get(withQuery: query, in: context, stores: stores, error: error, completion: completion)
                 }
             case .failure(let currentError):
                 let error = currentError.compose(with: error)
@@ -397,9 +401,11 @@ final class StoreStack<E: Entity> {
         store.search(withQuery: query, in: context) { result in
             switch result {
             case .success(var queryResult):
-                queryResult = queryResult.validatingContract(context.contract, with: query)
-                self.readWriteQueue.async {
-                    completion(.success(queryResult))
+                self.contractQueue.async {
+                    queryResult = queryResult.validatingContract(context.contract, with: query)
+                    self.readWriteQueue.async {
+                        completion(.success(queryResult))
+                    }
                 }
 
             case .failure(let currentError):
@@ -606,4 +612,5 @@ private extension StoreError {
 struct StoreStackQueues<E> {
     let readWriteQueue = DispatchQueue(label: "\(StoreStackQueues<E>.self)_read_write_queue", attributes: .concurrent)
     let writeResultsQueue = DispatchQueue(label: "\(StoreStackQueues<E>.self)_write_results_queue")
+    let contractQueue = DispatchQueue(label: "\(StoreStackQueues<E>.self)_contract_queue")
 }

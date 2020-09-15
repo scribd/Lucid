@@ -595,7 +595,7 @@ public extension RelationshipController {
                               recursive: RelationshipFetcher.RecursiveMethod = .none,
                               in context: ReadContext? = nil) -> RelationshipQuery {
 
-            fetchers[path] = .all(recursive: recursive, context: context ?? mainContext)
+            fetchers[path] = .all(recursive: recursive, context: context)
             return self
         }
 

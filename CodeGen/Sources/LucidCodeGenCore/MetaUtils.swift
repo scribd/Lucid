@@ -696,11 +696,7 @@ public extension Entity {
 
     var requiresCustomShouldOverwriteFunction: Bool {
         return inheritenceType.isLocal
-            && lastRemoteRead
-    }
-
-    var extendedPropertyNamesForShouldOverwrite: [String] {
-        return ["lastRemoteRead"]
+            && systemProperties.contains(where: { $0.requiresCustomShouldOverwriteFunction })
     }
 }
 
@@ -766,7 +762,7 @@ public extension Entity {
     }
     
     func indexes(_ descriptions: Descriptions) throws -> [EntityProperty] {
-        return try usedProperties.filter { try $0.propertyType.isIndexSearchable(descriptions) }
+        return try usedProperties.filter { try $0.propertyType.isIndexSearchable(descriptions) } + systemProperties.map { $0.property }
     }
 
     var reference: Reference {

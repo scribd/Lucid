@@ -30,7 +30,6 @@ struct MetaEntityFactory {
             .adding(member: EmptyLine())
             .adding(members: try identifierProperties())
             .adding(member: EmptyLine())
-            .adding(member: try lastRemoteReadProperty())
             .adding(members: try properties())
             .adding(member: try initializerFunction())
             .adding(member: EmptyLine())
@@ -82,21 +81,10 @@ struct MetaEntityFactory {
             identifierProperty
         ]
     }
-    
-    private func lastRemoteReadProperty() throws -> Property? {
-        let entity = try descriptions.entity(for: entityName)
-        guard entity.lastRemoteRead == true else { return nil }
-        
-        return Property(variable: Variable(name: "lastRemoteRead")
-            .with(immutable: false)
-            .with(static: false))
-            .with(accessLevel: .public)
-            .with(value: TypeIdentifier.date.reference | .call())
-    }
-    
+
     private func properties() throws -> [TypeBodyMember] {
         let entity = try descriptions.entity(for: entityName)
-        var result: [TypeBodyMember] = try entity.valuesThenRelationships.map { property in
+        var result: [TypeBodyMember] = try entity.valuesThenRelationshipsThenSystemProperties.map { property in
 
             var typeID: TypeIdentifier
             switch property.propertyType {
@@ -138,7 +126,7 @@ struct MetaEntityFactory {
             return Function(kind: .`init`)
                 .with(accessLevel: .public)
                 .adding(member: Assignment(variable: Variable(name: "voidIdentifierValue").with(type: .int), value:Value.int(0)))
-                .adding(members: try entity.valuesThenRelationships.map { property in
+                .adding(members: try entity.valuesThenRelationshipsThenSystemProperties.map { property in
                     let value = try property.defaultValue(identifier: .named("voidIdentifierValue"), descriptions: descriptions)
                     return Assignment(
                         variable: Reference.named(property.transformedName(ignoreLexicon: true)),
@@ -154,7 +142,7 @@ struct MetaEntityFactory {
                 variable: Reference.named("_identifier"),
                 value: .named("identifier") ?? entity.factoryTypeID.reference + .named("nextIdentifier")
             ))
-            .adding(members: try entity.valuesThenRelationships.map { property in
+            .adding(members: try entity.valuesThenRelationshipsThenSystemProperties.map { property in
 
                 let propertyValue: VariableValue = try {
                     if property.lazy {
@@ -185,8 +173,7 @@ struct MetaEntityFactory {
             .with(accessLevel: .public)
             .adding(member: Return(value: entity.typeID().reference | .call(Tuple()
                 .adding(parameter: entity.hasVoidIdentifier ? nil : TupleParameter(name: "identifier", value: Reference.named("identifier")))
-                .adding(parameter: entity.lastRemoteRead ? TupleParameter(name: "lastRemoteRead", value: Reference.named("lastRemoteRead")) : nil)
-                .adding(parameters: try entity.valuesThenRelationships.map { property in
+                .adding(parameters: try entity.valuesThenRelationshipsThenSystemProperties.map { property in
                     var value: Reference
                     switch property.propertyType {
                     case .subtype(let name),

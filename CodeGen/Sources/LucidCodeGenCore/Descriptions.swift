@@ -231,6 +231,8 @@ public struct Entity {
     public let metadata: [MetadataProperty]?
     
     public var properties: [EntityProperty]
+
+    public var systemProperties: [SystemProperty]
     
     public let identifierTypeID: String?
 
@@ -239,12 +241,26 @@ public struct Entity {
     public let legacyAddedAtVersion: Version?
 
     public let versionHistory: [VersionHistoryItem]
-    
-    public let lastRemoteRead: Bool
-    
+
     public let queryContext: Bool
 
     public let clientQueueName: String
+}
+
+// MARK: - SystemProperties
+
+public struct SystemProperty: Equatable {
+
+    public let name: SystemPropertyName
+
+    public let useCoreDataLegacyNaming: Bool
+
+    public let addedAtVersion: Version?
+}
+
+public enum SystemPropertyName: String, CaseIterable, Decodable {
+    case lastRemoteRead = "last_remote_read"
+    case isSynced = "is_synced"
 }
 
 // MARK: - VersionHistory

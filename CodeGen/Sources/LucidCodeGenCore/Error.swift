@@ -22,8 +22,9 @@ public enum CodeGenError: Error, CustomStringConvertible {
     case subtypeDoesNotHaveAnyCase(String)
     case cannotPersistIdentifier(String)
     case incompatiblePropertyKey(String)
-    case unsupportedCaseConvertion
+    case unsupportedCaseConversion
     case `extension`(String)
+    case systemPropertyNameCollision(String)
 }
 
 // MARK: - Description
@@ -60,10 +61,12 @@ public extension CodeGenError {
             return "Cannot persist identifier in entity: '\(name)'."
         case .incompatiblePropertyKey(let key):
             return "Incompatible property key: \(key)."
-        case .unsupportedCaseConvertion:
-            return "Unsupported case convertion."
+        case .unsupportedCaseConversion:
+            return "Unsupported case conversion."
         case .extension(let error):
             return "Extension: \(error)"
+        case .systemPropertyNameCollision(let propertyName):
+            return "'\(propertyName)' is a reserved system property name. Please choose a different one."
         }
     }
 }

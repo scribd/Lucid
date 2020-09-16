@@ -281,19 +281,14 @@ private func _shouldGenerateDataModel(byComparing oldEntity: Entity,
         logger.warn("'\(newEntity.name).identifier' value changed from '\(oldEntity.identifier.identifierType)' to '\(newEntity.identifier.identifierType)'.")
         result = true
     }
-    
-    if oldEntity.lastRemoteRead != newEntity.lastRemoteRead {
-        logger.warn("'\(newEntity.name).last_remote_read' value changed from '\(oldEntity.lastRemoteRead)' to '\(newEntity.lastRemoteRead)'.")
-        result = true
-    }
-    
+
     if oldEntity.platforms != newEntity.platforms {
         logger.warn("'\(newEntity.name).platforms' value changed from '\(oldEntity.platforms)' to '\(newEntity.platforms)'.")
         result = true
     }
     
-    let oldProperties = oldEntity.properties.reduce(into: [:]) { $0[$1.name] = $1 }
-    for newProperty in newEntity.properties {
+    let oldProperties = (oldEntity.properties + oldEntity.systemProperties.map { $0.property }).reduce(into: [:]) { $0[$1.name] = $1 }
+    for newProperty in (newEntity.properties + newEntity.systemProperties.map { $0.property }) {
         if let oldProperty = oldProperties[newProperty.previousSearchableName ?? newProperty.name] {
             if try _shouldGenerateDataModel(byComparing: oldProperty, to: newProperty, entityName: newEntity.name, appVersion: appVersion, logger: logger) {
                 result = true

@@ -31,8 +31,7 @@ struct MetaEntityIndexName {
                 .with(body: try entity
                     .indexes(descriptions)
                     .map { Case(name: $0.transformedName(ignoreLexicon: false)) }
-                )
-                .adding(member: entity.lastRemoteRead ? Case(name: "lastRemoteRead") : nil),
+                ),
             EmptyLine(),
             Extension(type: try entity.indexNameTypeID(descriptions))
                 .adding(inheritedType: .queryResultConvertible)
@@ -45,9 +44,6 @@ struct MetaEntityIndexName {
                                 SwitchCase(name: $0.transformedName(ignoreLexicon: false))
                                     .adding(member: Return(value: Value.string($0.transformedName().snakeCased)))
                             })
-                            .adding(case: entity.lastRemoteRead ?
-                                SwitchCase(name: "lastRemoteRead").adding(member: Return(value: Value.string("last_remote_read"))) : nil
-                            )
                         )
                 )
         ]

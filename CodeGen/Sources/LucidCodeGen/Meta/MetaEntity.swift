@@ -322,7 +322,7 @@ struct MetaEntity {
                 .adding(member: EmptyLine())
                 .adding(member: Function(kind: .named("updated"))
                     .with(accessLevel: .public)
-                    .adding(parameters: try entity.valuesThenRelationships
+                    .adding(parameters: try entity.valuesThenRelationshipsThenSystemProperties
                         .filter { $0.mutable }
                         .map { property in
                             FunctionParameter(
@@ -336,7 +336,7 @@ struct MetaEntity {
                     .adding(member:
                         Return(value: entity.typeID().reference | .call(Tuple()
                             .adding(parameter: TupleParameter(name: "identifier", value: .named(.`self`) + .named("identifier")))
-                            .adding(parameters: entity.valuesThenRelationships.map { property in
+                            .adding(parameters: entity.valuesThenRelationshipsThenSystemProperties.map { property in
                                 TupleParameter(
                                     name: property.transformedName(),
                                     value: property.mutable ? .named(property.transformedName()) : .named(.`self`) + .named(property.transformedName())

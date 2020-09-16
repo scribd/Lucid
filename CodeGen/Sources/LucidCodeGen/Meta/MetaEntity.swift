@@ -368,7 +368,7 @@ struct MetaEntity {
     private func indexValueFunction() throws -> Function {
         let entity = try descriptions.entity(for: entityName)
 
-        let entities = try entity.indexes(descriptions)
+        let entities = try entity.indices(descriptions)
         
         let cases: [SwitchCase] = try entities.compactMap { property in
                 let returnReference: Reference
@@ -445,7 +445,7 @@ struct MetaEntity {
         return ComputedProperty(variable: Variable(name: "entityRelationshipIndices")
             .with(type: .array(element: try entity.indexNameTypeID(descriptions))))
             .with(accessLevel: .public)
-            .adding(member: Return(value: Value.array(try entity.indexes(descriptions).compactMap { property in
+            .adding(member: Return(value: Value.array(try entity.indices(descriptions).compactMap { property in
                 switch property.propertyType {
                 case .relationship,
                      .array(.relationship):
@@ -506,7 +506,7 @@ struct MetaEntity {
         let entity = try descriptions.entity(for: entityName)
         guard entity.persist else { return [] }
 
-        let coreDataIndexName: [FileBodyMember] = try entity.hasIndexes(descriptions) ?
+        let coreDataIndexName: [FileBodyMember] = try entity.hasIndices(descriptions) ?
             [
                 EmptyLine(),
                 Comment.mark("CoreDataIndexName"),
@@ -532,7 +532,7 @@ struct MetaEntity {
                 .with(type: .string))
                 .with(accessLevel: .public)
                 .adding(member: Switch(reference: .named(.`self`))
-                    .with(cases: try entity.indexes(descriptions).map { property in
+                    .with(cases: try entity.indices(descriptions).map { property in
                         SwitchCase(name: property.transformedName(ignoreLexicon: false))
                             .adding(member: Return(value: Value.string("_\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))")))
                     })
@@ -544,7 +544,7 @@ struct MetaEntity {
                 .with(type: .bool))
                 .with(accessLevel: .public)
                 .adding(member: Switch(reference: .named(.`self`))
-                    .with(cases: try entity.indexes(descriptions).map { property in
+                    .with(cases: try entity.indices(descriptions).map { property in
                         let isOneToOneRelationship = property.relationship?.association == .toOne
                         return SwitchCase(name: property.transformedName(ignoreLexicon: false))
                             .adding(member: Return(value: Value.bool(isOneToOneRelationship)))
@@ -556,7 +556,7 @@ struct MetaEntity {
                 .with(type: .optional(wrapped: .string)))
                 .with(accessLevel: .public)
                 .adding(member: Switch(reference: .named(.`self`))
-                    .with(cases: try entity.indexes(descriptions).map { property in
+                    .with(cases: try entity.indices(descriptions).map { property in
                         SwitchCase(name: property.transformedName(ignoreLexicon: false))
                             .adding(member: Return(value: property.relationship?.association == .toOne ?
                                 Value.string("__\(property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming))\(useCoreDataLegacyNaming ? "TypeUID" : "_type_uid")") :

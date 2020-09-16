@@ -672,13 +672,13 @@ public extension Entity {
     }
     
     func indexNameTypeID(_ descriptions: Descriptions) throws -> TypeIdentifier {
-        let hasIndexes = try self.hasIndexes(descriptions)
-        return hasIndexes ? TypeIdentifier(name: "\(transformedName)IndexName") : TypeIdentifier(name: "VoidIndexName")
+        let hasIndices = try self.hasIndices(descriptions)
+        return hasIndices ? TypeIdentifier(name: "\(transformedName)IndexName") : TypeIdentifier(name: "VoidIndexName")
     }
 
     func relationshipIndexNameTypeID(_ descriptions: Descriptions) throws -> TypeIdentifier {
-        let hasIndexes = try self.hasRelationshipIndexes(descriptions)
-        return hasIndexes ?
+        let hasIndices = try self.hasRelationshipIndices(descriptions)
+        return hasIndices ?
             TypeIdentifier(name: "\(transformedName)RelationshipIndexName") :
             TypeIdentifier(name: "VoidRelationshipIndexName").adding(genericParameter: .appAnyEntity)
     }
@@ -765,7 +765,7 @@ public extension Entity {
         }
     }
     
-    func indexes(_ descriptions: Descriptions) throws -> [EntityProperty] {
+    func indices(_ descriptions: Descriptions) throws -> [EntityProperty] {
         return try usedProperties.filter { try $0.propertyType.isIndexSearchable(descriptions) }
     }
 
@@ -1101,12 +1101,12 @@ public extension Subtype.Property.PropertyType {
 
 public extension Entity {
 
-    func hasIndexes(_ descriptions: Descriptions) throws -> Bool {
-        return try indexes(descriptions).isEmpty == false
+    func hasIndices(_ descriptions: Descriptions) throws -> Bool {
+        return try indices(descriptions).isEmpty == false
     }
 
-    func hasRelationshipIndexes(_ descriptions: Descriptions) throws -> Bool {
-        return try indexes(descriptions).contains { $0.isRelationship }
+    func hasRelationshipIndices(_ descriptions: Descriptions) throws -> Bool {
+        return try indices(descriptions).contains { $0.isRelationship }
     }
 
     func hasRelationshipLoop(_ descriptions: Descriptions) throws -> Bool {
@@ -1115,7 +1115,7 @@ public extension Entity {
             guard visitedEntities.contains(entityName) == false else { return true }
             visitedEntities.insert(entityName)
             let entity = try descriptions.entity(for: entityName)
-            return try entity.indexes(descriptions).contains { property in
+            return try entity.indices(descriptions).contains { property in
                 guard let relationship = property.relationship else { return false }
                 return try hasLoop(for: relationship.entityName)
             }

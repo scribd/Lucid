@@ -20,7 +20,7 @@ struct MetaEntityIndexName {
 
     private func indexName() throws -> [FileBodyMember] {
         let entity = try descriptions.entity(for: entityName)
-        guard try entity.hasIndexes(descriptions) else { return [] }
+        guard try entity.hasIndices(descriptions) else { return [] }
         
         return [
             Comment.mark("IndexName"),
@@ -29,7 +29,7 @@ struct MetaEntityIndexName {
                 .with(kind: .enum(indirect: false))
                 .with(accessLevel: .public)
                 .with(body: try entity
-                    .indexes(descriptions)
+                    .indices(descriptions)
                     .map { Case(name: $0.transformedName(ignoreLexicon: false)) }
                 )
                 .adding(member: entity.lastRemoteRead ? Case(name: "lastRemoteRead") : nil),
@@ -41,7 +41,7 @@ struct MetaEntityIndexName {
                         .with(type: .string))
                         .with(accessLevel: .public)
                         .adding(member: Switch(reference: .named(.`self`))
-                            .adding(cases: try entity.indexes(descriptions).map {
+                            .adding(cases: try entity.indices(descriptions).map {
                                 SwitchCase(name: $0.transformedName(ignoreLexicon: false))
                                     .adding(member: Return(value: Value.string($0.transformedName().snakeCased)))
                             })
@@ -55,7 +55,7 @@ struct MetaEntityIndexName {
 
     private func relationshipIndexName() throws -> [FileBodyMember] {
         let entity = try descriptions.entity(for: entityName)
-        guard try entity.hasRelationshipIndexes(descriptions) else { return [] }
+        guard try entity.hasRelationshipIndices(descriptions) else { return [] }
 
         return [
             EmptyLine(),
@@ -69,11 +69,11 @@ struct MetaEntityIndexName {
                 .adding(member: TypeAlias(identifier: TypeAliasIdentifier(name: "AnyEntity"), value: .appAnyEntity).with(accessLevel: .public))
                 .adding(member: EmptyLine())
                 .adding(members: try entity
-                    .indexes(descriptions)
+                    .indices(descriptions)
                     .compactMap { entity in
                         guard let relationship = entity.relationship else { return nil }
                         let relationshipEntity = try descriptions.entity(for: relationship.entityName)
-                        if try relationshipEntity.hasRelationshipIndexes(descriptions) {
+                        if try relationshipEntity.hasRelationshipIndices(descriptions) {
                             return Case(name: "_\(entity.transformedName(ignoreLexicon: false))")
                                 .adding(parameter: CaseParameter(
                                     type: .optional(wrapped: .array(element: try relationshipEntity.relationshipIndexNameTypeID(descriptions)))
@@ -85,11 +85,11 @@ struct MetaEntityIndexName {
                 )
                 .adding(member: EmptyLine())
                 .adding(members: try entity
-                    .indexes(descriptions)
+                    .indices(descriptions)
                     .compactMap { property in
                         guard let relationship = property.relationship else { return nil }
                         let relationshipEntity = try descriptions.entity(for: relationship.entityName)
-                        guard try relationshipEntity.hasRelationshipIndexes(descriptions) else { return nil }
+                        guard try relationshipEntity.hasRelationshipIndices(descriptions) else { return nil }
                         return Function(kind: .named(property.transformedName(ignoreLexicon: false)))
                             .with(static: true)
                             .with(accessLevel: .public)
@@ -110,10 +110,10 @@ struct MetaEntityIndexName {
                     .with(accessLevel: .public)
                     .adding(member: PlainCode(code: """
                     switch self {
-                    \(try entity.indexes(descriptions).compactMap { property in
+                    \(try entity.indices(descriptions).compactMap { property in
                         guard let relationship = property.relationship else { return nil }
                         let relationshipEntity = try descriptions.entity(for: relationship.entityName)
-                        if try relationshipEntity.hasRelationshipIndexes(descriptions) {
+                        if try relationshipEntity.hasRelationshipIndices(descriptions) {
                             return """
                             case ._\(property.transformedName(ignoreLexicon: false))(let children):
                                 return [[.\(entity.name.camelCased().variableCased())(.\(property.transformedName(ignoreLexicon: false)))]] + (children ?? []).flatMap { child -> [[\(TypeIdentifier.appAnyEntityIndexName.swiftString)]] in

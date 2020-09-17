@@ -309,6 +309,10 @@ struct MetaEntityPayload {
                 ))
             ))
             .adding(member: Assignment(
+                variable: Variable(name: "excludedProperties"),
+                value: .named("decoder") + .named("excludedPropertiesAtCurrentPath")
+            ))
+            .adding(member: Assignment(
                 variable: Variable(name: "rootPayload"),
                 value: entity.payloadTypeID.reference | .call(Tuple()
                     .adding(parameter: try entity.payloadIdentifierTypeID.flatMap { _ in
@@ -317,6 +321,7 @@ struct MetaEntityPayload {
                                 .adding(parameter: TupleParameter(value: try entity.remoteIdentifierValueTypeID(descriptions).reference + .named(.`self`)))
                                 .adding(parameter: TupleParameter(name: "forKey", value: try +entity.payloadIdentifierValueReference()))
                                 .adding(parameter: TupleParameter(name: "defaultValue", value: Value.nil))
+                                .adding(parameter: TupleParameter(name: "excludedProperties", value: Reference.named("excludedProperties")))
                                 .adding(parameter: TupleParameter(name: "logError", value: Value.bool(true)))
                             )
                         )
@@ -334,6 +339,7 @@ struct MetaEntityPayload {
                                 .adding(parameter: TupleParameter(value: valueTypeID.reference + .named(.`self`)))
                                 .adding(parameter: TupleParameter(name: "forKeys", value: Value.array(container.lastKeys.map { .reference(+.named($0)) })))
                                 .adding(parameter: TupleParameter(name: "defaultValue", value: property.defaultValue?.variableValue ?? Value.nil))
+                                .adding(parameter: TupleParameter(name: "excludedProperties", value: Reference.named("excludedProperties")))
                                 .adding(parameter: TupleParameter(name: "logError", value: Value.bool(property.logError)))
                             )
                             return TupleParameter(name: property.transformedName(), value: value)
@@ -350,6 +356,7 @@ struct MetaEntityPayload {
                             let value = .try | container.reference + .named(property.isArray ? "decodeSequence" : "decode") | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: decodableType.reference + .named(.`self`)))
                                 .adding(parameter: TupleParameter(name: "forKeys", value: Value.array(container.lastKeys.map { .reference(+.named($0)) })))
+                                .adding(parameter: TupleParameter(name: "excludedProperties", value: Reference.named("excludedProperties")))
                                 .adding(parameter: TupleParameter(name: "logError", value: Value.bool(property.logError)))
                             )
 

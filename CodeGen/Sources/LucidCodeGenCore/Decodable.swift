@@ -45,6 +45,7 @@ extension EndpointPayload: Decodable {
         case baseKey
         case entity
         case entityVariations
+        case excludedPaths
         case metadata
         case tests
     }
@@ -56,6 +57,7 @@ extension EndpointPayload: Decodable {
         baseKey = try container.decodeIfPresent(String.self, forKey: .baseKey)
         entity = try container.decode(EndpointPayloadEntity.self, forKey: .entity)
         entityVariations = try container.decodeIfPresent([EndpointPayloadEntityVariation].self, forKey: .entityVariations)
+        excludedPaths = try container.decodeIfPresent([String].self, forKey: .excludedPaths) ?? []
         metadata = try container.decodeIfPresent([MetadataProperty].self, forKey: .metadata)
         tests = try container.decodeIfPresent([EndpointPayloadTest].self, forKey: .tests) ?? []
     }

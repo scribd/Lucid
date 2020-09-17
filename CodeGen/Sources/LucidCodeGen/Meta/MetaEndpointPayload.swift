@@ -53,6 +53,15 @@ struct MetaEndpointPayload {
             .adding(member: Property(variable: endpoint.metadataVariable.with(type: try metadataPropertyTypeID())))
             .adding(member: EmptyLine())
             .adding(member: try entityMetadataComputedProperty())
+            .adding(member: EmptyLine())
+            .adding(member:
+                ComputedProperty(variable: Variable(name: "excludedPaths")
+                    .with(type: .array(element: .string))
+                )
+                .with(static: true)
+                .with(accessLevel: .public)
+                .adding(member: Return(value: Value.array(endpoint.allExcludedPaths.map { Value.string($0) })))
+            )
     }
     
     private func payloadPropertyTypeID() throws -> TypeIdentifier {

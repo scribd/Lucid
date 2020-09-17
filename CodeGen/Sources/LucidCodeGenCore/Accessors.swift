@@ -264,7 +264,7 @@ public extension SystemProperty {
         case .isSynced:
             return .bool(isFromPayload)
         case .lastRemoteRead:
-            return .date(.distantPast)
+            return .currentDate
         }
     }
 }

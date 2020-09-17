@@ -433,7 +433,6 @@ public extension RelationshipController {
         private var fetchers = [[Graph.AnyEntity.IndexName]: RelationshipFetcher?]()
 
         private var mainContext: ReadContext
-        private var contexts = [[String]: ReadContext?]()
 
         private let rootEntities: (
             once: Signal<AnySequence<Graph.AnyEntity>, ManagerError>,
@@ -484,7 +483,7 @@ public extension RelationshipController {
                         return fetcher?.fetch(path, identifiers, graph) ?? .none
                     } else {
                         if Constants.isDebugModeOn {
-                            Logger.log(.debug, "\(RelationshipController.self): Including path: \(path.map { $0.requestValue }).")
+                            Logger.log(.debug, "\(RelationshipController.self): Fetching path: \(path.map { $0.requestValue }): in context: \(self.mainContext.debugDescription)")
                         }
                         return self.includeAll.value ? .all(recursive: self.includeAll.recursive, context: nil) : .none
                     }

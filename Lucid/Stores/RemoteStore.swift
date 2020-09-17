@@ -40,7 +40,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
     private let client: APIClient
 
     /// - Warning: This queue shall only be used for decoding computation.
-    ///            It shall never be used for work deferring to other queues synchronoulsy or it would
+    ///            It shall never be used for work deferring to other queues synchronously or it would
     ///            introduce a risk of thread pool starvation (no more threads available), leading to a crash.
     private let decodingQueue = DispatchQueue(label: "\(RemoteStore.self):decoding", attributes: .concurrent)
 

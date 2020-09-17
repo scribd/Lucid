@@ -47,7 +47,7 @@ struct MetaEntityFactory {
                     TupleParameter(name: "value", value: +.named("remote") | .call(Tuple()
                         .adding(parameter: TupleParameter(value: try entity.remoteIdentifierValueTypeID(descriptions).reference | .call(Tuple()
                             .adding(parameter: TupleParameter(value: Reference.named("_identifier")))
-                            )))
+                        )))
                         .adding(parameter: TupleParameter(value: Value.nil))
                     )))
                 )))
@@ -112,14 +112,6 @@ struct MetaEntityFactory {
                 .with(immutable: false))
                 .with(accessLevel: .public)
         }
-        
-        result.append(contentsOf: entity.systemProperties.map {
-            Property(variable: Variable(name: $0.property.transformedName(ignoreLexicon: true))
-                .with(immutable: false)
-                .with(static: false))
-                .with(accessLevel: .public)
-                .with(value: $0.defaultValue(isFromPayload: false)?.variableValue)
-        })
 
         if result.isEmpty == false {
             result.append(EmptyLine())
@@ -150,7 +142,7 @@ struct MetaEntityFactory {
                 variable: Reference.named("_identifier"),
                 value: .named("identifier") ?? entity.factoryTypeID.reference + .named("nextIdentifier")
             ))
-            .adding(members: try entity.valuesThenRelationships.map { property in
+            .adding(members: try entity.valuesThenRelationshipsThenSystemProperties.map { property in
 
                 let propertyValue: VariableValue = try {
                     if property.lazy {

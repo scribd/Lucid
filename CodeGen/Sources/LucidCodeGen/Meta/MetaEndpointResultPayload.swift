@@ -79,6 +79,9 @@ struct MetaEndpointResultPayload {
                 let entity = try descriptions.entity(for: endpoint.entity.entityName)
                 let extractableEntityNames = Set(try entity.extractablePropertyEntities(descriptions).map { $0.name } + [entity.name])
                 return SwitchCase(name: endpoint.transformedName.variableCased())
+                    .adding(member: Reference.named("decoder") + .named("setExcludedPaths") | .call(Tuple()
+                        .adding(parameter: TupleParameter(value: endpoint.typeID.reference + .named("excludedPaths")))
+                    ))
                     .adding(member:
                         Assignment(
                             variable: Variable(name: "payload"),

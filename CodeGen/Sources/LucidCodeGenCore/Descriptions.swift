@@ -111,6 +111,8 @@ public struct EndpointPayload {
     
     public let entityVariations: [EndpointPayloadEntityVariation]?
 
+    public let excludedPaths: [String]
+
     public let metadata: [MetadataProperty]?
     
     public let tests: [EndpointPayloadTest]

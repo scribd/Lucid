@@ -426,6 +426,28 @@ public extension EndpointPayload {
             return .initFromRoot(entity.entityKey)
         }
     }
+ 
+    var allExcludedPaths: [String] {
+
+        let rootKey: String
+        if let key = baseKey, let subkey = entity.entityKey {
+            rootKey = "\(key).\(subkey)"
+        } else if let key = baseKey {
+            rootKey = "\(key)"
+        } else {
+            return excludedPaths
+        }
+
+        var additionalPaths: [String] = []
+        for excludedPath in excludedPaths {
+            let components = excludedPath.components(separatedBy: ".")
+            if components[0] == entity.entityName {
+                additionalPaths.append("\(rootKey).\(components.dropFirst().joined(separator: "."))")
+            }
+        }
+
+        return excludedPaths + additionalPaths
+    }
 }
 
 public extension Subtype {

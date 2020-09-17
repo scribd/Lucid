@@ -293,6 +293,7 @@
 		F479172F24AA5A3D001FF97F /* StubCoreDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = F47E5EF924AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld */; };
 		F47E5EFB24AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = F47E5EF924AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld */; };
 		F48C717724896F5400099980 /* CoreManagerContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F48C717624896F5400099980 /* CoreManagerContractTests.swift */; };
+		F4A40EC02513B8700025E48C /* CodingPathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A40EBF2513B8700025E48C /* CodingPathTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -771,6 +772,7 @@
 		F45FA8FA24EC8D3C00368CCB /* Contract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Contract.swift; sourceTree = "<group>"; };
 		F47E5EFA24AA57BC007DCC4A /* StubCoreDataModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = StubCoreDataModel.xcdatamodel; sourceTree = "<group>"; };
 		F48C717624896F5400099980 /* CoreManagerContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreManagerContractTests.swift; sourceTree = "<group>"; };
+		F4A40EBF2513B8700025E48C /* CodingPathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodingPathTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1029,6 +1031,7 @@
 				190ADC982458D8FE00D22F6D /* EntitySearchTests.swift */,
 				190ADC992458D8FE00D22F6D /* RelationshipControllerTests.swift */,
 				190ADC9A2458D8FE00D22F6D /* StoreStackTests.swift */,
+				F4A40EBF2513B8700025E48C /* CodingPathTests.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -2308,6 +2311,7 @@
 				190ADCAD2458D8FE00D22F6D /* DiskCacheTests.swift in Sources */,
 				19C117FA24C6508500206D65 /* BackgroundTaskManagerSpy.swift in Sources */,
 				190ADCA32458D8FE00D22F6D /* RecoverableStoreTests.swift in Sources */,
+				F4A40EC02513B8700025E48C /* CodingPathTests.swift in Sources */,
 				190ADCA62458D8FE00D22F6D /* BaseStoreTests.swift in Sources */,
 				191F919424C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift in Sources */,
 				190ADCA82458D8FE00D22F6D /* RelationshipControllerTests.swift in Sources */,

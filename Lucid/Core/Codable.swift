@@ -252,6 +252,50 @@ public extension Lazy {
     }
 }
 
+// MARK: - Excluded Paths
+
+public enum LucidDecodingConstants {
+    static let excludedPaths = CodingUserInfoKey(rawValue: "excluded_paths")
+}
+
+public extension JSONDecoder {
+
+    func setExcludedPaths(_ excludedPaths: [String]) {
+        guard excludedPaths.isEmpty == false,
+            let key = LucidDecodingConstants.excludedPaths else {
+                return
+        }
+
+        userInfo[key] = excludedPaths.map { $0.components(separatedBy: ".") }
+    }
+}
+
+public extension Decoder {
+
+    var excludedPropertiesAtCurrentPath: Set<String> {
+        guard let key = LucidDecodingConstants.excludedPaths,
+            let excludedPaths = userInfo[key] as? [[String]] else {
+            return []
+        }
+
+        return excludedPaths.reduce(into: Set<String>()) { set, path in
+            guard let excludedProperty = path.last else { return }
+            let excludedEntityPath = path.dropLast().array
+            let relativePath = codingPath.lazy.filter { $0.intValue == nil }.suffix(excludedEntityPath.count).map { $0.stringValue }.array
+            guard relativePath == excludedEntityPath else { return }
+            set.insert(excludedProperty)
+        }
+    }
+}
+
+public extension KeyedDecodingContainer {
+
+    func shouldExclude(_ codingKeys: [CodingKey], for excludedProperties: Set<String>) -> Bool {
+        guard excludedProperties.isEmpty == false else { return false }
+        return codingKeys.allSatisfy { excludedProperties.contains($0.stringValue) == false } == false
+    }
+}
+
 // MARK: - Decoding Utils
 
 public extension KeyedDecodingContainer {
@@ -266,24 +310,25 @@ public extension KeyedDecodingContainer {
         return keys.first(where: { contains($0) }) ?? lastKey
     }
 
-    func decode<O>(_ type: O.Type, forKey key: Key, defaultValue: O? = nil, logError: Bool) throws -> O where O: Decodable {
-        return try decode(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
+    func decode<O>(_ type: O.Type, forKey key: Key, defaultValue: O? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> O where O: Decodable {
+        return try decode(type, forKeys: [key], defaultValue: defaultValue, excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decode<O>(_ type: O.Type, forKeys keys: [Key], defaultValue: O? = nil, logError: Bool) throws -> O where O: Decodable {
+    func decode<O>(_ type: O.Type, forKeys keys: [Key], defaultValue: O? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> O where O: Decodable {
         let key = try resolveKey(from: keys)
         if let defaultValue = defaultValue {
-            return try decode(type, forKey: key, defaultValue: defaultValue, logError: logError) ?? defaultValue
+            return try decode(type, forKey: key, defaultValue: defaultValue, excludedProperties: excludedProperties, logError: logError) ?? defaultValue
         } else {
             return try decode(O.self, forKey: key)
         }
     }
 
-    func decode<O>(_ type: O.Type, forKey key: Key, defaultValue: O? = nil, logError: Bool) throws -> O? where O: Decodable {
-        return try decode(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
+    func decode<O>(_ type: O.Type, forKey key: Key, defaultValue: O? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> O? where O: Decodable {
+        return try decode(type, forKeys: [key], defaultValue: defaultValue, excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decode<O>(_ type: O.Type, forKeys keys: [Key], defaultValue: O? = nil, logError: Bool) throws -> O? where O: Decodable {
+    func decode<O>(_ type: O.Type, forKeys keys: [Key], defaultValue: O? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> O? where O: Decodable {
+        if shouldExclude(keys, for: excludedProperties) { return defaultValue }
         let key = try resolveKey(from: keys)
         do {
             return try decodeIfPresent(O.self, forKey: key) ?? defaultValue
@@ -300,26 +345,28 @@ public extension KeyedDecodingContainer {
         }
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, defaultValue: [O]? = nil, logError: Bool) throws -> AnySequence<O> where O: Decodable {
-        return try decodeSequence(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, defaultValue: [O]? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> AnySequence<O> where O: Decodable {
+        return try decodeSequence(type, forKeys: [key], defaultValue: defaultValue, excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> AnySequence<O> where O: Decodable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> AnySequence<O> where O: Decodable {
         let key = try resolveKey(from: keys)
         if let defaultValue = defaultValue {
-            return try decodeSequence(type, forKey: key, defaultValue: defaultValue, logError: logError) ?? defaultValue.lazy.any
+            return try decodeSequence(type, forKey: key, defaultValue: defaultValue, excludedProperties: excludedProperties, logError: logError) ?? defaultValue.lazy.any
         } else {
+            if shouldExclude(keys, for: excludedProperties) { return [].any }
             return try decode([FailableValue<O>].self, forKey: key).lazy.compactMap {
                 $0.value(logError: logError)
             }.any
         }
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, defaultValue: [O]? = nil, logError: Bool) throws -> AnySequence<O>? where O: Decodable {
-        return try decodeSequence(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, defaultValue: [O]? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> AnySequence<O>? where O: Decodable {
+        return try decodeSequence(type, forKeys: [key], defaultValue: defaultValue, excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> AnySequence<O>? where O: Decodable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> AnySequence<O>? where O: Decodable {
+        if shouldExclude(keys, for: excludedProperties) { return defaultValue?.lazy.any }
         let key = try resolveKey(from: keys)
         do {
             guard let values = try decodeIfPresent([FailableValue<O>].self, forKey: key) else {
@@ -342,18 +389,21 @@ public extension KeyedDecodingContainer {
     func decode<O>(_ type: DualHashDictionary<O.Identifier, O>.Type,
                    forKey key: Key,
                    defaultValue: DualHashDictionary<O.Identifier, O>? = nil,
+                   excludedProperties: Set<String> = [],
                    logError: Bool) throws -> DualHashDictionary<O.Identifier, O> where O: Decodable, O: EntityIdentifiable {
-        return try decode(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
+        return try decode(type, forKeys: [key], defaultValue: defaultValue, excludedProperties: excludedProperties, logError: logError)
     }
 
     func decode<O>(_ type: DualHashDictionary<O.Identifier, O>.Type,
                    forKeys keys: [Key],
                    defaultValue: DualHashDictionary<O.Identifier, O>? = nil,
+                   excludedProperties: Set<String> = [],
                    logError: Bool) throws -> DualHashDictionary<O.Identifier, O> where O: Decodable, O: EntityIdentifiable {
         let key = try resolveKey(from: keys)
         if let defaultValue = defaultValue {
-            return try decode(type, forKey: key, defaultValue: defaultValue, logError: logError) ?? defaultValue
+            return try decode(type, forKey: key, defaultValue: defaultValue, excludedProperties: excludedProperties, logError: logError) ?? defaultValue
         } else {
+            if shouldExclude(keys, for: excludedProperties) { return DualHashDictionary() }
             return DualHashDictionary(try decode([FailableValue<O>].self, forKey: key).lazy.compactMap {
                 guard let value = $0.value(logError: logError) else { return nil }
                 return (value.identifier, value)
@@ -364,14 +414,17 @@ public extension KeyedDecodingContainer {
     func decode<O>(_ type: DualHashDictionary<O.Identifier, O>.Type,
                    forKey key: Key,
                    defaultValue: DualHashDictionary<O.Identifier, O>? = nil,
+                   excludedProperties: Set<String> = [],
                    logError: Bool) throws -> DualHashDictionary<O.Identifier, O>? where O: Decodable, O: EntityIdentifiable {
-        return try decode(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
+        return try decode(type, forKeys: [key], defaultValue: defaultValue, excludedProperties: excludedProperties, logError: logError)
     }
 
     func decode<O>(_ type: DualHashDictionary<O.Identifier, O>.Type,
                    forKeys keys: [Key],
                    defaultValue: DualHashDictionary<O.Identifier, O>? = nil,
+                   excludedProperties: Set<String> = [],
                    logError: Bool) throws -> DualHashDictionary<O.Identifier, O>? where O: Decodable, O: EntityIdentifiable {
+        if shouldExclude(keys, for: excludedProperties) { return defaultValue }
         let key = try resolveKey(from: keys)
         do {
             guard let values = try decodeIfPresent([FailableValue<O>].self, forKey: key) else {
@@ -396,20 +449,21 @@ public extension KeyedDecodingContainer {
 
     // MARK: - PayloadType
 
-    func decode<O>(_ type: O.Type, forKey key: Key, logError: Bool) throws -> O.PayloadType where O: Decodable, O: PayloadConvertable {
-        return try decode(type, forKeys: [key], logError: logError)
+    func decode<O>(_ type: O.Type, forKey key: Key, excludedProperties: Set<String> = [], logError: Bool) throws -> O.PayloadType where O: Decodable, O: PayloadConvertable {
+        return try decode(type, forKeys: [key], excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decode<O>(_ type: O.Type, forKeys keys: [Key], logError: Bool) throws -> O.PayloadType where O: Decodable, O: PayloadConvertable {
+    func decode<O>(_ type: O.Type, forKeys keys: [Key], excludedProperties: Set<String> = [], logError: Bool) throws -> O.PayloadType where O: Decodable, O: PayloadConvertable {
         let key = try resolveKey(from: keys)
         return try decode(O.self, forKey: key).rootPayload
     }
 
-    func decode<O>(_ type: O.Type, forKey key: Key, logError: Bool) throws -> O.PayloadType? where O: Decodable, O: PayloadConvertable {
-        return try decode(type, forKeys: [key], logError: logError)
+    func decode<O>(_ type: O.Type, forKey key: Key, excludedProperties: Set<String> = [], logError: Bool) throws -> O.PayloadType? where O: Decodable, O: PayloadConvertable {
+        return try decode(type, forKeys: [key], excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decode<O>(_ type: O.Type, forKeys keys: [Key], logError: Bool) throws -> O.PayloadType? where O: Decodable, O: PayloadConvertable {
+    func decode<O>(_ type: O.Type, forKeys keys: [Key], excludedProperties: Set<String> = [], logError: Bool) throws -> O.PayloadType? where O: Decodable, O: PayloadConvertable {
+        if shouldExclude(keys, for: excludedProperties) { return nil }
         let key = try resolveKey(from: keys)
         do {
             return try decodeIfPresent(O.self, forKey: key)?.rootPayload
@@ -421,22 +475,24 @@ public extension KeyedDecodingContainer {
         }
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, logError: Bool) throws -> AnySequence<O.PayloadType> where O: Decodable, O: PayloadConvertable {
-        return try decodeSequence(type, forKeys: [key], logError: logError)
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, excludedProperties: Set<String> = [], logError: Bool) throws -> AnySequence<O.PayloadType> where O: Decodable, O: PayloadConvertable {
+        return try decodeSequence(type, forKeys: [key], excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> AnySequence<O.PayloadType> where O: Decodable, O: PayloadConvertable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], excludedProperties: Set<String> = [], logError: Bool) throws -> AnySequence<O.PayloadType> where O: Decodable, O: PayloadConvertable {
+        if shouldExclude(keys, for: excludedProperties) { return [].any }
         let key = try resolveKey(from: keys)
         return try decode([FailableValue<O>].self, forKey: key).lazy.compactMap {
             $0.value(logError: logError)?.rootPayload
         }.any
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, logError: Bool) throws -> AnySequence<O.PayloadType>? where O: Decodable, O: PayloadConvertable {
-        return try decodeSequence(type, forKeys: [key], logError: logError)
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, excludedProperties: Set<String> = [], logError: Bool) throws -> AnySequence<O.PayloadType>? where O: Decodable, O: PayloadConvertable {
+        return try decodeSequence(type, forKeys: [key], excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> AnySequence<O.PayloadType>? where O: Decodable, O: PayloadConvertable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], excludedProperties: Set<String> = [], logError: Bool) throws -> AnySequence<O.PayloadType>? where O: Decodable, O: PayloadConvertable {
+        if shouldExclude(keys, for: excludedProperties) { return nil }
         let key = try resolveKey(from: keys)
         do {
             guard let values = try decodeIfPresent([FailableValue<O>].self, forKey: key) else { return nil }
@@ -451,20 +507,21 @@ public extension KeyedDecodingContainer {
 
     // MARK: - PayloadRelationship & PayloadType
 
-    func decode<O>(_ type: O.Type, forKey key: Key, logError: Bool) throws -> PayloadRelationship<O> where O: Decodable {
-        return try decode(type, forKeys: [key], logError: logError)
+    func decode<O>(_ type: O.Type, forKey key: Key, excludedProperties: Set<String> = [], logError: Bool) throws -> PayloadRelationship<O> where O: Decodable {
+        return try decode(type, forKeys: [key], excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decode<O>(_ type: O.Type, forKeys keys: [Key], logError: Bool) throws -> PayloadRelationship<O> where O: Decodable {
+    func decode<O>(_ type: O.Type, forKeys keys: [Key], excludedProperties: Set<String> = [], logError: Bool) throws -> PayloadRelationship<O> where O: Decodable {
         let key = try resolveKey(from: keys)
         return try decode(PayloadRelationship<O>.self, forKey: key)
     }
 
-    func decode<O>(_ type: O.Type, forKey key: Key, logError: Bool) throws -> PayloadRelationship<O>? where O: Decodable {
-        return try decode(type, forKeys: [key], logError: logError)
+    func decode<O>(_ type: O.Type, forKey key: Key, excludedProperties: Set<String> = [], logError: Bool) throws -> PayloadRelationship<O>? where O: Decodable {
+        return try decode(type, forKeys: [key], excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decode<O>(_ type: O.Type, forKeys keys: [Key], logError: Bool) throws -> PayloadRelationship<O>? where O: Decodable {
+    func decode<O>(_ type: O.Type, forKeys keys: [Key], excludedProperties: Set<String> = [], logError: Bool) throws -> PayloadRelationship<O>? where O: Decodable {
+        if shouldExclude(keys, for: excludedProperties) { return nil }
         let key = try resolveKey(from: keys)
         do {
             return try decodeIfPresent(PayloadRelationship<O>.self, forKey: key)
@@ -476,20 +533,22 @@ public extension KeyedDecodingContainer {
         }
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, logError: Bool) throws -> AnySequence<PayloadRelationship<O>> where O: Decodable {
-        return try decodeSequence(type, forKeys: [key], logError: logError)
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, excludedProperties: Set<String> = [], logError: Bool) throws -> AnySequence<PayloadRelationship<O>> where O: Decodable {
+        return try decodeSequence(type, forKeys: [key], excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> AnySequence<PayloadRelationship<O>> where O: Decodable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], excludedProperties: Set<String> = [], logError: Bool) throws -> AnySequence<PayloadRelationship<O>> where O: Decodable {
+        if shouldExclude(keys, for: excludedProperties) { return [].any }
         let key = try resolveKey(from: keys)
         return try decode([PayloadRelationship<O>].self, forKey: key).lazy.any
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, logError: Bool) throws -> AnySequence<PayloadRelationship<O>>? where O: Decodable {
-        return try decodeSequence(type, forKeys: [key], logError: logError)
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKey key: Key, excludedProperties: Set<String> = [], logError: Bool) throws -> AnySequence<PayloadRelationship<O>>? where O: Decodable {
+        return try decodeSequence(type, forKeys: [key], excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> AnySequence<PayloadRelationship<O>>? where O: Decodable {
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], excludedProperties: Set<String> = [], logError: Bool) throws -> AnySequence<PayloadRelationship<O>>? where O: Decodable {
+        if shouldExclude(keys, for: excludedProperties) { return nil }
         let key = try resolveKey(from: keys)
         do {
             guard let values = try decodeIfPresent([PayloadRelationship<O>].self, forKey: key) else { return nil }
@@ -511,29 +570,29 @@ public extension KeyedDecodingContainer {
 
     // MARK: - Time
 
-    func decode(_ type: Seconds.Type, forKey key: Key, defaultValue: Double? = nil, logError: Bool) throws -> Seconds {
+    func decode(_ type: Seconds.Type, forKey key: Key, defaultValue: Double? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> Seconds {
         return try decode(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
     }
 
-    func decode(_ type: Seconds.Type, forKeys keys: [Key], defaultValue: Double? = nil, logError: Bool) throws -> Seconds {
+    func decode(_ type: Seconds.Type, forKeys keys: [Key], defaultValue: Double? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> Seconds {
         let key = try resolveKey(from: keys)
         if let defaultValue = defaultValue {
             let defaultTime = Seconds(seconds: defaultValue)
-            return try decode(type, forKey: key, defaultValue: defaultTime, logError: logError) ?? defaultTime
+            return try decode(type, forKey: key, defaultValue: defaultTime, excludedProperties: excludedProperties, logError: logError) ?? defaultTime
         } else {
             return try decode(Seconds.self, forKey: key)
         }
     }
 
-    func decode(_ type: Milliseconds.Type, forKey key: Key, defaultValue: Double? = nil, logError: Bool) throws -> Milliseconds {
+    func decode(_ type: Milliseconds.Type, forKey key: Key, defaultValue: Double? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> Milliseconds {
         return try decode(type, forKeys: [key], defaultValue: defaultValue, logError: logError)
     }
 
-    func decode(_ type: Milliseconds.Type, forKeys keys: [Key], defaultValue: Double? = nil, logError: Bool) throws -> Milliseconds {
+    func decode(_ type: Milliseconds.Type, forKeys keys: [Key], defaultValue: Double? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> Milliseconds {
         let key = try resolveKey(from: keys)
         if let defaultValue = defaultValue {
             let defaultTime = Milliseconds(seconds: defaultValue / 1000)
-            return try decode(type, forKey: key, defaultValue: defaultTime, logError: logError) ?? defaultTime
+            return try decode(type, forKey: key, defaultValue: defaultTime, excludedProperties: excludedProperties, logError: logError) ?? defaultTime
         } else {
             return try decode(Milliseconds.self, forKey: key)
         }
@@ -541,7 +600,8 @@ public extension KeyedDecodingContainer {
 
     // MARK: - Lazy
 
-    func decode<O>(_ type: O.Type, forKeys keys: [Key], defaultValue: O? = nil, logError: Bool) throws -> Lazy<O> where O: Decodable {
+    func decode<O>(_ type: O.Type, forKeys keys: [Key], defaultValue: O? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> Lazy<O> where O: Decodable {
+        if shouldExclude(keys, for: excludedProperties) { return defaultValue.flatMap { .requested($0) } ?? .unrequested }
         let key = try resolveKey(from: keys)
         if contains(key) == false {
             return .unrequested
@@ -554,8 +614,9 @@ public extension KeyedDecodingContainer {
         }
     }
 
-    func decode<O>(_ type: O?.Type, forKeys keys: [Key], defaultValue: O? = nil, logError: Bool) throws -> Lazy<O?> where O: Decodable {
+    func decode<O>(_ type: O?.Type, forKeys keys: [Key], defaultValue: O? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> Lazy<O?> where O: Decodable {
         do {
+            if shouldExclude(keys, for: excludedProperties) { return defaultValue.flatMap { .requested($0) } ?? .unrequested }
             let key = try resolveKey(from: keys)
             if contains(key) == false {
                 return .unrequested
@@ -571,32 +632,32 @@ public extension KeyedDecodingContainer {
         }
     }
 
-    func decode<O>(_ type: O.Type, forKeys keys: [Key], defaultValue: O? = nil, logError: Bool) throws -> Lazy<O?> where O: Decodable {
-        return try decode(O?.self, forKeys: keys, defaultValue: defaultValue, logError: logError)
+    func decode<O>(_ type: O.Type, forKeys keys: [Key], defaultValue: O? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> Lazy<O?> where O: Decodable {
+        return try decode(O?.self, forKeys: keys, defaultValue: defaultValue, excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> Lazy<AnySequence<O>> where O: Decodable {
-        return try decode([O].self, forKeys: keys, defaultValue: defaultValue, logError: logError).lazyAny()
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> Lazy<AnySequence<O>> where O: Decodable {
+        return try decode([O].self, forKeys: keys, defaultValue: defaultValue, excludedProperties: excludedProperties, logError: logError).lazyAny()
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, logError: Bool) throws -> Lazy<AnySequence<O>?> where O: Decodable {
-        return try decode([O]?.self, forKeys: keys, defaultValue: defaultValue, logError: logError).lazyAny()
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], defaultValue: [O]? = nil, excludedProperties: Set<String> = [], logError: Bool) throws -> Lazy<AnySequence<O>?> where O: Decodable {
+        return try decode([O]?.self, forKeys: keys, defaultValue: defaultValue, excludedProperties: excludedProperties, logError: logError).lazyAny()
     }
 
-    func decode<O>(_ type: O.Type, forKeys keys: [Key], logError: Bool) throws -> Lazy<PayloadRelationship<O>> where O: Decodable {
-        return try decode(PayloadRelationship<O>.self, forKeys: keys, defaultValue: nil, logError: logError)
+    func decode<O>(_ type: O.Type, forKeys keys: [Key], excludedProperties: Set<String> = [], logError: Bool) throws -> Lazy<PayloadRelationship<O>> where O: Decodable {
+        return try decode(PayloadRelationship<O>.self, forKeys: keys, defaultValue: nil, excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decode<O>(_ type: O.Type, forKeys keys: [Key], logError: Bool) throws -> Lazy<PayloadRelationship<O>?> where O: Decodable {
-        return try decode(PayloadRelationship<O>?.self, forKeys: keys, defaultValue: nil, logError: logError)
+    func decode<O>(_ type: O.Type, forKeys keys: [Key], excludedProperties: Set<String> = [], logError: Bool) throws -> Lazy<PayloadRelationship<O>?> where O: Decodable {
+        return try decode(PayloadRelationship<O>?.self, forKeys: keys, defaultValue: nil, excludedProperties: excludedProperties, logError: logError)
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> Lazy<AnySequence<PayloadRelationship<O>>> where O: Decodable {
-        return try decode([PayloadRelationship<O>].self, forKeys: keys, defaultValue: nil, logError: logError).lazyAny()
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], excludedProperties: Set<String> = [], logError: Bool) throws -> Lazy<AnySequence<PayloadRelationship<O>>> where O: Decodable {
+        return try decode([PayloadRelationship<O>].self, forKeys: keys, defaultValue: nil, excludedProperties: excludedProperties, logError: logError).lazyAny()
     }
 
-    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], logError: Bool) throws -> Lazy<AnySequence<PayloadRelationship<O>>?> where O: Decodable {
-        return try decode([PayloadRelationship<O>]?.self, forKeys: keys, defaultValue: nil, logError: logError).lazyAny()
+    func decodeSequence<O>(_ type: AnySequence<O>.Type, forKeys keys: [Key], excludedProperties: Set<String> = [], logError: Bool) throws -> Lazy<AnySequence<PayloadRelationship<O>>?> where O: Decodable {
+        return try decode([PayloadRelationship<O>]?.self, forKeys: keys, defaultValue: nil, excludedProperties: excludedProperties, logError: logError).lazyAny()
     }
 }
 

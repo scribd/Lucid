@@ -48,24 +48,6 @@ extension Logging {
     }
 }
 
-
-private var _logger: Logging? = DefaultLogger()
-private let dispatchQueue = DispatchQueue(label: "\(Logger.self):shared", attributes: .concurrent)
-
-public extension LucidConfiguration {
-
-    static var logger: Logging? {
-        get {
-            return dispatchQueue.sync { _logger }
-        }
-        set {
-            dispatchQueue.async(flags: .barrier) {
-                _logger = newValue
-            }
-        }
-    }
-}
-
 final class Logger: NSObject {
 
     static func log(_ type: LogType,

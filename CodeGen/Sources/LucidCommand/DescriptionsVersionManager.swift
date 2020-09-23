@@ -11,6 +11,10 @@ import Foundation
 import ShellOut
 import PathKit
 
+#if os(macOS)
+import CommonCrypto
+#endif
+
 final class DescriptionsVersionManager {
 
     private let workingPath: Path
@@ -26,6 +30,8 @@ final class DescriptionsVersionManager {
     private let logger: Logger
 
     private var didFetch = false
+
+    private var _allVersionsFromGitTags: [Version]?
 
     private var repositoryPath: Path {
         return outputPath + "repository"
@@ -61,10 +67,15 @@ final class DescriptionsVersionManager {
         
     func fetchDescriptionsVersion(releaseTag: String) throws -> Path {
 
-        logger.moveToChild("Fetching descriptions for tag: \(releaseTag)...")
-
         let destinationDescriptionsPath = outputPath + "descriptions_\(releaseTag)"
+        let destinationVersionPath = destinationDescriptionsPath + ".version"
+        let destinationDescriptionsHash = try DescriptionsVersionManager.descriptionsHash(absoluteInputPath: destinationDescriptionsPath.absolute())
 
+        if try destinationVersionPath.exists && destinationVersionPath.read() == destinationDescriptionsHash {
+            return destinationDescriptionsPath
+        }
+
+        logger.moveToChild("Fetching descriptions for tag: \(releaseTag)...")
         try cacheRepository()
 
         if let gitRemote = gitRemote {
@@ -82,15 +93,22 @@ final class DescriptionsVersionManager {
         try shellOut(to: "cp -r \(repositoryDescriptionsPath.absolute()) \(destinationDescriptionsPath.absolute())")
         logger.done("Copied descriptions to \(destinationDescriptionsPath).")
         logger.moveToParent()
+
+        let descriptionsHash = try DescriptionsVersionManager.descriptionsHash(absoluteInputPath: destinationDescriptionsPath.absolute())
+        try destinationVersionPath.write(descriptionsHash)
+
         return destinationDescriptionsPath
     }
 
     func allVersionsFromGitTags() throws -> [Version] {
+        if let versions = _allVersionsFromGitTags {
+            return versions
+        }
 
         try cacheRepository()
         try fetchOrigin()
 
-        return try shellOut(to: "git tag", at: repositoryPath.absolute().string)
+        let versions: [Version] = try shellOut(to: "git tag", at: repositoryPath.absolute().string)
             .split(separator: "\n")
             .compactMap { tag -> Version? in
                 do {
@@ -102,6 +120,9 @@ final class DescriptionsVersionManager {
             .filter { $0.isRelease }
             .sorted()
             .reversed()
+
+        _allVersionsFromGitTags = versions
+        return versions
     }
 
     func resolveLatestReleaseTag(excluding: Bool, appVersion: Version) throws -> String {
@@ -158,8 +179,13 @@ final class DescriptionsVersionManager {
     }
 
     static func descriptionsHash(absoluteInputPath: Path) throws -> String {
+        guard absoluteInputPath.exists else {
+            return try String().MD5()
+        }
+
         return try absoluteInputPath
             .recursiveChildren()
+            .sorted()
             .filter { $0.extension == "json" }
             .reduce("") { try $0 + $1.read() }
             .MD5()
@@ -169,16 +195,27 @@ final class DescriptionsVersionManager {
 // MARK: - MD5
 
 private extension String {
+
     func MD5() throws -> String {
+        #if os(macOS)
+        let length = Int(CC_MD5_DIGEST_LENGTH)
+        var digest = [UInt8](repeating: 0, count: length)
+        if let data = data(using: .utf8) {
+            _ = data.withUnsafeBytes { body -> String in
+                CC_MD5(body.baseAddress, CC_LONG(data.count), &digest)
+                return String()
+            }
+        }
+        return (0 ..< length).reduce(String()) {
+            $0 + String(format: "%02x", digest[$1])
+        }
+        #else
         let tmpFile = "\(NSTemporaryDirectory())md5.tmp"
         try write(toFile: tmpFile, atomically: true, encoding: .utf8)
-        #if os(macOS)
         let result = try shellOut(to: "md5 -q \(tmpFile)")
-        #else
-        let result = try shellOut(to: "md5sum \(tmpFile)")
-        #endif
         try FileManager.default.removeItem(atPath: tmpFile)
         return result.components(separatedBy: " ")[0]
+        #endif
     }
 }
 

@@ -34,6 +34,7 @@ public final class EndpointResultPayload: ResultPayloadConvertible {
 
         switch endpoint {
         case .discoverMovie:
+            decoder.setExcludedPaths(DiscoverMovieEndpointPayload.excludedPaths)
             let payload = try decoder.decode(DiscoverMovieEndpointPayload.self, from: data)
             genres = payload.genres.byIdentifier
             movies = payload.movies.byIdentifier
@@ -42,6 +43,7 @@ public final class EndpointResultPayload: ResultPayloadConvertible {
                 entity: payload.entityMetadata.lazy.map { $0 as Optional<EntityMetadata> }.any
             )
         case .genreMovieList:
+            decoder.setExcludedPaths(GenreMovieListEndpointPayload.excludedPaths)
             let payload = try decoder.decode(GenreMovieListEndpointPayload.self, from: data)
             genres = payload.genres.byIdentifier
             movies = OrderedDualHashDictionary()
@@ -50,6 +52,7 @@ public final class EndpointResultPayload: ResultPayloadConvertible {
                 entity: payload.entityMetadata.lazy.map { $0 as Optional<EntityMetadata> }.any
             )
         case .movie:
+            decoder.setExcludedPaths(MovieEndpointPayload.excludedPaths)
             let payload = try decoder.decode(MovieEndpointPayload.self, from: data)
             genres = payload.genres.byIdentifier
             movies = payload.movies.byIdentifier

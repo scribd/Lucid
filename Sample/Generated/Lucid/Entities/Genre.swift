@@ -106,6 +106,7 @@ public final class Genre: Codable {
     public typealias RelationshipIdentifier = EntityRelationshipIdentifier
     public typealias Subtype = EntitySubtype
     public typealias QueryContext = Never
+    public typealias RelationshipIndexName = VoidRelationshipIndexName<AppAnyEntity>
 
     // IdentifierTypeID
     public static let identifierTypeID = "genre"
@@ -142,10 +143,6 @@ extension Genre: LocalEntity, RemoteEntity {
     }
 
     public var entityRelationshipIndices: Array<GenreIndexName> {
-        return []
-    }
-
-    public var entityRelationshipEntityTypeUIDs: Array<String> {
         return []
     }
 

@@ -44,9 +44,22 @@ final class DefaultEndpointGenrePayload: Decodable, PayloadConvertable, ArrayCon
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
+        let excludedProperties = decoder.excludedPropertiesAtCurrentPath
         let rootPayload = GenrePayload(
-            id: try container.decode(Int.self, forKey: .id, defaultValue: nil, logError: true),
-            name: try container.decode(String.self, forKeys: [.name], defaultValue: nil, logError: true)
+            id: try container.decode(
+                Int.self,
+                forKey: .id,
+                defaultValue: nil,
+                excludedProperties: excludedProperties,
+                logError: true
+            ),
+            name: try container.decode(
+                String.self,
+                forKeys: [.name],
+                defaultValue: nil,
+                excludedProperties: excludedProperties,
+                logError: true
+            )
         )
         let entityMetadata = try FailableValue<VoidMetadata>(from: decoder).value()
         self.rootPayload = rootPayload

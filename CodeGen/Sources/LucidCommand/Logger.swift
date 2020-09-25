@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  Logger.swift
 //  LucidCodeGen
 //
 //  Created by Théophane Rupin on 3/20/19.

@@ -86,15 +86,47 @@ final class DefaultEndpointMoviePayload: Decodable, PayloadConvertable, ArrayCon
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
+        let excludedProperties = decoder.excludedPropertiesAtCurrentPath
         let rootPayload = MoviePayload(
-            id: try container.decode(Int.self, forKey: .id, defaultValue: nil, logError: true),
-            overview: try container.decode(String.self, forKeys: [.overview], defaultValue: nil, logError: true),
-            popularity: try container.decode(Double.self, forKeys: [.popularity], defaultValue: nil, logError: true),
-            posterPath: try container.decode(URL.self, forKeys: [.posterPath], defaultValue: nil, logError: true),
-            title: try container.decode(String.self, forKeys: [.title], defaultValue: nil, logError: true),
+            id: try container.decode(
+                Int.self,
+                forKey: .id,
+                defaultValue: nil,
+                excludedProperties: excludedProperties,
+                logError: true
+            ),
+            overview: try container.decode(
+                String.self,
+                forKeys: [.overview],
+                defaultValue: nil,
+                excludedProperties: excludedProperties,
+                logError: true
+            ),
+            popularity: try container.decode(
+                Double.self,
+                forKeys: [.popularity],
+                defaultValue: nil,
+                excludedProperties: excludedProperties,
+                logError: true
+            ),
+            posterPath: try container.decode(
+                URL.self,
+                forKeys: [.posterPath],
+                defaultValue: nil,
+                excludedProperties: excludedProperties,
+                logError: true
+            ),
+            title: try container.decode(
+                String.self,
+                forKeys: [.title],
+                defaultValue: nil,
+                excludedProperties: excludedProperties,
+                logError: true
+            ),
             genrePayloads: try container.decodeSequence(
                 AnySequence<DefaultEndpointGenrePayload>.self,
                 forKeys: [.genres],
+                excludedProperties: excludedProperties,
                 logError: true
             )
         )

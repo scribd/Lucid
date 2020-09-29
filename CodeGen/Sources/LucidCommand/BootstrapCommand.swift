@@ -9,24 +9,61 @@ import Foundation
 import LucidCodeGen
 import LucidCodeGenCore
 import PathKit
+import Yams
 
-final class Bootstrap {
+final class BootstrapCommand {
 
     private let logger: Logger
-
-    private let configuration: SwiftCommandConfiguration
 
     private let sourceCodePath: String
 
     init(logger: Logger,
-         configuration: SwiftCommandConfiguration,
          sourceCodePath: String) {
         self.logger = logger
-        self.configuration = configuration
         self.sourceCodePath = sourceCodePath
     }
 
-    func run() throws {
+    func saveDefaultConfiguration(with configPath: Path) throws {
+        let configuration = try CommandConfiguration.make(with: logger, configPath: configPath)
+        let yamlConfiration = try YAMLEncoder().encode(configuration)
+        try configPath.write(yamlConfiration)
+    }
+
+    private func saveExampleEntityDescription(_ configuration: CommandConfiguration) throws {
+        let entity = Entity(
+            name: "my_entity",
+            remote: true,
+            persist: true,
+            identifier: EntityIdentifier(identifierType: .scalarType(.int)),
+            properties: [
+                EntityProperty(
+                    name: "my_string_property",
+                    propertyType: .scalar(.string)
+                ),
+                EntityProperty(
+                    name: "my_bool_property",
+                    propertyType: .scalar(.bool)
+                )
+            ],
+            identifierTypeID: "my_entity",
+            versionHistory: [VersionHistoryItem(version: try Version(configuration.currentVersion, source: .description))]
+        )
+        try configuration.save(entity)
+    }
+
+    private func saveExampleEndpointPayloadDescription(_ configuration: CommandConfiguration) throws {
+        let endpoint = EndpointPayload(
+            name: "/my_entity",
+            entity: EndpointPayloadEntity(
+                entityName: "my_entity",
+                structure: .single
+            )
+        )
+        try configuration.save(endpoint)
+    }
+
+    func createFileStructure(_ configuration: CommandConfiguration) throws {
+
         logger.moveToChild("Generating folders.")
         if configuration.inputPath.exists == false {
             logger.info("Adding \(configuration.inputPath).")
@@ -43,6 +80,9 @@ final class Bootstrap {
             let subtypesPath = configuration.inputPath + OutputDirectory.subtypes.path(appModuleName: configuration.targets.app.moduleName)
             logger.info("Adding \(subtypesPath).")
             try subtypesPath.mkdir()
+
+            try saveExampleEntityDescription(configuration)
+            try saveExampleEndpointPayloadDescription(configuration)
         } else {
             logger.info("Folder \(configuration.inputPath) already exists.")
         }
@@ -233,5 +273,29 @@ final class Bootstrap {
         }
 
         logger.moveToParent()
+    }
+}
+
+// MARK: - Saving
+
+private extension CommandConfiguration {
+
+    private func save<T>(_ data: T, at path: Path) throws where T: Encodable {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted]
+        let json = try encoder.encode(data)
+        try path.write(json)
+    }
+
+    func save(_ entity: Entity) throws {
+        let fileName = entity.name.camelCased(ignoreLexicon: false) + ".json"
+        let descriptionPath = inputPath + OutputDirectory.entities.path(appModuleName: targets.app.moduleName) + fileName
+        try save(entity, at: descriptionPath)
+    }
+
+    func save(_ endpointPayload: EndpointPayload) throws {
+        let fileName = endpointPayload.name.camelCased(separators: "/_", ignoreLexicon: false) + ".json"
+        let descriptionPath = inputPath + OutputDirectory.endpointPayloads.path(appModuleName: targets.app.moduleName) + fileName
+        try save(endpointPayload, at: descriptionPath)
     }
 }

@@ -1,11 +1,12 @@
 //
-//  File.swift
+//  Logger.swift
 //  LucidCodeGen
 //
 //  Created by Théophane Rupin on 3/20/19.
 //
 
 import LucidCodeGenCore
+import PathKit
 
 // MARK: - Errors
 
@@ -89,6 +90,29 @@ final class Logger {
         stepsByDepth[depth] = nil
         depth -= 1
     }
+
+    func ask<T>(_ message: String, defaultValue: T? = nil) -> T where T: UserInputConvertible {
+
+        while true {
+            let defaultMessage = defaultValue.flatMap { " (default: \($0.userDescription))" } ?? String()
+            info("\(message) [\(T.userTypeDescription)]\(defaultMessage)")
+            guard let input = readLine() else { continue }
+            guard input.isEmpty == false else {
+                if let defaultValue = defaultValue {
+                    return defaultValue
+                } else {
+                    error("Invalid input: \(input)")
+                    continue
+                }
+            }
+
+            if let value = T(input) {
+                return value
+            } else {
+                error("Invalid input: \(input)")
+            }
+        }
+    }
     
     private var indentation: String {
         return (0..<depth).map { _ in "  " }.joined() + "  "
@@ -97,5 +121,74 @@ final class Logger {
     private func print(level: LogLevel, _ string: String) {
         guard level.rawValue <= self.level.rawValue else { return }
         Swift.print(string)
+    }
+}
+
+protocol UserInputConvertible {
+    init?(_ description: String)
+    var userDescription: String { get }
+    static var userTypeDescription: String { get }
+}
+
+extension UserInputConvertible {
+    static var userTypeDescription: String {
+        return "\(Self.self)"
+    }
+}
+
+extension UserInputConvertible where Self: CustomStringConvertible {
+    var userDescription: String {
+        return description
+    }
+}
+
+extension String: UserInputConvertible {}
+extension Int: UserInputConvertible {}
+extension Double: UserInputConvertible {}
+extension Float: UserInputConvertible {}
+extension Path: UserInputConvertible {}
+
+extension Array: UserInputConvertible where Element: UserInputConvertible {
+
+    init?(_ description: String) {
+        let strings = description
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+        let elements = strings.compactMap { Element($0) }
+
+        guard strings.count == elements.count else {
+            return nil
+        }
+
+        self = elements
+    }
+}
+
+extension Bool: UserInputConvertible {
+
+    init?(_ description: String) {
+        switch description.lowercased() {
+        case "true",
+             "yes",
+             "y",
+             "1":
+            self = true
+        case "false",
+             "no",
+             "n",
+             "0":
+            self = false
+        default:
+            return nil
+        }
+    }
+
+    var userDescription: String {
+        return self ? "y" : "n"
+    }
+
+    static var userTypeDescription: String {
+        return "y/n"
     }
 }

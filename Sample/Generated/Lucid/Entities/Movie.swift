@@ -106,6 +106,7 @@ public final class Movie: Codable {
     public typealias RelationshipIdentifier = EntityRelationshipIdentifier
     public typealias Subtype = EntitySubtype
     public typealias QueryContext = MovieQueryContext
+    public typealias RelationshipIndexName = MovieRelationshipIndexName
 
     // IdentifierTypeID
     public static let identifierTypeID = "movie"
@@ -177,10 +178,6 @@ extension Movie: LocalEntity, RemoteEntity {
 
     public var entityRelationshipIndices: Array<MovieIndexName> {
         return [.genres]
-    }
-
-    public var entityRelationshipEntityTypeUIDs: Array<String> {
-        return [GenreIdentifier.entityTypeUID]
     }
 
     public static func == (lhs: Movie,
@@ -359,6 +356,23 @@ extension MovieIndexName: QueryResultConvertible {
             return "poster_path"
         case .title:
             return "title"
+        }
+    }
+}
+
+// MARK: - RelationshipIndexName
+
+public enum MovieRelationshipIndexName: RelationshipPathConvertible {
+
+    public typealias AnyEntity = AppAnyEntity
+
+    case genres
+
+
+    public var paths: Array<Array<AppAnyEntityIndexName>> {
+        switch self {
+        case .genres:
+            return [[.movie(.genres)]]
         }
     }
 }

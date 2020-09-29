@@ -48,15 +48,15 @@ extension Logging {
     }
 }
 
-final class Logger: NSObject {
+public final class Logger: NSObject {
 
-    static func log(_ type: LogType,
-                    _ message: @autoclosure () -> String,
-                    domain: String,
-                    assert: Bool = false,
-                    file: String = #file,
-                    function: String = #function,
-                    line: UInt = #line) {
+    public static func log(_ type: LogType,
+                           _ message: @autoclosure () -> String,
+                           domain: String,
+                           assert: Bool = false,
+                           file: String = #file,
+                           function: String = #function,
+                           line: UInt = #line) {
 
         LucidConfiguration.logger?.log(type,
                                        message(),
@@ -67,14 +67,14 @@ final class Logger: NSObject {
                                        line: line)
     }
 
-    static func loggableErrorString(_ error: Error) -> String {
+    public static func loggableErrorString(_ error: Error) -> String {
         return LucidConfiguration.logger?.loggableErrorString(error) ?? String()
     }
 }
 
 // MARK: - Lucid Domain
 
-extension Logger {
+public extension Logger {
 
     static func log(_ type: LogType,
                     _ message: @autoclosure () -> String,
@@ -89,15 +89,15 @@ extension Logger {
 
 // MARK: - Default Logger
 
-final class DefaultLogger: Logging {
+public final class DefaultLogger: Logging {
 
-    func log(_ type: LogType,
-             _ message: @autoclosure () -> String,
-             domain: String,
-             assert: Bool = false,
-             file: String = #file,
-             function: String = #function,
-             line: UInt = #line) {
+    public func log(_ type: LogType,
+                    _ message: @autoclosure () -> String,
+                    domain: String,
+                    assert: Bool = false,
+                    file: String = #file,
+                    function: String = #function,
+                    line: UInt = #line) {
 
         let file = file.components(separatedBy: CharacterSet(charactersIn: "/")).last ?? file
         if #available(iOS 12.0, *) {
@@ -110,11 +110,11 @@ final class DefaultLogger: Logging {
         }
     }
 
-    func loggableErrorString(_ error: Error) -> String {
+    public func loggableErrorString(_ error: Error) -> String {
         return error.localizedDescription
     }
 
-    func recordErrorOnCrashlytics(_ error: Error) {
+    public func recordErrorOnCrashlytics(_ error: Error) {
         // no-op
     }
 }

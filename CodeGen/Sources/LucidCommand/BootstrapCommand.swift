@@ -46,7 +46,7 @@ final class BootstrapCommand {
                 )
             ],
             identifierTypeID: "my_entity",
-            versionHistory: [VersionHistoryItem(version: try Version("1.0.0", source: .description))]
+            versionHistory: [VersionHistoryItem(version: try Version(configuration.currentVersion, source: .description))]
         )
         try configuration.save(entity)
     }

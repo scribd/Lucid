@@ -1,5 +1,5 @@
 //
-//  Configuration.swift
+//  CommandConfiguration.swift
 //  LucidCommand
 //
 //  Created by Théophane Rupin on 4/19/19.
@@ -14,68 +14,68 @@ enum ConfigurationError: Error {
     case targetNotFound
 }
 
-struct SwiftCommandConfiguration {
+struct CommandConfiguration {
     
     private(set) var _workingPath: Path = .current
     
-    private(set) var targets: TargetConfigurations
+    private(set) var targets = TargetConfigurations()
     
     /// Description files location.
-    let _inputPath: Path
+    var _inputPath = Defaults.inputPath
     var inputPath: Path {
         return _inputPath.isRelative ? _workingPath + _inputPath : _inputPath
     }
 
-    let _extensionsPath: Path?
+    var _extensionsPath: Path? = nil
     var extensionsPath: Path? {
         guard let path = _extensionsPath else { return nil }
         return path.isRelative ? _workingPath + path : path
     }
 
     /// Cache files location (defaults to /usr/local/share/lucid/cache).
-    private var _cachePath: Path
+    private var _cachePath: Path = Defaults.cachePath
     var cachePath: Path {
         return _cachePath.isRelative ? _workingPath + _cachePath : _cachePath
     }
 
     /// Company name that will appear in generated file headers.
-    let organizationName: String
+    var organizationName = Defaults.organizationName
 
     /// Current application version (defaults to 1.0.0).
-    var currentVersion: String
+    var currentVersion = Defaults.currentVersion
     
     /// Git remote to use for checking out tags (defaults to nil).
-    let gitRemote: String?
+    var gitRemote: String? = nil
 
     /// Skips repository updates for data model changes checks.
-    var noRepoUpdate: Bool
+    var noRepoUpdate = Defaults.noRepoUpdate
 
     /// Build a new Database Model regardless of changes.
-    var forceBuildNewDBModel: Bool
+    var forceBuildNewDBModel = Defaults.forceBuildNewDBModel
 
     /// Build a new Database Model regardless of changes for selected versions only.
-    var forceBuildNewDBModelForVersions: Set<String>
+    var forceBuildNewDBModelForVersions = Defaults.forceBuildNewDBModelForVersions
 
     /// Name of the function building `CoreManagerContainerClientQueueResponseHandler`.
-    let responseHandlerFunction: String?
+    var responseHandlerFunction: String? = nil
     
     /// Name of the function building `[CoreDataManager.Migration]`
-    let coreDataMigrationsFunction: String?
+    var coreDataMigrationsFunction: String? = nil
 
     /// - Warning: This option requires to manually set `LucidConfiguration.useCoreDataLegacyNaming` to `true`
     ///            before using any `CoreManager`. Failing to do so could lead to unexpected behaviors.
-    let useCoreDataLegacyNaming: Bool
+    var useCoreDataLegacyNaming = Defaults.useCoreDataLegacyNaming
 
     /// Weither to use ReactiveKit's API.
-    var reactiveKit: Bool
+    var reactiveKit = Defaults.reactiveKit
 
     /// List of words for which no transformation (capitalization) should be applied.
-    let lexicon: [String]
+    var lexicon = Defaults.lexicon
 
     /// Suffix to apply to entity names.
-    let entitySuffix: String
+    var entitySuffix = Defaults.entitySuffix
 
-    static func make(with configPath: String,
+    static func make(with configPath: String?,
                      currentVersion: String?,
                      cachePath: String?,
                      noRepoUpdate: Bool?,
@@ -83,12 +83,36 @@ struct SwiftCommandConfiguration {
                      forceBuildNewDBModelForVersions: Set<String>?,
                      selectedTargets: Set<String>,
                      reactiveKit: Bool?,
-                     logger: Logger) throws -> SwiftCommandConfiguration {
+                     logger: Logger) throws -> CommandConfiguration {
 
-        let configPath = Path(configPath)
-        var configuration = try YAMLDecoder().decode(SwiftCommandConfiguration.self,
-                                                     from: try configPath.read(),
-                                                     userInfo: [:])
+        let configPath = configPath.flatMap { Path($0) } ?? Defaults.configPath
+        let configuration = try YAMLDecoder().decode(CommandConfiguration.self, from: try configPath.read())
+
+        return try make(with: configuration,
+                        configPath: configPath,
+                        currentVersion: currentVersion,
+                        cachePath: cachePath,
+                        noRepoUpdate: noRepoUpdate,
+                        forceBuildNewDBModel: forceBuildNewDBModel,
+                        forceBuildNewDBModelForVersions: forceBuildNewDBModelForVersions,
+                        selectedTargets: selectedTargets,
+                        reactiveKit: reactiveKit,
+                        logger: logger)
+    }
+
+    private static func make(with configuration: CommandConfiguration = CommandConfiguration(),
+                             configPath: Path,
+                             currentVersion: String?,
+                             cachePath: String?,
+                             noRepoUpdate: Bool?,
+                             forceBuildNewDBModel: Bool?,
+                             forceBuildNewDBModelForVersions: Set<String>?,
+                             selectedTargets: Set<String>,
+                             reactiveKit: Bool?,
+                             logger: Logger) throws -> CommandConfiguration {
+
+        var configuration = configuration
+
         configuration._workingPath = configPath.parent()
         configuration.targets._app._workingPath = configuration._workingPath
         configuration.targets._appTests._workingPath = configuration._workingPath
@@ -114,11 +138,39 @@ struct SwiftCommandConfiguration {
         return configuration
     }
 
-    static func make(with configPath: String) throws -> SwiftCommandConfiguration {
-        let configPath = Path(configPath)
-        return try YAMLDecoder().decode(SwiftCommandConfiguration.self,
+    static func make(with configPath: Path) throws -> CommandConfiguration {
+        return try YAMLDecoder().decode(CommandConfiguration.self,
                                         from: try configPath.read(),
                                         userInfo: [:])
+    }
+
+    static func make(with logger: Logger, configPath: Path) throws -> CommandConfiguration {
+
+        var configuration = try make(
+            configPath: configPath,
+            currentVersion: Defaults.currentVersion,
+            cachePath: Defaults.cachePath.string,
+            noRepoUpdate: nil,
+            forceBuildNewDBModel: nil,
+            forceBuildNewDBModelForVersions: nil,
+            selectedTargets: {
+                var targets = [TargetName]()
+                targets.append(.app)
+                if logger.ask("Do you want Lucid to generate code for testing?", defaultValue: false) {
+                    targets.append(.appTests)
+                    targets.append(.appTestSupport)
+                }
+                return Set(targets.map { $0.rawValue })
+            }(),
+            reactiveKit: false,
+            logger: logger
+        )
+
+        configuration.targets._app.configure()
+        configuration.targets._appTests.configure()
+        configuration.targets._appTestSupport.configure()
+
+        return configuration
     }
 }
 
@@ -190,11 +242,22 @@ struct TargetConfiguration: Target {
         _outputPath = Path()
         isSelected = true
     }
+
+    mutating func configure() {
+        if moduleName.isEmpty {
+            moduleName = name.rawValue.camelCased()
+        }
+        if _outputPath == Path() {
+            _outputPath = Path(moduleName) + Defaults.targetOutputPath
+        }
+    }
 }
 
 // MARK: - Defaults
 
 private enum Defaults {
+    static let inputPath = Path("Descriptions")
+    static let configPath = Path(".lucid.yaml")
     static let organizationName = "MyOrganization"
     static let currentVersion = "1.0.0"
     static let cachePath = Path("/usr/local/share/lucid/cache")
@@ -206,11 +269,12 @@ private enum Defaults {
     static let entitySuffix = ""
     static let reactiveKit = false
     static let useCoreDataLegacyNaming = false
+    static let targetOutputPath = Path("Generated")
 }
 
-// MARK: - Decodable
+// MARK: - Codable
 
-extension SwiftCommandConfiguration: Decodable {
+extension CommandConfiguration: Codable {
     
     private enum Keys: String, CodingKey {
         case targets
@@ -241,7 +305,7 @@ extension SwiftCommandConfiguration: Decodable {
         targets.select(with: activeTargets)
         self.targets = targets
         
-        _inputPath = try container.decode(Path.self, forKey: .inputPath)
+        _inputPath = try container.decodeIfPresent(Path.self, forKey: .inputPath) ?? Defaults.inputPath
         _extensionsPath = try container.decodeIfPresent(Path.self, forKey: .extensionsPath)
         _cachePath = try container.decodeIfPresent(Path.self, forKey: .cachePath) ?? Defaults.cachePath
         organizationName = try container.decodeIfPresent(String.self, forKey: .organizationName) ?? Defaults.organizationName
@@ -257,11 +321,43 @@ extension SwiftCommandConfiguration: Decodable {
         lexicon = try container.decodeIfPresent([String].self, forKey: .lexicon) ?? Defaults.lexicon
         entitySuffix = try container.decodeIfPresent(String.self, forKey: .entitySuffix) ?? Defaults.entitySuffix
     }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+
+        try container.encode(targets, forKey: .targets)
+
+        let activeTargets = [
+            TargetName.app.rawValue,
+            targets._appTests.isSelected ? TargetName.appTests.rawValue : nil,
+            targets._appTestSupport.isSelected ? TargetName.appTestSupport.rawValue : nil
+        ].compactMap { $0 }
+
+        if activeTargets.count > 1 {
+            try container.encode(activeTargets, forKey: .activeTargets)
+        }
+
+        try container.encodeIfPresent(_inputPath, forKey: .inputPath)
+        try container.encodeIfPresent(_extensionsPath, forKey: .extensionsPath)
+        try container.encodeIfPresent(_cachePath == Defaults.cachePath ? nil : _cachePath, forKey: .cachePath)
+        try container.encodeIfPresent(organizationName == Defaults.organizationName ? nil : organizationName, forKey: .organizationName)
+        try container.encodeIfPresent(currentVersion == Defaults.currentVersion ? nil : currentVersion, forKey: .currentVersion)
+        try container.encodeIfPresent(gitRemote, forKey: .gitRemote)
+        try container.encodeIfPresent(forceBuildNewDBModel == Defaults.forceBuildNewDBModel ? nil : forceBuildNewDBModel, forKey: .forceBuildNewDBModel)
+        try container.encodeIfPresent(forceBuildNewDBModelForVersions.isEmpty ? nil : forceBuildNewDBModelForVersions.sorted(), forKey: .forceBuildNewDBModelForVersions)
+        try container.encodeIfPresent(noRepoUpdate == Defaults.noRepoUpdate ? nil : noRepoUpdate, forKey: .noRepoUpdate)
+        try container.encodeIfPresent(responseHandlerFunction, forKey: .responseHandlerFunction)
+        try container.encodeIfPresent(coreDataMigrationsFunction, forKey: .coreDataMigrationsFunction)
+        try container.encodeIfPresent(useCoreDataLegacyNaming == Defaults.useCoreDataLegacyNaming ? nil : useCoreDataLegacyNaming, forKey: .useCoreDataLegacyNaming)
+        try container.encodeIfPresent(reactiveKit == Defaults.reactiveKit ? nil : reactiveKit, forKey: .reactiveKit)
+        try container.encodeIfPresent(lexicon == Defaults.lexicon ? nil : lexicon.sorted(), forKey: .lexicon)
+        try container.encodeIfPresent(entitySuffix == Defaults.entitySuffix ? nil : entitySuffix, forKey: .entitySuffix)
+    }
 }
 
 extension TargetName: CodingKey {}
 
-extension TargetConfigurations: Decodable {
+extension TargetConfigurations: Codable {
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: TargetName.self)
@@ -270,34 +366,32 @@ extension TargetConfigurations: Decodable {
         _appTestSupport = try container.decodeIfPresent(TargetConfiguration.self, forKey: .appTestSupport) ?? TargetConfiguration()
         
         _app.name = .app
-        if _app.moduleName.isEmpty {
-            _app.moduleName = TargetName.app.rawValue.camelCased()
-        }
-        if _app._outputPath.string.isEmpty {
-            _app._outputPath = Path("\(_app.moduleName)/Generated")
-        }
+        _app.configure()
 
         _appTests.name = .appTests
         _appTests.isSelected = false
-        if _appTests.moduleName.isEmpty {
-            _appTests.moduleName = TargetName.appTests.rawValue.camelCased(ignoreLexicon: true)
-        }
-        if _appTests._outputPath.string.isEmpty {
-            _appTests._outputPath = Path("\(_appTests.moduleName)/Generated")
-        }
+        _appTests.configure()
 
         _appTestSupport.name = .appTestSupport
         _appTestSupport.isSelected = false
-        if _appTestSupport.moduleName.isEmpty {
-            _appTestSupport.moduleName = TargetName.appTestSupport.rawValue.camelCased(ignoreLexicon: true)
+        _appTestSupport.configure()
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: TargetName.self)
+        try container.encode(_app, forKey: .app)
+
+        if _appTests.isSelected {
+            try container.encode(_appTests, forKey: .appTests)
         }
-        if _appTestSupport._outputPath.string.isEmpty {
-            _appTestSupport._outputPath = Path("\(_appTestSupport.moduleName)/Generated")
+
+        if _appTestSupport.isSelected {
+            try container.encode(_appTestSupport, forKey: .appTestSupport)
         }
     }
 }
 
-extension TargetConfiguration: Decodable {
+extension TargetConfiguration: Codable {
     
     private enum Keys: String, CodingKey {
         case outputPath = "output_path"
@@ -311,12 +405,23 @@ extension TargetConfiguration: Decodable {
         name = .app
         isSelected = true
     }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+        try container.encode(_outputPath, forKey: .outputPath)
+        try container.encode(moduleName, forKey: .moduleName)
+    }
 }
 
-extension Path: Decodable {
+extension Path: Codable {
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         self.init(try container.decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(string)
     }
 }

@@ -8,7 +8,7 @@
 
 import Foundation
 
-/// Minimalistic asynchronous operation queue which ensures serial execution on a singe background queue.
+/// Minimalistic queue which ensures serial/parallel execution of asynchronous operations.
 public final class AsyncOperationQueue: CustomDebugStringConvertible {
 
     private let dispatchQueue: DispatchQueue

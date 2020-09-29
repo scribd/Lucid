@@ -894,6 +894,7 @@
 				190ADC2A2458D89C00D22F6D /* BatchManager.swift */,
 				190ADC332458D89C00D22F6D /* Codable.swift */,
 				190ADC3B2458D89C00D22F6D /* Color.swift */,
+				1907AD8224A6826400727F82 /* Configuration.swift */,
 				190ADC342458D89C00D22F6D /* Context.swift */,
 				F45FA8FA24EC8D3C00368CCB /* Contract.swift */,
 				190ADC322458D89C00D22F6D /* CoreDataConversion.swift */,
@@ -910,7 +911,6 @@
 				190ADC362458D89C00D22F6D /* Store.swift */,
 				190ADC2C2458D89C00D22F6D /* Time.swift */,
 				190ADC302458D89C00D22F6D /* Version.swift */,
-				1907AD8224A6826400727F82 /* Configuration.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";

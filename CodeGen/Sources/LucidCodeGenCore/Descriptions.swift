@@ -116,6 +116,23 @@ public struct EndpointPayload {
     public let metadata: [MetadataProperty]?
     
     public let tests: [EndpointPayloadTest]
+
+    public init(name: String,
+                baseKey: String? = nil,
+                entity: EndpointPayloadEntity,
+                entityVariations: [EndpointPayloadEntityVariation]? = nil,
+                excludedPaths: [String] = [],
+                metadata: [MetadataProperty]? = nil,
+                tests: [EndpointPayloadTest] = []) {
+
+        self.name = name
+        self.baseKey = baseKey
+        self.entity = entity
+        self.entityVariations = entityVariations
+        self.excludedPaths = excludedPaths
+        self.metadata = metadata
+        self.tests = tests
+    }
 }
 
 // MARK: - EndpointPayloadTest
@@ -166,13 +183,24 @@ public struct EndpointPayloadEntity {
     public let structure: Structure
 
     public let nullable: Bool
+
+    public init(entityKey: String? = nil,
+                entityName: String,
+                structure: Structure,
+                nullable: Bool = DescriptionDefaults.nullable) {
+
+        self.entityKey = entityKey
+        self.entityName = entityName
+        self.structure = structure
+        self.nullable = nullable
+    }
 }
 
 // MARK: - Variations
 
 public struct EndpointPayloadEntityVariation {
 
-    public struct Rename: Decodable {
+    public struct Rename: Codable {
         let originalName: String
         let customName: String
     }
@@ -247,6 +275,37 @@ public struct Entity {
     public let queryContext: Bool
 
     public let clientQueueName: String
+
+    public init(name: String,
+                persistedName: String? = nil,
+                platforms: Set<Platform> = DescriptionDefaults.platforms,
+                remote: Bool = DescriptionDefaults.remote,
+                persist: Bool = DescriptionDefaults.persist,
+                identifier: EntityIdentifier = DescriptionDefaults.identifier,
+                metadata: [MetadataProperty]? = nil,
+                properties: [EntityProperty],
+                systemProperties: [SystemProperty] = [],
+                identifierTypeID: String? = nil,
+                versionHistory: [VersionHistoryItem] = [],
+                queryContext: Bool = DescriptionDefaults.queryContext,
+                clientQueueName: String = DescriptionDefaults.clientQueueName) {
+
+        self.name = name
+        self.persistedName = persistedName
+        self.platforms = platforms
+        self.remote = remote
+        self.persist = persist
+        self.identifier = identifier
+        self.metadata = metadata
+        self.properties = properties
+        self.systemProperties = systemProperties
+        self.identifierTypeID = identifierTypeID
+        self.legacyPreviousName = nil
+        self.legacyAddedAtVersion = nil
+        self.versionHistory = versionHistory
+        self.queryContext = queryContext
+        self.clientQueueName = clientQueueName
+    }
 }
 
 // MARK: - SystemProperties
@@ -260,7 +319,7 @@ public struct SystemProperty: Equatable {
     public let addedAtVersion: Version?
 }
 
-public enum SystemPropertyName: String, CaseIterable, Decodable {
+public enum SystemPropertyName: String, CaseIterable, Codable {
     case lastRemoteRead = "last_remote_read"
     case isSynced = "is_synced"
 }
@@ -276,6 +335,17 @@ public struct VersionHistoryItem: Equatable {
     public let ignoreMigrationChecks: Bool
 
     public let ignorePropertyMigrationChecksOn: [String]
+
+    public init(version: Version,
+                previousName: String? = nil,
+                ignoreMigrationChecks: Bool = DescriptionDefaults.ignoreMigrationChecks,
+                ignorePropertyMigrationChecksOn: [String] = DescriptionDefaults.ignorePropertyMigrationChecksOn) {
+
+        self.version = version
+        self.previousName = previousName
+        self.ignoreMigrationChecks = ignoreMigrationChecks
+        self.ignorePropertyMigrationChecksOn = ignorePropertyMigrationChecksOn
+    }
 }
 
 // MARK: - Identifier
@@ -287,6 +357,15 @@ public struct EntityIdentifier: Equatable {
     public let equivalentIdentifierName: String?
     
     public let objc: Bool
+
+    public init(identifierType: EntityIdentifierType,
+                equivalentIdentifierName: String? = nil,
+                objc: Bool = DescriptionDefaults.objc) {
+
+        self.identifierType = identifierType
+        self.equivalentIdentifierName = equivalentIdentifierName
+        self.objc = objc
+    }
 }
 
 public enum EntityIdentifierType: Equatable {
@@ -357,6 +436,41 @@ public struct EntityProperty {
     public let lazy: Bool
     
     public let platforms: Set<Platform>
+
+    public init(name: String,
+                key: String? = nil,
+                matchExactKey: Bool = DescriptionDefaults.matchExactKey,
+                previousName: String? = nil,
+                persistedName: String? = nil,
+                addedAtVersion: Version? = nil,
+                propertyType: PropertyType,
+                nullable: Bool = DescriptionDefaults.nullable,
+                defaultValue: DefaultValue? = nil,
+                logError: Bool = DescriptionDefaults.logError,
+                useForEquality: Bool = DescriptionDefaults.useForEquality,
+                mutable: Bool = DescriptionDefaults.mutable,
+                objc: Bool = DescriptionDefaults.objc,
+                unused: Bool = DescriptionDefaults.unused,
+                lazy: Bool = DescriptionDefaults.lazy,
+                platforms: Set<Platform> = DescriptionDefaults.platforms) {
+
+        self.name = name
+        self.key = key ?? name
+        self.matchExactKey = matchExactKey
+        self.previousName = previousName
+        self.persistedName = persistedName
+        self.addedAtVersion = addedAtVersion
+        self.propertyType = propertyType
+        self.nullable = nullable
+        self.defaultValue = defaultValue
+        self.logError = logError
+        self.useForEquality = useForEquality
+        self.mutable = mutable
+        self.objc = objc
+        self.unused = unused
+        self.lazy = lazy
+        self.platforms = platforms
+    }
 }
 
 // MARK: - Relationships
@@ -434,6 +548,17 @@ public extension PropertyScalarType {
             self = .seconds
         default:
             self.init(rawValue: stringValue.capitalized)
+        }
+    }
+
+    var stringValue: String {
+        switch self {
+        case .url:
+            return "url"
+        case .seconds:
+            return "time"
+        default:
+            return rawValue.lowercased()
         }
     }
 }

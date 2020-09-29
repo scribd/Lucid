@@ -69,7 +69,3 @@ When installing Lucid Run-time with:
 - Carthage - use `$ cd Carthage/Checkout/Lucid/CodeGen`
 - Cocoapods - use `$ cd Pods/Lucid/CodeGen`
 - Swift Package Manager - use `$ cd .build/checkouts/Lucid/CodeGen`
-
-### Setup
-
-1. Create 

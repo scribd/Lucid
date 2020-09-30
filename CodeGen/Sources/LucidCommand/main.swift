@@ -21,12 +21,11 @@ let main = Group {
         Option<String>("config-path", default: String(), description: "Configuration file location."),
         Option<String>("current-version", default: String(), description: "Current app version."),
         Option<String>("cache-path", default: String(), description: "Cache files location."),
-        Option<String>("no-repo-update", default: String(), description: "Skips repository update for version checking."),
         Option<String>("force-build-new-db-model", default: String(), description: "Force to build a new Database Model regardless of changes."),
         VariadicOption<String>("force-build-new-db-model-for-versions", default: [], description: "Force to build a new Database Model regardless of changes for versions."),
         Option<String>("reactive-kit", default: String(), description: "Weither to use ReactiveKit's API."),
         VariadicOption<String>("selected-targets", default: [], description: "List of targets to generate.")
-    ) { configPath, currentVersion, cachePath, noRepoUpdate, forceBuildNewDBModel, forceBuildNewDBModelForVersions, reactiveKit, selectedTargets in
+    ) { configPath, currentVersion, cachePath, forceBuildNewDBModel, forceBuildNewDBModelForVersions, reactiveKit, selectedTargets in
         
         let logger = Logger()
 
@@ -35,7 +34,6 @@ let main = Group {
             with: configPath.isEmpty ? nil : configPath,
             currentVersion: currentVersion.isEmpty ? nil : currentVersion,
             cachePath: cachePath.isEmpty ? nil : cachePath,
-            noRepoUpdate: noRepoUpdate == "true" ? true : noRepoUpdate == "false" ? false : nil,
             forceBuildNewDBModel: forceBuildNewDBModel == "true" ? true : forceBuildNewDBModel == "false" ? false : nil,
             forceBuildNewDBModelForVersions: forceBuildNewDBModelForVersions.isEmpty ? nil : Set(forceBuildNewDBModelForVersions),
             selectedTargets: Set(selectedTargets),

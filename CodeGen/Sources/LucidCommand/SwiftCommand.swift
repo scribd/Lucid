@@ -41,7 +41,7 @@ final class SwiftCommand {
                                                                         outputPath: configuration.cachePath,
                                                                         inputPath: configuration._inputPath,
                                                                         gitRemote: configuration.gitRemote,
-                                                                        noRepoUpdate: configuration.noRepoUpdate,
+                                                                        currentVersion: currentAppVersion,
                                                                         logger: logger)
 
         var modelMappingHistoryVersions = try currentDescriptions.modelMappingHistory(derivedFrom: descriptionsVersionManager?.allVersionsFromGitTags() ?? [])

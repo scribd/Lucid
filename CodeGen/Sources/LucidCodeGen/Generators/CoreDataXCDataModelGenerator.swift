@@ -58,9 +58,22 @@ public final class CoreDataXCDataModelGenerator: Generator {
         return SwiftFile(content: content, path: directory + filename)
     }
     
-    private func generate(for entityName: String, in descriptions: Descriptions, version: Version, previousName: String?, previousDescriptions: Descriptions?) throws -> String {
+    private func generate(for entityName: String, in currentDescriptions: Descriptions, version: Version, previousName: String?, previousDescriptions: Descriptions?) throws -> String {
 
-        let entity = try descriptions.entity(for: entityName)
+        let entity = try currentDescriptions.entity(for: entityName)
+
+        let versionHash: String = {
+            var previousEntity: Entity? = nil
+            var currentHash: String = String()
+            (historyVersions + [version]).forEach { version in
+                let entity = try? descriptions[version]?.entity(for: entityName)
+                if entity != previousEntity {
+                    currentHash = version.dotDescription
+                }
+                previousEntity = entity
+            }
+            return currentHash
+        }()
 
         let elementIDText: String
 
@@ -81,9 +94,15 @@ public final class CoreDataXCDataModelGenerator: Generator {
 
         return """
             <entity name="\(entityCoreDataName)" representedClassName="\(entityCoreDataManagedName)" syncable="YES" codeGenerationType="class"\(elementIDText)>
-                <attribute name="_identifier" attributeType="\(try identifierCoreDataType(for: entity, in: descriptions))" usesScalarValueType="YES" syncable="YES" optional="YES"/>
-                <attribute name="__identifier" attributeType="\(entity.hasVoidIdentifier ? "Integer 64" : "String")" usesScalarValueType="YES" syncable="YES" optional="YES"/>
+                <attribute name="_identifier" attributeType="\(try identifierCoreDataType(for: entity, in: currentDescriptions))" usesScalarValueType="YES" syncable="YES" optional="YES" versionHashModifier="\(versionHash)"/>
+                <attribute name="__identifier" attributeType="\(entity.hasVoidIdentifier ? "Integer 64" : "String")" usesScalarValueType="YES" syncable="YES" optional="YES" versionHashModifier="\(versionHash)"/>
                 <attribute name="\(useCoreDataLegacyNaming ? "__typeUID" : "__type_uid")" attributeType="String" usesScalarValueType="YES" syncable="YES" optional="YES"/>
+                <fetchIndex name="remoteIdentifier">
+                    <fetchIndexElement property="_identifier" type="Binary" order="ascending"/>
+                </fetchIndex>
+                <fetchIndex name="localIdentifier">
+                    <fetchIndexElement property="__identifier" type="Binary" order="ascending"/>
+                </fetchIndex>
 
         \(entity.remote ?
             """
@@ -100,7 +119,7 @@ public final class CoreDataXCDataModelGenerator: Generator {
                 let _typeUIDElementIDText = property.previousName.flatMap { " elementID=\"__\($0)\(useCoreDataLegacyNaming ? "TypeUID" : "_type_uid")\"" } ?? ""
 
                 value += """
-                        <attribute name="_\(propertyCoreDataName)" optional="YES" attributeType="\(try propertyCoreDataType(for: property, in: descriptions))" syncable="YES"\(propertyElementIDText)/>
+                        <attribute name="_\(propertyCoreDataName)" optional="YES" attributeType="\(try propertyCoreDataType(for: property, in: currentDescriptions))" syncable="YES"\(propertyElementIDText)/>
                         <attribute name="__\(propertyCoreDataName)" optional="YES" attributeType="String" syncable="YES"\(_propertyElementIDText)/>
                         <attribute name="__\(propertyCoreDataName)\(useCoreDataLegacyNaming ? "TypeUID" : "_type_uid")" optional="YES" attributeType="String" syncable="YES"\(_typeUIDElementIDText)/>
                 """
@@ -110,7 +129,7 @@ public final class CoreDataXCDataModelGenerator: Generator {
                 let defaultValueText = property.defaultValue.flatMap { " \($0.coreDataAttributeName)=\"\($0.coreDataValue)\"" } ?? ""
 
                 value += """
-                        <attribute name="_\(propertyCoreDataName)"\(optionalText) attributeType="\(try propertyCoreDataType(for: property, in: descriptions))" \(property.propertyType.usesScalarValueType ? "usesScalarValueType=\"YES\" ": "")syncable="YES"\(propertyElementIDText)\(defaultValueText)/>
+                        <attribute name="_\(propertyCoreDataName)"\(optionalText) attributeType="\(try propertyCoreDataType(for: property, in: currentDescriptions))" \(property.propertyType.usesScalarValueType ? "usesScalarValueType=\"YES\" ": "")syncable="YES"\(propertyElementIDText)\(defaultValueText)/>
                 """
             }
             if property.lazy {

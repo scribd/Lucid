@@ -51,17 +51,3 @@ extension CoreManagerContainer {
         return CoreManagerContainer(cacheLimit: 500, client: dependencies.movieDBClient)
     }
 }
-
-// MARK: - Logger Domain
-
-extension Logger {
-
-    static func log(_ type: LogType,
-                    _ message: @autoclosure () -> String,
-                    assert: Bool = false,
-                    file: String = #file,
-                    function: String = #function,
-                    line: UInt = #line) {
-        log(type, message(), domain: "Sample", file: file, function: function, line: line)
-    }
-}

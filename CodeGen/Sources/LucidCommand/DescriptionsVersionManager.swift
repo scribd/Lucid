@@ -25,13 +25,13 @@ final class DescriptionsVersionManager {
 
     private let gitRemote: String?
 
-    private let noRepoUpdate: Bool
-
     private let logger: Logger
 
     private var didFetch = false
 
     private var _allVersionsFromGitTags: [Version]?
+
+    private let currentVersion: Version
 
     private var repositoryPath: Path {
         return outputPath + "repository"
@@ -41,11 +41,15 @@ final class DescriptionsVersionManager {
         return repositoryPath + inputPath
     }
 
+    private var currentVersionPath: Path {
+        return outputPath + ".version"
+    }
+
     init?(workingPath: Path,
           outputPath: Path,
           inputPath: Path,
           gitRemote: String?,
-          noRepoUpdate: Bool,
+          currentVersion: Version,
           logger: Logger) throws {
 
         guard (workingPath + ".git").exists else {
@@ -57,7 +61,7 @@ final class DescriptionsVersionManager {
         self.outputPath = outputPath
         self.inputPath = inputPath
         self.gitRemote = gitRemote
-        self.noRepoUpdate = noRepoUpdate
+        self.currentVersion = currentVersion
         self.logger = logger
 
         guard inputPath.isRelative else {
@@ -172,9 +176,17 @@ final class DescriptionsVersionManager {
     }
 
     private func fetchOrigin() throws {
-        if noRepoUpdate == false && didFetch == false {
+        let latestCachedVersion: Version?
+        do {
+            latestCachedVersion = try Version(try currentVersionPath.read(), source: .description)
+        } catch {
+            latestCachedVersion = nil
+        }
+
+        if latestCachedVersion != currentVersion && didFetch == false {
             try shellOut(to: "git fetch origin --tags --quiet", at: repositoryPath.absolute().string)
             didFetch = true
+            try currentVersionPath.write(currentVersion.versionString)
         }
     }
 

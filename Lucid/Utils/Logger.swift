@@ -48,15 +48,15 @@ extension Logging {
     }
 }
 
-public final class Logger: NSObject {
+final class Logger {
 
-    public static func log(_ type: LogType,
-                           _ message: @autoclosure () -> String,
-                           domain: String,
-                           assert: Bool = false,
-                           file: String = #file,
-                           function: String = #function,
-                           line: UInt = #line) {
+    static func log(_ type: LogType,
+                    _ message: @autoclosure () -> String,
+                    domain: String,
+                    assert: Bool = false,
+                    file: String = #file,
+                    function: String = #function,
+                    line: UInt = #line) {
 
         LucidConfiguration.logger?.log(type,
                                        message(),
@@ -67,14 +67,14 @@ public final class Logger: NSObject {
                                        line: line)
     }
 
-    public static func loggableErrorString(_ error: Error) -> String {
+    static func loggableErrorString(_ error: Error) -> String {
         return LucidConfiguration.logger?.loggableErrorString(error) ?? String()
     }
 }
 
 // MARK: - Lucid Domain
 
-public extension Logger {
+extension Logger {
 
     static func log(_ type: LogType,
                     _ message: @autoclosure () -> String,

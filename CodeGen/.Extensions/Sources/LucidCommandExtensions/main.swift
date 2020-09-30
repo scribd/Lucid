@@ -27,7 +27,6 @@ import PathKit
         let configuration = try CommandConfiguration.make(with: configPath,
                                                           currentVersion: currentVersion,
                                                           cachePath: nil,
-                                                          noRepoUpdate: nil,
                                                           forceBuildNewDBModel: nil,
                                                           forceBuildNewDBModelForVersions: nil,
                                                           selectedTargets: Set(selectedTargets),

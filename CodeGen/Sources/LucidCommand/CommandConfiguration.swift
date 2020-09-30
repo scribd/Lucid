@@ -47,9 +47,6 @@ struct CommandConfiguration {
     /// Git remote to use for checking out tags (defaults to nil).
     var gitRemote: String? = nil
 
-    /// Skips repository updates for data model changes checks.
-    var noRepoUpdate = Defaults.noRepoUpdate
-
     /// Build a new Database Model regardless of changes.
     var forceBuildNewDBModel = Defaults.forceBuildNewDBModel
 
@@ -78,7 +75,6 @@ struct CommandConfiguration {
     static func make(with configPath: String?,
                      currentVersion: String?,
                      cachePath: String?,
-                     noRepoUpdate: Bool?,
                      forceBuildNewDBModel: Bool?,
                      forceBuildNewDBModelForVersions: Set<String>?,
                      selectedTargets: Set<String>,
@@ -92,7 +88,6 @@ struct CommandConfiguration {
                         configPath: configPath,
                         currentVersion: currentVersion,
                         cachePath: cachePath,
-                        noRepoUpdate: noRepoUpdate,
                         forceBuildNewDBModel: forceBuildNewDBModel,
                         forceBuildNewDBModelForVersions: forceBuildNewDBModelForVersions,
                         selectedTargets: selectedTargets,
@@ -104,7 +99,6 @@ struct CommandConfiguration {
                              configPath: Path,
                              currentVersion: String?,
                              cachePath: String?,
-                             noRepoUpdate: Bool?,
                              forceBuildNewDBModel: Bool?,
                              forceBuildNewDBModelForVersions: Set<String>?,
                              selectedTargets: Set<String>,
@@ -127,7 +121,6 @@ struct CommandConfiguration {
 
         configuration.currentVersion = currentVersion ?? configuration.currentVersion
         configuration._cachePath = cachePath.flatMap { Path($0) } ?? configuration._cachePath
-        configuration.noRepoUpdate = noRepoUpdate ?? configuration.noRepoUpdate
         configuration.forceBuildNewDBModel = forceBuildNewDBModel ?? configuration.forceBuildNewDBModel
         configuration.forceBuildNewDBModelForVersions = forceBuildNewDBModelForVersions ?? configuration.forceBuildNewDBModelForVersions
         configuration.reactiveKit = reactiveKit ?? configuration.reactiveKit
@@ -150,7 +143,6 @@ struct CommandConfiguration {
             configPath: configPath,
             currentVersion: Defaults.currentVersion,
             cachePath: Defaults.cachePath.string,
-            noRepoUpdate: nil,
             forceBuildNewDBModel: nil,
             forceBuildNewDBModelForVersions: nil,
             selectedTargets: {
@@ -262,7 +254,6 @@ private enum Defaults {
     static let currentVersion = "1.0.0"
     static let cachePath = Path("/usr/local/share/lucid/cache")
     static let gitRemote: String? = nil
-    static let noRepoUpdate = false
     static let forceBuildNewDBModel = true
     static let forceBuildNewDBModelForVersions = Set<String>()
     static let lexicon = [String]()
@@ -287,7 +278,6 @@ extension CommandConfiguration: Codable {
         case gitRemote = "git_remote"
         case forceBuildNewDBModel = "force_build_new_db_model"
         case forceBuildNewDBModelForVersions = "force_build_new_db_model_for_versions"
-        case noRepoUpdate = "no_repo_update"
         case lexicon = "lexicon"
         case activeTargets = "active_targets"
         case responseHandlerFunction = "response_handler_function"
@@ -313,7 +303,6 @@ extension CommandConfiguration: Codable {
         gitRemote = try container.decodeIfPresent(String.self, forKey: .gitRemote) ?? Defaults.gitRemote
         forceBuildNewDBModel = try container.decodeIfPresent(Bool.self, forKey: .forceBuildNewDBModel) ?? Defaults.forceBuildNewDBModel
         forceBuildNewDBModelForVersions = try container.decodeIfPresent(Set<String>.self, forKey: .forceBuildNewDBModelForVersions) ?? Defaults.forceBuildNewDBModelForVersions
-        noRepoUpdate = try container.decodeIfPresent(Bool.self, forKey: .noRepoUpdate) ?? Defaults.noRepoUpdate
         responseHandlerFunction = try container.decodeIfPresent(String.self, forKey: .responseHandlerFunction)
         coreDataMigrationsFunction = try container.decodeIfPresent(String.self, forKey: .coreDataMigrationsFunction)
         useCoreDataLegacyNaming = try container.decodeIfPresent(Bool.self, forKey: .useCoreDataLegacyNaming) ?? Defaults.useCoreDataLegacyNaming
@@ -345,7 +334,6 @@ extension CommandConfiguration: Codable {
         try container.encodeIfPresent(gitRemote, forKey: .gitRemote)
         try container.encodeIfPresent(forceBuildNewDBModel == Defaults.forceBuildNewDBModel ? nil : forceBuildNewDBModel, forKey: .forceBuildNewDBModel)
         try container.encodeIfPresent(forceBuildNewDBModelForVersions.isEmpty ? nil : forceBuildNewDBModelForVersions.sorted(), forKey: .forceBuildNewDBModelForVersions)
-        try container.encodeIfPresent(noRepoUpdate == Defaults.noRepoUpdate ? nil : noRepoUpdate, forKey: .noRepoUpdate)
         try container.encodeIfPresent(responseHandlerFunction, forKey: .responseHandlerFunction)
         try container.encodeIfPresent(coreDataMigrationsFunction, forKey: .coreDataMigrationsFunction)
         try container.encodeIfPresent(useCoreDataLegacyNaming == Defaults.useCoreDataLegacyNaming ? nil : useCoreDataLegacyNaming, forKey: .useCoreDataLegacyNaming)

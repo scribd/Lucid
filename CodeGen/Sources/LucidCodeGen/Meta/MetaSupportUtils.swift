@@ -26,8 +26,8 @@ struct MetaSupportUtils {
             enum Logger {
 
                 static var shared: Logging? {
-                    get { return Lucid\(reactiveKit ? "_ReactiveKit" : "").LucidConfiguration.logger }
-                    set { Lucid\(reactiveKit ? "_ReactiveKit" : "").LucidConfiguration.logger = newValue }
+                    get { return LucidConfiguration.logger }
+                    set { LucidConfiguration.logger = newValue }
                 }
 
                 static func log(_ type: LogType,
@@ -38,13 +38,13 @@ struct MetaSupportUtils {
                                 function: String = #function,
                                 line: UInt = #line) {
 
-                    LucidConfiguration.logger?.log(type,
-                                                   message(),
-                                                   domain: domain,
-                                                   assert: assert,
-                                                   file: file,
-                                                   function: function,
-                                                   line: line)
+                    shared?.log(type,
+                                message(),
+                                domain: domain,
+                                assert: assert,
+                                file: file,
+                                function: function,
+                                line: line)
                 }
             }
 

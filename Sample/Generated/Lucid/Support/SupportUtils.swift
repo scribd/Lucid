@@ -14,8 +14,8 @@ import Combine
 enum Logger {
 
     static var shared: Logging? {
-        get { return Lucid.LucidConfiguration.logger }
-        set { Lucid.LucidConfiguration.logger = newValue }
+        get { return LucidConfiguration.logger }
+        set { LucidConfiguration.logger = newValue }
     }
 
     static func log(_ type: LogType,
@@ -26,13 +26,13 @@ enum Logger {
                     function: String = #function,
                     line: UInt = #line) {
 
-        LucidConfiguration.logger?.log(type,
-                                       message(),
-                                       domain: domain,
-                                       assert: assert,
-                                       file: file,
-                                       function: function,
-                                       line: line)
+        shared?.log(type,
+                    message(),
+                    domain: domain,
+                    assert: assert,
+                    file: file,
+                    function: function,
+                    line: line)
     }
 }
 

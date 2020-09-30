@@ -101,7 +101,7 @@ public protocol Descriptions {
 
 // MARK: - EndpointPayload
 
-public struct EndpointPayload {
+public struct EndpointPayload: Equatable {
     
     public let name: String
     
@@ -120,14 +120,14 @@ public struct EndpointPayload {
 
 // MARK: - EndpointPayloadTest
 
-public struct EndpointPayloadTest {
+public struct EndpointPayloadTest: Equatable {
 
     public enum HTTPMethod: String {
         case get
         case post
     }
 
-    public struct Entity {
+    public struct Entity: Equatable {
         public let name: String
         public let count: Int?
         public let isTarget: Bool
@@ -151,7 +151,7 @@ public struct EndpointPayloadTest {
 
 // MARK: - EndpointPayloadEntity
 
-public struct EndpointPayloadEntity {
+public struct EndpointPayloadEntity: Equatable {
 
     public enum Structure: String {
         case single = "single"
@@ -170,9 +170,9 @@ public struct EndpointPayloadEntity {
 
 // MARK: - Variations
 
-public struct EndpointPayloadEntityVariation {
+public struct EndpointPayloadEntityVariation: Equatable {
 
-    public struct Rename: Decodable {
+    public struct Rename: Decodable, Equatable {
         let originalName: String
         let customName: String
     }
@@ -184,7 +184,7 @@ public struct EndpointPayloadEntityVariation {
 
 // MARK: - PropertyScalarType
 
-public enum PropertyScalarType: String {
+public enum PropertyScalarType: String, Equatable {
     case string = "String"
     case int = "Int"
     case date = "Date"
@@ -216,7 +216,7 @@ public struct MetadataProperty: Equatable {
 
 // MARK: - Entities
 
-public struct Entity {
+public struct Entity: Equatable {
     
     public let name: String
     
@@ -317,7 +317,7 @@ public enum DefaultValue: Equatable {
 
 // MARK: - Properties
 
-public struct EntityProperty {
+public struct EntityProperty: Equatable {
     
     public enum PropertyType: Equatable {
         case scalar(PropertyScalarType)
@@ -381,21 +381,21 @@ public struct EntityRelationship: Equatable {
 
 // MARK: - Subtype
 
-public struct Subtype {
+public struct Subtype: Equatable {
     
     public enum `Protocol`: String, Decodable {
         case codable
     }
     
-    public enum Items {
+    public enum Items: Equatable {
         case cases(used: [String], unused: [String], objcNoneCase: Bool)
         case options(used: [String], unused: [String])
         case properties([Property])
     }
     
-    public struct Property {
+    public struct Property: Equatable {
         
-        public enum PropertyType {
+        public enum PropertyType: Equatable {
             case scalar(PropertyScalarType)
             case custom(String)
         }

@@ -53,7 +53,7 @@ struct MetaEndpointResultPayload {
             if entity.hasVoidIdentifier {
                 type = .anySequence(element: entity.typeID())
             } else {
-                type = .orderedDualHashDictionary(key: entity.identifierTypeID(), value: entity.typeID())
+                type = .dualHashDictionary(key: entity.identifierTypeID(), value: entity.typeID())
             }
             return Property(variable: entity.payloadEntityAccessorVariable
                 .with(type: type))
@@ -81,7 +81,7 @@ struct MetaEndpointResultPayload {
                     variable: entity.payloadEntityAccessorVariable.with(immutable: false),
                     value: (entity.hasVoidIdentifier ?
                         TypeIdentifier.array(element: entity.typeID()) :
-                        TypeIdentifier.orderedDualHashDictionary(key: entity.identifierTypeID(), value: entity.typeID())
+                        TypeIdentifier.dualHashDictionary(key: entity.identifierTypeID(), value: entity.typeID())
                     ).reference | .call()
                 )
             })
@@ -202,7 +202,7 @@ struct MetaEndpointResultPayload {
                 } else {
                     return """
                     case is \(entity.typeID().swiftString).Type:
-                        return \(entity.name.camelCased().variableCased().pluralName).orderedKeyValues.map { $0.1 }.any as? AnySequence<E> ?? [].any
+                        return \(entity.name.camelCased().variableCased().pluralName).values.any as? AnySequence<E> ?? [].any
                     """
                 }
             }.joined(separator: "\n"))

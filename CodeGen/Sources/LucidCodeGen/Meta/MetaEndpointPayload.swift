@@ -363,7 +363,7 @@ struct MetaEndpointPayload {
                             .adding(member: TypeIdentifier.appAnyEntity.reference + .named(entity.name.camelCased().variableCased()) | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: Reference.named("$0")))
                             ))
-                        )
+                        ) + .named("any")
                     )
                 })
                 .adding(member: Return(value: Reference.array(with: extractableEntitiesAndSelf.map { entity in

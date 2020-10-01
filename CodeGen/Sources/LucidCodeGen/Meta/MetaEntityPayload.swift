@@ -467,7 +467,7 @@ struct MetaEntityPayload {
             Comment.mark("Relationship Entities Accessors"),
             EmptyLine(),
             Extension(type: entity.payloadTypeID)
-                .with(body: try extractablePropertyEntities.flatMap { relationshipEntity -> [TypeBodyMember] in
+                .adding(members: try extractablePropertyEntities.flatMap { relationshipEntity -> [TypeBodyMember] in
                     
                     let directRelationships = (relationshipsForIdentifierDerivation[relationshipEntity.name] ?? []).filter { property, relationship in
                         let isEmbedded = relationship.idOnly == false

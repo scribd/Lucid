@@ -2476,7 +2476,7 @@ final class CoreManagerTests: XCTestCase {
     // MARK: - Observer Ordering
 
     func test_continuous_observer_should_receive_all_updates_in_order() {
-        let count = 500
+        let count = 400
 
         let expectedResults = (0..<count).map { index in
             (0..<index).map { EntitySpy(idValue: .remote($0, nil), title: "title_\($0)") }
@@ -2515,7 +2515,7 @@ final class CoreManagerTests: XCTestCase {
 
         }
 
-        wait(for: [continuousExpectation], timeout: 20)
+        wait(for: [continuousExpectation], timeout: 60)
     }
 
     // MARK: - Metadata Root Filtering

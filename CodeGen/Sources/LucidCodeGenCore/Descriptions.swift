@@ -287,6 +287,8 @@ public struct EntityIdentifier: Equatable {
     public let equivalentIdentifierName: String?
     
     public let objc: Bool
+
+    public let atomic: Bool?
 }
 
 public enum EntityIdentifierType: Equatable {

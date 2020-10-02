@@ -10,7 +10,13 @@ import Foundation
 // MARK: - Defaults
 
 private enum Defaults {
-    static let identifier = EntityIdentifier(identifierType: .void, equivalentIdentifierName: nil, objc: false)
+    static let identifier = EntityIdentifier(
+        identifierType: .void,
+        equivalentIdentifierName: nil,
+        objc: Defaults.objc,
+        atomic: nil
+    )
+
     static let remote = true
     static let persist = false
     static let useForEquality = true
@@ -240,6 +246,7 @@ extension EntityIdentifier: Decodable {
         case equivalentToIdentifierOf
         case propertyName
         case objc
+        case atomic
     }
     
     public init(from decoder: Decoder) throws {
@@ -273,6 +280,7 @@ extension EntityIdentifier: Decodable {
         }
         
         equivalentIdentifierName = try container.decodeIfPresent(String.self, forKey: .equivalentToIdentifierOf)
+        atomic = try container.decodeIfPresent(Bool.self, forKey: .atomic)
     }
 }
 

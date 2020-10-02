@@ -669,6 +669,50 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [continuousExpectation], timeout: 1)
     }
 
+    func test_manager_continuous_observer_emits_once_when_results_are_the_same() {
+
+        memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil))]))
+        remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil))]))
+        memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
+
+        let continuousExpectation = self.expectation(description: "continuous")
+
+        let context = ReadContext<EntitySpy>(dataSource: .localThen(.remote(
+            endpoint: .request(APIRequestConfig(
+                method: .get,
+                path: .path("fake_entity"),
+                query: [("ids", .value(["42", "43"]))]
+            ), resultPayload: .empty),
+            persistenceStrategy: .persist(.discardExtraLocalData)
+        )))
+
+        let expectedIdentifiers = [EntitySpyIdentifier(value: .remote(42, nil))]
+        let signals = manager.search(withQuery: .filter(.identifier >> expectedIdentifiers), in: context)
+
+        signals
+            .continuous
+            .observe { event in
+                switch event {
+                case .next(let documents):
+                    XCTAssertEqual(documents.count, 1)
+                    XCTAssertEqual(documents.first?.identifier.value.remoteValue, 42)
+                    continuousExpectation.fulfill()
+                case .failed(let error):
+                    XCTFail("Unexpected error: \(error)")
+                case .completed:
+                    XCTFail("Unexpected completion")
+                }
+            }
+            .dispose(in: disposeBag)
+
+        let waitExpectation = self.expectation(description: "wait")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            waitExpectation.fulfill()
+        }
+
+        wait(for: [continuousExpectation, waitExpectation], timeout: 1)
+    }
+
     // MARK: - search(withQuery:context:cacheStrategy:completion:)
 
     func test_manager_should_get_entities_from_remote_store_then_cache_them_when_strategy_is_prefer_remote() {

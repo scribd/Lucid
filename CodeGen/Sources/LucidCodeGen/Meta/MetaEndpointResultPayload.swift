@@ -53,7 +53,7 @@ struct MetaEndpointResultPayload {
             if entity.hasVoidIdentifier {
                 type = .anySequence(element: entity.typeID())
             } else {
-                type = .orderedDualHashDictionary(key: entity.identifierTypeID(), value: entity.typeID())
+                type = .dualHashDictionary(key: entity.identifierTypeID(), value: entity.typeID())
             }
             return Property(variable: entity.payloadEntityAccessorVariable
                 .with(type: type))
@@ -68,6 +68,7 @@ struct MetaEndpointResultPayload {
     }
     
     private func initFunction() throws -> Function {
+
         return Function(kind: .`init`)
             .with(accessLevel: .public)
             .adding(parameter: FunctionParameter(alias: "from", name: "data", type: .data))
@@ -75,40 +76,33 @@ struct MetaEndpointResultPayload {
             .adding(parameter: FunctionParameter(name: "decoder", type: .jsonDecoder))
             .with(throws: true)
             .adding(member: EmptyLine())
-            .adding(member: Switch(reference: .named("endpoint")).with(cases: try descriptions.endpoints.map { endpoint in
-                let entity = try descriptions.entity(for: endpoint.entity.entityName)
-                let extractableEntityNames = Set(try entity.extractablePropertyEntities(descriptions).map { $0.name } + [entity.name])
-                return SwitchCase(name: endpoint.transformedName.variableCased())
+            .adding(members: descriptions.entities.map { entity in
+                Assignment(
+                    variable: entity.payloadEntityAccessorVariable.with(immutable: false),
+                    value: (entity.hasVoidIdentifier ?
+                        TypeIdentifier.array(element: entity.typeID()) :
+                        TypeIdentifier.dualHashDictionary(key: entity.identifierTypeID(), value: entity.typeID())
+                    ).reference | .call()
+                )
+            })
+            .adding(member: Variable(name: "entities").with(type: .anySequence(element: .appAnyEntity)))
+            .adding(member: EmptyLine())
+            .adding(member: Switch(reference: .named("endpoint")).with(cases: descriptions.endpoints.map { endpoint in
+                SwitchCase(name: endpoint.transformedName.variableCased())
                     .adding(member: Reference.named("decoder") + .named("setExcludedPaths") | .call(Tuple()
                         .adding(parameter: TupleParameter(value: endpoint.typeID.reference + .named("excludedPaths")))
                     ))
-                    .adding(member:
-                        Assignment(
-                            variable: Variable(name: "payload"),
-                            value: .try | .named("decoder") + .named("decode") | .call(Tuple()
-                                .adding(parameter: TupleParameter(value: endpoint.typeID.reference + .named(.`self`)))
-                                .adding(parameter: TupleParameter(name: "from", value: Reference.named("data")))
-                            )
-                        )
+                    .adding(member: Assignment(
+                        variable: Variable(name: "payload"),
+                        value: .try | .named("decoder") + .named("decode") | .call(Tuple()
+                            .adding(parameter: TupleParameter(value: endpoint.typeID.reference + .named(.`self`)))
+                            .adding(parameter: TupleParameter(name: "from", value: Reference.named("data")))
+                        ))
                     )
-                    .adding(members: descriptions.entities.map { entity in
-                        if extractableEntityNames.contains(entity.name) {
-                            return Assignment(
-                                variable: entity.payloadEntityAccessorVariable.reference,
-                                value: .named("payload") +
-                                    entity.payloadEntityAccessorVariable.reference +
-                                    (entity.hasVoidIdentifier == false ? .named("byIdentifier") : .named("lazy") + .named(.map) | .block(FunctionBody()
-                                        .adding(member: Reference.named("$0"))
-                                    ) + .named("any")
-                                )
-                            )
-                        } else {
-                            return Assignment(
-                                variable: entity.payloadEntityAccessorVariable.reference,
-                                value: entity.hasVoidIdentifier == false ? Reference.orderedDualHashDictionary() : +.named("empty")
-                            )
-                        }
-                    })
+                    .adding(member: Assignment(
+                        variable: Reference.named("entities"),
+                        value: .named("payload") + .named("allEntities")
+                    ))
                     .adding(member: Assignment(
                         variable: Reference.named("metadata"),
                         value: TypeIdentifier.endpointResultMetadata.reference | .call(Tuple()
@@ -119,6 +113,32 @@ struct MetaEndpointResultPayload {
                         )
                     ))
             }))
+            .adding(member: EmptyLine())
+            .adding(member: PlainCode(code: """
+            for entity in entities {
+                switch entity {
+                \(descriptions.entities.map { entity in
+                    """
+                    case .\(entity.name.camelCased().variableCased())(let value):
+                        \({ () -> String in
+                            if entity.hasVoidIdentifier {
+                                return "    \(entity.payloadEntityAccessorVariable.name).append(value)"
+                            } else {
+                                return "    \(entity.payloadEntityAccessorVariable.name)[value.identifier] = value"
+                            }
+                        }())
+                    """
+                }.joined(separator: "\n    "))
+                }
+            }
+            """))
+            .adding(member: EmptyLine())
+            .adding(members: descriptions.entities.map { entity in
+                Assignment(
+                    variable: Reference.named(.`self`) + entity.payloadEntityAccessorVariable.reference,
+                    value: entity.payloadEntityAccessorVariable.reference | (entity.hasVoidIdentifier ? +.named("any") : .none)
+                )
+            })
     }
 
     private func getEntityFunction() throws -> Function {
@@ -182,7 +202,7 @@ struct MetaEndpointResultPayload {
                 } else {
                     return """
                     case is \(entity.typeID().swiftString).Type:
-                        return \(entity.name.camelCased().variableCased().pluralName).orderedKeyValues.map { $0.1 }.any as? AnySequence<E> ?? [].any
+                        return \(entity.name.camelCased().variableCased().pluralName).values.any as? AnySequence<E> ?? [].any
                     """
                 }
             }.joined(separator: "\n"))
@@ -192,4 +212,3 @@ struct MetaEndpointResultPayload {
             """))
     }
 }
-//.anySequence(element: entity.typeID())

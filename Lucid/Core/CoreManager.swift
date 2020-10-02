@@ -883,11 +883,6 @@ private extension CoreManager {
                     return
                 }
                 self.setUpdateTime(time, for: entity.identifier)
-
-                let raiseUpdateEventsBox = ProcessOnceEntityBox<E> { updatedEntity in
-                    guard let updatedEntity = updatedEntity.first else { return }
-                    self.raiseUpdateEvents(withQuery: .identifier(updatedEntity.identifier), results: .entities([updatedEntity]))
-                }
                 let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
 
                 storeStack.set(
@@ -895,17 +890,17 @@ private extension CoreManager {
                     in: context,
                     localStoresCompletion: { result in
                         guard let updatedEntity = result?.value else { return }
-                        raiseUpdateEventsBox.process([updatedEntity])
+                        self.raiseUpdateEvents(withQuery: .identifier(updatedEntity.identifier), results: .entities([updatedEntity]))
                     },
                     allStoresCompletion: { result in
                         switch result {
                         case .success(let updatedEntity):
                             guardedPromise(.success(updatedEntity))
-                            raiseUpdateEventsBox.process([updatedEntity])
+                            self.raiseUpdateEvents(withQuery: .identifier(updatedEntity.identifier), results: .entities([updatedEntity]))
 
                         case .none:
                             guardedPromise(.success(entity))
-                            raiseUpdateEventsBox.process([entity])
+                            self.raiseUpdateEvents(withQuery: .identifier(entity.identifier), results: .entities([entity]))
 
                         case .failure(let error):
                             Logger.log(.error, "\(CoreManager.self): An error occurred while setting entity: \(error)")
@@ -964,17 +959,14 @@ private extension CoreManager {
 
                 self.setUpdateTime(time, for: entitiesToUpdate.lazy.compactMap { $0.1?.identifier })
 
-                let raiseUpdateEventsBox = ProcessOnceEntityBox<E> { updatedEntities in
-                    self.raiseUpdateEvents(withQuery: .filter(.identifier >> updatedEntities.lazy.map { $0.identifier }),
-                                           results: .entities(updatedEntities))
-                }
                 let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
                 storeStack.set(
                     entitiesToUpdate.lazy.compactMap { $0.1 },
                     in: context,
                     localStoresCompletion: { result in
                         guard let updatedEntities = result?.value else { return }
-                        raiseUpdateEventsBox.process(updatedEntities)
+                        self.raiseUpdateEvents(withQuery: .filter(.identifier >> updatedEntities.lazy.map { $0.identifier }),
+                                               results: .entities(updatedEntities))
                     },
                     allStoresCompletion: { result in
                         switch result {
@@ -986,11 +978,13 @@ private extension CoreManager {
                                 entitiesToUpdate[entity.identifier] = entity
                             }
                             guardedPromise(.success(entitiesToUpdate.lazy.compactMap { $0.1 }.any))
-                            raiseUpdateEventsBox.process(updatedEntities)
+                            self.raiseUpdateEvents(withQuery: .filter(.identifier >> updatedEntities.lazy.map { $0.identifier }),
+                                                   results: .entities(updatedEntities))
 
                         case .none:
                             guardedPromise(.success(entities.any))
-                            raiseUpdateEventsBox.process(entities)
+                            self.raiseUpdateEvents(withQuery: .filter(.identifier >> entities.lazy.map { $0.identifier }),
+                                                   results: .entities(entities))
 
                         case .failure(let error):
                             Logger.log(.error, "\(CoreManager.self): An error occurred while setting entities: \(error)")
@@ -1040,9 +1034,6 @@ private extension CoreManager {
                         let identifiersToRemove = entitiesToRemove.lazy.map { $0.identifier }
                         self.setUpdateTime(time, for: identifiersToRemove)
 
-                        let raiseDeleteEventsBox = ProcessOnceIdentifierBox<E.Identifier> { removedIdentifiers in
-                            self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
-                        }
                         let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
                         if entitiesToRemove.count == results.count {
                             storeStack.removeAll(
@@ -1050,18 +1041,18 @@ private extension CoreManager {
                                 in: context,
                                 localStoresCompletion: { result in
                                     guard let removedIdentifiers = result?.value else { return }
-                                    raiseDeleteEventsBox.process(removedIdentifiers)
+                                    self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
                                 },
                                 allStoresCompletion: { result in
                                     switch result {
                                     case .success(let removedIdentifiers):
                                         guardedPromise(.success(removedIdentifiers))
-                                        raiseDeleteEventsBox.process(removedIdentifiers)
+                                        self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
 
                                     case .none:
                                         let removedIdentifiers = entitiesToRemove.map { $0.identifier }.any
                                         guardedPromise(.success(removedIdentifiers))
-                                        raiseDeleteEventsBox.process(removedIdentifiers)
+                                        self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
 
                                     case .failure(let error):
                                         Logger.log(.error, "\(CoreManager.self): An error occurred while removing all entities in query: \(error)")
@@ -1075,13 +1066,13 @@ private extension CoreManager {
                                 in: context,
                                 localStoresCompletion: { result in
                                     guard result?.error == nil else { return }
-                                    raiseDeleteEventsBox.process(identifiersToRemove)
+                                    self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
                             },
                                 allStoresCompletion: { result in
                                     switch result {
                                     case .success, .none:
                                         guardedPromise(.success(identifiersToRemove.any))
-                                        raiseDeleteEventsBox.process(identifiersToRemove)
+                                        self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
 
                                     case .failure(let error):
                                         Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities for identifiers: \(error)")
@@ -1130,24 +1121,20 @@ private extension CoreManager {
                 }
                 self.setUpdateTime(time, for: identifier)
 
-                let raiseDeleteEventsBox = ProcessOnceIdentifierBox<E.Identifier> { removedIdentifiers in
-                    guard let removedIdentifier = removedIdentifiers.first else { return }
-                    self.raiseDeleteEvents(DualHashSet([removedIdentifier]))
-                }
                 let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
                 storeStack.remove(
                     atID: identifier,
                     in: context,
                     localStoresCompletion: { result in
                         guard result?.error == nil else { return }
-                        raiseDeleteEventsBox.process([identifier])
+                        self.raiseDeleteEvents(DualHashSet([identifier]))
                     },
                     allStoresCompletion: { result in
                         switch result {
                         case .success,
                              .none:
                             guardedPromise(.success(()))
-                            raiseDeleteEventsBox.process([identifier])
+                            self.raiseDeleteEvents(DualHashSet([identifier]))
 
                         case .failure(let error):
                             Logger.log(.error, "\(CoreManager.self): An error occurred while removing entity: \(error)")
@@ -1190,23 +1177,20 @@ private extension CoreManager {
                 }
                 self.setUpdateTime(time, for: identifiersToRemove)
 
-                let raiseDeleteEventsBox = ProcessOnceIdentifierBox<E.Identifier> { removedIdentifiers in
-                    self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
-                }
                 let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
                 storeStack.remove(
                     identifiersToRemove,
                     in: context,
                     localStoresCompletion: { result in
                         guard result?.error == nil else { return }
-                        raiseDeleteEventsBox.process(identifiersToRemove)
+                        self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
                     },
                     allStoresCompletion: { result in
                         switch result {
                         case .success,
                              .none:
                             guardedPromise(.success(()))
-                            raiseDeleteEventsBox.process(identifiersToRemove)
+                            self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
 
                         case .failure(let error):
                             Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities: \(error)")
@@ -1597,46 +1581,6 @@ private extension Property where Element: Equatable {
         if value != self.value {
             self.value = value
         }
-    }
-}
-
-// MARK: - ProcessOnceBox
-
-private final class ProcessOnceBox<Identifier, Object> where Identifier: EntityIdentifier {
-
-    private let operation: (AnySequence<Object>) -> Void
-    private var _processedSet = DualHashSet<Identifier>()
-    private let dataQueue = DispatchQueue(label: "\(ProcessOnceBox<Identifier, Object>.self)_data_queue")
-
-    init(operation: @escaping (AnySequence<Object>) -> Void) {
-        self.operation = operation
-    }
-
-    private func process<O, I>(_ objects: O, _ identifiers: I) where O: Sequence, O.Element == Object, I: Sequence, I.Element == Identifier {
-        guard dataQueue.sync(execute: {
-            var newItems = DualHashSet(identifiers)
-            newItems.subtract(_processedSet)
-            defer { newItems.forEach { _processedSet.insert($0) } }
-            return newItems.isEmpty == false
-        }) else { return }
-        operation(objects.any)
-    }
-}
-
-private typealias ProcessOnceIdentifierBox<I: EntityIdentifier> = ProcessOnceBox<I, I>
-private typealias ProcessOnceEntityBox<E: Entity> = ProcessOnceBox<E.Identifier, E>
-
-private extension ProcessOnceBox where Identifier == Object {
-
-    func process<S>(_ identifiers: S) where S: Sequence, S.Element == Identifier {
-        process(identifiers, identifiers)
-    }
-}
-
-private extension ProcessOnceBox where Object: Entity, Object.Identifier == Identifier {
-
-    func process<S>(_ objects: S) where S: Sequence, S.Element == Object {
-        process(objects, objects.lazy.map { $0.identifier })
     }
 }
 

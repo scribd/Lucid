@@ -358,13 +358,17 @@ public struct EntityIdentifier: Equatable {
     
     public let objc: Bool
 
+    public let atomic: Bool?
+
     public init(identifierType: EntityIdentifierType,
                 equivalentIdentifierName: String? = nil,
-                objc: Bool = DescriptionDefaults.objc) {
+                objc: Bool = DescriptionDefaults.objc,
+                atomic: Bool? = nil) {
 
         self.identifierType = identifierType
         self.equivalentIdentifierName = equivalentIdentifierName
         self.objc = objc
+        self.atomic = atomic
     }
 }
 

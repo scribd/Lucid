@@ -282,7 +282,7 @@ struct MetaEntityIdentifier {
                 .adding(member: .named("hasher") + .named("combine") | .call(Tuple()
                     .adding(parameter: TupleParameter(value: Reference.named("identifierTypeID")))
                 ))
-        ] + (entity.mutable ? [
+        ] + (entity.atomicIdentifier ? [
             EmptyLine(),
             Function(kind: .named("update"))
                 .with(accessLevel: .public)

@@ -69,3 +69,22 @@ When installing Lucid Run-time with:
 - Carthage - use `$ cd Carthage/Checkout/Lucid/CodeGen`
 - Cocoapods - use `$ cd Pods/Lucid/CodeGen`
 - Swift Package Manager - use `$ cd .build/checkouts/Lucid/CodeGen`
+
+## Quick Setup
+
+To quickly boostrap a project, try running the following:
+
+```bash
+$ mkdir MyProject && cd MyProject
+$ lucid bootstrap
+```
+
+The boostrap command creates a configuration file (`.lucid.yaml`) and an example of entity and endpoint description (under the directory `Descriptions`), which you can rename and edit at your convenience.
+
+Then, to generate the code, run:
+
+```bash
+$ lucid swift
+```
+
+This command generates the code to insert in your project under the directory `Generated`.

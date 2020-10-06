@@ -1,4 +1,4 @@
-![Tests](https://github.com/scribd/Lucid/workflows/Tests/badge.svg) ![Code Coverage](https://s3.amazonaws.com/mobile.scribd.com/badges/Lucid/CodeGen.svg) 
+![Tests](https://github.com/scribd/Lucid/workflows/Tests/badge.svg) ![Code Coverage](https://s3.amazonaws.com/mobile.scribd.com/badges/Lucid/CodeGen.svg)
 
 # Lucid
 
@@ -10,62 +10,23 @@ Lucid is a Swift library for building robust data layers for applications.
 
 - **Adaptability**: Built to fit most kinds of standard and non-standard server APIs, Lucid abstracts away server-side structural decisions by providing a resource oriented universal client-side API.
 
-## Installation
+## Quick Setup
 
-### Lucid Run-time
-
-#### [Carthage](https://github.com/Carthage/Carthage)
-
-```
-github "git@github.com:scribd/Lucid.git"
-```
-
-#### [CocoaPods](https://cocoapods.org) (coming soon)
-
-```
-pod 'Lucid'
-```
-
-#### [Swift Package Manager](https://swift.org/package-manager/) (coming soon)
-
-```swift
-// swift-tools-version:5.0
-
-import PackageDescription
-
-let package = Package(
-  name: "MyApp",
-  dependencies: [
-    .package(url: "https://github.com/scribd/Lucid.git", from: "1.0")
-  ],
-  targets: [
-    .target(name: "MyApp", dependencies: ["Lucid"])
-  ]
-)
-```
-
-### Lucid Compile-time
-
-#### Binary form
-
-Download the latest release with the prebuilt binary from release tab. Unzip the archive into the desired destination and run `bin/lucid`
-
-#### [Homebrew](https://brew.sh) (coming soon)
+To quickly boostrap a project, try running the following:
 
 ```bash
-$ brew install lucid
+$ mkdir MyProject && cd MyProject
+$ lucid bootstrap
 ```
 
-#### Manually
+The boostrap command creates a configuration file (`.lucid.yaml`) and an example of entity and endpoint description (under the directory `Descriptions`), which you can rename and edit at your convenience.
+
+Then, to generate the code, run:
 
 ```bash
-$ git clone git@github.com:scribd/Lucid.git
-$ cd Lucid/CodeGen
-$ make install
+$ lucid swift
 ```
 
-When installing Lucid Run-time with:
+This command generates the code to insert in your project under the directory `Generated`.
 
-- Carthage - use `$ cd Carthage/Checkout/Lucid/CodeGen`
-- Cocoapods - use `$ cd Pods/Lucid/CodeGen`
-- Swift Package Manager - use `$ cd .build/checkouts/Lucid/CodeGen`
+## [Documentation](Documentation)

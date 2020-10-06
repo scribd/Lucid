@@ -5,6 +5,7 @@
 3. [Installation](Installation.md)
 4. [Setup](Setup.md)
 5. [Command](Command.md)
+6. [Command Extensions](CommandExtensions.md)
 6. [CoreManager](CoreManager.md)
 7. [CoreManagerContainer](CoreManagerContainer.md)
 8. [Entity](Entity.md)

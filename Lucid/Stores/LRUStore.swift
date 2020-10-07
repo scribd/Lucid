@@ -178,9 +178,9 @@ private extension LRUStore {
         }
 
         if identifiersToRemove.isEmpty == false {
-            Logger.log(.verbose, "\(LRUStore.self): Dropping \(identifiersToRemove.count) elements as the \(limit) limit was reached.")
+            Logger.log(.verbose, "\(LRUStore<E>.self): Dropping \(identifiersToRemove.count) elements as the \(limit) limit was reached.")
         }
-        Logger.log(.verbose, "\(LRUStore.self): Entities count: \(_elementsByID.count) / \(limit)")
+        Logger.log(.verbose, "\(LRUStore<E>.self): Entities count: \(_elementsByID.count) / \(limit)")
 
         return identifiersToRemove
     }
@@ -193,9 +193,9 @@ private extension LRUStore {
 
         store.remove(identifiers, in: context) { result in
             if result == nil {
-                Logger.log(.error, "\(LRUStore.self): Could not delete entity: \(identifiers) because of error. Unexpectedly received nil.", assert: true)
+                Logger.log(.error, "\(LRUStore<E>.self): Could not delete entity: \(identifiers) because of error. Unexpectedly received nil.", assert: true)
             } else if let error = result?.error {
-                Logger.log(.error, "\(LRUStore.self): Could not delete entity: \(identifiers) because of error: \(error).", assert: true)
+                Logger.log(.error, "\(LRUStore<E>.self): Could not delete entity: \(identifiers) because of error: \(error).", assert: true)
             }
             completion()
         }

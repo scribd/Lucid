@@ -24,15 +24,14 @@ import PathKit
         let logger = Logger()
 
         logger.moveToChild("Reading configuration file.")
-        let configuration = try SwiftCommandConfiguration.make(with: configPath,
-                                                               currentVersion: currentVersion,
-                                                               cachePath: nil,
-                                                               noRepoUpdate: nil,
-                                                               forceBuildNewDBModel: nil,
-                                                               forceBuildNewDBModelForVersions: nil,
-                                                               selectedTargets: Set(selectedTargets),
-                                                               reactiveKit: nil,
-                                                               logger: logger)
+        let configuration = try CommandConfiguration.make(with: configPath,
+                                                          currentVersion: currentVersion,
+                                                          cachePath: nil,
+                                                          forceBuildNewDBModel: nil,
+                                                          forceBuildNewDBModelForVersions: nil,
+                                                          selectedTargets: Set(selectedTargets),
+                                                          reactiveKit: nil,
+                                                          logger: logger)
 
         let currentAppVersion = try Version(configuration.currentVersion, source: .description)
         let currentDescriptionsParser = DescriptionsParser(inputPath: configuration.inputPath,

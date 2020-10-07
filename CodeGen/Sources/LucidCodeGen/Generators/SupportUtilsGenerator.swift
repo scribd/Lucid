@@ -1,5 +1,5 @@
 //
-//  LocalStoreCleanupManagerGenerator.swift
+//  SupportUtilsGenerator.swift
 //  LucidCodeGen
 //
 //  Created by Stephane Magne on 9/18/19.
@@ -9,26 +9,29 @@ import Meta
 import PathKit
 import LucidCodeGenCore
 
-public final class LocalStoreCleanupManagerGenerator: Generator {
+public final class SupportUtilsGenerator: Generator {
 
-    public let name = "local store cleanup manager"
+    public let name = "support utils"
 
     private let descriptions: Descriptions
 
-    private let filename = "LocalStoreCleanupManager.swift"
+    private let filename = "SupportUtils.swift"
 
     private let reactiveKit: Bool
 
-    public init(descriptions: Descriptions, reactiveKit: Bool) {
+    private let moduleName: String
+
+    public init(descriptions: Descriptions, reactiveKit: Bool, moduleName: String) {
         self.descriptions = descriptions
         self.reactiveKit = reactiveKit
+        self.moduleName = moduleName
     }
 
     public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
         guard element == .all else { return nil }
 
         let header = MetaHeader(filename: filename, organizationName: organizationName)
-        let localStoreCleanup = MetaLocalStoreCleanupManager(descriptions: descriptions, reactiveKit: reactiveKit)
+        let localStoreCleanup = MetaSupportUtils(descriptions: descriptions, reactiveKit: reactiveKit, moduleName: moduleName)
 
         return Meta.File(name: filename)
             .with(header: header.meta)

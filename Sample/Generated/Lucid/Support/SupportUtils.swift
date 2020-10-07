@@ -1,5 +1,5 @@
 //
-// LocalStoreCleanupManager.swift
+// SupportUtils.swift
 //
 // Generated automatically.
 // Copyright © Scribd. All rights reserved.
@@ -7,6 +7,36 @@
 
 import Lucid
 import Combine
+
+
+// MARK: - Logger
+
+enum Logger {
+
+    static var shared: Logging? {
+        get { return LucidConfiguration.logger }
+        set { LucidConfiguration.logger = newValue }
+    }
+
+    static func log(_ type: LogType,
+                    _ message: @autoclosure () -> String,
+                    domain: String = "Sample",
+                    assert: Bool = false,
+                    file: String = #file,
+                    function: String = #function,
+                    line: UInt = #line) {
+
+        shared?.log(type,
+                    message(),
+                    domain: domain,
+                    assert: assert,
+                    file: file,
+                    function: function,
+                    line: line)
+    }
+}
+
+// MARK: - LocalStoreCleanupManager
 
 public enum LocalStoreCleanupError: Error {
     case manager(name: String, error: ManagerError)
@@ -51,8 +81,6 @@ public final class LocalStoreCleanupManager: LocalStoreCleanupManaging {
             .eraseToAnyPublisher()
     }
 }
-
-// MARK: - Utils
 
 enum LocalStoreCleanupResult {
     case success

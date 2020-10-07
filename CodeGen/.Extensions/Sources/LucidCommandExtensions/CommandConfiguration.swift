@@ -1,0 +1,1 @@
+../../../Sources/LucidCommand/CommandConfiguration.swift

@@ -18,6 +18,10 @@ public struct DiscoverMovieEndpointPayload {
     var entityMetadata: AnySequence<Optional<MovieMetadata>> {
         return moviePayloads.lazy.map { $0.entityMetadata }.any
     }
+
+    public static var excludedPaths: Array<String> {
+        return []
+    }
 }
 
 // MARK: - Decodable

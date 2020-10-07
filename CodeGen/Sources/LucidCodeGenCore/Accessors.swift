@@ -122,6 +122,10 @@ public extension Entity {
     var mutable: Bool {
         return properties.contains { $0.mutable }
     }
+
+    var atomicIdentifier: Bool {
+        return identifier.atomic ?? mutable
+    }
     
     var objc: Bool {
         return identifier.objc || properties.contains { $0.objc }

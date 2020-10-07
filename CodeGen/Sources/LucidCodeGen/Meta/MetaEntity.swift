@@ -466,10 +466,14 @@ struct MetaEntity {
             .adding(parameter: FunctionParameter(name: "lhs", type: entity.typeID()))
             .adding(parameter: FunctionParameter(name: "rhs", type: entity.typeID()))
             .with(resultType: .bool)
-            .adding(members: entity.valuesThenRelationships.filter { $0.useForEquality }.map { property in
-                Guard(condition: (.named("lhs") + property.entityReference) == (.named("rhs") + property.entityReference))
-                    .adding(member: Return(value: Value.bool(false)))
-            })
+            .adding(member: PlainCode(code: "guard lhs.identifier == rhs.identifier else { return false }"))
+            .adding(members: entity
+                .valuesThenRelationships
+                .filter { $0.useForEquality }
+                .map { property in
+                    PlainCode(code: "guard lhs.\(property.entityVariable.name) == rhs.\(property.entityVariable.name) else { return false }")
+                }
+            )
             .adding(member: Return(value: Value.bool(true)))
     }
 

@@ -78,7 +78,7 @@ final class MovieManager {
         let context = ReadContext<Movie>(dataSource: .remoteOrLocal())
         return coreManagers.movieManager
             .rootEntity(byID: movieID.movieIdentifier, in: context)
-            .including(path: Genre.self)
+            .including([.genres])
             .perform()
             .once
             .map { MovieGraph(for: movieID, in: $0) }

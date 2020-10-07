@@ -23,15 +23,6 @@ public enum AppAnyEntity: EntityIndexing, EntityConvertible {
         }
     }
 
-    public var entityRelationshipEntityTypeUIDs: Array<String> {
-        switch self {
-        case .genre(let entity):
-            return entity.entityRelationshipEntityTypeUIDs
-        case .movie(let entity):
-            return entity.entityRelationshipEntityTypeUIDs
-        }
-    }
-
     public func entityIndexValue(for indexName: AppAnyEntityIndexName) -> EntityIndexValue<EntityRelationshipIdentifier, EntitySubtype> {
         switch (self, indexName) {
         case (.genre(let entity), .genre(let indexName)):

@@ -1,5 +1,5 @@
 //
-//  Decodable.swift
+//  Codable.swift
 //  LucidCodeGenCore
 //
 //  Created by Théophane Rupin on 3/27/19.
@@ -9,27 +9,34 @@ import Foundation
 
 // MARK: - Defaults
 
-private enum Defaults {
-    static let identifier = EntityIdentifier(identifierType: .void, equivalentIdentifierName: nil, objc: false)
-    static let remote = true
-    static let persist = false
-    static let useForEquality = true
-    static let idOnly = false
-    static let failableItems = true
-    static let isTarget = false
-    static let nullable = false
-    static let mutable = false
-    static let objc = false
-    static let objcNoneCase = false
-    static let unused = false
-    static let logError = true
-    static let lazy = false
-    static let matchExactKey = false
-    static let platforms = Set<Platform>()
-    static let lastRemoteRead = false
-    static let queryContext = false
-    static let clientQueueName = Entity.mainClientQueueName
-    static let ignoreMigrationChecks = false
+public enum DescriptionDefaults {
+    public static let identifier = EntityIdentifier(
+        identifierType: .void,
+        equivalentIdentifierName: nil,
+        objc: DescriptionDefaults.objc,
+        atomic: nil
+    )
+    public static let remote = true
+    public static let persist = false
+    public static let useForEquality = true
+    public static let idOnly = false
+    public static let failableItems = true
+    public static let isTarget = false
+    public static let nullable = false
+    public static let mutable = false
+    public static let objc = false
+    public static let objcNoneCase = false
+    public static let unused = false
+    public static let logError = true
+    public static let lazy = false
+    public static let matchExactKey = false
+    public static let platforms = Set<Platform>()
+    public static let lastRemoteRead = false
+    public static let queryContext = false
+    public static let clientQueueName = Entity.mainClientQueueName
+    public static let ignoreMigrationChecks = false
+    public static let ignorePropertyMigrationChecksOn = [String]()
+    public static let httpMethod: EndpointPayloadTest.HTTPMethod = .get
 }
 
 public extension Entity {
@@ -38,7 +45,7 @@ public extension Entity {
 
 // MARK: - Payloads
 
-extension EndpointPayload: Decodable {
+extension EndpointPayload: Codable {
     
     private enum Keys: String, CodingKey {
         case name
@@ -61,9 +68,21 @@ extension EndpointPayload: Decodable {
         metadata = try container.decodeIfPresent([MetadataProperty].self, forKey: .metadata)
         tests = try container.decodeIfPresent([EndpointPayloadTest].self, forKey: .tests) ?? []
     }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(baseKey, forKey: .baseKey)
+        try container.encode(entity, forKey: .entity)
+        try container.encodeIfPresent(entityVariations, forKey: .entityVariations)
+        try container.encodeIfPresent(excludedPaths.isEmpty ? nil : excludedPaths, forKey: .excludedPaths)
+        try container.encodeIfPresent(metadata, forKey: .metadata)
+        try container.encodeIfPresent(tests.isEmpty ? nil : tests, forKey: .tests)
+    }
 }
 
-extension EndpointPayloadTest: Decodable {
+extension EndpointPayloadTest: Codable {
     
     private enum Keys: String, CodingKey {
         case name
@@ -79,8 +98,8 @@ extension EndpointPayloadTest: Decodable {
         let container = try decoder.container(keyedBy: Keys.self)
         name = try container.decode(String.self, forKey: .name)
         url = try container.decode(URL.self, forKey: .url)
-        httpMethod = (try? container.decode(HTTPMethod.self, forKey: .httpMethod)) ?? .get
-        body = try? container.decode(String.self, forKey: .body)
+        httpMethod = try container.decodeIfPresent(HTTPMethod.self, forKey: .httpMethod) ?? .get
+        body = try container.decodeIfPresent(String.self, forKey: .body)
         entities = try container.decode([Entity].self, forKey: .entities)
         // for parsing from previous versions
         do {
@@ -91,11 +110,23 @@ extension EndpointPayloadTest: Decodable {
             contexts = []
         }
     }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+
+        try container.encode(name, forKey: .name)
+        try container.encode(url, forKey: .url)
+        try container.encodeIfPresent(httpMethod == DescriptionDefaults.httpMethod ? nil : httpMethod, forKey: .httpMethod)
+        try container.encodeIfPresent(body, forKey: .body)
+        try container.encode(entities, forKey: .entities)
+        try container.encodeIfPresent(contexts, forKey: .contexts)
+        try container.encodeIfPresent(endpoints, forKey: .endpoints)
+    }
 }
 
-extension EndpointPayloadTest.HTTPMethod: Decodable { }
+extension EndpointPayloadTest.HTTPMethod: Codable { }
 
-extension EndpointPayloadTest.Entity: Decodable {
+extension EndpointPayloadTest.Entity: Codable {
     
     private enum Keys: String, CodingKey {
         case name
@@ -107,11 +138,18 @@ extension EndpointPayloadTest.Entity: Decodable {
         let container = try decoder.container(keyedBy: Keys.self)
         name = try container.decode(String.self, forKey: .name)
         count = try container.decodeIfPresent(Int.self, forKey: .count)
-        isTarget = try container.decodeIfPresent(Bool.self, forKey: .isTarget) ?? Defaults.isTarget
+        isTarget = try container.decodeIfPresent(Bool.self, forKey: .isTarget) ?? DescriptionDefaults.isTarget
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(count, forKey: .count)
+        try container.encodeIfPresent(isTarget == DescriptionDefaults.isTarget ? nil : isTarget, forKey: .isTarget)
     }
 }
 
-extension EndpointPayloadEntity: Decodable {
+extension EndpointPayloadEntity: Codable {
     
     private enum Keys: String, CodingKey {
         case entityKey
@@ -127,15 +165,24 @@ extension EndpointPayloadEntity: Decodable {
         entityKey = try container.decodeIfPresent(String.self, forKey: .entityKey)
         entityName = try container.decode(String.self, forKey: .entityName)
         structure = try container.decode(Structure.self, forKey: .structure)
-        nullable = try container.decodeIfPresent(Bool.self, forKey: .nullable) ?? container.decodeIfPresent(Bool.self, forKey: .legacyOptional) ?? Defaults.nullable
+        nullable = try container.decodeIfPresent(Bool.self, forKey: .nullable) ?? container.decodeIfPresent(Bool.self, forKey: .legacyOptional) ?? DescriptionDefaults.nullable
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+
+        try container.encodeIfPresent(entityKey, forKey: .entityKey)
+        try container.encode(entityName, forKey: .entityName)
+        try container.encode(structure, forKey: .structure)
+        try container.encodeIfPresent(nullable == DescriptionDefaults.nullable ? nil : nullable, forKey: .nullable)
     }
 }
 
-extension EndpointPayloadEntity.Structure: Decodable {}
+extension EndpointPayloadEntity.Structure: Codable {}
 
 // MARK: - Entity
 
-extension Entity: Decodable {
+extension Entity: Codable {
     
     private enum Keys: String, CodingKey {
         case name
@@ -162,9 +209,9 @@ extension Entity: Decodable {
         
         let name = try container.decode(String.self, forKey: .name)
         self.name = name
-        remote = try container.decodeIfPresent(Bool.self, forKey: .remote) ?? Defaults.remote
-        persist = try container.decodeIfPresent(Bool.self, forKey: .persist) ?? Defaults.persist
-        identifier = try container.decodeIfPresent(EntityIdentifier.self, forKey: .identifier) ?? Defaults.identifier
+        remote = try container.decodeIfPresent(Bool.self, forKey: .remote) ?? DescriptionDefaults.remote
+        persist = try container.decodeIfPresent(Bool.self, forKey: .persist) ?? DescriptionDefaults.persist
+        identifier = try container.decodeIfPresent(EntityIdentifier.self, forKey: .identifier) ?? DescriptionDefaults.identifier
         metadata = try container.decodeIfPresent([MetadataProperty].self, forKey: .metadata)
         properties = try container.decode([EntityProperty].self, forKey: .properties).sorted(by: { $0.name < $1.name })
         systemProperties = try container.decodeIfPresent([SystemProperty].self, forKey: .systemProperties)?.sorted(by: { $0.name.rawValue < $1.name.rawValue }) ?? []
@@ -177,9 +224,9 @@ extension Entity: Decodable {
             legacyAddedAtVersion = nil
         }
         persistedName = try container.decodeIfPresent(String.self, forKey: .persistedName)
-        platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? Defaults.platforms
-        queryContext = try container.decodeIfPresent(Bool.self, forKey: .queryContext) ?? Defaults.queryContext
-        clientQueueName = try container.decodeIfPresent(String.self, forKey: .clientQueueName) ?? Defaults.clientQueueName
+        platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? DescriptionDefaults.platforms
+        queryContext = try container.decodeIfPresent(Bool.self, forKey: .queryContext) ?? DescriptionDefaults.queryContext
+        clientQueueName = try container.decodeIfPresent(String.self, forKey: .clientQueueName) ?? DescriptionDefaults.clientQueueName
 
         let systemPropertiesSet = Set(SystemPropertyName.allCases.map { $0.rawValue })
         for property in properties where systemPropertiesSet.contains(property.name) {
@@ -196,9 +243,28 @@ extension Entity: Decodable {
             }
         }
     }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+
+        try container.encode(name, forKey: .name)
+        try container.encode(remote, forKey: .remote)
+        try container.encode(persist, forKey: .persist)
+        try container.encode(identifier, forKey: .identifier)
+        try container.encodeIfPresent(metadata, forKey: .metadata)
+        try container.encode(properties, forKey: .properties)
+        try container.encodeIfPresent(systemProperties.isEmpty ? nil : systemProperties, forKey: .systemProperties)
+        try container.encodeIfPresent(identifierTypeID, forKey: .uid)
+        try container.encodeIfPresent(versionHistory.isEmpty ? nil : versionHistory, forKey: .versionHistory)
+        try container.encodeIfPresent(legacyPreviousName, forKey: .legacyPreviousName)
+        try container.encodeIfPresent(persistedName, forKey: .persistedName)
+        try container.encodeIfPresent(platforms == DescriptionDefaults.platforms ? nil : platforms, forKey: .platforms)
+        try container.encodeIfPresent(queryContext == DescriptionDefaults.queryContext ? nil : queryContext, forKey: .queryContext)
+        try container.encodeIfPresent(clientQueueName == DescriptionDefaults.clientQueueName ? nil : clientQueueName, forKey: .clientQueueName)
+    }
 }
 
-extension VersionHistoryItem: Decodable {
+extension VersionHistoryItem: Codable {
     
     private enum Keys: String, CodingKey {
         case version
@@ -209,15 +275,24 @@ extension VersionHistoryItem: Decodable {
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
-        let versionString = try container.decode(String.self, forKey: .version)
-        version = try Version(versionString, source: .description)
+
+        version = try container.decode(Version.self, forKey: .version)
         previousName = try container.decodeIfPresent(String.self, forKey: .previousName)
-        ignoreMigrationChecks = try container.decodeIfPresent(Bool.self, forKey: .ignoreMigrationChecks) ?? Defaults.ignoreMigrationChecks
+        ignoreMigrationChecks = try container.decodeIfPresent(Bool.self, forKey: .ignoreMigrationChecks) ?? DescriptionDefaults.ignoreMigrationChecks
         ignorePropertyMigrationChecksOn = try container.decodeIfPresent([String].self, forKey: .ignorePropertyMigrationChecksOn) ?? []
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+
+        try container.encode(version, forKey: .version)
+        try container.encodeIfPresent(previousName, forKey: .previousName)
+        try container.encodeIfPresent(ignoreMigrationChecks == DescriptionDefaults.ignoreMigrationChecks ? nil : ignoreMigrationChecks, forKey: .ignoreMigrationChecks)
+        try container.encodeIfPresent(ignorePropertyMigrationChecksOn == DescriptionDefaults.ignorePropertyMigrationChecksOn ? nil : ignorePropertyMigrationChecksOn, forKey: .ignorePropertyMigrationChecksOn)
     }
 }
 
-extension EndpointPayloadEntityVariation: Decodable {
+extension EndpointPayloadEntityVariation: Codable {
     
     private enum Keys: String, CodingKey {
         case entityName
@@ -230,9 +305,16 @@ extension EndpointPayloadEntityVariation: Decodable {
         self.entityName = try container.decode(String.self, forKey: .entityName)
         self.propertyRenames = try container.decodeIfPresent([Rename].self, forKey: .propertyRenames)
     }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+
+        try container.encode(entityName, forKey: .entityName)
+        try container.encodeIfPresent(propertyRenames, forKey: .propertyRenames)
+    }
 }
 
-extension EntityIdentifier: Decodable {
+extension EntityIdentifier: Codable {
     
     private enum Keys: String, CodingKey {
         case type
@@ -240,12 +322,13 @@ extension EntityIdentifier: Decodable {
         case equivalentToIdentifierOf
         case propertyName
         case objc
+        case atomic
     }
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
         
-        objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? Defaults.objc
+        objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? DescriptionDefaults.objc
         
         let lowerCaseType = try container.decode(String.self, forKey: .type)
         switch lowerCaseType {
@@ -273,10 +356,34 @@ extension EntityIdentifier: Decodable {
         }
         
         equivalentIdentifierName = try container.decodeIfPresent(String.self, forKey: .equivalentToIdentifierOf)
+        atomic = try container.decodeIfPresent(Bool.self, forKey: .atomic)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+
+        try container.encodeIfPresent(objc == DescriptionDefaults.objc ? nil : objc, forKey: .objc)
+        try container.encodeIfPresent(equivalentIdentifierName, forKey: .equivalentToIdentifierOf)
+
+        switch identifierType {
+        case .property(let name):
+            try container.encode("property", forKey: .type)
+            try container.encode(name, forKey: .propertyName)
+
+        case .relationships(let scalarType, let relationshipIDs):
+            try container.encode(scalarType.stringValue, forKey: .type)
+            try container.encode(relationshipIDs.map { $0.entityName }, forKey: .derivedFromRelationships)
+
+        case .scalarType(let scalarType):
+            try container.encode(scalarType.rawValue.lowercased(), forKey: .type)
+
+        case .void:
+            break
+        }
     }
 }
 
-extension DefaultValue: Decodable {
+extension DefaultValue: Codable {
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -305,9 +412,32 @@ extension DefaultValue: Decodable {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unknown default value type.")
         }
     }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+
+        switch self {
+        case .bool(let value):
+            try container.encode(value)
+        case .int(let value):
+            try container.encode(value)
+        case .float(let value):
+            try container.encode(value)
+        case .date(let date):
+            try container.encode(date)
+        case .currentDate:
+            try container.encode("current_date")
+        case .nil:
+            try container.encode("nil")
+        case .string(let value):
+            try container.encode(value)
+        case .enumCase(let value):
+            try container.encode(".\(value)")
+        }
+    }
 }
 
-extension MetadataProperty: Decodable {
+extension MetadataProperty: Codable {
     
     private enum Keys: String, CodingKey {
         case name
@@ -332,11 +462,30 @@ extension MetadataProperty: Decodable {
             self.propertyType = propertyType
         }
         
-        nullable = try container.decodeIfPresent(Bool.self, forKey: .nullable) ?? container.decodeIfPresent(Bool.self, forKey: .legacyOptional) ?? Defaults.nullable
+        nullable = try container.decodeIfPresent(Bool.self, forKey: .nullable) ?? container.decodeIfPresent(Bool.self, forKey: .legacyOptional) ?? DescriptionDefaults.nullable
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+
+        try container.encode(name, forKey: .name)
+
+        func propertyTypeString(_ propertyType: PropertyType) -> String {
+            switch propertyType {
+            case .array(let propertyType):
+                return "[\(propertyTypeString(propertyType))]"
+            case .scalar(let scalarType):
+                return scalarType.stringValue
+            case .subtype(let subtype):
+                return subtype
+            }
+        }
+        try container.encode(propertyTypeString(propertyType), forKey: .propertyType)
+        try container.encodeIfPresent(nullable == DescriptionDefaults.nullable ? nil : nullable, forKey: .nullable)
     }
 }
 
-extension EntityProperty: Decodable {
+extension EntityProperty: Codable {
     
     private enum Keys: String, CodingKey {
         case name
@@ -385,21 +534,62 @@ extension EntityProperty: Decodable {
         }
         
         key = try container.decodeIfPresent(String.self, forKey: .key) ?? container.decode(String.self, forKey: .name)
-        matchExactKey = try container.decodeIfPresent(Bool.self, forKey: .matchExactKey) ?? Defaults.matchExactKey
-        nullable = try container.decodeIfPresent(Bool.self, forKey: .nullable) ?? container.decodeIfPresent(Bool.self, forKey: .legacyOptional) ?? Defaults.nullable
+        matchExactKey = try container.decodeIfPresent(Bool.self, forKey: .matchExactKey) ?? DescriptionDefaults.matchExactKey
+        nullable = try container.decodeIfPresent(Bool.self, forKey: .nullable) ?? container.decodeIfPresent(Bool.self, forKey: .legacyOptional) ?? DescriptionDefaults.nullable
         defaultValue = try container.decodeIfPresent(DefaultValue.self, forKey: .defaultValue)
-        logError = try container.decodeIfPresent(Bool.self, forKey: .logError) ?? Defaults.logError
-        useForEquality = try container.decodeIfPresent(Bool.self, forKey: .useForEquality) ?? Defaults.useForEquality
-        mutable = try container.decodeIfPresent(Bool.self, forKey: .mutable) ?? Defaults.mutable
-        objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? Defaults.objc
-        unused = try container.decodeIfPresent(Bool.self, forKey: .unused) ?? Defaults.unused
-        lazy = try container.decodeIfPresent(Bool.self, forKey: .lazy) ?? container.decodeIfPresent(Bool.self, forKey: .legacyExtra) ?? Defaults.lazy
-        platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? Defaults.platforms
+        logError = try container.decodeIfPresent(Bool.self, forKey: .logError) ?? DescriptionDefaults.logError
+        useForEquality = try container.decodeIfPresent(Bool.self, forKey: .useForEquality) ?? DescriptionDefaults.useForEquality
+        mutable = try container.decodeIfPresent(Bool.self, forKey: .mutable) ?? DescriptionDefaults.mutable
+        objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? DescriptionDefaults.objc
+        unused = try container.decodeIfPresent(Bool.self, forKey: .unused) ?? DescriptionDefaults.unused
+        lazy = try container.decodeIfPresent(Bool.self, forKey: .lazy) ?? container.decodeIfPresent(Bool.self, forKey: .legacyExtra) ?? DescriptionDefaults.lazy
+        platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? DescriptionDefaults.platforms
         persistedName = try container.decodeIfPresent(String.self, forKey: .persistedName)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(previousName, forKey: .previousName)
+        try container.encodeIfPresent(addedAtVersion, forKey: .addedAtVersion)
+
+        func propertyTypeString(_ propertyType: PropertyType) -> String {
+            switch propertyType {
+            case .array(let propertyType):
+                return "[\(propertyTypeString(propertyType))]"
+            case .scalar(let scalarType):
+                return scalarType.stringValue
+            case .subtype(let subType):
+                return subType
+            case .relationship:
+                return String()
+            }
+        }
+
+        switch propertyType {
+        case .relationship(let relationship):
+            try container.encode(relationship, forKey: .propertyType)
+        default:
+            try container.encode(propertyTypeString(propertyType), forKey: .propertyType)
+        }
+
+        try container.encodeIfPresent(key == name ? nil : key, forKey: .key)
+        try container.encodeIfPresent(matchExactKey == DescriptionDefaults.matchExactKey ? nil : matchExactKey, forKey: .matchExactKey)
+        try container.encodeIfPresent(nullable == DescriptionDefaults.nullable ? nil : nullable, forKey: .nullable)
+        try container.encodeIfPresent(defaultValue, forKey: .defaultValue)
+        try container.encodeIfPresent(logError == DescriptionDefaults.logError ? nil : logError, forKey: .logError)
+        try container.encodeIfPresent(useForEquality == DescriptionDefaults.useForEquality ? nil : useForEquality, forKey: .useForEquality)
+        try container.encodeIfPresent(mutable == DescriptionDefaults.mutable ? nil : mutable, forKey: .mutable)
+        try container.encodeIfPresent(objc == DescriptionDefaults.objc ? nil : objc, forKey: .objc)
+        try container.encodeIfPresent(unused == DescriptionDefaults.unused ? nil : unused, forKey: .unused)
+        try container.encodeIfPresent(lazy == DescriptionDefaults.lazy ? nil : lazy, forKey: .lazy)
+        try container.encodeIfPresent(platforms == DescriptionDefaults.platforms ? nil : platforms.sorted(), forKey: .platforms)
+        try container.encodeIfPresent(persistedName, forKey: .persistedName)
     }
 }
 
-extension EntityRelationship: Decodable {
+extension EntityRelationship: Codable {
     
     private enum Keys: String, CodingKey {
         case entityName
@@ -412,15 +602,25 @@ extension EntityRelationship: Decodable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
         
-        self.entityName = try container.decode(String.self, forKey: .entityName)
-        self.association = try container.decode(Association.self, forKey: .association)
-        self.idOnly = try container.decodeIfPresent(Bool.self, forKey: .idOnly) ?? Defaults.idOnly
-        self.failableItems = try container.decodeIfPresent(Bool.self, forKey: .failableItems) ?? Defaults.failableItems
-        self.platforms = try container.decodeIfPresent([Platform].self, forKey: .platforms)?.sorted() ?? []
+        entityName = try container.decode(String.self, forKey: .entityName)
+        association = try container.decode(Association.self, forKey: .association)
+        idOnly = try container.decodeIfPresent(Bool.self, forKey: .idOnly) ?? DescriptionDefaults.idOnly
+        failableItems = try container.decodeIfPresent(Bool.self, forKey: .failableItems) ?? DescriptionDefaults.failableItems
+        platforms = try container.decodeIfPresent([Platform].self, forKey: .platforms)?.sorted() ?? Array(DescriptionDefaults.platforms)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+
+        try container.encode(entityName, forKey: .entityName)
+        try container.encode(association, forKey: .association)
+        try container.encodeIfPresent(idOnly == DescriptionDefaults.idOnly ? nil : idOnly, forKey: .idOnly)
+        try container.encodeIfPresent(failableItems == DescriptionDefaults.failableItems ? nil : failableItems, forKey: .failableItems)
+        try container.encodeIfPresent(platforms == Array(DescriptionDefaults.platforms) ? nil : platforms.sorted(), forKey: .platforms)
     }
 }
 
-extension EntityRelationship.Association: Decodable {}
+extension EntityRelationship.Association: Codable {}
 
 // MARK: - Subtype
 
@@ -445,12 +645,12 @@ extension Subtype: Decodable {
        
         name = try container.decode(String.self, forKey: .name)
         manualImplementations = Set(try container.decodeIfPresent([`Protocol`].self, forKey: .manualImplementations) ?? [])
-        platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? Defaults.platforms
+        platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? DescriptionDefaults.platforms
         
         if let usedCases = try container.decodeIfPresent([String].self, forKey: .cases) {
             let unusedCases = try container.decodeIfPresent([String].self, forKey: .unusedCases) ?? []
-            objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? Defaults.objcNoneCase
-            let objcNoneCase = try container.decodeIfPresent(Bool.self, forKey: .objcNoneCase) ?? Defaults.objc
+            objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? DescriptionDefaults.objcNoneCase
+            let objcNoneCase = try container.decodeIfPresent(Bool.self, forKey: .objcNoneCase) ?? DescriptionDefaults.objc
             items = .cases(
                 used: usedCases.sorted(),
                 unused: unusedCases.sorted(),
@@ -458,7 +658,7 @@ extension Subtype: Decodable {
             )
         } else if let options = try container.decodeIfPresent([String].self, forKey: .options) {
             let unusedOptions = try container.decodeIfPresent([String].self, forKey: .unusedOptions) ?? []
-            objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? Defaults.objc
+            objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? DescriptionDefaults.objc
             items = .options(
                 used: options,
                 unused: unusedOptions
@@ -496,12 +696,12 @@ extension Subtype.Property: Decodable {
         name = try container.decode(String.self, forKey: .name)
         key = try container.decodeIfPresent(String.self, forKey: .key)
         propertyType = try container.decode(PropertyType.self, forKey: .propertyType)
-        objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? Defaults.objc
-        unused = try container.decodeIfPresent(Bool.self, forKey: .unused) ?? Defaults.unused
-        nullable = try container.decodeIfPresent(Bool.self, forKey: .nullable) ?? container.decodeIfPresent(Bool.self, forKey: .legacyOptional) ?? Defaults.nullable
+        objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? DescriptionDefaults.objc
+        unused = try container.decodeIfPresent(Bool.self, forKey: .unused) ?? DescriptionDefaults.unused
+        nullable = try container.decodeIfPresent(Bool.self, forKey: .nullable) ?? container.decodeIfPresent(Bool.self, forKey: .legacyOptional) ?? DescriptionDefaults.nullable
 
         let defaultValue = try container.decodeIfPresent(DefaultValue.self, forKey: .defaultValue)
-        let logError = try container.decodeIfPresent(Bool.self, forKey: .logError) ?? Defaults.logError
+        let logError = try container.decodeIfPresent(Bool.self, forKey: .logError) ?? DescriptionDefaults.logError
 
         guard logError == true || defaultValue != nil else {
             throw DecodingError.dataCorruptedError(forKey: Keys.logError,
@@ -511,7 +711,7 @@ extension Subtype.Property: Decodable {
 
         self.defaultValue = defaultValue
         self.logError = logError
-        self.platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? Defaults.platforms
+        self.platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? DescriptionDefaults.platforms
     }
 }
 
@@ -529,7 +729,7 @@ extension Subtype.Property.PropertyType: Decodable {
     }
 }
 
-extension SystemProperty: Decodable {
+extension SystemProperty: Codable {
 
     private enum Keys: String, CodingKey {
         case name
@@ -543,12 +743,24 @@ extension SystemProperty: Decodable {
         addedAtVersion = try container.decodeIfPresent(Version.self, forKey: .addedAtVersion)
         useCoreDataLegacyNaming = false
     }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(addedAtVersion, forKey: .addedAtVersion)
+    }
 }
 
-extension Version: Decodable {
+extension Version: Codable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         try self.init(try container.decode(String.self), source: .description)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(description)
     }
 }

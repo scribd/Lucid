@@ -222,7 +222,9 @@ private final class InternalSwiftCodeGenerator {
                      in: .support,
                      for: .app)
 
-        try generate(with: LocalStoreCleanupManagerGenerator(descriptions: currentDescriptions, reactiveKit: reactiveKit),
+        try generate(with: SupportUtilsGenerator(descriptions: currentDescriptions,
+                                                 reactiveKit: reactiveKit,
+                                                 moduleName: target.moduleName),
                      in: .support,
                      for: .app)
         

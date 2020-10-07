@@ -18,112 +18,32 @@ let main = Group {
 
     $0.command(
         "swift",
-        Option<String>("config-path", default: ".lucid.yaml", description: "Configuration file location."),
+        Option<String>("config-path", default: String(), description: "Configuration file location."),
         Option<String>("current-version", default: String(), description: "Current app version."),
         Option<String>("cache-path", default: String(), description: "Cache files location."),
-        Option<String>("no-repo-update", default: String(), description: "Skips repository update for version checking."),
         Option<String>("force-build-new-db-model", default: String(), description: "Force to build a new Database Model regardless of changes."),
         VariadicOption<String>("force-build-new-db-model-for-versions", default: [], description: "Force to build a new Database Model regardless of changes for versions."),
         Option<String>("reactive-kit", default: String(), description: "Weither to use ReactiveKit's API."),
         VariadicOption<String>("selected-targets", default: [], description: "List of targets to generate.")
-    ) { configPath, currentVersion, cachePath, noRepoUpdate, forceBuildNewDBModel, forceBuildNewDBModelForVersions, reactiveKit, selectedTargets in
+    ) { configPath, currentVersion, cachePath, forceBuildNewDBModel, forceBuildNewDBModelForVersions, reactiveKit, selectedTargets in
         
         let logger = Logger()
 
         logger.moveToChild("Reading configuration file.")
-        let configuration = try SwiftCommandConfiguration.make(with: configPath,
-                                                               currentVersion: currentVersion.isEmpty ? nil : currentVersion,
-                                                               cachePath: cachePath.isEmpty ? nil : cachePath,
-                                                               noRepoUpdate: noRepoUpdate == "true" ? true : noRepoUpdate == "false" ? false : nil,
-                                                               forceBuildNewDBModel: forceBuildNewDBModel == "true" ? true : forceBuildNewDBModel == "false" ? false : nil,
-                                                               forceBuildNewDBModelForVersions: forceBuildNewDBModelForVersions.isEmpty ? nil : Set(forceBuildNewDBModelForVersions),
-                                                               selectedTargets: Set(selectedTargets),
-                                                               reactiveKit: reactiveKit == "true" ? true : reactiveKit == "false" ? false : nil,
-                                                               logger: logger)
+        let configuration = try CommandConfiguration.make(
+            with: configPath.isEmpty ? nil : configPath,
+            currentVersion: currentVersion.isEmpty ? nil : currentVersion,
+            cachePath: cachePath.isEmpty ? nil : cachePath,
+            forceBuildNewDBModel: forceBuildNewDBModel == "true" ? true : forceBuildNewDBModel == "false" ? false : nil,
+            forceBuildNewDBModelForVersions: forceBuildNewDBModelForVersions.isEmpty ? nil : Set(forceBuildNewDBModelForVersions),
+            selectedTargets: Set(selectedTargets),
+            reactiveKit: reactiveKit == "true" ? true : reactiveKit == "false" ? false : nil,
+            logger: logger
+        )
 
-        let currentAppVersion = try Version(configuration.currentVersion, source: .description)
-        let currentDescriptionsParser = DescriptionsParser(inputPath: configuration.inputPath,
-                                                           targets: configuration.targets,
-                                                           logger: logger)
-        let currentDescriptions = try currentDescriptionsParser.parse(version: currentAppVersion)
+        let swiftCommand = SwiftCommand(logger: logger, configuration: configuration)
 
-        logger.moveToChild("Validating entity version histories")
-        try validateEntityVersionHistory(using: currentDescriptions, logger: logger)
-        logger.moveToParent()
-
-        logger.moveToParent()
-
-        logger.moveToChild("Resolving release tags.")
-        
-        let descriptionsVersionManager = try DescriptionsVersionManager(workingPath: configuration._workingPath,
-                                                                        outputPath: configuration.cachePath,
-                                                                        inputPath: configuration._inputPath,
-                                                                        gitRemote: configuration.gitRemote,
-                                                                        noRepoUpdate: configuration.noRepoUpdate,
-                                                                        logger: logger)
-
-        var modelMappingHistoryVersions = try currentDescriptions.modelMappingHistory(derivedFrom: descriptionsVersionManager?.allVersionsFromGitTags() ?? [])
-        modelMappingHistoryVersions.removeAll { $0 == currentAppVersion }
-
-        var descriptions = try modelMappingHistoryVersions.reduce(into: [Version: Descriptions]()) { descriptions, appVersion in
-            guard appVersion < currentAppVersion else { return }
-            guard let descriptionsVersionManager = descriptionsVersionManager else { return }
-            let releaseTag = try descriptionsVersionManager.resolveLatestReleaseTag(excluding: false, appVersion: appVersion)
-            let descriptionsPath = try descriptionsVersionManager.fetchDescriptionsVersion(releaseTag: releaseTag)
-            let descriptionsParser = DescriptionsParser(inputPath: descriptionsPath, logger: Logger(level: .none))
-            descriptions[appVersion] = try descriptionsParser.parse(version: appVersion)
-        }
-        
-        descriptions[currentAppVersion] = currentDescriptions
-        
-        let _shouldGenerateDataModel: Bool
-        if configuration.forceBuildNewDBModel || forceBuildNewDBModelForVersions.contains(currentVersion) {
-            _shouldGenerateDataModel = true
-        } else if
-            let descriptionsVersionManager = descriptionsVersionManager,
-            let latestReleaseTag = try? descriptionsVersionManager.resolveLatestReleaseTag(excluding: true, appVersion: currentAppVersion) {
-
-                let latestDescriptionsPath = try descriptionsVersionManager.fetchDescriptionsVersion(releaseTag: latestReleaseTag)
-                let latestDescriptionsParser = DescriptionsParser(inputPath: latestDescriptionsPath,
-                                                                  targets: configuration.targets,
-                                                                  logger: Logger(level: .none))
-                let appVersion = try Version(latestReleaseTag, source: .description)
-                let latestDescriptions = try latestDescriptionsParser.parse(version: appVersion)
-
-                _shouldGenerateDataModel = try shouldGenerateDataModel(byComparing: latestDescriptions,
-                                                                       to: currentDescriptions,
-                                                                       appVersion: currentAppVersion,
-                                                                       logger: logger)
-
-                try validateDescriptions(byComparing: latestDescriptions,
-                                         to: currentDescriptions,
-                                         logger: logger)
-        } else {
-            _shouldGenerateDataModel = true
-        }
-        logger.moveToParent()
-        
-        logger.moveToChild("Starting code generation...")
-        for target in configuration.targets.all where target.isSelected {
-            let descriptionsHash = try DescriptionsVersionManager.descriptionsHash(absoluteInputPath: configuration.inputPath)
-            let generator = try SwiftCodeGenerator(to: target,
-                                                   descriptions: descriptions,
-                                                   appVersion: currentAppVersion,
-                                                   historyVersions: modelMappingHistoryVersions,
-                                                   shouldGenerateDataModel: _shouldGenerateDataModel,
-                                                   descriptionsHash: descriptionsHash,
-                                                   responseHandlerFunction: configuration.responseHandlerFunction,
-                                                   coreDataMigrationsFunction: configuration.coreDataMigrationsFunction,
-                                                   reactiveKit: configuration.reactiveKit,
-                                                   useCoreDataLegacyNaming: configuration.useCoreDataLegacyNaming,
-                                                   organizationName: configuration.organizationName,
-                                                   logger: logger)
-            try generator.generate()
-        }
-        logger.moveToParent()
-        
-        logger.br()
-        logger.done("Finished successfully.")
+        try swiftCommand.run()
     }
     
     $0.command(
@@ -154,15 +74,17 @@ let main = Group {
     ) { configPath, sourceCodePath in
 
         let logger = Logger()
+        let configPath = Path(configPath)
+        let bootstrapCommand = BootstrapCommand(logger: logger, sourceCodePath: sourceCodePath)
+
+        if configPath.exists == false {
+            try bootstrapCommand.saveDefaultConfiguration(with: configPath)
+        }
+
         logger.moveToChild("Reading configuration file.")
-        let configuration = try SwiftCommandConfiguration.make(with: configPath)
-        logger.moveToParent()
+        let configuration = try CommandConfiguration.make(with: configPath)
 
-        let bootstrap = Bootstrap(logger: logger,
-                                  configuration: configuration,
-                                  sourceCodePath: sourceCodePath)
-
-        try bootstrap.run()
+        try bootstrapCommand.createFileStructure(configuration)
     }
 }
 

@@ -1,5 +1,5 @@
 //
-//  MetaLocalStoreCleanupManager.swift
+//  MetaSupportUtils.swift
 //  LucidCodeGen
 //
 //  Created by Stephane Magne on 9/18/19.
@@ -8,16 +8,48 @@
 import Meta
 import LucidCodeGenCore
 
-struct MetaLocalStoreCleanupManager {
+struct MetaSupportUtils {
     
     let descriptions: Descriptions
 
     let reactiveKit: Bool
+
+    let moduleName: String
     
     func meta() throws -> FileBodyMember {
         let streamType = reactiveKit ? "Signal" : "AnyPublisher"
 
         return PlainCode(code: """
+
+            // MARK: - Logger
+
+            enum Logger {
+
+                static var shared: Logging? {
+                    get { return LucidConfiguration.logger }
+                    set { LucidConfiguration.logger = newValue }
+                }
+
+                static func log(_ type: LogType,
+                                _ message: @autoclosure () -> String,
+                                domain: String = "\(moduleName)",
+                                assert: Bool = false,
+                                file: String = #file,
+                                function: String = #function,
+                                line: UInt = #line) {
+
+                    shared?.log(type,
+                                message(),
+                                domain: domain,
+                                assert: assert,
+                                file: file,
+                                function: function,
+                                line: line)
+                }
+            }
+
+            // MARK: - LocalStoreCleanupManager
+
             public enum LocalStoreCleanupError: Error {
                 case manager(name: String, error: ManagerError)
             }
@@ -80,8 +112,6 @@ struct MetaLocalStoreCleanupManager {
             """)
                 }
             }
-
-            // MARK: - Utils
 
             enum LocalStoreCleanupResult {
                 case success

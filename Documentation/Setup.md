@@ -201,9 +201,9 @@ Property types can be of three categories:
 
 	```json
 	"property_type": {
-		"entity_name": "$entity_name",
-		"association": "$association",
-		...
+	  "entity_name": "$entity_name",
+	  "association": "$association",
+	  ...
 	}
 	``` 
 	- `entity_name`: Entity type which this relationship refers to (required).

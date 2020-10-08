@@ -6,7 +6,7 @@ Because Lucid is using code generation to link all its pieces together, it requi
 
 ## [Configuration File](../CodeGen/Sources/LucidCommand/CommandConfiguration.swift)
 
-The configuration file is YAML file usually named `.lucid.yaml` and stored at the root of the project. Naming it differently requires to use the option `--config-path` when running the command `lucid swift`.
+The configuration file is a YAML file usually named `.lucid.yaml` and stored at the root of the project. Naming it differently requires to use the option `--config-path` when running the command `lucid swift`.
 
 Here is what a basic configuration file looks like:
 
@@ -22,7 +22,7 @@ After running the command `lucid swift` with this configuration, the directory `
 
 ### Fields
 
-- `input_path`: Path to a directory containing the entity/endpoint/payload description files (required).
+- `input_path`: Path to a directory containing the entity/subtype/payload description files (required).
 - `targets`:
 	- `app`/`app_test`/`app_test_support`:
 		- `module_name`: Module name for this target (optional).
@@ -89,11 +89,11 @@ Here is what a basic entity looks like:
 #### Fields
 
 - `name`: Entity name (required).
-- `identifier`: Identifier description (required).
-- `properties`: Property descriptions (required).
-- `metadata`: Metadata property descriptions (optional).
-- `system_properties`: List of built-in property names (optional).
-- `version_history`: List of versions for which this description has changed (required). Initially, the current version should be used.
+- `identifier`: [Identifier description](Setup.md#entity-identifier-description) (required).
+- `properties`: [Property descriptions](Setup.md#entity-property-description) (required).
+- `metadata`: [Metadata property descriptions](Setup.md#entity-metadata-description) (optional).
+- `system_properties`: [List of built-in property names](Setup.md#system-properties) (optional).
+- `version_history`: [Version history description](Setup.md#entity-version-history) (required). Initially, the current version should be used.
 - `remote`: Weither this entity can be read/written from/to a server (defaults to `true`).
 - `persist`: Weither this entity should be persisted (defaults to `false`).
 - `persisted_name`: Entity name used for persisting (defaults to `$name`).
@@ -134,7 +134,7 @@ There are three ways to declare an identifier:
 	
 	When using this method, the scalar type must match the relationships identifier scalar type. 
 	
-	This is mostly used when two or more entities able to share an identifier. When used, Lucid generates conversion methods to convert identifiers from one entity type to another.
+	This is mostly used when two or more entities are able to share an identifier. When used, Lucid generates some additional conversion methods necessary to convert identifiers from one entity type to another.
 
 
 ### Entity Property Description
@@ -146,7 +146,7 @@ A property is a named value stored as part of an entity object. For every proper
 - `name`: Property name (required).
 - `previous_name`: Previously used name for that property (optional). Used for local data model light migrations.
 - `added_at_version`: Version at which an entity was added (defaults to `$initial_version`). When using a local data model, this field is used for testing migrations between versions.
-- `property_type`: Property type description (required).
+- `property_type`: [Property type description](Setup.md#entity-property-type-description) (required).
 - `key`: Key to use for parsing from a JSON payload (defaults to `$name`).
 - `match_exact_key`: When set to `false`, prevent Lucid from automatically appending `id` or `ids` to property keys which are declared as relationships (defaults to `false`).
 - `nullable`: Weither this property can be `nil` (defaults to `false`).
@@ -179,19 +179,19 @@ Because an unrequested lazy property cannot override a requested one, payloads' 
 
 A mutable property can be set locally and pushed to local and/or remote stores. As soon as an entity has at least one mutable property, Lucid will generate a public initializer so that users can create them from scratch, allowing for the property mutation to happen. It will also generate the convenience method `updated` to easily copy the entity with the given mutated properties.
 
-Since entities are expressed as Swift immutable objects, a mutated entity is always a copy of another non-mutated entity. To save changes made to a mutable entity, you must set it with its designated `CoreManager`.
+Since entities are expressed as Swift immutable objects, a mutated entity is always a copy of another non-mutated entity. To save changes made to a mutable entity, you must set it with its designated [CoreManager](../Lucid/Core/CoreManager.swift).
 
 ### Entity Property Type Description
 
 Property types can be of three categories:
 
-1. Scalar, which are built-in types.
+1. [Scalar](Setup.md#property-scalar-types), which are built-in types.
 
 	```json
 	"property_type": "$scalar_type"
 	```
 
-2. Subtype, which refers to a user-defined scalar type.
+2. [Subtype](Setup.md#subtype-description), which refers to a user-defined scalar type.
 
 	```json
 	"property_type": "$subtype_name"
@@ -238,11 +238,9 @@ A system property is a built-in property which comes with features Lucid can onl
 - `last_remote_read`: Property set to the last date at which this property was pulled from a remote store.
 - `is_synced`: Weither the concerned entity is in sync with the remote store(s). Only applicable for mutable entities.
 
-### Entity Metadata Property Description
+### Entity Metadata Description
 
 
 
 ### Entity Version History
-
-### Multi Platforms
 

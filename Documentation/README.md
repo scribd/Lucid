@@ -10,4 +10,5 @@
 7. [CoreManagerContainer](CoreManagerContainer.md)
 8. [Entity](Entity.md)
 9. [Store](Store.md)
-10. [Client](Client.md)
+10. [Core Data](CoreData.md)
+11. [Client](Client.md)

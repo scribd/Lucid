@@ -3,7 +3,7 @@
 1. [Philosophy](Philosophy.md)
 2. [Architecture](Architecture.md)
 3. [Installation](Installation.md)
-4. [Setup](Setup.md)
+4. [Configuration and Description Files](ConfigurationAndDescriptionFiles.md)
 5. [Command](Command.md)
 6. [Command Extensions](CommandExtensions.md)
 6. [CoreManager](CoreManager.md)

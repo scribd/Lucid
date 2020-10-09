@@ -1,8 +1,6 @@
-# Lucid - Setup
+# Lucid - Configuration And Description Files
 
-Before getting started, make sure to take a look at [how to install Lucid](Installation.md) first.
-
-Because Lucid is using code generation to link all its pieces together, it requires a specific structure in order to work properly.
+Because Lucid is using code generation to link all its pieces together, it requires to be configured accordingly in order to generate the code that makes sense for your project.
 
 ## [Configuration File](../CodeGen/Sources/LucidCommand/CommandConfiguration.swift)
 
@@ -89,11 +87,11 @@ Here is what a basic entity looks like:
 #### Fields
 
 - `name`: Entity name (required).
-- `identifier`: [Identifier description](Setup.md#entity-identifier-description) (required).
-- `properties`: [Property descriptions](Setup.md#entity-property-description) (required).
-- `metadata`: [Metadata property descriptions](Setup.md#entity-metadata-description) (optional).
-- `system_properties`: [List of built-in property names](Setup.md#system-properties) (optional).
-- `version_history`: [Version history description](Setup.md#entity-version-history) (required). Initially, the current version should be used.
+- `identifier`: [Identifier description](ConfigurationAndDescriptionFiles.md#entity-identifier-description) (required).
+- `properties`: [Property descriptions](ConfigurationAndDescriptionFiles.md#entity-property-description) (required).
+- `metadata`: [Metadata property descriptions](ConfigurationAndDescriptionFiles.md#metadata-description) (optional).
+- `system_properties`: [List of built-in property names](ConfigurationAndDescriptionFiles.md#system-properties) (optional).
+- `version_history`: [Version history description](ConfigurationAndDescriptionFiles.md#entity-version-history) (required). Initially, the current version should be used.
 - `remote`: Whether or not this entity can be read/written from/to a server (defaults to `true`).
 - `persist`: Whether or not this entity should be persisted (defaults to `false`).
 - `persisted_name`: Entity name used for persisting (defaults to `$name`).
@@ -146,7 +144,7 @@ A property is a named value stored as part of an entity object. For every proper
 - `name`: Property name (required).
 - `previous_name`: Previously used name for that property (optional). Used for local data model light migrations.
 - `added_at_version`: Version at which an entity was added (defaults to `$initial_version`). When using a local data model, this field is used for testing migrations between versions.
-- `property_type`: [Property type description](Setup.md#entity-property-type-description) (required).
+- `property_type`: [Property type description](ConfigurationAndDescriptionFiles.md#entity-property-type-description) (required).
 - `key`: Key to use for parsing from a JSON payload (defaults to `$name`).
 - `match_exact_key`: When set to `false`, prevent Lucid from automatically appending `id` or `ids` to property keys which are declared as relationships (defaults to `false`).
 - `nullable`: Whether or not this property can be `nil` (defaults to `false`).
@@ -192,13 +190,13 @@ A system property is a built-in property which comes with features Lucid can onl
 
 Property types can be of three categories:
 
-1. [Scalar](Setup.md#property-scalar-types), which are built-in types.
+1. [Scalar](ConfigurationAndDescriptionFiles.md#property-scalar-types), which are built-in types.
 
 	```json
 	"property_type": "$scalar_type"
 	```
 
-2. [Subtype](Setup.md#subtype-description), which refers to a user-defined scalar type.
+2. [Subtype](ConfigurationAndDescriptionFiles.md#subtype-description), which refers to a user-defined scalar type.
 
 	```json
 	"property_type": "$subtype_name"
@@ -218,16 +216,6 @@ Property types can be of three categories:
 	- `id_only`: Whether or not this relationship is expected to be expressed as a nested object (defaults to `false`). When `true`, Lucid automatically appends `id` or `ids` (depending on the association type) to the parsing key, unless `match_exact_key` is `true`.
 	- `failable_items`: Whether or not this relationship is allowed to fail to parse as a nested object (defaults to `true`).
 	- `platforms`: Platforms for which the code should be generated (optional).
-
-### Entity Metadata Description
-
-Metadata are additional properties which can be retrieved from the remote store(s), but aren't persisted.
-
-#### Fields
-
-- `name`: Metadata property name (required).
-- `property_type`: Either a [scalar type](Setup.md#property-scalar-type) or [subtype](Setup.md#subtype-description).
-- `nullable`: Whether or not this property can be `nil` (defaults to `false`).
 
 ### Entity Version History
 
@@ -272,10 +260,10 @@ Here is what a basic subtypes look like:
 	{
 	  "name": "my_subtype",
 	  "properties": [{
-	    "name": "my_property_one",
+	    "name": "my_bool_property",
 	    "property_type": "bool"
 	  }, {
-	    "name": "my_property_two",
+	    "name": "my_string_property",
 	    "property_type": "string"	  	
 	  }]
 	}
@@ -323,5 +311,46 @@ A scalar type is a built-in type which can be referred to using any of the follo
 
 Any of these types can be wrapped into brackets to form an array (e.g. `[string]`).
 
+### Metadata Description
+
+Metadata are additional properties which can be retrieved from the remote store(s), but aren't persisted.
+
+#### Fields
+
+- `name`: Metadata property name (required).
+- `property_type`: Either a [scalar type](ConfigurationAndDescriptionFiles.md#property-scalar-type) or [subtype](ConfigurationAndDescriptionFiles.md#subtype-description).
+- `nullable`: Whether or not this property can be `nil` (defaults to `false`).
+
 ### Endpoint Payload Description
 
+Endpoint payloads describe the structure Lucid should follow to parse the data coming from the specific remote endpoints.
+
+Here is what a basic endpoint payload description looks like:
+
+```json
+{
+  "name": "/my/endpoint",
+  "base_key": "result",
+  "entity": {
+    "entity_name": "my_entity",
+    "structure": "array"
+  }
+}
+```
+
+#### Fields
+
+- `name`: Endpoint name (required).
+- `base_key`: JSON key from which the payload should be parsed (optional). When `nil`, the parsing starts from the root.
+- `entity`: [Endpoint payload entity description](ConfigurationAndDescriptionFiles.md#endpoint-payload-entity-description) (required).
+- `excluded_paths`: JSON key paths which should not be parsed (optional).
+- `metadata`: [Metadata descriptions](ConfigurationAndDescriptionFiles.md#metadata-description).
+
+### Endpoint Payload Entity Description
+
+#### Fields
+
+- `entity_name`: Name of the entity type contained in the payload (required).
+- `entity_key`: JSON key at which the entities should be parsed (optional). When `nil`, the parsing starts from the root.
+- `structure`: Structure type which the entity payload is made of (required). Can be `single`, `array` or `nested_array`.
+- `nullable`: Whether or not the entity payload can be `nil` (defaults to `false`).

@@ -60,7 +60,7 @@ $ tree
 
 Note that any file structure can be used under `Entities`, `Subtypes`, `EndpointPayloads` as soon as there isn't any conflicting names.
 
-### [Entity Description](../)
+### Entity Description
 
 An entity is an object which holds data related to a specific part of a business. Entities can relate to each other, with either one to one or one to many relationships. They can also use scalar types (int, string, bool, ...) or subtypes to describe the data they contain.
 
@@ -94,8 +94,8 @@ Here is what a basic entity looks like:
 - `metadata`: [Metadata property descriptions](Setup.md#entity-metadata-description) (optional).
 - `system_properties`: [List of built-in property names](Setup.md#system-properties) (optional).
 - `version_history`: [Version history description](Setup.md#entity-version-history) (required). Initially, the current version should be used.
-- `remote`: Weither this entity can be read/written from/to a server (defaults to `true`).
-- `persist`: Weither this entity should be persisted (defaults to `false`).
+- `remote`: Whether or not this entity can be read/written from/to a server (defaults to `true`).
+- `persist`: Whether or not this entity should be persisted (defaults to `false`).
 - `persisted_name`: Entity name used for persisting (defaults to `$name`).
 - `platforms`: Platforms for which the code should be generated (optional).
 - `client_queue_name`: Name of the designated client queue for this entity (defaults to `main`).
@@ -149,14 +149,14 @@ A property is a named value stored as part of an entity object. For every proper
 - `property_type`: [Property type description](Setup.md#entity-property-type-description) (required).
 - `key`: Key to use for parsing from a JSON payload (defaults to `$name`).
 - `match_exact_key`: When set to `false`, prevent Lucid from automatically appending `id` or `ids` to property keys which are declared as relationships (defaults to `false`).
-- `nullable`: Weither this property can be `nil` (defaults to `false`).
+- `nullable`: Whether or not this property can be `nil` (defaults to `false`).
 - `default_value`: Value the property automatically takes when it hasn't a defined value (optional).
-- `log_error`: Weither Lucid should log non fatal conversion errors (defaults to `true`).
-- `use_for_equality`: Weither this property should be used when testing for equality (defaults to `true`).
-- `mutable`: Weither this property can be mutated locally (defaults to `false`).
-- `objc`: Weither this property must be accessible to ObjC (defaults to `false`).
-- `unused`: Weither this property should be included in the generated code (defaults to `false`).
-- `lazy`: Weither this property is lazy (defaults to `false`).
+- `log_error`: Whether or not Lucid should log non fatal conversion errors (defaults to `true`).
+- `use_for_equality`: Whether or not this property should be used when testing for equality (defaults to `true`).
+- `mutable`: Whether or not this property can be mutated locally (defaults to `false`).
+- `objc`: Whether or not this property must be accessible to ObjC (defaults to `false`).
+- `unused`: Whether or not this property should be included in the generated code (defaults to `false`).
+- `lazy`: Whether or not this property is lazy (defaults to `false`).
 - `platforms`: Platforms for which the code should be generated (optional).
 - `persisted_name`: Property name used for persistence (defaults to `$name`).
 
@@ -180,6 +180,13 @@ Because an unrequested lazy property cannot override a requested one, payloads' 
 A mutable property can be set locally and pushed to local and/or remote stores. As soon as an entity has at least one mutable property, Lucid will generate a public initializer so that users can create them from scratch, allowing for the property mutation to happen. It will also generate the convenience method `updated` to easily copy the entity with the given mutated properties.
 
 Since entities are expressed as Swift immutable objects, a mutated entity is always a copy of another non-mutated entity. To save changes made to a mutable entity, you must set it with its designated [CoreManager](../Lucid/Core/CoreManager.swift).
+
+### System Properties
+
+A system property is a built-in property which comes with features Lucid can only implement at its core.
+
+- `last_remote_read`: Property set to the last date at which this property was pulled from a remote store.
+- `is_synced`: Whether or not the concerned entity is in sync with the remote store(s). Only applicable for mutable entities.
 
 ### Entity Property Type Description
 
@@ -208,39 +215,113 @@ Property types can be of three categories:
 	``` 
 	- `entity_name`: Entity type which this relationship refers to (required).
 	- `association`: Type of association (required). Can be either `one_to_one` or `one_to_many`.
-	- `id_only`: Weither this relationship is expected to be expressed as a nested object (defaults to `false`). When `true`, Lucid automatically appends `id` or `ids` (depending on the association type) to the parsing key, unless `match_exact_key` is `true`.
-	- `failable_items`: Weither this relationship is allowed to fail to parse as a nested object (defaults to `true`).
+	- `id_only`: Whether or not this relationship is expected to be expressed as a nested object (defaults to `false`). When `true`, Lucid automatically appends `id` or `ids` (depending on the association type) to the parsing key, unless `match_exact_key` is `true`.
+	- `failable_items`: Whether or not this relationship is allowed to fail to parse as a nested object (defaults to `true`).
 	- `platforms`: Platforms for which the code should be generated (optional).
+
+### Entity Metadata Description
+
+Metadata are additional properties which can be retrieved from the remote store(s), but aren't persisted.
+
+#### Fields
+
+- `name`: Metadata property name (required).
+- `property_type`: Either a [scalar type](Setup.md#property-scalar-type) or [subtype](Setup.md#subtype-description).
+- `nullable`: Whether or not this property can be `nil` (defaults to `false`).
+
+### Entity Version History
+
+The version history is a way to keep track of versions which need local heavy migrations as opposed to light migrations, which can implicitly applied.
+
+For every item in the version history, Lucid generates a data model for that entity (e.g. `MyEntity_1.0.0`). These models can then be used to write migrations in plain code.
+
+#### Fields
+
+- `version`: Version (required). Initially, every entity use the current version at which they were added.
+- `previous_name`: In case the entity has been renamed, this field contains the name previously used for this version (optional).
+- `ignore_migration_checks`: Whether or not the migrations tests should ignore this version (defaults to `false`).
+- `ignore_property_migration_checks_on`: List of property which for which the migrations tests should ignore this version (optional).
+
+### Subtype Description
+
+Subtypes are types which cannot refer to entities. It can be seen as user defined scalar types.
+
+Here is what a basic subtypes look like:
+
+- Enum:
+
+	```json
+	{
+	  "name": "my_subtype",
+	  "cases": ["my_case_one", "my_case_two"]
+	}
+	```
+	
+- Optionset:
+
+	```json
+	{
+	  "name": "my_subtype",
+	  "options": ["my_option_one", "my_option_two"]
+	}
+	```
+	
+- Struct:
+
+	```json
+	{
+	  "name": "my_subtype",
+	  "properties": [{
+	    "name": "my_property_one",
+	    "property_type": "bool"
+	  }, {
+	    "name": "my_property_two",
+	    "property_type": "string"	  	
+	  }]
+	}
+	```
+
+#### Fields
+
+- `name`: Subtype name (required).
+- `manual_implementations`: List of protocols (`codable`) which should be left unimplemented by Lucid (optional).
+- `platforms`: Platforms for which the code should be generated (optional).
+- `objc`: Whether or not this subtype should be compatible with ObjC (defaults to `false`).
+
+There are three categoris of subtypes. The following fields must be added depending on the category. 
+
+- `enum`:
+	- `cases`: List of cases (required).
+	- `unused_cases`: List of cases which should not be generated (optional).
+	- `objc_none_case`: Whether or not this enum should include a none case for compatibility with ObjC (defaults to `false`).
+	
+- `optionset`:
+	- `options`: List of options (required).
+	- `unused_options`: List of options which should not be generated (optional).
+
+- `struct`:
+	- `properties`: List of properties (required). 
+
+Struct properties reuse the same following fields than for entities; `name`, `key`, `property_type`, `nullable`, `objc`, `unused`, `default_value`, `log_error` and `platforms`.
+
+A struct's property type cannot be a relationship, only a scalar type or another subtype.
 
 ### Property Scalar Types
 
 A scalar type is a built-in type which can be referred to using any of the following names:
 
-```
-enum PropertyScalarType {
-    case string
-    case int
-    case date
-    case double
-    case float
-    case bool
-    case seconds
-    case milliseconds
-    case url
-    case color
-}
-```
+- `string`
+- `int`
+- `date`
+- `double`
+- `float`
+- `bool`
+- `seconds`
+- `milliseconds`
+- `url`
+- `color` // e.g. `#FFF000`
 
-### System Properties
+Any of these types can be wrapped into brackets to form an array (e.g. `[string]`).
 
-A system property is a built-in property which comes with features Lucid can only implement at its core.
-
-- `last_remote_read`: Property set to the last date at which this property was pulled from a remote store.
-- `is_synced`: Weither the concerned entity is in sync with the remote store(s). Only applicable for mutable entities.
-
-### Entity Metadata Description
-
-
-
-### Entity Version History
+### Endpoint Payload Description
 

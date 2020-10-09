@@ -318,7 +318,7 @@ Metadata are additional properties which can be retrieved from the remote store(
 #### Fields
 
 - `name`: Metadata property name (required).
-- `property_type`: Either a [scalar type](ConfigurationAndDescriptionFiles.md#property-scalar-type) or [subtype](ConfigurationAndDescriptionFiles.md#subtype-description).
+- `property_type`: Either a [scalar type](ConfigurationAndDescriptionFiles.md#property-scalar-types) or [subtype](ConfigurationAndDescriptionFiles.md#subtype-description).
 - `nullable`: Whether or not this property can be `nil` (defaults to `false`).
 
 ### Endpoint Payload Description

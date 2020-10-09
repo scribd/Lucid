@@ -36,14 +36,14 @@ let publishers = manager.search(
 )
 
 publishers
-   .once
-   .sink(receiveCompletion: { ... }, receiveValue: { ... }) // Receiving once.
-   .store(in: cancellables)
+  .once
+  .sink(receiveCompletion: { ... }, receiveValue: { ... }) // Receiving once.
+  .store(in: cancellables)
    
 publishers
-	.continuous
-   .sink(receiveCompletion: { [weak self] ... }, receiveValue: { [weak self] ... }) // Receiving for every data change.
-   .store(in: cancellables)
+  .continuous
+  .sink(receiveCompletion: { [weak self] ... }, receiveValue: { [weak self] ... }) // Receiving for every data change.
+  .store(in: cancellables)
 ```
 
 The `search` operation returns two publishers:

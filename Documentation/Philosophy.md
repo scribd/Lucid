@@ -10,14 +10,14 @@ Lucid is a Swift library for building robust data layers for applications.
 
 ### A bit of history
 
-At Scribd, our iOS application has been a huge part of our business since almost the beginning. For nearly ten years, developers have been adding features to same codebase, which became harder to maintain over time. We identified that the main hurdle was the lack of standardized data flow. In order to fix that, we decided to develop a suit of tools to help us follow a standardized way of declaring entities, but also pulling them from one or more remotes and storing them to one or more local stores. This is how Lucid was born.
+At Scribd, our iOS application has been a huge part of our business since almost the beginning. For nearly ten years, developers have been adding features to the same codebase, which became harder to maintain over time. We identified that the main hurdle was the lack of standardized data flow. In order to fix that, we decided to develop a suit of tools to help us follow a standardized way of declaring entities, but also pulling them from one or more remotes and storing them to one or more local stores. This is how Lucid was born.
 
 Therefore, the philosophy behind Lucid is to allow developers to easily declare business entities and provide the tools to interact with them through a unified API. Because a codebase like we have at Scribd uses a multitude of methods to handle data, Lucid needs to be flexible and adaptable to many kind of data flows while abstracting away the their complexity.
 
 ### Is Lucid a good fit for my project?
 
-Lucid was built be adaptaptable, so the answer is most likely yes. Of course its value is best seen on projects of a certain size, requiring a well structured data flow, but a small project can also beneficiate of a well rounded data flow, especially when expected to grow.
+Lucid was built to be adaptaptable, so the answer is most likely yes. Of course its value is best seen on projects of a certain size, requiring a well structured data flow, but a small project can also beneficiate of it, especially when expected to grow fast.
 
 ### Which architecture is best when using Lucid?
 
-Lucid is best seen as a suit of tools, therefore it can be used to support any architectural pattern. The only way to define which architecture fits best an application, is by looking at its requirements. Lucid can help implementing a data flow but the architectural decisions are yours make and should probably not be based on the tools you're using.
+Lucid is best seen as a suit of tools, therefore it can be used to support any architectural pattern. The only way to define which architecture fits best an application is by looking at its requirements. Lucid can help implementing a data flow but the architectural decisions are yours make and should probably not be based on the tools you're using.

@@ -42,7 +42,7 @@ publishers
    
 publishers
 	.continuous
-   .sink(receiveCompletion: { ... }, receiveValue: { ... }) // Receiving for every data change.
+   .sink(receiveCompletion: { [weak self] ... }, receiveValue: { [weak self] ... }) // Receiving for every data change.
    .store(in: cancellables)
 ```
 
@@ -50,6 +50,8 @@ The `search` operation returns two publishers:
 
 - `once` receives one unique result. It is usually used for operations which don't require to be reactive to changes.
 - `continuous` receives one result per data change. It is usually used for refreshing views in a reactive manner.
+
+When using a continuous publisher, it is important to make sure there isn't a possibility of retain cycle between the receive blocks and the cancellables store. Unlike for a once publisher, `CoreManager` retains continuous publishers until they aren't in used anymore. If a retain cycle keeps the publisher alive, `CoreManager` will keep track of it forever, which might become expensive over time.
 
 ## Set Entity
 
@@ -91,7 +93,7 @@ manager
   .store(in: cancellables)
 ```
 
-## Remove Entities With Idenfiers
+## Remove Entities With Identifiers
 
 The same way one entity can be removed, a multiple entities can be removed using the same operation and a list of identifiers.
 

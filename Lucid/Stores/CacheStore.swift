@@ -22,11 +22,11 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
 
     public init(keyValueStore: Storing<E>, persistentStore: Storing<E>) {
         if keyValueStore.level != .memory {
-            Logger.log(.error, "\(CacheStore.self) keyValueStore must be a memory store", assert: true)
+            Logger.log(.error, "\(CacheStore<E>.self) keyValueStore must be a memory store", assert: true)
         }
 
         if persistentStore.level != .disk {
-            Logger.log(.error, "\(CacheStore.self) persistentStore must be a disk store", assert: true)
+            Logger.log(.error, "\(CacheStore<E>.self) persistentStore must be a disk store", assert: true)
         }
 
         self.keyValueStore = keyValueStore
@@ -45,10 +45,10 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
             case .success,
                  .failure:
                 if let error = result.error {
-                    Logger.log(.error, "\(CacheStore.self): Could not get entity: \(query) from cache store: \(error)", assert: true)
+                    Logger.log(.error, "\(CacheStore<E>.self): Could not get entity: \(query) from cache store: \(error)", assert: true)
                 }
 
-                self.operationQueue.run(title: "\(CacheStore.self):get") { operationCompletion in
+                self.operationQueue.run(title: "\(CacheStore<E>.self):get") { operationCompletion in
 
                     self.persistentStore.get(withQuery: query, in: context) { result in
                         switch result {
@@ -56,9 +56,9 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
                             if let entity = queryResult.entity {
                                 self.keyValueStore.set(entity, in: WriteContext(dataTarget: .local)) { keyValueResult in
                                     if keyValueResult == nil {
-                                        Logger.log(.error, "\(CacheStore.self): Could not set entity: \(query) in cache store. Unexpectedly received nil.", assert: true)
+                                        Logger.log(.error, "\(CacheStore<E>.self): Could not set entity: \(query) in cache store. Unexpectedly received nil.", assert: true)
                                     } else if let error = keyValueResult?.error {
-                                        Logger.log(.error, "\(CacheStore.self): Could not set entity: \(query) in cache store: \(error)", assert: true)
+                                        Logger.log(.error, "\(CacheStore<E>.self): Could not set entity: \(query) in cache store: \(error)", assert: true)
                                     }
                                     completion(.success(queryResult))
                                     operationCompletion()
@@ -84,7 +84,7 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
             query.offset == nil,
             query.limit == nil else {
 
-                operationQueue.run(title: "\(CacheStore.self):search:1") { operationCompletion in
+                operationQueue.run(title: "\(CacheStore<E>.self):search:1") { operationCompletion in
                     self.persistentStore.search(withQuery: query, in: context) {
                         completion($0)
                         operationCompletion()
@@ -98,17 +98,17 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
             case .success(var keyValueStoreEntities):
 
                 if keyValueStoreEntities.materialize().count != identifiers.count {
-                    self.operationQueue.run(title: "\(CacheStore.self):search:2") { operationCompletion in
+                    self.operationQueue.run(title: "\(CacheStore<E>.self):search:2") { operationCompletion in
                         self.persistentStore.search(withQuery: query, in: context) { result in
                             switch result {
                             case .success(var successfulEntities):
                                 self.keyValueStore.set(successfulEntities.materialize(), in: WriteContext(dataTarget: .local)) { setResult in
                                     if setResult == nil {
-                                        Logger.log(.error, "\(CacheStore.self): Could not set entity: \(successfulEntities.array) in cache store. Unexpectedly received nil.", assert: true)
+                                        Logger.log(.error, "\(CacheStore<E>.self): Could not set entity: \(successfulEntities.array) in cache store. Unexpectedly received nil.", assert: true)
                                     } else if let error = setResult?.error {
-                                        Logger.log(.error, "\(CacheStore.self): Could not set entity: \(successfulEntities.array) in cache store: \(error)", assert: true)
+                                        Logger.log(.error, "\(CacheStore<E>.self): Could not set entity: \(successfulEntities.array) in cache store: \(error)", assert: true)
                                     } else {
-                                        Logger.log(.verbose, "\(CacheStore.self): Cached \(successfulEntities.count) entities.")
+                                        Logger.log(.verbose, "\(CacheStore<E>.self): Cached \(successfulEntities.count) entities.")
                                     }
                                     completion(result)
                                     operationCompletion()
@@ -131,7 +131,7 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
 
     public func set<S>(_ entities: S, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void) where S: Sequence, S.Element == E {
 
-        operationQueue.run(title: "\(CacheStore.self):set") { operationCompletion in
+        operationQueue.run(title: "\(CacheStore<E>.self):set") { operationCompletion in
 
             let entitiesToSave = DualHashDictionary(entities.map { ($0.identifier, $0) })
 
@@ -152,7 +152,7 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
                         }
                     }
 
-                    Logger.log(.verbose, "\(CacheStore.self): Writing \(entitiesToSave.count) out of \(initialEntitiesToSaveCount) entities to disk.")
+                    Logger.log(.verbose, "\(CacheStore<E>.self): Writing \(entitiesToSave.count) out of \(initialEntitiesToSaveCount) entities to disk.")
 
                     self._set(entitiesToSave, in: context) { result in
                         switch result {
@@ -168,7 +168,7 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
 
                 case .failure,
                      .success:
-                    Logger.log(.verbose, "\(CacheStore.self): Writing \(entitiesToSave.count) entities to disk.")
+                    Logger.log(.verbose, "\(CacheStore<E>.self): Writing \(entitiesToSave.count) entities to disk.")
                     self._set(entitiesToSave.values, in: context) {
                         completion($0)
                         operationCompletion()
@@ -189,18 +189,18 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
             case .some(.success(let entities)):
                 self.persistentStore.set(entities, in: context) { result in
                     if result == nil {
-                        Logger.log(.error, "\(CacheStore.self): Could not set entities: \(entities.map { $0.identifier }) in persistent store. Unexpectedly received nil.", assert: true)
+                        Logger.log(.error, "\(CacheStore<E>.self): Could not set entities: \(entities.map { $0.identifier }) in persistent store. Unexpectedly received nil.", assert: true)
                     } else if let error = result?.error {
-                        Logger.log(.error, "\(CacheStore.self): Could not set entities: \(entities.map { $0.identifier }) in persistent store: \(error)", assert: true)
+                        Logger.log(.error, "\(CacheStore<E>.self): Could not set entities: \(entities.map { $0.identifier }) in persistent store: \(error)", assert: true)
                     }
                     completion(.success(entities))
                 }
 
             case .some(.failure(let error)):
-                Logger.log(.error, "\(CacheStore.self): Could not set entities: \(entities.map { $0.identifier }) in cache store: \(error)", assert: true)
+                Logger.log(.error, "\(CacheStore<E>.self): Could not set entities: \(entities.map { $0.identifier }) in cache store: \(error)", assert: true)
                 self.persistentStore.set(entities, in: context, completion: completion)
             case .none:
-                Logger.log(.error, "\(CacheStore.self): Could not set entities: \(entities.map { $0.identifier }) in cache store. Unexpectedly received nil.", assert: true)
+                Logger.log(.error, "\(CacheStore<E>.self): Could not set entities: \(entities.map { $0.identifier }) in cache store. Unexpectedly received nil.", assert: true)
                 self.persistentStore.set(entities, in: context, completion: completion)
             }
         }
@@ -208,16 +208,16 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
 
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void) {
 
-        operationQueue.run(title: "\(CacheStore.self):remove_all") { operationCompletion in
+        operationQueue.run(title: "\(CacheStore<E>.self):remove_all") { operationCompletion in
             let dispatchGroup = DispatchGroup()
             dispatchGroup.enter()
             dispatchGroup.enter()
 
             self.keyValueStore.removeAll(withQuery: query, in: context) { result in
                 if result == nil {
-                    Logger.log(.error, "\(CacheStore.self): Could not remove entities matching query: \(query) from cache store. Unexpectedly received nil.", assert: true)
+                    Logger.log(.error, "\(CacheStore<E>.self): Could not remove entities matching query: \(query) from cache store. Unexpectedly received nil.", assert: true)
                 } else if let error = result?.error {
-                    Logger.log(.error, "\(CacheStore.self): Could not remove entities matching query: \(query) from cache store: \(error)", assert: true)
+                    Logger.log(.error, "\(CacheStore<E>.self): Could not remove entities matching query: \(query) from cache store: \(error)", assert: true)
                 }
                 dispatchGroup.leave()
             }
@@ -231,7 +231,7 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
             dispatchGroup.notify(queue: .global()) {
                 defer { operationCompletion() }
                 guard let result = _result else {
-                    Logger.log(.error, "\(CacheStore.self): Should never happen. If it does, fix asap.", assert: true)
+                    Logger.log(.error, "\(CacheStore<E>.self): Should never happen. If it does, fix asap.", assert: true)
                     completion(.failure(.notSupported))
                     return
                 }
@@ -242,16 +242,16 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
 
-        operationQueue.run(title: "\(CacheStore.self):bulk_remove") { operationCompletion in
+        operationQueue.run(title: "\(CacheStore<E>.self):bulk_remove") { operationCompletion in
             let dispatchGroup = DispatchGroup()
             dispatchGroup.enter()
             dispatchGroup.enter()
 
             self.keyValueStore.remove(identifiers, in: context) { result in
                 if result == nil {
-                    Logger.log(.error, "\(CacheStore.self): Could not remove entity: \(identifiers) from cache store. Unexpectedly received nil.", assert: true)
+                    Logger.log(.error, "\(CacheStore<E>.self): Could not remove entity: \(identifiers) from cache store. Unexpectedly received nil.", assert: true)
                 } else if let error = result?.error {
-                    Logger.log(.error, "\(CacheStore.self): Could not remove entity: \(identifiers) from cache store: \(error)", assert: true)
+                    Logger.log(.error, "\(CacheStore<E>.self): Could not remove entity: \(identifiers) from cache store: \(error)", assert: true)
                 }
                 dispatchGroup.leave()
             }
@@ -265,7 +265,7 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
             dispatchGroup.notify(queue: .global()) {
                 defer { operationCompletion() }
                 guard let result = _result else {
-                    Logger.log(.error, "\(CacheStore.self): Should never happen. If it does, fix asap.", assert: true)
+                    Logger.log(.error, "\(CacheStore<E>.self): Should never happen. If it does, fix asap.", assert: true)
                     completion(.failure(.notSupported))
                     return
                 }

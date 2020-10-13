@@ -158,6 +158,24 @@ public struct Query<E>: Equatable where E: Entity {
         return query
     }
 
+    public func with(limit: Int?) -> Query {
+        var query = self
+        query.limit = limit
+        return query
+    }
+
+    public func with(offset: Int?) -> Query {
+        var query = self
+        query.offset = offset
+        return query
+    }
+
+    public func with(context: E.QueryContext?) -> Query {
+        var query = self
+        query.context = context
+        return query
+    }
+
     public static var all: Query { return Query(filter: .all) }
 }
 

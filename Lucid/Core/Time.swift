@@ -32,6 +32,14 @@ public class Time: Hashable, Comparable {
     public static var zero: Time {
         return Time(seconds: 0)
     }
+
+    public var seconds: Seconds {
+        return Seconds(seconds: value.seconds, preferredTimescale: value.timescale)
+    }
+
+    public var milliseconds: Milliseconds {
+        return Milliseconds(seconds: value.seconds, preferredTimescale: value.timescale)
+    }
 }
 
 @objc public final class SCTimeObjc: NSObject {

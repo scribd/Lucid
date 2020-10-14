@@ -613,25 +613,31 @@ public struct OrderedDualHashDictionary<Key, Value>: Sequence where Key: DualHas
 
     public private(set) var dictionary = DualHashDictionary<Key, Value>()
 
-    public private(set) var orderedKeys = [Key]()
+    private var keys = [Key]()
 
-    public init() {
-        // no-op
+    private var hasDuplicateKeys = false
+    private let optimizeWriteOperation: Bool
+
+    public init(optimizeWriteOperation: Bool = false) {
+        self.optimizeWriteOperation = optimizeWriteOperation
     }
 
-    public init<S>(_ keyValues: S) where S: Sequence, S.Element == (Key, Value) {
+    public init<S>(_ keyValues: S, optimizeWriteOperation: Bool = false) where S: Sequence, S.Element == (Key, Value) {
+        self.optimizeWriteOperation = optimizeWriteOperation
         keyValues.reversed().forEach { key, value in
             guard dictionary[key] == nil else { return }
             dictionary[key] = value
-            orderedKeys = [key] + orderedKeys
+            keys = [key] + keys
         }
     }
 
-    public init(_ dictionary: DualHashDictionary<Key, Value>, sortBy areInIncreasingOrder: (Key, Key) -> Bool) {
+    public init(_ dictionary: DualHashDictionary<Key, Value>,
+                optimizeWriteOperation: Bool = false,
+                sortBy areInIncreasingOrder: (Key, Key) -> Bool) {
         self.init(dictionary.keys.sorted(by: areInIncreasingOrder).lazy.compactMap { key -> (Key, Value)? in
             guard let value = dictionary[key] else { return nil }
             return (key, value)
-        })
+        }, optimizeWriteOperation: optimizeWriteOperation)
     }
 
     public subscript(key: Key) -> Value? {
@@ -639,14 +645,27 @@ public struct OrderedDualHashDictionary<Key, Value>: Sequence where Key: DualHas
             return dictionary[key]
         }
         set {
-            if dictionary[key] == nil && newValue != nil {
-                orderedKeys.append(key)
-            } else {
-                orderedKeys.firstIndex(of: key).flatMap { index -> Void in
-                    orderedKeys.remove(at: index)
-                }
+            if optimizeWriteOperation {
                 if newValue != nil {
-                    orderedKeys.append(key)
+                    if hasDuplicateKeys == false {
+                        hasDuplicateKeys = dictionary[key] != nil
+                    }
+                    keys.append(key)
+                } else if hasDuplicateKeys {
+                    keys.removeAll { $0 == key }
+                } else if let index = keys.firstIndex(of: key) {
+                    keys.remove(at: index)
+                }
+            } else {
+                if newValue != nil && dictionary[key] == nil {
+                    keys.append(key)
+                } else {
+                    keys.firstIndex(of: key).flatMap { index -> Void in
+                        keys.remove(at: index)
+                    }
+                    if newValue != nil {
+                        keys.append(key)
+                    }
                 }
             }
             dictionary[key] = newValue
@@ -657,9 +676,46 @@ public struct OrderedDualHashDictionary<Key, Value>: Sequence where Key: DualHas
         return orderedKeyValues.makeIterator()
     }
 
+    public var orderedKeys: [Key] {
+        if optimizeWriteOperation && hasDuplicateKeys {
+            var seenKeys = DualHashSet<Key>()
+            return keys.lazy.reversed().compactMap { key in
+                guard seenKeys.contains(key) == false else { return nil }
+                seenKeys.insert(key)
+                return key
+            }.reversed()
+        } else {
+            return keys
+        }
+    }
+
     public var orderedKeyValues: [(Key, Value)] {
-        return orderedKeys.compactMap { key in
-            dictionary[key].flatMap { (key, $0) }
+        if optimizeWriteOperation && hasDuplicateKeys {
+            var seenKeys = DualHashSet<Key>()
+            return keys.lazy.reversed().compactMap { key in
+                guard seenKeys.contains(key) == false else { return nil }
+                seenKeys.insert(key)
+                return dictionary[key].flatMap { (key, $0) }
+            }.reversed()
+        } else {
+            return keys.compactMap { key in
+                dictionary[key].flatMap { (key, $0) }
+            }
+        }
+    }
+
+    public var orderedValues: [Value] {
+        if optimizeWriteOperation && hasDuplicateKeys {
+            var seenKeys = DualHashSet<Key>()
+            return keys.lazy.reversed().compactMap { key in
+                guard seenKeys.contains(key) == false else { return nil }
+                seenKeys.insert(key)
+                return dictionary[key]
+            }.reversed()
+        } else {
+            return keys.compactMap { key in
+                dictionary[key]
+            }
         }
     }
 

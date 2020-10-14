@@ -397,6 +397,72 @@ final class OrderedDualHashDictionaryTests: XCTestCase {
     }
 }
 
+final class OptimizedWriteOperationOrderedDualHashDictionaryTests: XCTestCase {
+
+    private var dictionary: OrderedDualHashDictionary<IdentifierValueType<String, Int>, Int>!
+
+    override func setUp() {
+        super.setUp()
+        dictionary = OrderedDualHashDictionary(optimizeWriteOperation: true)
+    }
+
+    override func tearDown() {
+        defer { super.tearDown() }
+        dictionary = nil
+    }
+
+    func test_should_add_elements_and_retrieve_them_in_order_of_insertion() {
+        dictionary[.remote(0, nil)] = 0
+        dictionary[.remote(1, nil)] = 1
+        dictionary[.remote(2, nil)] = 2
+        dictionary[.remote(3, nil)] = 3
+        XCTAssertEqual(dictionary.orderedKeys, [.remote(0, nil), .remote(1, nil), .remote(2, nil), .remote(3, nil)])
+        XCTAssertEqual(dictionary.orderedKeyValues.map { $0.1 }, [0, 1, 2, 3])
+    }
+
+    func test_should_add_an_element_twice_and_retrieve_it_once_in_order_of_insertion() {
+        dictionary[.remote(0, nil)] = 0
+        dictionary[.remote(1, nil)] = 1
+        dictionary[.remote(2, nil)] = 2
+        dictionary[.remote(0, nil)] = 3
+        XCTAssertEqual(dictionary.orderedKeys, [.remote(1, nil), .remote(2, nil), .remote(0, nil)])
+        XCTAssertEqual(dictionary.orderedKeyValues.map { $0.1 }, [1, 2, 3])
+    }
+
+    func test_should_add_an_element_twice_and_count_a_correct_amount_of_elements() {
+        dictionary[.remote(0, nil)] = 0
+        dictionary[.remote(1, nil)] = 1
+        dictionary[.remote(2, nil)] = 2
+        dictionary[.remote(0, nil)] = 3
+        XCTAssertEqual(dictionary.count, 3)
+    }
+
+    func test_should_initialize_from_key_values_and_retrieve_elements_in_order_of_insertion() {
+        dictionary = OrderedDualHashDictionary([
+            (.remote(0, nil), 0),
+            (.remote(1, nil), 1),
+            (.remote(2, nil), 2),
+            (.remote(0, nil), 3)
+        ], optimizeWriteOperation: true)
+        XCTAssertEqual(dictionary.orderedKeys, [.remote(1, nil), .remote(2, nil), .remote(0, nil)])
+        XCTAssertEqual(dictionary.orderedKeyValues.map { $0.1 }, [1, 2, 3])
+    }
+
+    func test_should_delete_value_and_remove_key_from_ordered_list_when_setting_value_to_nil() {
+        dictionary = OrderedDualHashDictionary([
+            (.remote(0, nil), 0),
+            (.remote(1, nil), 1),
+            (.remote(2, nil), 2),
+            (.remote(0, nil), 3)
+        ], optimizeWriteOperation: true)
+
+        dictionary[.remote(1, nil)] = nil
+
+        XCTAssertEqual(dictionary.orderedKeys, [.remote(2, nil), .remote(0, nil)])
+        XCTAssertEqual(dictionary.orderedKeyValues.map { $0.1 }, [2, 3])
+    }
+}
+
 final class OrderedDictionaryTests: XCTestCase {
 
     private var dictionary: OrderedDictionary<String, Int>!
@@ -544,7 +610,7 @@ final class OrderedSetTests: XCTestCase {
     }
 }
 
-final class DualHashSetDictionaryTests: XCTestCase {
+final class DualHashSetTests: XCTestCase {
 
     private var set: DualHashSet<IdentifierValueType<String, Int>>!
 

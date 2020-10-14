@@ -161,7 +161,7 @@ public extension TypeIdentifier {
             .adding(genericParameter: key)
             .adding(genericParameter: value)
     }
-    
+
     static func dualHashSet(element: TypeIdentifier? = nil) -> TypeIdentifier {
         return TypeIdentifier(name: "DualHashSet")
             .adding(genericParameter: element)

@@ -53,7 +53,7 @@ struct MetaEndpointResultPayload {
             if entity.hasVoidIdentifier {
                 type = .anySequence(element: entity.typeID())
             } else {
-                type = .dualHashDictionary(key: entity.identifierTypeID(), value: entity.typeID())
+                type = .orderedDualHashDictionary(key: entity.identifierTypeID(), value: entity.typeID())
             }
             return Property(variable: entity.payloadEntityAccessorVariable
                 .with(type: type))
@@ -79,10 +79,11 @@ struct MetaEndpointResultPayload {
             .adding(members: descriptions.entities.map { entity in
                 Assignment(
                     variable: entity.payloadEntityAccessorVariable.with(immutable: false),
-                    value: (entity.hasVoidIdentifier ?
-                        TypeIdentifier.array(element: entity.typeID()) :
-                        TypeIdentifier.dualHashDictionary(key: entity.identifierTypeID(), value: entity.typeID())
-                    ).reference | .call()
+                    value: entity.hasVoidIdentifier ?
+                        TypeIdentifier.array(element: entity.typeID()).reference | .call() :
+                        TypeIdentifier.orderedDualHashDictionary(key: entity.identifierTypeID(), value: entity.typeID()).reference | .call(Tuple()
+                            .adding(parameter: TupleParameter(name: "optimizeWriteOperation", value: Value.bool(true)))
+                        )
                 )
             })
             .adding(member: Variable(name: "entities").with(type: .anySequence(element: .appAnyEntity)))
@@ -202,7 +203,7 @@ struct MetaEndpointResultPayload {
                 } else {
                     return """
                     case is \(entity.typeID().swiftString).Type:
-                        return \(entity.name.camelCased().variableCased().pluralName).values.any as? AnySequence<E> ?? [].any
+                        return \(entity.name.camelCased().variableCased().pluralName).orderedValues.any as? AnySequence<E> ?? [].any
                     """
                 }
             }.joined(separator: "\n"))

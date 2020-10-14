@@ -223,7 +223,7 @@ struct MetaEntityGraph {
             case .property,
                  .relationships,
                  .scalarType:
-                type = TypeIdentifier.dualHashDictionary(key: entity.identifierTypeID(), value: entity.typeID())
+                type = TypeIdentifier.orderedDualHashDictionary(key: entity.identifierTypeID(), value: entity.typeID())
             }
             
             return Property(variable: Variable(name: entity.name.camelCased().variableCased().pluralName)

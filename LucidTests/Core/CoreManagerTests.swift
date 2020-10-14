@@ -2213,7 +2213,7 @@ final class CoreManagerTests: XCTestCase {
 
     // MARK: - Query Ordering
 
-    func test_results_should_be_returned_in_query_order() {
+    func test_results_should_be_returned_in_query_order_ascending() {
 
         remoteStoreSpy.searchResultStub = .success(.entities([]))
         memoryStoreSpy.searchResultStub = .success(.entities([]))
@@ -2393,6 +2393,40 @@ final class CoreManagerTests: XCTestCase {
             .dispose(in: disposeBag)
 
         wait(for: [continuousExpectation2], timeout: 1)
+    }
+
+    func test_results_should_be_returned_in_query_order_natural() {
+
+        memoryStoreSpy.searchResultStub = .success(.entities([]))
+        memoryStoreSpy.setResultStub = .success([])
+        remoteStoreSpy.searchResultStub = .success(.entities([
+            EntitySpy(idValue: .remote(43, nil), title: "fake_title"),
+            EntitySpy(idValue: .remote(42, nil), title: "another_fake_title"),
+            EntitySpy(idValue: .remote(44, nil), title: "some_fake_title")
+        ]))
+
+        let secondContext = ReadContext<EntitySpy>(
+            dataSource: .remote(
+                endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity")), resultPayload: .empty),
+                persistenceStrategy: .persist(.discardExtraLocalData)
+            )
+        )
+
+        let expectation = self.expectation(description: "order")
+
+        manager.search(withQuery: .all, in: secondContext)
+            .once
+            .observeNext { result in
+                XCTAssertEqual(result.map { $0.title }, [
+                    "fake_title",
+                    "another_fake_title",
+                    "some_fake_title"
+                ])
+                expectation.fulfill()
+            }
+            .dispose(in: disposeBag)
+
+        wait(for: [expectation], timeout: 1)
     }
 
     // MARK: - Disposing

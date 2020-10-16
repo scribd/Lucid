@@ -396,6 +396,8 @@ public enum DefaultValue: Equatable {
     case date(Date)
     case enumCase(String)
     case `nil`
+    case seconds(Float)
+    case milliseconds(Float)
 }
 
 // MARK: - Properties
@@ -583,10 +585,14 @@ extension DefaultValue: CustomStringConvertible {
             return value.description
         case .string(let value):
             return value
-        case .enumCase(let value):
-            return ".\(value)"
         case .`nil`:
             return "nil"
+        case .seconds(let value):
+            return "\(value)s"
+        case .milliseconds(let value):
+            return "\(value)ms"
+        case .enumCase(let value):
+            return ".\(value)"
         }
     }
 }

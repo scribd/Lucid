@@ -235,7 +235,9 @@ private extension DefaultValue {
              .int,
              .string,
              .enumCase,
-             .`nil`:
+             .`nil`,
+             .seconds,
+             .milliseconds:
             return "defaultValueString"
         case .date,
              .currentDate:
@@ -261,6 +263,10 @@ private extension DefaultValue {
             return value
         case .`nil`:
             return "nil"
+        case .seconds(let value):
+            return value.description
+        case .milliseconds(let value):
+            return (value / 1000).description
         }
     }
 }

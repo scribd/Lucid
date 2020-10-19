@@ -13,7 +13,7 @@ public class Time: Hashable, Comparable {
 
     public let value: CMTime
 
-    public init(seconds: Double, preferredTimescale: Int32 = 1000) {
+    public required init(seconds: Double, preferredTimescale: Int32 = 1000) {
         value = CMTime(seconds: seconds, preferredTimescale: preferredTimescale)
     }
 
@@ -29,8 +29,16 @@ public class Time: Hashable, Comparable {
         return value.hash(into: &hasher)
     }
 
-    public static var zero: Time {
-        return Time(seconds: 0)
+    public static var zero: Self {
+        return Self(seconds: 0)
+    }
+
+    public var seconds: Seconds {
+        return Seconds(seconds: value.seconds, preferredTimescale: value.timescale)
+    }
+
+    public var milliseconds: Milliseconds {
+        return Milliseconds(seconds: value.seconds, preferredTimescale: value.timescale)
     }
 }
 

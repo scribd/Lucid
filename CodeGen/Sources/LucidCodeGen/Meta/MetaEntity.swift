@@ -314,10 +314,10 @@ struct MetaEntity {
                     .adding(member: .named(.`self`) + .named("identifier") + .named("property") + .named("value") + .named("merge") | .call(Tuple()
                         .adding(parameter: TupleParameter(name: "with", value: .named("identifier") + .named("value")))
                     ))
-                    .adding(member: Assignment(
+                    .adding(member: entity.remote ? Assignment(
                         variable: .named(.`self`) + .named("identifier") + .named("_remoteSynchronizationState") + .named("value"),
                         value: .named("identifier") + .named("_remoteSynchronizationState") + .named("value")
-                    ))
+                    ) : nil)
                 )
                 .adding(member: EmptyLine())
                 .adding(member: Function(kind: .named("updated"))

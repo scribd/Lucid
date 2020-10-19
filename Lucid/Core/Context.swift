@@ -302,12 +302,21 @@ public final class WriteContext<E: Entity> {
         case mergeIdentifier
     }
 
-    public init(dataTarget: DataTarget,
-                remoteSyncState: RemoteSyncState? = nil,
-                accessValidator: UserAccessValidating? = nil) {
+    init(dataTarget: DataTarget,
+         remoteSyncState: RemoteSyncState?,
+         accessValidator: UserAccessValidating? = nil) {
+
         self.dataTarget = dataTarget
         self.remoteSyncState = remoteSyncState
         self.accessValidator = accessValidator
+    }
+
+    public convenience init(dataTarget: DataTarget,
+                            accessValidator: UserAccessValidating? = nil) {
+
+        self.init(dataTarget: dataTarget,
+                  remoteSyncState: nil,
+                  accessValidator: accessValidator)
     }
 }
 

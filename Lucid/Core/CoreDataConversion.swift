@@ -542,7 +542,7 @@ public extension Time {
     }
 }
 
-public extension Optional where Wrapped == Time {
+public extension Optional where Wrapped: Time {
     func coreDataValue() -> Double? {
         return self?.coreDataValue()
     }
@@ -568,6 +568,22 @@ public extension NSManagedObject {
             throw CoreDataConversionError.corruptedProperty(name: propertyName)
         }
         return value
+    }
+
+    func secondsValue(propertyName: String) -> Seconds? {
+        return timeValue(propertyName: propertyName)?.seconds
+    }
+
+    func secondsValue(propertyName: String) throws -> Seconds {
+        return try timeValue(propertyName: propertyName).seconds
+    }
+
+    func millisecondsValue(propertyName: String) -> Milliseconds? {
+        return timeValue(propertyName: propertyName)?.milliseconds
+    }
+
+    func millisecondsValue(propertyName: String) throws -> Milliseconds {
+        return try timeValue(propertyName: propertyName).milliseconds
     }
 }
 

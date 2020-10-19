@@ -401,6 +401,14 @@ extension DefaultValue: Codable {
                 self = .currentDate
             } else if value == "nil" {
                 self = .nil
+            } else if value.reversed().starts(with: "s") {
+                var value = value
+                value.removeLast()
+                self = .seconds(Float(value) ?? 0)
+            } else if value.reversed().starts(with: "ms".reversed()) {
+                var value = value
+                value.removeLast(2)
+                self = .milliseconds(Float(value) ?? 0)
             } else if value.starts(with: ".") {
                 var value = value
                 value.removeFirst()
@@ -415,25 +423,7 @@ extension DefaultValue: Codable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-
-        switch self {
-        case .bool(let value):
-            try container.encode(value)
-        case .int(let value):
-            try container.encode(value)
-        case .float(let value):
-            try container.encode(value)
-        case .date(let date):
-            try container.encode(date)
-        case .currentDate:
-            try container.encode("current_date")
-        case .nil:
-            try container.encode("nil")
-        case .string(let value):
-            try container.encode(value)
-        case .enumCase(let value):
-            try container.encode(".\(value)")
-        }
+        try container.encode(description)
     }
 }
 

@@ -1713,6 +1713,14 @@ public extension DefaultValue {
             return +Reference.named(value.camelCased().variableCased())
         case .`nil`:
             return Value.nil
+        case .seconds(let seconds):
+            return .named("Seconds") | .call(Tuple()
+                .adding(parameter: TupleParameter(name: "seconds", value: Value.float(seconds)))
+            )
+        case .milliseconds(let milliseconds):
+            return .named("Milliseconds") | .call(Tuple()
+                .adding(parameter: TupleParameter(name: "seconds", value: Value.float(milliseconds / 1000)))
+            )
         }
     }
 }

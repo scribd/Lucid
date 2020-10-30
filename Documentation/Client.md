@@ -47,8 +47,40 @@ A request can be configured using the following attributes:
 
 When Lucid gets a request to send from a `RemoteStore`, it doesn't always directly sends it, and that for two reasons:
 
-- Some requests need more attention because they carry important information which can't be lost in case of failure. For instance, requests using the method `POST` or `PUT` almost always carry a body, which needs to be safely brought to the server's attention.
+- Some requests need more attention because they carry important information which can't be lost in case of failure or if the app gets terminated. For instance, requests using the method `POST` or `PUT` almost always carry a body, which needs to be safely brought to the server's attention.
 
-- Some requests depend on one another a need to be sent sequentially so that the server can make sense out of them. For example, if request A creates an entity on the backend and request B updates that same entity, it only make sense to send those request in the order A => B.
+- Some requests depend on one another and need to be sent sequentially so that the server can make sense out of them. For example, if request A creates an entity on the backend and request B updates that same entity, it only make sense to send those request in the order A => B.
 
 For these reasons, Lucid first appends the requests to an `APIClientQueue` before sending them. The queue then decides if yes or not they should be sent in parrallele or sequentially, but also makes sure that requests carrying important data have the opportunity to re-enter in the queue after a network failure.
+
+## Response Handler
+
+Lucid has two ways to propagate an `APIClientResponse` into its system:
+
+1. Through a `CoreManager`s publisher.
+2. Through a *static* response handler.
+
+The first option is commonly used for read-only requests. When the app needs information to show to the screen, it fetches those data from the server and immediately apply them.
+
+The second option is used for requests which aren't always sent immediately, potentially after the app was restarted.
+
+### Registering a Response Handler
+
+To register a response handler you'll have to implement the `CoreManagerContainerClientQueueResponseHandler` protocol and make sure `CoreManagerContainer` is aware of it.
+
+```swift
+final class MyResponseClientQueueHandler: CoreManagerContainerClientQueueResponseHandler {
+  
+  func clientQueue(_ clientQueue: APIClientQueuing,
+                   didReceiveResponse result: APIClientQueueResult<Data, APIError>,
+                   for request: APIClientQueueRequest) {
+    ...
+  }
+}
+
+extension CoreManagerContainer {
+    static func makeResponseHandler() -> CoreManagerContainerClientQueueResponseHandler? {
+        return MyResponseClientQueueHandler()
+    }
+}
+``` 

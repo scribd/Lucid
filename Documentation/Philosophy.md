@@ -20,4 +20,4 @@ Lucid was built to be adaptaptable, so the answer is most likely yes. Of course 
 
 ### Which architecture is best when using Lucid?
 
-Lucid is best seen as a suit of tools, therefore it can be used to support any architectural pattern. The only way to define which architecture fits best an application is by looking at its requirements. Lucid can help implementing a data flow but the architectural decisions are yours make and should probably not be based on the tools you're using.
+Lucid is best seen as a suit of tools, therefore it can be used to support any architectural pattern. The only way to define which architecture fits best an application is by looking at its requirements. Lucid can help implementing a data flow but the architectural decisions are yours to make and should probably not be based on the tools you're using.

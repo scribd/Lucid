@@ -20,15 +20,9 @@ It requires the following properties:
 
 It also requires the following methods:
 
-- ```swift
-func prepareRequest(_ requestConfig: APIRequestConfig, completion: @escaping (APIRequestConfig) -> Void)
-```
-This method is called before sending a request. It's well suited for any shared configuration between requests (e.g. setting an API key or an authentication token in the request's headers).
+- `func prepareRequest(_ requestConfig: APIRequestConfig, completion: @escaping (APIRequestConfig) -> Void)`: This method is called before sending a request. It's well suited for any shared configuration between requests (e.g. setting an API key or an authentication token in the request's headers).
 
-- ```swift
-func errorPayload(from body: Data) -> APIErrorPayload?
-```
-This method is called when receiving an error status. It is an opportunity to convert an error payload into an `APIErrorPayload` object which Lucid can understand.
+- `func errorPayload(from body: Data) -> APIErrorPayload?`: This method is called when receiving an error status. It is an opportunity to convert an error payload into an `APIErrorPayload` object which Lucid can understand.
 
 ## Request Configuration
 

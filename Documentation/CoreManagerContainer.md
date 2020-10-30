@@ -6,15 +6,17 @@ It isn't required to use it, but is recommended as it facilitates the use of man
 
 ## Data Synchronization
 
-To understand why this container is useful, it's important to understand certain rules about core managers and data synchronization.
+To understand why the container is useful, it's important to understand certain rules about core managers and data synchronization.
 
-Firstly, core managerss instances aren't synchronized with each other. This means that writing data with one instance of a core manager won't necessarily update the continuous publishers of other instances of the same entity type.
+- Core managers' instances aren't synchronized with each other. This means that **writing data with one instance** of a core manager **won't** necessarily **update continuous publishers of other instances** of the same entity type.
 
-Another aspect to bear in mind is that core managerss have an internal synchronization system in order to avoid overriding fresh data with outdated data. This system isn't shared between instances, but multiple instances may be writing to the same stores. It is **not recommended** to use such a configuration as it can lead to data collisions and damage local stores' integrity.
+- Core managers have an internal synchronization system in order to avoid overriding fresh data with outdated data. While this system doesn't share its state with other instances, it may share the same stores. Such a setup can lead to **data collisions** and **damage local stores' integrity**.
 
 Generally speaking, it is adviced to use only one instance of core manager per entity type in a project, which is where `CoreManagerContainer` comes handy.
 
 ## Initialization
+
+Buiding a `CoreManagerContainer` looks like the following:
 
 ```swift
 let client = MyAPIClient(...)
@@ -36,7 +38,7 @@ The `CoreManagerContainer` depends on two objects:
 
 By default, core managers are using an `InMemoryStore` as a caching system in front of a `CoreDataStore`. That's why it is required to set the `cacheLimit` to a reasonable value as it is the maximum amount of entities the `InMemoryStore` can contain per entity type.
 
-## Default Store Configurations
+## Default Store Configuration
 
 `CoreManagerContainer` automatically creates the stores which are being injected into the core managers. 
 

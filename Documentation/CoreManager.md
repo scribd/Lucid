@@ -247,3 +247,7 @@ manager
   .sink(receiveCompletion: { ... }, receiveValue: { ... })
   .store(in: cancellables)
 ```
+
+## Intialization
+
+It isn't recommended to try initializing a `CoreManager` manually. Please follow the [instructions](./CoreManagerContainer.md) about `CoreManagerContainer` instead.

@@ -89,28 +89,84 @@ final class MyResponseClientQueueHandler: CoreManagerContainerClientQueueRespons
 
 Because this handler is called directly from a `ClientQueue`, there is more manual work to do in order to interpret a response.
 
-For example, the following transform a response into a payload and forwards its content to a `CoreManager`.
+#### Forward response to a `CoreManager`
 
 ```swift
 func clientQueue(_ clientQueue: APIClientQueuing,
                  didReceiveResponse result: APIClientQueueResult<Data, APIError>,
                  for request: APIClientQueueRequest) {
+
+  guard request.wrapped.config.path == "/api/my_entity", request.wrapped.config.method == .post else {
+    return
+  }
   
   switch result {
   case .success(let response):
-	let payloadDecoder = response.jsonCoderConfig.decoder
+    let payloadDecoder = response.jsonCoderConfig.decoder
 	
-	do {
-	  let result = try payloadDecoder.decode(DefaultEndpointMyEntityPayload.self, from: response.data)
-	  managers
-	    .myEntityManager
-	    .get(byID: result.myEntityID)
-	    .sink(receiveCompletion: { ... }, receiveValue: { ... })
-	    .store(in: cancellables)
-	} catch {
-	  ...
-	}
+    do {
+      let result = try payloadDecoder.decode(DefaultEndpointMyEntityPayload.self, from: response.data)
+      managers
+        .myEntityManager
+        .get(byID: result.myEntityID)
+        .sink(receiveCompletion: { ... }, receiveValue: { ... })
+        .store(in: cancellables)
+    } catch {
+      ...
+    }
+  
+  case .error(let error):
+    ...
+  }
+}
+```
 
+#### Synchronize local entity's identifier with its remote counterpart
+
+This code handles the response to a post request, pushing a local entity to the server.
+
+```swift
+func clientQueue(_ clientQueue: APIClientQueuing,
+                 didReceiveResponse result: APIClientQueueResult<Data, APIError>,
+                 for request: APIClientQueueRequest) {
+
+  guard request.wrapped.config.path == "/api/my_entity", request.wrapped.config.method == .post else {
+    return
+  }
+  
+  guard let localIDsData = request.identifiers else {
+    return
+  }
+  
+  switch result {
+  case .success(let response):
+    let decoder = response.jsonCoderConfig.decoder
+    
+    do {
+      // Decode local identifier used to save locally before sending the request. 
+      let localIdentifier = try decoder.decode(MyEntityIdentifier.self, from: localIDsData)
+
+      // Decode result from server.
+      let result = try decoder.decode(DefaultEndpointMyEntityPayload>.self, from: response.data)
+      let myEntity = MyEntity(payload: result.entityPayload)
+      
+      // Make sure to merge remote identifier with its local counterpart.
+      myEntity.merge(identifier: localIdentifier)
+      
+      // In case other requests pending in the queue depend on this identifier, 
+      // make sure they also include their remote counterpart.
+      clientQueue.merge(with: myEntity.identifier)
+      
+      // Make sure to store updated identifier to local stores.
+      managers
+        .myEntityManager
+        .setAndUpdateIdentifierInLocalStores(myEntity, originTimestamp: request.timestamp)
+        .sink(receiveCompletion: { ... }, receiveValue: { ... })
+        .store(in: cancellables)
+    } catch {
+      ...
+    }
+  
   case .error(let error):
     ...
   }

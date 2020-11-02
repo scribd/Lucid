@@ -46,4 +46,9 @@ extension GenreMovieListEndpointPayload {
     var genres: AnySequence<Genre> {
         return Array(arrayLiteral: genrePayloads.lazy.map { Genre(payload: $0.rootPayload) }.any).joined().any
     }
+
+    var allEntities: AnySequence<AppAnyEntity> {
+        let genres = self.genres.map { AppAnyEntity.genre($0) }.any
+        return Array(arrayLiteral: genres).joined().any
+    }
 }

@@ -37,8 +37,6 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
     private let clientQueue: APIClientQueuing & APIClientQueueFlushing
 
-    private let client: APIClient
-
     /// - Warning: This queue shall only be used for decoding computation.
     ///            It shall never be used for work deferring to other queues synchronously or it would
     ///            introduce a risk of thread pool starvation (no more threads available), leading to a crash.
@@ -46,10 +44,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
     // MARK: - Inits
 
-    public init(client: APIClient,
-                clientQueue: APIClientQueuing & APIClientQueueFlushing) {
-
-        self.client = client
+    public init(clientQueue: APIClientQueuing & APIClientQueueFlushing) {
         self.clientQueue = clientQueue
     }
 

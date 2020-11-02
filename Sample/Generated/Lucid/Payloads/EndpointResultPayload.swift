@@ -32,12 +32,15 @@ public final class EndpointResultPayload: ResultPayloadConvertible {
                 endpoint: Endpoint,
                 decoder: JSONDecoder) throws {
 
+        var genres = OrderedDualHashDictionary<GenreIdentifier, Genre>(optimizeWriteOperation: true)
+        var movies = OrderedDualHashDictionary<MovieIdentifier, Movie>(optimizeWriteOperation: true)
+        let entities: AnySequence<AppAnyEntity>
+
         switch endpoint {
         case .discoverMovie:
             decoder.setExcludedPaths(DiscoverMovieEndpointPayload.excludedPaths)
             let payload = try decoder.decode(DiscoverMovieEndpointPayload.self, from: data)
-            genres = payload.genres.byIdentifier
-            movies = payload.movies.byIdentifier
+            entities = payload.allEntities
             metadata = EndpointResultMetadata(
                 endpoint: payload.endpointMetadata,
                 entity: payload.entityMetadata.lazy.map { $0 as Optional<EntityMetadata> }.any
@@ -45,8 +48,7 @@ public final class EndpointResultPayload: ResultPayloadConvertible {
         case .genreMovieList:
             decoder.setExcludedPaths(GenreMovieListEndpointPayload.excludedPaths)
             let payload = try decoder.decode(GenreMovieListEndpointPayload.self, from: data)
-            genres = payload.genres.byIdentifier
-            movies = OrderedDualHashDictionary()
+            entities = payload.allEntities
             metadata = EndpointResultMetadata(
                 endpoint: payload.endpointMetadata,
                 entity: payload.entityMetadata.lazy.map { $0 as Optional<EntityMetadata> }.any
@@ -54,13 +56,24 @@ public final class EndpointResultPayload: ResultPayloadConvertible {
         case .movie:
             decoder.setExcludedPaths(MovieEndpointPayload.excludedPaths)
             let payload = try decoder.decode(MovieEndpointPayload.self, from: data)
-            genres = payload.genres.byIdentifier
-            movies = payload.movies.byIdentifier
+            entities = payload.allEntities
             metadata = EndpointResultMetadata(
                 endpoint: payload.endpointMetadata,
                 entity: payload.entityMetadata.lazy.map { $0 as Optional<EntityMetadata> }.any
             )
         }
+
+        for entity in entities {
+            switch entity {
+            case .genre(let value):
+                genres[value.identifier] = value
+            case .movie(let value):
+                movies[value.identifier] = value
+            }
+        }
+
+        self.genres = genres
+        self.movies = movies
     }
 
     public func getEntity<E>(for identifier: E.Identifier) -> Optional<E> where E : Entity {
@@ -79,9 +92,9 @@ public final class EndpointResultPayload: ResultPayloadConvertible {
 
         switch E.self {
         case is Genre.Type:
-            return genres.orderedKeyValues.map { $0.1 }.any as? AnySequence<E> ?? [].any
+            return genres.orderedValues.any as? AnySequence<E> ?? [].any
         case is Movie.Type:
-            return movies.orderedKeyValues.map { $0.1 }.any as? AnySequence<E> ?? [].any
+            return movies.orderedValues.any as? AnySequence<E> ?? [].any
         default:
             return [].any
         }

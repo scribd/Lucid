@@ -148,9 +148,8 @@ extension Genre: LocalEntity, RemoteEntity {
 
     public static func == (lhs: Genre,
                            rhs: Genre) -> Bool {
-        guard lhs.name == rhs.name else {
-            return false
-        }
+        guard lhs.identifier == rhs.identifier else { return false }
+        guard lhs.name == rhs.name else { return false }
         return true
     }
 }

@@ -2,17 +2,29 @@
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="14460.32" systemVersion="18A391" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="1.0.0">
 
     <entity name="genre_1_0_0" representedClassName="ManagedGenre_1_0_0" syncable="YES" codeGenerationType="class">
-        <attribute name="_identifier" attributeType="Integer 64" usesScalarValueType="YES" syncable="YES" optional="YES"/>
-        <attribute name="__identifier" attributeType="String" usesScalarValueType="YES" syncable="YES" optional="YES"/>
+        <attribute name="_identifier" attributeType="Integer 64" usesScalarValueType="YES" syncable="YES" optional="YES" versionHashModifier="1.0.0"/>
+        <attribute name="__identifier" attributeType="String" usesScalarValueType="YES" syncable="YES" optional="YES" versionHashModifier="1.0.0"/>
         <attribute name="__type_uid" attributeType="String" usesScalarValueType="YES" syncable="YES" optional="YES"/>
+        <fetchIndex name="remoteIdentifier">
+            <fetchIndexElement property="_identifier" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="localIdentifier">
+            <fetchIndexElement property="__identifier" type="Binary" order="ascending"/>
+        </fetchIndex>
 
         <attribute name="_remote_synchronization_state" attributeType="String" syncable="YES" optional="YES"/>
         <attribute name="_name" attributeType="String" syncable="YES"/>
     </entity>
     <entity name="movie_1_0_0" representedClassName="ManagedMovie_1_0_0" syncable="YES" codeGenerationType="class">
-        <attribute name="_identifier" attributeType="Integer 64" usesScalarValueType="YES" syncable="YES" optional="YES"/>
-        <attribute name="__identifier" attributeType="String" usesScalarValueType="YES" syncable="YES" optional="YES"/>
+        <attribute name="_identifier" attributeType="Integer 64" usesScalarValueType="YES" syncable="YES" optional="YES" versionHashModifier="1.0.0"/>
+        <attribute name="__identifier" attributeType="String" usesScalarValueType="YES" syncable="YES" optional="YES" versionHashModifier="1.0.0"/>
         <attribute name="__type_uid" attributeType="String" usesScalarValueType="YES" syncable="YES" optional="YES"/>
+        <fetchIndex name="remoteIdentifier">
+            <fetchIndexElement property="_identifier" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="localIdentifier">
+            <fetchIndexElement property="__identifier" type="Binary" order="ascending"/>
+        </fetchIndex>
 
         <attribute name="_remote_synchronization_state" attributeType="String" syncable="YES" optional="YES"/>
         <attribute name="_genres" optional="YES" attributeType="Binary" syncable="YES"/>

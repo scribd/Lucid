@@ -57,7 +57,7 @@ For these reasons, Lucid first appends the requests to an `APIClientQueue` befor
 
 Lucid has two ways to propagate server response into its system:
 
-1. Through a `CoreManager`s publisher.
+1. Through a `CoreManager`'s publisher.
 2. Through a *static* response handler.
 
 The first option is commonly used for read-only requests. When the app needs information to show to the screen, it fetches those data from the server and immediately apply them.
@@ -69,7 +69,15 @@ The second option is used for requests which aren't always sent immediately, pot
 To register a response handler you'll have to implement the `CoreManagerContainerClientQueueResponseHandler` protocol and make sure `CoreManagerContainer` is aware of it.
 
 ```swift
+extension CoreManagerContainer {
+    static func makeResponseHandler() -> CoreManagerContainerClientQueueResponseHandler? {
+        return MyResponseClientQueueHandler()
+    }
+}
+
 final class MyResponseClientQueueHandler: CoreManagerContainerClientQueueResponseHandler {
+
+  weak var managers: CoreManagerContainer?
   
   func clientQueue(_ clientQueue: APIClientQueuing,
                    didReceiveResponse result: APIClientQueueResult<Data, APIError>,
@@ -77,10 +85,34 @@ final class MyResponseClientQueueHandler: CoreManagerContainerClientQueueRespons
     ...
   }
 }
+```
 
-extension CoreManagerContainer {
-    static func makeResponseHandler() -> CoreManagerContainerClientQueueResponseHandler? {
-        return MyResponseClientQueueHandler()
-    }
+Because this handler is called directly from a `ClientQueue`, there is more manual work to do in order to interpret a response.
+
+For example, the following transform a response into a payload and forwards its content to a `CoreManager`.
+
+```swift
+func clientQueue(_ clientQueue: APIClientQueuing,
+                 didReceiveResponse result: APIClientQueueResult<Data, APIError>,
+                 for request: APIClientQueueRequest) {
+  
+  switch result {
+  case .success(let response):
+	let payloadDecoder = response.jsonCoderConfig.decoder
+	
+	do {
+	  let result = try payloadDecoder.decode(DefaultEndpointMyEntityPayload.self, from: response.data)
+	  managers
+	    .myEntityManager
+	    .get(byID: result.myEntityID)
+	    .sink(receiveCompletion: { ... }, receiveValue: { ... })
+	    .store(in: cancellables)
+	} catch {
+	  ...
+	}
+
+  case .error(let error):
+    ...
+  }
 }
-``` 
+```

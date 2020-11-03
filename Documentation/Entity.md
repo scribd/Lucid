@@ -134,3 +134,5 @@ coreManagers.myEntityManager.get(
 ```
 
 Note that in the code above, the request might not be used as it depends on if it is found locally of not (because of the data source `.remoteOrLocal`). However, in the eventuality it will be used, **the request needs to match the `CoreManager` API being used**. For instance, in this example, the fact we are using `myEntity.identifier` in both places makes the code safe to use.
+
+### Contract

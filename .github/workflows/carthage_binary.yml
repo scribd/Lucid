@@ -29,10 +29,10 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Bootstrap
-        run: carthage bootstrap --platform iOS,watchOS --log-path $CARTHAGE_BOOTSTRAP_OUTPUT
+        run: XCODE_XCCONFIG_FILE="../../Patches/lucid.xcconfig" carthage bootstrap --platform iOS,watchOS --log-path $CARTHAGE_BOOTSTRAP_OUTPUT
 
       - name: Build Framework
-        run: XCODE_XCCONFIG_FILE="Carthage/Patches/lucid.xcconfig" carthage build Lucid --no-skip-current --platform iOS,watchOS --log-path $CARTHAGE_BUILD_OUTPUT
+        run: XCODE_XCCONFIG_FILE="../../Patches/lucid.xcconfig" carthage build Lucid --no-skip-current --platform iOS,watchOS --log-path $CARTHAGE_BUILD_OUTPUT
 
       - name: Generate Archive for Release
         run: carthage archive Lucid

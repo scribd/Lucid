@@ -1,6 +1,9 @@
 name: Tests
 on: push
 
+env:
+  CARTHAGE_BOOTSTRAP_OUTPUT: carthage_bootstrap_output.log
+
 jobs:
   codegen_tests:
     name: CodeGen Tests
@@ -38,7 +41,7 @@ jobs:
     env: 
       FASTLANE_LOGS: fastlane/test_output
       FASTLANE_FRAGILE_LOGS: fastlane/fragile_test_output
-      DEVELOPER_DIR: /Applications/Xcode_11.2.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_12.app/Contents/Developer
       GITHUB_ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
       FRAGILE_TESTS: LucidTests/APIClientQueueProcessorTests/test_processor_does_attempt_to_process_request_if_already_running_concurrent_request,LucidTests/CoreManagerTests/test_continuous_observer_should_receive_all_updates_in_order,LucidTests/RelationshipControllerTests/test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_continuous_signal,LucidTests/RelationshipControllerTests/test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_once_signal,LucidTests/StoreStackTests/test_should_fail_to_remove_in_remote_store_only_with_memory_store_first,LucidTests/RecoverableStoreTests/test_store_should_overwrite_a_non_empty_recovery_store_with_a_non_empty_main_store_at_init
     steps:
@@ -46,8 +49,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Bootstrap
-        run: |
-          carthage bootstrap --platform iOS
+        run: XCODE_XCCONFIG_FILE="../../Patches/lucid.xcconfig" carthage bootstrap --platform iOS,watchOS --log-path $CARTHAGE_BOOTSTRAP_OUTPUT
 
       - name: Run Lucid-iOS Tests
         run: |
@@ -61,7 +63,7 @@ jobs:
           fastlane scan --scheme Lucid-iOS --only_testing "$FRAGILE_TESTS" --device "iPhone 8" --output_directory $FASTLANE_FRAGILE_LOGS --result_bundle true
 
       - name: Bundle Log Files
-        if: ${{ always() }}
+        if: ${{ always() && steps.carthage-bootstrap.outcome == 'success' }}
         run: |
           cd $FASTLANE_LOGS
           zip -rX build-artifacts.zip .
@@ -70,11 +72,18 @@ jobs:
           cd $FASTLANE_FRAGILE_LOGS
           zip -rX build-artifacts.zip .
 
-      - name: Upload Log Files
-        if: ${{ always() }}
+      - name: Upload Fastlane Log Files
+        if: ${{ always() && steps.carthage-bootstrap.outcome == 'success' }}
         uses: actions/upload-artifact@v2
         with:
           name: build-artifacts
           path: |
             ${{ env.FASTLANE_LOGS }}/build-artifacts.zip
             ${{ env.FASTLANE_FRAGILE_LOGS }}/build-artifacts.zip
+
+      - name: Upload Carthage Log Files
+        if: ${{ always() && steps.carthage-bootstrap.outcome == 'failure' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: carthage-log
+          path: ${{ env.CARTHAGE_BOOTSTRAP_OUTPUT }}

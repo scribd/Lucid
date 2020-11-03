@@ -15,8 +15,6 @@ final class RemoteStoreTests: XCTestCase {
 
     private var requestConfig: APIRequestConfig!
 
-    private var clientSpy: APIClientSpy!
-
     private var clientQueueSpy: APIClientQueueSpy!
 
     private var stubEntities: [EntitySpy]!
@@ -63,9 +61,8 @@ final class RemoteStoreTests: XCTestCase {
                                                       stubEndpointMetadata: nil)
         derivedFromEntityTypeContext = ReadContext<EntitySpy>(dataSource: .remote(endpoint: .derivedFromEntityType))
 
-        clientSpy = APIClientSpy()
         clientQueueSpy = APIClientQueueSpy()
-        store = RemoteStore(client: clientSpy, clientQueue: clientQueueSpy)
+        store = RemoteStore(clientQueue: clientQueueSpy)
     }
 
     override func tearDown() {
@@ -73,7 +70,6 @@ final class RemoteStoreTests: XCTestCase {
 
         requestContext = nil
         derivedFromEntityTypeContext = nil
-        clientSpy = nil
         clientQueueSpy = nil
         store = nil
 

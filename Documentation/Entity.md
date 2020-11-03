@@ -39,7 +39,7 @@ These rules have an impact on how `EntityIdentifier`s can be used outside of Luc
 
 For every `Entity`, Lucid generates few useful index enums:
 
-- `EntityIndexName`: Used for writing queries, it has one case per property.
+- `EntityIndexName`: Used for [writing queries](./CoreManager.md#Query), it has one case per property.
 - `EntityRelationshipIndexName`: Used for [fetching entities' relationships](./CoreManager.md#Relationships), it has one case per relationship property.
 
 ## Remote Entity

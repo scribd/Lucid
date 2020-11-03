@@ -252,7 +252,7 @@ manager
 
 ## Relationships
 
-Sometimes, fetching only one level of entities isn't enough and although it is possible to retrieve an entity's relationships manually, it cam easily become tedious. This is why Lucid provides an easy way to fetch relationships.
+Sometimes, fetching only one level of entities isn't enough and although it is possible to retrieve an entity's relationships manually, it can become tedious. This is why Lucid provides an easy way to fetch relationships.
 
 ### Entity Graph
 
@@ -265,7 +265,9 @@ guard let myEntity = entityGraph.myEntities.first else { return }
 let relationships = myEntity.relationships.compactMap { entityGraph.myEntityRelationships[$0] }
 ```
 
-In case the relationships were fetched from a list of entities, it is important to know how to retrieve that initial list from the graph. Here is how to do so:
+In case the relationships were fetched from a list of entities, it is important to know how to retrieve that initial list from the graph. 
+
+Here is how to do so:
 
 ```swift
 let myEntities = entityGraph.rootEntities.compactMap { entity in

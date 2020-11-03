@@ -70,9 +70,14 @@ To register a response handler you'll have to implement the `CoreManagerContaine
 
 ```swift
 extension CoreManagerContainer {
-    static func makeResponseHandler() -> CoreManagerContainerClientQueueResponseHandler? {
-        return MyResponseClientQueueHandler()
-    }
+
+  //
+  // This function's name should match your `.lucid.yaml` configuration file:
+  // `response_handler_function: makeResponseHandler`
+  //
+  static func makeResponseHandler() -> CoreManagerContainerClientQueueResponseHandler? {
+    return MyResponseClientQueueHandler()
+  }
 }
 
 final class MyResponseClientQueueHandler: CoreManagerContainerClientQueueResponseHandler {

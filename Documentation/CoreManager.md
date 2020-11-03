@@ -271,12 +271,12 @@ Here is how to do so:
 
 ```swift
 let myEntities = entityGraph.rootEntities.compactMap { entity in
-	switch entity {
-	case .myEntity(let entity):
-		return entity
-	default:
-		return nil
-	}
+  switch entity {
+  case .myEntity(let entity):
+    return entity
+  default:
+    return nil
+  }
 }
 ```
 

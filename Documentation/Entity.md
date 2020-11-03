@@ -111,7 +111,7 @@ coreManagers.myEntityManager.search(
 )
 ```
 
-### Contextual Requests
+### Contextual API Requests
 
 Backend APIs are not all RESTful, and even when they are, they often happen to have inconsistencies. 
 
@@ -120,7 +120,7 @@ That's why Lucid also provides a way to specify a request based on the call site
 ```swift
 let request = APIRequestConfig(
   method: .get,
-  path: .path("my_entity") / identifier
+  path: .path("my_entity") / myEntity.identifier
 )
 
 let context = ReadContext<MyEntity>(
@@ -132,3 +132,5 @@ coreManagers.myEntityManager.get(
   in: context
 )
 ```
+
+Note that in the code above, the request might not be used as it depends on if it is found locally of not (because of the data source `.remoteOrLocal`). However, in the eventuality it will be used, **the request needs to match the `CoreManager` API being used**. For instance, in this example, the fact we are using `myEntity.identifier` in both places makes the code safe to use.

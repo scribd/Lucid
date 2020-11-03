@@ -80,8 +80,8 @@ final class EntityGraph: MutableGraph {
     typealias AnyEntity = AppAnyEntity
 
     private(set) var rootEntities: Array<AppAnyEntity>
-    private(set) var genres = DualHashDictionary<GenreIdentifier, Genre>()
-    private(set) var movies = DualHashDictionary<MovieIdentifier, Movie>()
+    private(set) var genres = OrderedDualHashDictionary<GenreIdentifier, Genre>()
+    private(set) var movies = OrderedDualHashDictionary<MovieIdentifier, Movie>()
 
     init() { self.rootEntities = [] }
 

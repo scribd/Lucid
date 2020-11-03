@@ -191,7 +191,7 @@ extension RemoteEntity {
                        clientQueue: inout APIClientQueue,
                        coreDataManager: CoreDataManager,
                        cacheLimit: Int) -> Array<Storing<Self>> {
-        let remoteStore = RemoteStore<Self>(client: client, clientQueue: clientQueue)
+        let remoteStore = RemoteStore<Self>(clientQueue: clientQueue)
         return Array(arrayLiteral: remoteStore.storing)
     }
 }
@@ -201,7 +201,7 @@ extension RemoteEntity where Self : CoreDataEntity {
                        clientQueue: inout APIClientQueue,
                        coreDataManager: CoreDataManager,
                        cacheLimit: Int) -> Array<Storing<Self>> {
-        let remoteStore = RemoteStore<Self>(client: client, clientQueue: clientQueue)
+        let remoteStore = RemoteStore<Self>(clientQueue: clientQueue)
         let localStore = CacheStore<Self>(
             keyValueStore: LRUStore(store: InMemoryStore().storing, limit: cacheLimit).storing,
             persistentStore: CoreDataStore(coreDataManager: coreDataManager).storing

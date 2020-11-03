@@ -66,4 +66,10 @@ extension DiscoverMovieEndpointPayload {
     var movies: AnySequence<Movie> {
         return Array(arrayLiteral: moviePayloads.lazy.map { Movie(payload: $0.rootPayload) }.any).joined().any
     }
+
+    var allEntities: AnySequence<AppAnyEntity> {
+        let genres = self.genres.map { AppAnyEntity.genre($0) }.any
+        let movies = self.movies.map { AppAnyEntity.movie($0) }.any
+        return Array(arrayLiteral: genres, movies).joined().any
+    }
 }

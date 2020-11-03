@@ -88,8 +88,12 @@ final class MovieManager {
     func discoverMovies(at offset: Int = 0) -> AnyPublisher<(movies: [Movie], metadata: DiscoverMovieMetadata?), ManagerError> {
         return coreManagers.movieManager
             .search(
-                withQuery: Query(order: [.desc(by: .index(.popularity))], offset: offset, limit: 20, context: .discover),
-                in: ReadContext<Movie>(dataSource: .remoteOrLocal(trustRemoteFiltering: true))
+                withQuery: Query.all
+                    .order([.desc(by: .index(.popularity))])
+                    .with(offset: offset)
+                    .with(limit: 20)
+                    .with(context: .discover),
+                in: .init(dataSource: .remoteOrLocal(trustRemoteFiltering: true))
             )
             .once
             .map { ($0.array, $0.metadata?.endpoint as? DiscoverMovieMetadata) }

@@ -182,21 +182,12 @@ extension Movie: LocalEntity, RemoteEntity {
 
     public static func == (lhs: Movie,
                            rhs: Movie) -> Bool {
-        guard lhs.overview == rhs.overview else {
-            return false
-        }
-        guard lhs.popularity == rhs.popularity else {
-            return false
-        }
-        guard lhs.posterPath == rhs.posterPath else {
-            return false
-        }
-        guard lhs.title == rhs.title else {
-            return false
-        }
-        guard lhs.genres == rhs.genres else {
-            return false
-        }
+        guard lhs.identifier == rhs.identifier else { return false }
+        guard lhs.overview == rhs.overview else { return false }
+        guard lhs.popularity == rhs.popularity else { return false }
+        guard lhs.posterPath == rhs.posterPath else { return false }
+        guard lhs.title == rhs.title else { return false }
+        guard lhs.genres == rhs.genres else { return false }
         return true
     }
 }

@@ -310,3 +310,27 @@ manager
   .store(in: cancellables)
 ```
 
+### Relationships on Multiple Levels
+
+It often happens that a relationship has another relationship, which itself has another relationship and so on. When it's the case, Lucid generates an appropriate structure of indices to help conveniently fetch relationships on more than one level.
+
+For example:
+
+```swift
+manager
+  .rootEntities(
+    for: .all, 
+    in: ReadContext<MyEntity>(dataSource: .local)
+  )
+  .including([
+    .firstRelationshipLevel([
+      .secondRelationshipLevel([
+        .thirdRelationshipLevel
+      ])
+    ])
+  ])
+  .perform()
+  .sink(receiveCompletion: { ... }, receiveValue: { ... })
+  .once
+  .store(in: cancellables)
+```

@@ -6,16 +6,16 @@ A big advantage of Lucid is that it completely abstracts the use of `CoreData` b
 
 `CoreDataManager` is an object in charge of initializing the `CoreData` stack and keeping a singular reference to it. In fact, it is also holding one single `NSManagedObjectContext`, which avoids having to merge multiple contexts.
 
-Once injected into the `CoreDataStore`s, `CoreDataManager` lazily load the `CoreData` stack on its first access. The value of this is that you can start using Lucid right after the application has launched without having to wait for `CoreData` to initialize.
+Once injected into the `CoreDataStore`s, `CoreDataManager` lazily loads the `CoreData` stack on its first access. This means one can start using Lucid right after the application has launched without having to wait for `CoreData` to initialize.
 
 ## Migrations
 
-One of the biggest hassle of `CoreData` is its migration system. Thankfully, Lucid provides the tools write them, but also to make sure they work and are executed at the right time.
+One of the biggest hassle of `CoreData` is its migration system. Thankfully, Lucid provides the tools to write them, but also to make sure they work and are executed at the right time.
 
 There are two types of migrations:
 
 - **Lightweight**: Model changes for which the migration can be inferred. For example, a renaming a property, adding a property with a default value, etc...
-- **Heavy**: Model changes for which the migration cannot be inferred. For example, adding a property without a default value, removing a case to an enum subtype, etc...
+- **Heavy**: Model or data changes for which the migration cannot be inferred. For example, adding a property without a default value, removing a case to an enum subtype, etc...
 
 ### Writing an Heavy Migration
 
@@ -90,13 +90,21 @@ func myCoreDataMigrations() -> [CoreDataManager.Migration] {
       do {
         for oldEntity in try context.fetch(fetchRequest) {
           let newEntity = ManagedMyEntity_1_1(context: context)
+          
+          // Filling unchanged properties with the old entity's values.
           let success = CoreDataManager.migrate(from: oldEntity, to: newEntity) { ($0, $1) }
+          
+          // Filling new properties
           newEntity.firstName = oldEntity.name.split(separator: " ").first
           newEntity.lastName = oldEntity.name.split(separator: " ").last
+          
           if success == false {
-            context.delete(newRestriction)
+            context.delete(newEntity)
           }
-          context.delete(oldRestriction)
+          
+          // Keep in mind this migration will run only once.
+          // It is important to remove old entities as it is your only chance to free that memory.
+          context.delete(oldEntity)
         }
       } catch {
         return .failure(.coreData(error as NSError))

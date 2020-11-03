@@ -1,6 +1,9 @@
 name: Tests
 on: push
 
+env:
+  CARTHAGE_BOOTSTRAP_OUTPUT: carthage_bootstrap_output.log
+
 jobs:
   codegen_tests:
     name: CodeGen Tests
@@ -60,7 +63,7 @@ jobs:
           fastlane scan --scheme Lucid-iOS --only_testing "$FRAGILE_TESTS" --device "iPhone 8" --output_directory $FASTLANE_FRAGILE_LOGS --result_bundle true
 
       - name: Bundle Log Files
-        if: ${{ always() }}
+        if: ${{ always() && steps.carthage-bootstrap.outcome == 'success' }}
         run: |
           cd $FASTLANE_LOGS
           zip -rX build-artifacts.zip .
@@ -69,11 +72,18 @@ jobs:
           cd $FASTLANE_FRAGILE_LOGS
           zip -rX build-artifacts.zip .
 
-      - name: Upload Log Files
-        if: ${{ always() }}
+      - name: Upload Fastlane Log Files
+        if: ${{ always() && steps.carthage-bootstrap.outcome == 'success' }}
         uses: actions/upload-artifact@v2
         with:
           name: build-artifacts
           path: |
             ${{ env.FASTLANE_LOGS }}/build-artifacts.zip
             ${{ env.FASTLANE_FRAGILE_LOGS }}/build-artifacts.zip
+
+      - name: Upload Carthage Log Files
+        if: ${{ always() && steps.carthage-bootstrap.outcome == 'failure' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: carthage-log
+          path: ${{ env.CARTHAGE_BOOTSTRAP_OUTPUT }}

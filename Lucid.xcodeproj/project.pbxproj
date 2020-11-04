@@ -147,10 +147,8 @@
 		191E33ED251D4E600008233A /* Movie.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191E33E0251D4E600008233A /* Movie.swift */; };
 		191E33EE251D4E600008233A /* Genre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191E33E1251D4E600008233A /* Genre.swift */; };
 		191E33EF251D4E600008233A /* EntityIndexValueTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191E33E2251D4E600008233A /* EntityIndexValueTypes.swift */; };
-		191F8FD824BFA7BE0050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F8FD424BFA79F0050C7C6 /* ReactiveKit.framework */; };
 		191F913024BFA7FF0050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F904224BFA7F40050C7C6 /* ReactiveKit.framework */; };
 		191F913324BFA80E0050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F904224BFA7F40050C7C6 /* ReactiveKit.framework */; };
-		191F913624BFA8250050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F903E24BFA7F40050C7C6 /* ReactiveKit.framework */; };
 		191F913924BFA83B0050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F904224BFA7F40050C7C6 /* ReactiveKit.framework */; };
 		191F913A24BFA85B0050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F904224BFA7F40050C7C6 /* ReactiveKit.framework */; };
 		191F919424C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191F919324C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift */; };
@@ -257,6 +255,10 @@
 		19830121249BDE4400DFC685 /* RequestConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19830120249BDE4400DFC685 /* RequestConfig.swift */; };
 		19830123249C1CAA00DFC685 /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19830122249C1CAA00DFC685 /* ImageManager.swift */; };
 		19830134249D417100DFC685 /* MovieDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19830133249D417000DFC685 /* MovieDetail.swift */; };
+		1987F981255361BF0057F1CC /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F912B24BFA7F50050C7C6 /* ReactiveKit.framework */; };
+		1987F982255361BF0057F1CC /* ReactiveKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 191F912B24BFA7F50050C7C6 /* ReactiveKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		1987F990255361D80057F1CC /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F912B24BFA7F50050C7C6 /* ReactiveKit.framework */; };
+		1987F991255361D80057F1CC /* ReactiveKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 191F912B24BFA7F50050C7C6 /* ReactiveKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		198CC31424C663D600E2F951 /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
 		198CC31524C663D700E2F951 /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
 		19B70F0C24A291D30092BB5A /* Lucid_ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 196F9ADC24A148B100B1866C /* Lucid_ReactiveKit.framework */; };
@@ -370,6 +372,28 @@
 			dstSubfolderSpec = 10;
 			files = (
 				1910671E2494128E00E65BA7 /* Lucid.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1987F983255361BF0057F1CC /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				1987F982255361BF0057F1CC /* ReactiveKit.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1987F992255361D80057F1CC /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				1987F991255361D80057F1CC /* ReactiveKit.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -805,7 +829,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				191F8FD824BFA7BE0050C7C6 /* ReactiveKit.framework in Frameworks */,
+				1987F981255361BF0057F1CC /* ReactiveKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -830,7 +854,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				191F913624BFA8250050C7C6 /* ReactiveKit.framework in Frameworks */,
+				1987F990255361D80057F1CC /* ReactiveKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1933,6 +1957,7 @@
 				190ADCE82458DA9B00D22F6D /* Sources */,
 				190ADD152458DA9B00D22F6D /* Frameworks */,
 				190ADD162458DA9B00D22F6D /* Resources */,
+				1987F983255361BF0057F1CC /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -1990,6 +2015,7 @@
 				196F9AE124A148CE00B1866C /* Sources */,
 				196F9B0E24A148CE00B1866C /* Frameworks */,
 				196F9B1024A148CE00B1866C /* Resources */,
+				1987F992255361D80057F1CC /* Embed Frameworks */,
 			);
 			buildRules = (
 			);

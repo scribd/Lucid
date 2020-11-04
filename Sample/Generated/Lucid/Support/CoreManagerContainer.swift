@@ -36,8 +36,6 @@ public final class CoreManagerContainer {
         return _responseHandler
     }
 
-    public let coreDataManager: CoreDataManager
-
     public let clientQueues: Set<APIClientQueue>
     public let mainClientQueue: APIClientQueue
 
@@ -58,8 +56,6 @@ public final class CoreManagerContainer {
     public init(cacheLimit: Int,
                 client: APIClient,
                 coreDataManager: CoreDataManager = CoreDataManager(modelName: "Sample", in: Bundle(for: CoreManagerContainer.self), migrations: [])) {
-
-        self.coreDataManager = coreDataManager
 
         var clientQueues = Set<APIClientQueue>()
         var clientQueue: APIClientQueue

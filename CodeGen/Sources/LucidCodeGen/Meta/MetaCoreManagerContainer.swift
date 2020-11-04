@@ -91,8 +91,6 @@ struct MetaCoreManagerContainer {
                     return _responseHandler
                 }
 
-                public let coreDataManager: CoreDataManager
-
                 public let clientQueues: Set<APIClientQueue>
                 public let mainClientQueue: APIClientQueue
 
@@ -139,7 +137,6 @@ struct MetaCoreManagerContainer {
                 .adding(member: EmptyLine())
                 .adding(member:
                     PlainCode(code: """
-                    self.coreDataManager = coreDataManager
 
                     var clientQueues = Set<APIClientQueue>()
                     var clientQueue: APIClientQueue

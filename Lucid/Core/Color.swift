@@ -20,7 +20,7 @@ private extension UIColor {
         let trimmedHex = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         let hexValue = trimmedHex.replacingOccurrences(of: "#", with: "")
 
-        var rgb: UInt32 = 0
+        var rgb: Int = 0
 
         var r: CGFloat = 0.0
         var g: CGFloat = 0.0
@@ -31,7 +31,7 @@ private extension UIColor {
             return
         }
 
-        guard Scanner(string: hexValue).scanHexInt32(&rgb) else {
+        guard Scanner(string: hexValue).scanInt(&rgb) else {
             self.init(white: 0, alpha: 1)
             return
         }

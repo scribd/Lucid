@@ -91,17 +91,20 @@ struct MetaCoreManagerContainer {
                     public var custom: Any?
 
                     public static var coreData: DiskStoreConfig {
-                        let coreDataManager = \(MetaCode(meta: TypeIdentifier.coreDataManager.reference | .call(
-                            Tuple()
-                                .adding(parameter: TupleParameter(name: "modelName", value: Value.string(descriptions.targets.app.moduleName)))
-                                .adding(parameter: TupleParameter(name: "in", value: Reference.named("Bundle") | .call(
-                                    Tuple().adding(parameter: TupleParameter(name: "for", value: Reference.named("CoreManagerContainer.self")))
-                                )))
-                                .adding(parameter: TupleParameter(
-                                    name: "migrations",
-                                    value: coreDataMigrationsFunction.flatMap { Reference.named($0) | .call() } ?? Value.array([])
-                                ))
-                        )))
+                \(MetaCode(indentation: 2, meta: Assignment(
+                    variable: Variable(name: "coreDataManager"),
+                    value: TypeIdentifier.coreDataManager.reference | .call(
+                        Tuple()
+                            .adding(parameter: TupleParameter(name: "modelName", value: Value.string(descriptions.targets.app.moduleName)))
+                            .adding(parameter: TupleParameter(name: "in", value: Reference.named("Bundle") | .call(
+                                Tuple().adding(parameter: TupleParameter(name: "for", value: Reference.named("CoreManagerContainer.self")))
+                            )))
+                            .adding(parameter: TupleParameter(
+                                name: "migrations",
+                                value: coreDataMigrationsFunction.flatMap { Reference.named($0) | .call() } ?? Value.array([])
+                            ))
+                    ))
+                ))
                         return DiskStoreConfig(coreDataManager: coreDataManager, custom: nil)
                     }
                 }

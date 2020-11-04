@@ -86,6 +86,26 @@ struct MetaCoreManagerContainer {
             .adding(member:
                 PlainCode(code: """
 
+                public struct DiskStoreConfig {
+                    public var coreDataManager: CoreDataManager?
+                    public var custom: Any?
+
+                    public static var coreData: DiskStoreConfig {
+                        let coreDataManager = \(MetaCode(meta: TypeIdentifier.coreDataManager.reference | .call(
+                            Tuple()
+                                .adding(parameter: TupleParameter(name: "modelName", value: Value.string(descriptions.targets.app.moduleName)))
+                                .adding(parameter: TupleParameter(name: "in", value: Reference.named("Bundle") | .call(
+                                    Tuple().adding(parameter: TupleParameter(name: "for", value: Reference.named("CoreManagerContainer.self")))
+                                )))
+                                .adding(parameter: TupleParameter(
+                                    name: "migrations",
+                                    value: coreDataMigrationsFunction.flatMap { Reference.named($0) | .call() } ?? Value.array([])
+                                ))
+                        )))
+                        return DiskStoreConfig(coreDataManager: coreDataManager, custom: nil)
+                    }
+                }
+
                 private let _responseHandler: CoreManagerContainerClientQueueResponseHandler? = \(responseHandlerFunction.flatMap { "\($0)()" } ?? "nil")
                 public var responseHandler: APIClientQueueResponseHandler? {
                     return _responseHandler
@@ -122,19 +142,9 @@ struct MetaCoreManagerContainer {
                 .with(accessLevel: .public)
                 .adding(parameter: FunctionParameter(name: "cacheLimit", type: .int))
                 .adding(parameter: FunctionParameter(name: "client", type: .apiClient))
-                .adding(parameter: FunctionParameter(name: "coreDataManager", type: .coreDataManager)
-                    .with(defaultValue: TypeIdentifier.coreDataManager.reference | .call(Tuple()
-                        .adding(parameter: TupleParameter(name: "modelName", value: Value.string(descriptions.targets.app.moduleName)))
-                        .adding(parameter: TupleParameter(name: "in", value: Reference.named("Bundle") | .call(Tuple()
-                            .adding(parameter: TupleParameter(name: "for", value: Reference.named("CoreManagerContainer.self")))
-                        )))
-                        .adding(parameter: TupleParameter(
-                            name: "migrations",
-                            value: coreDataMigrationsFunction.flatMap { Reference.named($0) | .call() } ?? Value.array([])
-                        ))
-                    ))
+                .adding(parameter: FunctionParameter(name: "diskStoreConfig", type: TypeIdentifier(name: "DiskStoreConfig"))
+                    .with(defaultValue: +.named("coreData"))
                 )
-                .adding(member: EmptyLine())
                 .adding(member:
                     PlainCode(code: """
 
@@ -161,12 +171,13 @@ struct MetaCoreManagerContainer {
                         Assignment(
                             variable: entity.privateCoreManagerVariable.reference,
                             value: TypeIdentifier.coreManager().reference | .call(Tuple()
-                                .adding(parameter: TupleParameter(name: "stores", value: entity.typeID().reference + .named("stores") | .call(Tuple()
-                                    .adding(parameter: TupleParameter(name: "with", value: Reference.named("client")))
-                                    .adding(parameter: TupleParameter(name: "clientQueue", value: Reference.named("&clientQueue")))
-                                    .adding(parameter: TupleParameter(name: "coreDataManager", value: Reference.named("coreDataManager")))
-                                    .adding(parameter: TupleParameter(name: "cacheLimit", value: Reference.named("cacheLimit")))
-                                    ))))
+                                .adding(parameter: TupleParameter(name: "stores", value: entity.typeID().reference + .named("stores") | .call(
+                                    Tuple()
+                                        .adding(parameter: TupleParameter(name: "with", value: Reference.named("client")))
+                                        .adding(parameter: TupleParameter(name: "clientQueue", value: Reference.named("&clientQueue")))
+                                        .adding(parameter: TupleParameter(name: "cacheLimit", value: Reference.named("cacheLimit")))
+                                        .adding(parameter: TupleParameter(name: "diskStoreConfig", value: Reference.named("diskStoreConfig")))
+                                ))))
                         ),
                         PlainCode(code: """
                         clientQueues.insert(clientQueue)
@@ -286,16 +297,16 @@ struct MetaCoreManagerContainer {
         /// ```
         /// static func stores(with client: APIClient,
         ///                    clientQueue: inout APIClientQueue,
-        ///                    coreDataManager: CoreDataManager,
-        ///                    cacheLimit: Int) -> Array<Storing<Self>>
+        ///                    cacheLimit: Int,
+        ///                    diskStoreConfig: CoreManagerContainer.DiskStoreConfig) -> Array<Storing<Self>>
         /// ```
         /// to an individual class adopting the Entity protocol to provide custom functionality
 
         extension LocalEntity {
             static func stores(with client: APIClient,
                                clientQueue: inout APIClientQueue,
-                               coreDataManager: CoreDataManager,
-                               cacheLimit: Int) -> Array<Storing<Self>> {
+                               cacheLimit: Int,
+                               diskStoreConfig: CoreManagerContainer.DiskStoreConfig) -> Array<Storing<Self>> {
                 let localStore = LRUStore<Self>(store: InMemoryStore().storing, limit: cacheLimit)
                 return Array(arrayLiteral: localStore.storing)
             }
@@ -304,8 +315,14 @@ struct MetaCoreManagerContainer {
         extension CoreDataEntity {
             static func stores(with client: APIClient,
                                clientQueue: inout APIClientQueue,
-                               coreDataManager: CoreDataManager,
-                               cacheLimit: Int) -> Array<Storing<Self>> {
+                               cacheLimit: Int,
+                               diskStoreConfig: CoreManagerContainer.DiskStoreConfig) -> Array<Storing<Self>> {
+
+                guard let coreDataManager = diskStoreConfig.coreDataManager else {
+                    Logger.log(.error, "\\(Self.self): Cannot build \\(CoreDataStore<Self>.self) without a \\(CoreDataManager.self) instance.", assert: true)
+                    return Array()
+                }
+
                 let localStore = CacheStore<Self>(
                     keyValueStore: LRUStore(store: InMemoryStore().storing, limit: cacheLimit).storing,
                     persistentStore: CoreDataStore(coreDataManager: coreDataManager).storing
@@ -317,8 +334,8 @@ struct MetaCoreManagerContainer {
         extension RemoteEntity {
             static func stores(with client: APIClient,
                                clientQueue: inout APIClientQueue,
-                               coreDataManager: CoreDataManager,
-                               cacheLimit: Int) -> Array<Storing<Self>> {
+                               cacheLimit: Int,
+                               diskStoreConfig: CoreManagerContainer.DiskStoreConfig) -> Array<Storing<Self>> {
                 let remoteStore = RemoteStore<Self>(clientQueue: clientQueue)
                 return Array(arrayLiteral: remoteStore.storing)
             }
@@ -327,8 +344,14 @@ struct MetaCoreManagerContainer {
         extension RemoteEntity where Self : CoreDataEntity {
             static func stores(with client: APIClient,
                                clientQueue: inout APIClientQueue,
-                               coreDataManager: CoreDataManager,
-                               cacheLimit: Int) -> Array<Storing<Self>> {
+                               cacheLimit: Int,
+                               diskStoreConfig: CoreManagerContainer.DiskStoreConfig) -> Array<Storing<Self>> {
+
+                guard let coreDataManager = diskStoreConfig.coreDataManager else {
+                    Logger.log(.error, "\\(Self.self): Cannot build \\(CoreDataStore<Self>.self) without a \\(CoreDataManager.self) instance.", assert: true)
+                    return Array()
+                }
+
                 let remoteStore = RemoteStore<Self>(clientQueue: clientQueue)
                 let localStore = CacheStore<Self>(
                     keyValueStore: LRUStore(store: InMemoryStore().storing, limit: cacheLimit).storing,

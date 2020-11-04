@@ -37,7 +37,10 @@ These rules have an impact on how `EntityIdentifier`s can be used outside of Luc
 
 ## Entity Indices
 
-For every `Entity`, Lucid generates an `EntityIndexName` enum for which each case has a corresponding entity property which can be search on. Naturally, those indices are most commonly used for building entity queries.
+For every `Entity`, Lucid generates two useful index enums:
+
+- `EntityIndexName`: Used for [writing queries](./CoreManager.md#Query), it has one case per property.
+- `EntityRelationshipIndexName`: Used for [fetching entities' relationships](./CoreManager.md#Relationships), it has one case per relationship property.
 
 ## Remote Entity
 
@@ -133,4 +136,5 @@ coreManagers.myEntityManager.get(
 )
 ```
 
-Note that in the code above, the request might not be used as it depends on if it is found locally of not (because of the data source `.remoteOrLocal`). However, in the eventuality it will be used, **the request needs to match the `CoreManager` API being used**. For instance, in this example, the fact we are using `myEntity.identifier` in both places makes the code safe to use.
+Note that in the code above, the request might not be used as it depends on if it is found locally or not (because of the data source `.remoteOrLocal`). However, in the eventuality it will be used, **the request needs to match the `CoreManager`'s API being used**. For instance, in this example, the fact we are using `myEntity.identifier` in both places makes the code safe to use.
+

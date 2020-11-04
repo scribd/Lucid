@@ -8,7 +8,7 @@ Lucid is a Swift library for building robust data layers for applications.
 
 - **Plug-and-play**: Use the stores which suit your data flow the best or write your own. Lucid gives you the infrastructure to seamlessly integrate the technologies you want to use.
 
-- **Adaptability**: Built to fit most kinds of standard and non-standard server APIs, Lucid abstracts away server-side structural decisions by providing a resource oriented universal client-side API.
+- **Adaptability**: Built to fit most kinds of standard and non-standard server APIs, Lucid abstracts away server-side structural decisions by providing a universal client-side API.
 
 ## Quick Setup
 

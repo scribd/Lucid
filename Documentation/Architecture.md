@@ -4,7 +4,7 @@
 
 ![Architecture Diagram](ArchitectureDiagram.png)
 
-Lucid is designed around the idea that a data flow should be derived from its resources, and not the other way around. Therefore, almost every pieces depend on an entity type. An entity is usually a business related object which holds the data required to run the app's business logic. For example, it could be a user, or a [movie](../Sample/Generated/Lucid/Entities/Movie.swift), or anything useful to run a business.
+Lucid is designed around the idea that a data flow should be derived from its resources, and not the other way around. Therefore, almost every piece depends on an entity type. An entity is usually a business-related object which holds the data required to run the app's business logic. For example, it could be a user, or a [movie](../Sample/Generated/Lucid/Entities/Movie.swift), or anything useful to run a business.
 
 Every entity implements a set of rules telling Lucid how to store them, how to fetch them from a remote, how to build them from a JSON payload, etc... These rules are described in a series of [Swift protocols](../Lucid/Core/Entity.swift).
 
@@ -12,13 +12,13 @@ Since Lucid is about data flows, it needs to be able to read and write data in a
 
 Every store is meant to handle data coming from/to different places, either local (client-side) or remote (server-side). In order to keep all the stores synchronized and avoid conflicts, they need to be interacted with in a specific way. This is the role of the [manager](../Lucid/Core/CoreManager.swift). A manager is an object derived from an entity type, and which knows how to interact with the stores depending on the use case. They constitute the only exposed bit of interface to the application's domain.
 
-Essentially, a manager can do a combination of operations defined by a method, a [query](../Lucid/Core/Query.swift) and a [context](../Lucid/Core/Context.swift). The method defines the nature of the operation; get/set/remove/search. The query describes how the concerned data should be selected/transformed. The context provides contextual information about the data source or target, the persistence strategy which shall be used, access restrictions, etc...
+Essentially, a manager can do a combination of operations defined by a method, a [query](../Lucid/Core/Query.swift) and a [context](../Lucid/Core/Context.swift). The method defines the nature of the operation: get/set/remove/search. The query describes how the concerned data should be selected/transformed. The context provides contextual information about the data source or target, the persistence strategy which shall be used, access restrictions, etc...
 
 ### Technical Concepts
 
-As described above, Lucid has a very abstract background which can be hard to catch up with when it comes to write some code. That's why Lucid also comes with a set of pre-compilation commands to help putting the pieces together.
+As described above, Lucid has a very abstract background which can be hard to catch up with when it comes to write some code. That's why Lucid also comes with a set of pre-compilation commands to help put the pieces together.
 
-Among these [commands](../CodeGen/Sources/LucidCommand/main.swift), the most important one is `lucid swift`. From a group of [json files](../Sample/Generated/Lucid) describing the entities, payloads and endpoints, it generates the code implementing all of the abstract concepts of Lucid. Once generated, this code can then be compiled with the application and used to support Lucid's runtime framework.
+Among these [commands](../CodeGen/Sources/LucidCommand/main.swift), the most important one is `lucid swift`. From a group of [json files](../Sample/Generated/Lucid) describing the entities, payloads and endpoints, it generates the code implementing all of the abstract concepts of Lucid. Once generated, this code can be compiled with the application and used to support Lucid's runtime framework.
 
 TLDR - Technically, Lucid is composed of two binaries: 
 

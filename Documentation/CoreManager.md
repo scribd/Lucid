@@ -158,7 +158,9 @@ Query<MyEntity>
   .with(limit: 10)
 ```
 
-## Get Entity By Id
+## Operations
+
+### Get Entity by ID
 
 Looking for entity using its identifier is the prefered way to fetch a unique entity. It is usually faster than using a search query.
 
@@ -169,7 +171,7 @@ manager
   .store(in: cancellables)
 ```
 
-## Search Entities With Query
+### Search Entities with Query
 
 Looking for entities is done through the `search` operation. 
 
@@ -197,7 +199,7 @@ The `search` operation returns two publishers:
 
 When using a continuous publisher, it is important to make sure there isn't a possibility of retain cycle between the receive blocks and the cancellables store. Unlike for a once publisher, `CoreManager` retains continuous publishers until they aren't in used anymore. If a retain cycle keeps the publisher alive, `CoreManager` will keep track of it forever, which might become expensive over time.
 
-## Set Entity
+### Set Entity
 
 A mutable entity can be set using the `set` operation.
 
@@ -210,7 +212,7 @@ manager
   .store(in: cancellables)
 ```
 
-## Set Entities
+### Set Entities
 
 The same way one mutable entity can be set, a list of entities can be set using the same operation.
 
@@ -226,7 +228,7 @@ manager
   .store(in: cancellables)
 ```
 
-## Remove Entity At Identifier
+### Remove Entity at ID
 
 The most performant way to remove one single entity is to use the `remove` operation with its identifier.
 
@@ -237,7 +239,7 @@ manager
   .store(in: cancellables)
 ```
 
-## Remove Entities With Identifiers
+### Remove Entities with IDs
 
 The same way one entity can be removed, a multiple entities can be removed using the same operation and a list of identifiers.
 
@@ -248,6 +250,87 @@ manager
   .store(in: cancellables)
 ```
 
-## Intialization
+## Relationships
 
-It isn't recommended to try initializing a `CoreManager` manually. Please follow the [instructions](./CoreManagerContainer.md) about `CoreManagerContainer` instead.
+Sometimes, fetching only one level of entities isn't enough and although it is possible to retrieve an entity's relationships manually, it can become tedious. This is why Lucid provides an easy way to fetch relationships.
+
+### Entity Graph
+
+When fetching relationships, Lucid aggregates all the different types of entity in the `EntityGraph`. Once the `EntityGraph` is built, retrieving an entity's relationships becomes very easy.
+
+For example:
+
+```swift
+guard let myEntity = entityGraph.myEntities.first else { return }
+let relationships = myEntity.relationships.compactMap { entityGraph.myEntityRelationships[$0] }
+```
+
+In case the relationships were fetched from a list of entities, it is important to know how to retrieve that initial list from the graph. 
+
+Here is how to do so:
+
+```swift
+let myEntities = entityGraph.rootEntities.compactMap { entity in
+  switch entity {
+  case .myEntity(let entity):
+    return entity
+  default:
+    return nil
+  }
+}
+```
+
+### Root Entity with Relationships
+
+```swift
+manager
+  .rootEntity(
+    byID: myEntityIdentifier, 
+    in: ReadContext<MyEntity>(dataSource: .local)
+  )
+  .including([.myRelationshipsProperty])
+  .perform()
+  .once
+  .sink(receiveCompletion: { ... }, receiveValue: { ... })
+  .store(in: cancellables)
+```
+
+### Root Entities with Relationships
+
+```swift
+manager
+  .rootEntities(
+    for: .all, 
+    in: ReadContext<MyEntity>(dataSource: .local)
+  )
+  .including([.myRelationshipsProperty])
+  .perform()
+  .sink(receiveCompletion: { ... }, receiveValue: { ... })
+  .once
+  .store(in: cancellables)
+```
+
+### Relationships on Multiple Levels
+
+It often happens that a relationship has another relationship, which itself has another relationship and so on. When it's the case, Lucid generates an appropriate structure of indices to help conveniently fetch relationships on more than one level.
+
+For example:
+
+```swift
+manager
+  .rootEntities(
+    for: .all, 
+    in: ReadContext<MyEntity>(dataSource: .local)
+  )
+  .including([
+    .firstRelationshipLevel([
+      .secondRelationshipLevel([
+        .thirdRelationshipLevel
+      ])
+    ])
+  ])
+  .perform()
+  .sink(receiveCompletion: { ... }, receiveValue: { ... })
+  .once
+  .store(in: cancellables)
+```

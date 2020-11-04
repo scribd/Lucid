@@ -1,12 +1,12 @@
 # Lucid - Configuration And Description Files
 
-Because Lucid is using code generation to link all its pieces together, it requires to be configured accordingly in order to generate the code that makes sense for your project.
+Because Lucid is using code generation to link everything together, the configuration and description files must be configured correctly to generate the proper code for your project.
 
 ## [Configuration File](../CodeGen/Sources/LucidCommand/CommandConfiguration.swift)
 
-The configuration file is a YAML file usually named `.lucid.yaml` and stored at the root of the project. Naming it differently requires to use the option `--config-path` when running the command `lucid swift`.
+The configuration file is a YAML file usually named `.lucid.yaml` and is stored at the root of the project. To use a custom filename, you must use the option `--config-path` when running the command `lucid swift`.
 
-Here is what a basic configuration file looks like:
+Here is a basic configuration file:
 
 ```yaml
 input_path: Descriptions
@@ -16,7 +16,7 @@ targets:
     output_path: App/Generated
 ```
 
-After running the command `lucid swift` with this configuration, the directory `App/Generated` contains all of the generated code corresponding to whichever JSON description files were placed in the `Descriptions` directory.
+After running the command `lucid swift` with this configuration, the directory `App/Generated` contains all of the generated code corresponding to the JSON description files placed in the `Descriptions` directory.
 
 ### Fields
 
@@ -40,7 +40,7 @@ After running the command `lucid swift` with this configuration, the directory `
 
 ## Description Files
 
-Lucid reads three types of description files; entities, subtypes and endpoint payloads. These files need to be placed in their respective directories, at the path specified with the `input_path` field of the configuration file.
+Lucid reads three types of description files: entities, subtypes and endpoint payloads. These files need to be placed in their respective directories, at the path specified with the `input_path` field of the configuration file.
 
 The file structure should look like the following:
 
@@ -56,11 +56,11 @@ $ tree
         └── MySubtype.json
 ```
 
-Note that any file structure can be used under `Entities`, `Subtypes`, `EndpointPayloads` as soon as there isn't any conflicting names.
+Note that any file structure can be used under `Entities`, `Subtypes`, `EndpointPayloads` as long as there aren't any conflicting names.
 
 ### Entity Description
 
-An entity is an object which holds data related to a specific part of a business. Entities can relate to each other, with either one to one or one to many relationships. They can also use scalar types (int, string, bool, ...) or subtypes to describe the data they contain.
+An entity is an object which holds data related to a specific part of a business. Entities can relate to each other, with either one-to-one or one-to-many relationships. They can also use scalar types (int, string, bool, ...) or subtypes to describe the data they contain.
 
 Here is what a basic entity looks like:
 
@@ -121,7 +121,7 @@ There are three ways to declare an identifier:
 	}
 	```
 	
-3. By derivating it from a set of relationships.
+3. By deriving it from a set of relationships.
 
 	```json
 	"identifier": {
@@ -130,14 +130,14 @@ There are three ways to declare an identifier:
 	}
 	```
 	
-	When using this method, the scalar type must match the relationships identifier scalar type. 
+	When using this method, the scalar type must match the relationship's identifier scalar type. 
 	
 	This is mostly used when two or more entities are able to share an identifier. When used, Lucid generates some additional conversion methods necessary to convert identifiers from one entity type to another.
 
 
 ### Entity Property Description
 
-A property is a named value stored as part of an entity object. For every property, Lucid generates an index which can be used inside of queries in order to accurately select data.
+A property is a named value stored as part of an entity object. For every property, Lucid generates an index which can be used inside queries in order to accurately select data.
 
 #### Fields
 
@@ -160,7 +160,7 @@ A property is a named value stored as part of an entity object. For every proper
 
 #### Lazy Properties
 
-Lazy properties are a way to workaround inconsistencies there might be the data model. Most of the time, these happens when a endpoint serves a set of properties but another endpoint serves a different set or properties for the same entity.
+Lazy properties are a way to work around inconsistencies in the data model. Most of the time, these happens when an endpoint serves a set of properties but another endpoint serves a different set or properties for the same entity.
 
 Lazy properties can take two values:
 
@@ -232,9 +232,9 @@ For every item in the version history, Lucid generates a data model for that ent
 
 ### Subtype Description
 
-Subtypes are types which cannot refer to entities. It can be seen as user defined scalar types.
+Subtypes are types which cannot refer to entities. It can be seen as user-defined scalar types.
 
-Here is what a basic subtypes look like:
+Here is what a basic subtype looks like:
 
 - Enum:
 
@@ -276,7 +276,7 @@ Here is what a basic subtypes look like:
 - `platforms`: Platforms for which the code should be generated (optional).
 - `objc`: Whether or not this subtype should be compatible with ObjC (defaults to `false`).
 
-There are three categoris of subtypes. The following fields must be added depending on the category. 
+There are three categories of subtypes. The following fields must be added depending on the category. 
 
 - `enum`:
 	- `cases`: List of cases (required).
@@ -309,7 +309,7 @@ A scalar type is a built-in type which can be referred to using any of the follo
 - `url`
 - `color` // e.g. `#FFF000`
 
-Any of these types can be wrapped into brackets to form an array (e.g. `[string]`).
+Any of these types can be wrapped in brackets to form an array (e.g. `[string]`).
 
 ### Metadata Description
 
@@ -323,7 +323,7 @@ Metadata are additional properties which can be retrieved from the remote store(
 
 ### Endpoint Payload Description
 
-Endpoint payloads describe the structure Lucid should follow to parse the data coming from the specific remote endpoints.
+Endpoint payloads describe the structure Lucid should follow when parsing the data coming from the specific remote endpoints.
 
 Here is what a basic endpoint payload description looks like:
 

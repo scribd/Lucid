@@ -1332,8 +1332,8 @@ private extension CoreManager {
     final class PropertyEntry {
 
         let query: Query<E>
-        let contract: EntityContract
-        let accessValidator: UserAccessValidating?
+        private let contract: EntityContract
+        private let accessValidator: UserAccessValidating?
 
         private let propertyDispatchQueue = DispatchQueue(label: "\(PropertyEntry.self):property")
         private var _strongProperty: Property<QueryResult<E>?>?
@@ -1361,12 +1361,16 @@ private extension CoreManager {
         }
 
         func update(with value: QueryResult<E>) {
-            let shouldAllowRequest = accessValidator?.userAccess.allowsStoreRequest ?? true
-            if shouldAllowRequest {
-                property?.update(with: value.validatingContract(contract, with: query))
-            } else {
+            property?.update(with: value.validatingContract(contract, with: query))
+        }
+
+        func shouldAllowUpdate() -> Bool {
+            let shouldAllowUpdate = accessValidator?.userAccess.allowsStoreRequest ?? true
+            guard shouldAllowUpdate else {
                 property?.update(with: .entities([]))
+                return false
             }
+            return true
         }
 
         func materialize() {
@@ -1523,7 +1527,8 @@ private extension CoreManager {
                 return newEntitiesByID
             }
 
-            for element in properties {
+            for element in properties where element.shouldAllowUpdate() {
+
                 if element.query != query, let filter = element.query.filter {
                     let newEntitiesUnion = results.lazy.filter(with: filter)
                     let newEntitiesUnionsByID = newEntitiesUnion.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }

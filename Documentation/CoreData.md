@@ -10,7 +10,7 @@ Once injected into the `CoreDataStore`s, `CoreDataManager` lazily loads the `Cor
 
 ## Migrations
 
-One of the biggest hassle of `CoreData` is its migration system. Thankfully, Lucid provides the tools to write them, but also to make sure they work and are executed at the right time.
+One of the biggest hassles of `CoreData` is its migration system. Thankfully, Lucid provides the tools to write them, and ensures they succeed and are executed at the right time.
 
 There are two types of migrations:
 
@@ -65,7 +65,7 @@ func myCoreDataMigrations() -> [CoreDataManager.Migration] {
 
 #### Data Model Migration
 
-For when the `CoreData` model is changing, it is required to specify a new model history version in the `Entity`s JSON description file.
+When the `CoreData` model is changing, you must specify a new model history version in the `Entity`s JSON description file.
 
 For example, the following code tells Lucid to generate a new `CoreData` entity: `ManagedMyEntity_1_1`.
 
@@ -117,8 +117,8 @@ func myCoreDataMigrations() -> [CoreDataManager.Migration] {
 
 ### Migrations' Tests
 
-It's very easy to mistake a lightweight migration for an heavy migration. Publishing **a failing migration leads into a permanent loss of your users' local database**, so it is crutial to make sure they work.
+It is very easy to mistake a lightweight migration for a heavy migration. Publishing **a failing migration leads to a permanent loss of your users' local database**, so it is crucial they work correctly.
 
-To prevent this from happening as much as possible, Lucid provides a series of Unit Tests (`CoreDataMigrationTests`). These tests are re-generated for every new version of the entity descriptions. What they do is that they try to migrate databases using every previous version of the `CoreData` model to the newest one.
+To prevent this from happening as much as possible, Lucid provides a series of Unit Tests (`CoreDataMigrationTests`). These tests are re-generated for every new version of the entity descriptions. The tests try to migrate databases using every previous version of the `CoreData` model to the newest one.
 
-Alongside those tests, Lucid also generates the test case `ExportSQLiteFile` which automatically exports a snapshot of a dummy database into an `sqlite` for the current entity descriptions' version. These snaphots are required for `CoreDataMigrationTests` to work properly, so it is important to run them often so that one snapshot is being stored for each version of the entity descriptions.
+Alongside these tests, Lucid also generates the test case `ExportSQLiteFile` which automatically exports a snapshot of a dummy database into an `sqlite` for the current entity descriptions' version. These snaphots are required for `CoreDataMigrationTests` to work properly, so it is important to run them often so that one snapshot is being stored for each version of the entity descriptions.

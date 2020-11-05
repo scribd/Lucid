@@ -617,7 +617,9 @@ private extension CoreManager {
                                             break
                                         }
                                         guardedPromise(.success(queryResult))
-                                        self.raiseUpdateEvents(withQuery: .identifier(identifier), results: .entities([entity]), contract: context.contract, returnsCompleteResultSet: context.returnsCompleteResultSet)
+                                        self.raiseUpdateEvents(withQuery: .identifier(identifier),
+                                                               results: .entities([entity]),
+                                                               returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
                                 } else {
                                     self.localStore.remove(atID: identifier, in: WriteContext(dataTarget: .local)) { result in
@@ -797,7 +799,9 @@ private extension CoreManager {
 
                                     dispatchGroup.notify(queue: self.storeStackQueues.writeResultsQueue) {
                                         guardedPromise(.success(remoteResults))
-                                        self.raiseUpdateEvents(withQuery: query, results: remoteResults, contract: context.contract, returnsCompleteResultSet: context.returnsCompleteResultSet)
+                                        self.raiseUpdateEvents(withQuery: query,
+                                                               results: remoteResults,
+                                                               returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
 
                                 case .failure(let error):
@@ -815,7 +819,9 @@ private extension CoreManager {
                                             Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
                                         }
                                         guardedPromise(.success(queryResult))
-                                        self.raiseUpdateEvents(withQuery: query, results: queryResult, contract: context.contract, returnsCompleteResultSet: context.returnsCompleteResultSet)
+                                        self.raiseUpdateEvents(withQuery: query,
+                                                               results: queryResult,
+                                                               returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
                                 }
                             }
@@ -1501,7 +1507,10 @@ private extension CoreManager {
     ///     - At least one entity in the search results changed.
     ///     - The search results has less entities than before.
     ///     - The search results has more entities than before, ONLY when the order IS DETERMINISTIC.
-    func raiseUpdateEvents(withQuery query: Query<E>, results: QueryResult<E>, contract: EntityContract = AlwaysValidContract(), returnsCompleteResultSet: Bool = true) {
+    func raiseUpdateEvents(withQuery query: Query<E>,
+                           results: QueryResult<E>,
+                           returnsCompleteResultSet: Bool = true) {
+
         raiseEventsQueue.async {
 
             let properties = self.propertiesQueue.sync { self._properties + self._pendingProperties }

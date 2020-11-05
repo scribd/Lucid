@@ -617,7 +617,9 @@ private extension CoreManager {
                                             break
                                         }
                                         guardedPromise(.success(queryResult))
-                                        self.raiseUpdateEvents(withQuery: .identifier(identifier), results: .entities([entity]), contract: context.contract, returnsCompleteResultSet: context.returnsCompleteResultSet)
+                                        self.raiseUpdateEvents(withQuery: .identifier(identifier),
+                                                               results: .entities([entity]),
+                                                               returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
                                 } else {
                                     self.localStore.remove(atID: identifier, in: WriteContext(dataTarget: .local)) { result in
@@ -797,7 +799,9 @@ private extension CoreManager {
 
                                     dispatchGroup.notify(queue: self.storeStackQueues.writeResultsQueue) {
                                         guardedPromise(.success(remoteResults))
-                                        self.raiseUpdateEvents(withQuery: query, results: remoteResults, contract: context.contract, returnsCompleteResultSet: context.returnsCompleteResultSet)
+                                        self.raiseUpdateEvents(withQuery: query,
+                                                               results: remoteResults,
+                                                               returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
 
                                 case .failure(let error):
@@ -815,7 +819,9 @@ private extension CoreManager {
                                             Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
                                         }
                                         guardedPromise(.success(queryResult))
-                                        self.raiseUpdateEvents(withQuery: query, results: queryResult, contract: context.contract, returnsCompleteResultSet: context.returnsCompleteResultSet)
+                                        self.raiseUpdateEvents(withQuery: query,
+                                                               results: queryResult,
+                                                               returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
                                 }
                             }
@@ -1326,8 +1332,8 @@ private extension CoreManager {
     final class PropertyEntry {
 
         let query: Query<E>
-        let contract: EntityContract
-        let accessValidator: UserAccessValidating?
+        private let contract: EntityContract
+        private let accessValidator: UserAccessValidating?
 
         private let propertyDispatchQueue = DispatchQueue(label: "\(PropertyEntry.self):property")
         private var _strongProperty: Property<QueryResult<E>?>?
@@ -1355,12 +1361,16 @@ private extension CoreManager {
         }
 
         func update(with value: QueryResult<E>) {
-            let shouldAllowRequest = accessValidator?.userAccess.allowsStoreRequest ?? true
-            if shouldAllowRequest {
-                property?.update(with: value.validatingContract(contract, with: query))
-            } else {
+            property?.update(with: value.validatingContract(contract, with: query))
+        }
+
+        func shouldAllowUpdate() -> Bool {
+            let shouldAllowUpdate = accessValidator?.userAccess.allowsStoreRequest ?? true
+            guard shouldAllowUpdate else {
                 property?.update(with: .entities([]))
+                return false
             }
+            return true
         }
 
         func materialize() {
@@ -1501,11 +1511,24 @@ private extension CoreManager {
     ///     - At least one entity in the search results changed.
     ///     - The search results has less entities than before.
     ///     - The search results has more entities than before, ONLY when the order IS DETERMINISTIC.
-    func raiseUpdateEvents(withQuery query: Query<E>, results: QueryResult<E>, contract: EntityContract = AlwaysValidContract(), returnsCompleteResultSet: Bool = true) {
+    func raiseUpdateEvents(withQuery query: Query<E>,
+                           results: QueryResult<E>,
+                           returnsCompleteResultSet: Bool = true) {
+
         raiseEventsQueue.async {
 
             let properties = self.propertiesQueue.sync { self._properties + self._pendingProperties }
-            for element in properties {
+
+            var _newEntitiesByID: DualHashDictionary<E.Identifier, E>?
+            let lazyNewEntitiesByID = { () -> DualHashDictionary<E.Identifier, E> in
+                if let newEntitiesByID = _newEntitiesByID { return newEntitiesByID }
+                let newEntitiesByID = results.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
+                _newEntitiesByID = newEntitiesByID
+                return newEntitiesByID
+            }
+
+            for element in properties where element.shouldAllowUpdate() {
+
                 if element.query != query, let filter = element.query.filter {
                     let newEntitiesUnion = results.lazy.filter(with: filter)
                     let newEntitiesUnionsByID = newEntitiesUnion.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
@@ -1521,22 +1544,20 @@ private extension CoreManager {
                     }
 
                     let newEntityIDsExclusion = results.lazy.filter(with: !filter).map { $0.identifier }
-                    newEntities = newEntities.lazy.filter(with: !(.identifier >> newEntityIDsExclusion))
+                    newEntities = newEntities.lazy.filter { newEntityIDsExclusion.contains($0.identifier) == false }.any
 
                     let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)
                     element.update(with: newValue)
                 } else if element.query == query || query.filter == .all {
                     if returnsCompleteResultSet == false,
                         let propertyValue = element.property?.value {
-                        let newEntitiesByID = results.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
-                        var newEntities = propertyValue.update(byReplacingOrAdding: newEntitiesByID)
+                        var newEntities = propertyValue.update(byReplacingOrAdding: lazyNewEntitiesByID())
                         if query.order.contains(where: { $0.isDeterministic }) {
                             newEntities = newEntities.order(with: query.order)
                         }
                         let newValue = QueryResult(fromProcessedEntities: newEntities, for: query)
                         element.update(with: newValue)
-                    } else if element.query.order != query.order,
-                        element.query.order.contains(where: { $0.isDeterministic }) {
+                    } else if element.query.order != query.order, element.query.order.contains(where: { $0.isDeterministic }) {
                         let orderedEntities = results.order(with: element.query.order)
                         let orderedResults = QueryResult(fromProcessedEntities: orderedEntities, for: element.query)
                         element.update(with: orderedResults)
@@ -1544,10 +1565,9 @@ private extension CoreManager {
                         element.update(with: results)
                     }
                 } else if let propertyValue = element.property?.value {
-                    let newEntitiesByID = results.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
                     var newEntities = element.query.filter == .all ?
-                        propertyValue.update(byReplacingOrAdding: newEntitiesByID) :
-                        propertyValue.update(byReplacing: newEntitiesByID)
+                        propertyValue.update(byReplacingOrAdding: lazyNewEntitiesByID()) :
+                        propertyValue.update(byReplacing: lazyNewEntitiesByID())
 
                     if element.query.order.contains(where: { $0.isDeterministic }) {
                         newEntities = newEntities.order(with: element.query.order)

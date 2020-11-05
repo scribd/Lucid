@@ -422,8 +422,8 @@ private extension CoreDataManager.State {
 
     var loadedValues: (containter: NSPersistentContainer, context: NSManagedObjectContext)? {
         switch self {
-        case .loaded(let values):
-            return values
+        case .loaded(let container, let context):
+            return (container, context)
         case .failed,
              .loading,
              .unloaded:

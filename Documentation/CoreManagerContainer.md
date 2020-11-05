@@ -19,13 +19,10 @@ Generally speaking, it is adviced to use only one instance of core manager per e
 Buiding a `CoreManagerContainer` looks like the following:
 
 ```swift
-let client = MyAPIClient(...)
-let coreDataManager = CoreDataManager(...)
-
 let coreManagers = CoreManagerContainer(
   cacheLimit: 512,
-  client: client,
-  coreDataManager: coreDataManager
+  client: MyAPIClient(...),
+  diskStoreConfig: .coreData  
 )
 
 coreManagers.myEntityManager.get(byID: ...)
@@ -34,7 +31,7 @@ coreManagers.myEntityManager.get(byID: ...)
 The `CoreManagerContainer` depends on two objects:
 
 1. [`APIClient`](./Client.md): An interface to your network APIs
-2. [`CoreDataManager`](./CoreData.md): An interface to the `CoreData` stack.
+2. `DiskStoreConfig`: A struct containing any needed data to build your disk stores.
 
 By default, core managers are using an `InMemoryStore` as a caching system in front of a `CoreDataStore`. That's why it is required to set the `cacheLimit` to a reasonable value as it is the maximum amount of entities the `InMemoryStore` can contain per entity type.
 
@@ -51,16 +48,20 @@ By default, it uses the following:
 
 ## Custom Store Configuration
 
-`CoreManagerContainer` provides a way to use your own configuration of stores for a type of entity. Here's how to do so:
+`CoreManagerContainer` provides a way to use your own configuration of stores for a type of entity. 
+
+Here's how to do so:
 
 ```swift
 extension MyEntityType {
   
   static func stores(with client: APIClient,
                      clientQueue: inout APIClientQueue,
-                     coreDataManager: CoreDataManager,
-                     cacheLimit: Int) -> [Storing<MyEntityType>] { 
+                     cacheLimit: Int,
+                     diskStoreConfig: CoreManagerContainer.DiskStoreConfig) -> [Storing<MyEntityType>] { 
     return [...]
   }
 }
 ```
+
+Note that `DiskStoreConfig` has a custom property which can be any type of data you want to inject in order to build your own local stores.

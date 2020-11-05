@@ -31,12 +31,20 @@ protocol MovieCoreManagerProviding {
 
 public final class CoreManagerContainer {
 
+    public struct DiskStoreConfig {
+        public var coreDataManager: CoreDataManager?
+        public var custom: Any?
+
+        public static var coreData: DiskStoreConfig {
+            let coreDataManager = CoreDataManager(modelName: "Sample", in: Bundle(for: CoreManagerContainer.self), migrations: [])
+            return DiskStoreConfig(coreDataManager: coreDataManager, custom: nil)
+        }
+    }
+
     private let _responseHandler: CoreManagerContainerClientQueueResponseHandler? = nil
     public var responseHandler: APIClientQueueResponseHandler? {
         return _responseHandler
     }
-
-    public let coreDataManager: CoreDataManager
 
     public let clientQueues: Set<APIClientQueue>
     public let mainClientQueue: APIClientQueue
@@ -57,9 +65,7 @@ public final class CoreManagerContainer {
 
     public init(cacheLimit: Int,
                 client: APIClient,
-                coreDataManager: CoreDataManager = CoreDataManager(modelName: "Sample", in: Bundle(for: CoreManagerContainer.self), migrations: [])) {
-
-        self.coreDataManager = coreDataManager
+                diskStoreConfig: DiskStoreConfig = .coreData) {
 
         var clientQueues = Set<APIClientQueue>()
         var clientQueue: APIClientQueue
@@ -75,8 +81,8 @@ public final class CoreManagerContainer {
             stores: Genre.stores(
                 with: client,
                 clientQueue: &clientQueue,
-                coreDataManager: coreDataManager,
-                cacheLimit: cacheLimit
+                cacheLimit: cacheLimit,
+                diskStoreConfig: diskStoreConfig
             )
         )
         clientQueues.insert(clientQueue)
@@ -86,8 +92,8 @@ public final class CoreManagerContainer {
             stores: Movie.stores(
                 with: client,
                 clientQueue: &clientQueue,
-                coreDataManager: coreDataManager,
-                cacheLimit: cacheLimit
+                cacheLimit: cacheLimit,
+                diskStoreConfig: diskStoreConfig
             )
         )
         clientQueues.insert(clientQueue)
@@ -158,16 +164,16 @@ extension CoreManagerContainer: RemoteStoreCachePayloadPersistenceManaging {
 /// ```
 /// static func stores(with client: APIClient,
 ///                    clientQueue: inout APIClientQueue,
-///                    coreDataManager: CoreDataManager,
-///                    cacheLimit: Int) -> Array<Storing<Self>>
+///                    cacheLimit: Int,
+///                    diskStoreConfig: CoreManagerContainer.DiskStoreConfig) -> Array<Storing<Self>>
 /// ```
 /// to an individual class adopting the Entity protocol to provide custom functionality
 
 extension LocalEntity {
     static func stores(with client: APIClient,
                        clientQueue: inout APIClientQueue,
-                       coreDataManager: CoreDataManager,
-                       cacheLimit: Int) -> Array<Storing<Self>> {
+                       cacheLimit: Int,
+                       diskStoreConfig: CoreManagerContainer.DiskStoreConfig) -> Array<Storing<Self>> {
         let localStore = LRUStore<Self>(store: InMemoryStore().storing, limit: cacheLimit)
         return Array(arrayLiteral: localStore.storing)
     }
@@ -176,8 +182,14 @@ extension LocalEntity {
 extension CoreDataEntity {
     static func stores(with client: APIClient,
                        clientQueue: inout APIClientQueue,
-                       coreDataManager: CoreDataManager,
-                       cacheLimit: Int) -> Array<Storing<Self>> {
+                       cacheLimit: Int,
+                       diskStoreConfig: CoreManagerContainer.DiskStoreConfig) -> Array<Storing<Self>> {
+
+        guard let coreDataManager = diskStoreConfig.coreDataManager else {
+            Logger.log(.error, "\(Self.self): Cannot build \(CoreDataStore<Self>.self) without a \(CoreDataManager.self) instance.", assert: true)
+            return Array()
+        }
+
         let localStore = CacheStore<Self>(
             keyValueStore: LRUStore(store: InMemoryStore().storing, limit: cacheLimit).storing,
             persistentStore: CoreDataStore(coreDataManager: coreDataManager).storing
@@ -189,8 +201,8 @@ extension CoreDataEntity {
 extension RemoteEntity {
     static func stores(with client: APIClient,
                        clientQueue: inout APIClientQueue,
-                       coreDataManager: CoreDataManager,
-                       cacheLimit: Int) -> Array<Storing<Self>> {
+                       cacheLimit: Int,
+                       diskStoreConfig: CoreManagerContainer.DiskStoreConfig) -> Array<Storing<Self>> {
         let remoteStore = RemoteStore<Self>(clientQueue: clientQueue)
         return Array(arrayLiteral: remoteStore.storing)
     }
@@ -199,8 +211,14 @@ extension RemoteEntity {
 extension RemoteEntity where Self : CoreDataEntity {
     static func stores(with client: APIClient,
                        clientQueue: inout APIClientQueue,
-                       coreDataManager: CoreDataManager,
-                       cacheLimit: Int) -> Array<Storing<Self>> {
+                       cacheLimit: Int,
+                       diskStoreConfig: CoreManagerContainer.DiskStoreConfig) -> Array<Storing<Self>> {
+
+        guard let coreDataManager = diskStoreConfig.coreDataManager else {
+            Logger.log(.error, "\(Self.self): Cannot build \(CoreDataStore<Self>.self) without a \(CoreDataManager.self) instance.", assert: true)
+            return Array()
+        }
+
         let remoteStore = RemoteStore<Self>(clientQueue: clientQueue)
         let localStore = CacheStore<Self>(
             keyValueStore: LRUStore(store: InMemoryStore().storing, limit: cacheLimit).storing,

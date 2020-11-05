@@ -1514,6 +1514,15 @@ private extension CoreManager {
         raiseEventsQueue.async {
 
             let properties = self.propertiesQueue.sync { self._properties + self._pendingProperties }
+
+            var _newEntitiesByID: DualHashDictionary<E.Identifier, E>?
+            let lazyNewEntitiesByID = { () -> DualHashDictionary<E.Identifier, E> in
+                if let newEntitiesByID = _newEntitiesByID { return newEntitiesByID }
+                let newEntitiesByID = results.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
+                _newEntitiesByID = newEntitiesByID
+                return newEntitiesByID
+            }
+
             for element in properties {
                 if element.query != query, let filter = element.query.filter {
                     let newEntitiesUnion = results.lazy.filter(with: filter)
@@ -1530,22 +1539,20 @@ private extension CoreManager {
                     }
 
                     let newEntityIDsExclusion = results.lazy.filter(with: !filter).map { $0.identifier }
-                    newEntities = newEntities.lazy.filter(with: !(.identifier >> newEntityIDsExclusion))
+                    newEntities = newEntities.lazy.filter { newEntityIDsExclusion.contains($0.identifier) == false }.any
 
                     let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)
                     element.update(with: newValue)
                 } else if element.query == query || query.filter == .all {
                     if returnsCompleteResultSet == false,
                         let propertyValue = element.property?.value {
-                        let newEntitiesByID = results.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
-                        var newEntities = propertyValue.update(byReplacingOrAdding: newEntitiesByID)
+                        var newEntities = propertyValue.update(byReplacingOrAdding: lazyNewEntitiesByID())
                         if query.order.contains(where: { $0.isDeterministic }) {
                             newEntities = newEntities.order(with: query.order)
                         }
                         let newValue = QueryResult(fromProcessedEntities: newEntities, for: query)
                         element.update(with: newValue)
-                    } else if element.query.order != query.order,
-                        element.query.order.contains(where: { $0.isDeterministic }) {
+                    } else if element.query.order != query.order, element.query.order.contains(where: { $0.isDeterministic }) {
                         let orderedEntities = results.order(with: element.query.order)
                         let orderedResults = QueryResult(fromProcessedEntities: orderedEntities, for: element.query)
                         element.update(with: orderedResults)
@@ -1553,10 +1560,9 @@ private extension CoreManager {
                         element.update(with: results)
                     }
                 } else if let propertyValue = element.property?.value {
-                    let newEntitiesByID = results.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
                     var newEntities = element.query.filter == .all ?
-                        propertyValue.update(byReplacingOrAdding: newEntitiesByID) :
-                        propertyValue.update(byReplacing: newEntitiesByID)
+                        propertyValue.update(byReplacingOrAdding: lazyNewEntitiesByID()) :
+                        propertyValue.update(byReplacing: lazyNewEntitiesByID())
 
                     if element.query.order.contains(where: { $0.isDeterministic }) {
                         newEntities = newEntities.order(with: element.query.order)

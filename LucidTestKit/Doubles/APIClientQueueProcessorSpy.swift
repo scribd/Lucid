@@ -7,12 +7,7 @@
 //
 
 import Foundation
-
-#if LUCID_REACTIVE_KIT
-@testable import Lucid_ReactiveKit
-#else
 @testable import Lucid
-#endif
 
 public final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
 

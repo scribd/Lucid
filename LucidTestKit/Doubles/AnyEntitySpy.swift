@@ -8,12 +8,7 @@
 
 import Foundation
 import XCTest
-
-#if LUCID_REACTIVE_KIT
-import Lucid_ReactiveKit
-#else
 import Lucid
-#endif
 
 public enum AnyEntitySpyIndexName: Hashable, QueryResultConvertible {
     case entitySpy(EntitySpy.IndexName)

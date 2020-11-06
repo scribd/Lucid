@@ -7,12 +7,7 @@
 //
 
 import XCTest
-
-#if LUCID_REACTIVE_KIT
-import Lucid_ReactiveKit
-#else
 import Lucid
-#endif
 
 @objc(SCLoggerMock)
 public final class LoggerMock: NSObject, Logging {

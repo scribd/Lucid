@@ -6,11 +6,7 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
-#if LUCID_REACTIVE_KIT
-import Lucid_ReactiveKit
-#else
 import Lucid
-#endif
 
 /**
  * This is just a simplified version of the InMemoryStore, altered to allow a fake StoreLevel.

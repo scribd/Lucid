@@ -7,12 +7,7 @@
 //
 
 import XCTest
-
-#if LUCID_REACTIVE_KIT
-import Lucid_ReactiveKit
-#else
 import Lucid
-#endif
 
 public final class APIClientSpy: APIClient {
 

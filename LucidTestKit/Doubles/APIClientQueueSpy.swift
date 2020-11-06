@@ -7,12 +7,7 @@
 //
 
 import Foundation
-
-#if LUCID_REACTIVE_KIT
-import Lucid_ReactiveKit
-#else
 import Lucid
-#endif
 
 public final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
 

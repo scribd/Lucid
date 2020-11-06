@@ -8,12 +8,7 @@
 
 import Foundation
 import XCTest
-
-#if LUCID_REACTIVE_KIT
-import Lucid_ReactiveKit
-#else
 import Lucid
-#endif
 
 open class StoreSpy<E: Entity>: StoringConvertible {
 

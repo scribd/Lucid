@@ -8,13 +8,12 @@
 
 import Foundation
 import XCTest
+import Lucid
 
 #if LUCID_REACTIVE_KIT
 import ReactiveKit
-import Lucid_ReactiveKit
 #else
 import Combine
-import Lucid
 #endif
 
 public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {

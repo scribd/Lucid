@@ -12,7 +12,7 @@ import ReactiveKit
 
 #if os(iOS)
 
-protocol CoreBackgroundTaskManaging: AnyObject {
+public protocol CoreBackgroundTaskManaging: AnyObject {
     func beginBackgroundTask(expirationHandler: (() -> Void)?) -> UIBackgroundTaskIdentifier
     func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier)
 }
@@ -20,7 +20,7 @@ protocol CoreBackgroundTaskManaging: AnyObject {
 extension UIApplication: CoreBackgroundTaskManaging {}
 
 /// In charge of keeping one background task alive as long as needed.
-protocol BackgroundTaskManaging: AnyObject {
+public protocol BackgroundTaskManaging: AnyObject {
 
     /// Starts background task if none is running and registers a timeout handler.
     /// - Parameter timeoutHandler: Called once the running background task times out.

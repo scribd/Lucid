@@ -6,11 +6,11 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
-import ReactiveKit
+import Combine
 import XCTest
 
-@testable import Lucid_ReactiveKit
-@testable import LucidTestKit_ReactiveKit
+@testable import Lucid
+@testable import LucidTestKit
 
 final class CoreManagerContractTests: XCTestCase {
 
@@ -20,7 +20,7 @@ final class CoreManagerContractTests: XCTestCase {
 
     private var manager: CoreManaging<EntitySpy, AnyEntitySpy>!
 
-    private var disposeBag: DisposeBag!
+    private var cancellables: Set<AnyCancellable>!
 
     override func setUp() {
         super.setUp()
@@ -33,7 +33,7 @@ final class CoreManagerContractTests: XCTestCase {
         memoryStoreSpy = StoreSpy()
         memoryStoreSpy.levelStub = .memory
 
-        disposeBag = DisposeBag()
+        cancellables = Set()
     }
 
     override func tearDown() {
@@ -42,7 +42,7 @@ final class CoreManagerContractTests: XCTestCase {
         remoteStoreSpy = nil
         memoryStoreSpy = nil
         manager = nil
-        disposeBag = nil
+        cancellables = nil
     }
 
     private enum StackType {
@@ -75,21 +75,20 @@ final class CoreManagerContractTests: XCTestCase {
 
         manager
             .get(byID: EntitySpyIdentifier(value: .remote(1, nil)))
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 1)
+                XCTAssertEqual(result.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -111,21 +110,20 @@ final class CoreManagerContractTests: XCTestCase {
 
         manager
             .get(byID: EntitySpyIdentifier(value: .remote(1, nil)), in: context)
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 1)
+                XCTAssertEqual(result.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -145,20 +143,19 @@ final class CoreManagerContractTests: XCTestCase {
 
         manager
             .get(byID: EntitySpyIdentifier(value: .remote(1, nil)), in: context)
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertTrue(queryResult.isEmpty)
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertTrue(result.isEmpty)
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -179,22 +176,21 @@ final class CoreManagerContractTests: XCTestCase {
         manager
             .search(withQuery: .all)
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 2)
-                    XCTAssertEqual(queryResult.array.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
-                    XCTAssertEqual(queryResult.array.last?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 2)
+                XCTAssertEqual(result.array.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
+                XCTAssertEqual(result.array.last?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -219,22 +215,21 @@ final class CoreManagerContractTests: XCTestCase {
         manager
             .search(withQuery: .all, in: context)
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 2)
-                    XCTAssertEqual(queryResult.array.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
-                    XCTAssertEqual(queryResult.array.last?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 2)
+                XCTAssertEqual(result.array.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
+                XCTAssertEqual(result.array.last?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -258,21 +253,20 @@ final class CoreManagerContractTests: XCTestCase {
         manager
             .search(withQuery: .all, in: context)
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 1)
+                XCTAssertEqual(result.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -297,29 +291,20 @@ final class CoreManagerContractTests: XCTestCase {
         manager
             .search(withQuery: .all, in: continuousContext)
             .continuous
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    continuousCount += 1
-                    if continuousCount == 1 {
-                        XCTAssertEqual(queryResult.count, 0)
-                        continuousSetupExpectation.fulfill()
-                    } else if continuousCount == 2 {
-                        XCTAssertEqual(queryResult.count, 1)
-                        XCTAssertEqual(queryResult.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-                        continuousCompletedExpectation.fulfill()
-                    } else {
-                        XCTFail("Received more responses than expected")
-                    }
-
-                case .failed(let error):
-                    XCTFail("Unexpected error: \(error)")
-
-                case .completed:
-                    return
+            .sink { result in
+                continuousCount += 1
+                if continuousCount == 1 {
+                    XCTAssertEqual(result.count, 0)
+                    continuousSetupExpectation.fulfill()
+                } else if continuousCount == 2 {
+                    XCTAssertEqual(result.count, 1)
+                    XCTAssertEqual(result.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                    continuousCompletedExpectation.fulfill()
+                } else {
+                    XCTFail("Received more responses than expected")
                 }
-        }
-        .dispose(in: disposeBag)
+            }
+            .store(in: &cancellables)
 
         wait(for: [continuousSetupExpectation], timeout: 1)
 
@@ -346,22 +331,21 @@ final class CoreManagerContractTests: XCTestCase {
         manager
             .search(withQuery: .all, in: context)
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 2)
-                    XCTAssertEqual(queryResult.array.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
-                    XCTAssertEqual(queryResult.array.last?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 2)
+                XCTAssertEqual(result.array.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
+                XCTAssertEqual(result.array.last?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         wait(for: [continuousCompletedExpectation, onceExpectation], timeout: 1)
     }
@@ -384,22 +368,23 @@ final class CoreManagerContractTests: XCTestCase {
         let context = ReadContext<EntitySpy>(dataSource: .local, contract: contract)
 
         manager
-            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 in: context)
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertTrue(queryResult.isEmpty)
-
-                case .failed(let error):
+            .get(
+                byID: EntitySpyIdentifier(value: .remote(1, nil)),
+                in: context
+            )
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertTrue(result.isEmpty)
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -434,23 +419,24 @@ final class CoreManagerContractTests: XCTestCase {
         )
 
         manager
-            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 in: context)
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.lazy.value(), 9)
-
-                case .failed(let error):
+            .get(
+                byID: EntitySpyIdentifier(value: .remote(1, nil)),
+                in: context
+            )
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 1)
+                XCTAssertEqual(result.first?.lazy.value(), 9)
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -485,23 +471,24 @@ final class CoreManagerContractTests: XCTestCase {
         )
 
         manager
-            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 in: context)
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.lazy.value(), 9)
-
-                case .failed(let error):
+            .get(
+                byID: EntitySpyIdentifier(value: .remote(1, nil)),
+                in: context
+            )
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 1)
+                XCTAssertEqual(result.first?.lazy.value(), 9)
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -534,23 +521,24 @@ final class CoreManagerContractTests: XCTestCase {
         )
 
         manager
-            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 in: context)
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.lazy.value(), 9)
-
-                case .failed(let error):
+            .get(
+                byID: EntitySpyIdentifier(value: .remote(1, nil)),
+                in: context
+            )
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 1)
+                XCTAssertEqual(result.first?.lazy.value(), 9)
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -577,22 +565,22 @@ final class CoreManagerContractTests: XCTestCase {
         )
 
         manager
-            .get(byID: EntitySpyIdentifier(value: .remote(1, nil)),
-                 in: context)
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertTrue(queryResult.isEmpty)
-
-                case .failed(let error):
+            .get(
+                byID: EntitySpyIdentifier(value: .remote(1, nil)),
+                in: context
+            )
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
+            }, receiveValue: { result in
+                XCTAssertTrue(result.isEmpty)
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -613,24 +601,25 @@ final class CoreManagerContractTests: XCTestCase {
         let context = ReadContext<EntitySpy>(dataSource: .local, contract: contract)
 
         manager
-            .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 in: context)
+            .get(
+                byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
+                in: context
+            )
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 1)
+                XCTAssertEqual(result.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -668,25 +657,26 @@ final class CoreManagerContractTests: XCTestCase {
         )
 
         manager
-            .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 in: context)
+            .get(
+                byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
+                in: context
+            )
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 2)
-                    XCTAssertEqual(queryResult.array.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
-                    XCTAssertEqual(queryResult.array.last?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 2)
+                XCTAssertEqual(result.array.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
+                XCTAssertEqual(result.array.last?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -724,25 +714,26 @@ final class CoreManagerContractTests: XCTestCase {
         )
 
         manager
-            .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 in: context)
+            .get(
+                byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
+                in: context
+            )
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 2)
-                    XCTAssertEqual(queryResult.array.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
-                    XCTAssertEqual(queryResult.array.last?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-        }
-        .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 2)
+                XCTAssertEqual(result.array.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
+                XCTAssertEqual(result.array.last?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -778,24 +769,25 @@ final class CoreManagerContractTests: XCTestCase {
         )
 
         manager
-            .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 in: context)
+            .get(
+                byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
+                in: context
+            )
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-        }
-        .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 1)
+                XCTAssertEqual(result.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -829,23 +821,24 @@ final class CoreManagerContractTests: XCTestCase {
         )
 
         manager
-            .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 in: context)
+            .get(
+                byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
+                in: context
+            )
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertTrue(queryResult.isEmpty)
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-        }
-        .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertTrue(result.isEmpty)
+                onceExpectation.fulfill()
+            })
+        .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -877,23 +870,24 @@ final class CoreManagerContractTests: XCTestCase {
         )
 
         manager
-            .get(byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
-                 in: context)
+            .get(
+                byIDs: [EntitySpyIdentifier(value: .remote(1, nil)), EntitySpyIdentifier(value: .remote(2, nil))],
+                in: context
+            )
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertTrue(queryResult.isEmpty)
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-        }
-        .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertTrue(result.isEmpty)
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -919,21 +913,20 @@ final class CoreManagerContractTests: XCTestCase {
         manager
             .search(withQuery: query, in: context)
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 1)
+                XCTAssertEqual(result.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -975,21 +968,20 @@ final class CoreManagerContractTests: XCTestCase {
         manager
             .search(withQuery: query, in: context)
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 1)
+                XCTAssertEqual(result.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -1031,22 +1023,21 @@ final class CoreManagerContractTests: XCTestCase {
         manager
             .search(withQuery: query, in: context)
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 2)
-                    XCTAssertEqual(queryResult.array.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
-                    XCTAssertEqual(queryResult.array.last?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-            }
-            .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 2)
+                XCTAssertEqual(result.array.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
+                XCTAssertEqual(result.array.last?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -1088,21 +1079,20 @@ final class CoreManagerContractTests: XCTestCase {
         manager
             .search(withQuery: query, in: context)
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-        }
-        .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 1)
+                XCTAssertEqual(result.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -1144,22 +1134,21 @@ final class CoreManagerContractTests: XCTestCase {
         manager
             .search(withQuery: query, in: context)
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 2)
-                    XCTAssertEqual(queryResult.array.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
-                    XCTAssertEqual(queryResult.array.last?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-        }
-        .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 2)
+                XCTAssertEqual(result.array.first?.identifier, EntitySpyIdentifier(value: .remote(1, nil)))
+                XCTAssertEqual(result.array.last?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -1199,21 +1188,20 @@ final class CoreManagerContractTests: XCTestCase {
         manager
             .search(withQuery: query, in: context)
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertEqual(queryResult.count, 1)
-                    XCTAssertEqual(queryResult.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-        }
-        .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 1)
+                XCTAssertEqual(result.first?.identifier, EntitySpyIdentifier(value: .remote(2, nil)))
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -1251,20 +1239,19 @@ final class CoreManagerContractTests: XCTestCase {
         manager
             .search(withQuery: query, in: context)
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertTrue(queryResult.isEmpty)
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-        }
-        .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertTrue(result.isEmpty)
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }
@@ -1302,20 +1289,19 @@ final class CoreManagerContractTests: XCTestCase {
         manager
             .search(withQuery: query, in: context)
             .once
-            .observe { event in
-                switch event {
-                case .next(let queryResult):
-                    XCTAssertTrue(queryResult.isEmpty)
-
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
-
-                case .completed:
+                case .finished:
                     return
                 }
                 onceExpectation.fulfill()
-        }
-        .dispose(in: disposeBag)
+            }, receiveValue: { result in
+                XCTAssertTrue(result.isEmpty)
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1, handler: nil)
     }

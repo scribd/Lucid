@@ -6,8 +6,8 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
-@testable import Lucid_ReactiveKit
-import LucidTestKit_ReactiveKit
+@testable import Lucid
+import LucidTestKit
 
 import XCTest
 import ReactiveKit

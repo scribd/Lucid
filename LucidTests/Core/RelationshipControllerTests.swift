@@ -7,11 +7,11 @@
 //
 
 import Foundation
-import ReactiveKit
 import XCTest
+import Combine
 
-@testable import Lucid_ReactiveKit
-@testable import LucidTestKit_ReactiveKit
+@testable import Lucid
+@testable import LucidTestKit
 
 final class RelationshipControllerTests: XCTestCase {
 
@@ -19,9 +19,12 @@ final class RelationshipControllerTests: XCTestCase {
 
     private var relationshipController: RelationshipController<RelationshipCoreManagerSpy, GraphStub>!
 
+    private var cancellables: Set<AnyCancellable>!
+
     override func setUp() {
         super.setUp()
 
+        cancellables = Set()
         coreManager = RelationshipCoreManagerSpy()
     }
 
@@ -30,6 +33,7 @@ final class RelationshipControllerTests: XCTestCase {
 
         coreManager = nil
         relationshipController = nil
+        cancellables = nil
     }
 
     func test_relationship_controller_should_insert_root_entities_in_graph() {
@@ -41,19 +45,19 @@ final class RelationshipControllerTests: XCTestCase {
             .relationships(from: coreManager)
             .perform(GraphStub.self)
             .once
-            .observe { event in
-                switch event {
-                case .next(let graph):
-                    XCTAssertEqual(graph.entitySpies.count, 1)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 0)
-                    expectation.fulfill()
-                case .completed:
-                    expectation.fulfill()
-                case .failed(let error):
+            .sink { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
                 }
+            } receiveValue: { graph in
+                XCTAssertEqual(graph.entitySpies.count, 1)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 0)
+                expectation.fulfill()
             }
-            .dispose(in: bag)
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1)
     }
@@ -61,9 +65,9 @@ final class RelationshipControllerTests: XCTestCase {
     func test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_continuous_signal() {
 
         coreManager.getByIDsStubs = [
-            Signal(just: [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))]),
-            Signal(just: [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))])
-        ]
+            Future(just: [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))]),
+            Future(just: [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))])
+        ].map { $0.eraseToAnyPublisher() }
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -75,26 +79,26 @@ final class RelationshipControllerTests: XCTestCase {
         let continuousSubject = PassthroughSubject<QueryResult<EntitySpy>, Never>()
 
         RelationshipController.RelationshipQuery(
-            rootEntities: (once: onceSubject.toSignal(), continuous: continuousSubject.toSignal()),
+            rootEntities: (once: onceSubject.eraseToAnyPublisher(), continuous: continuousSubject.eraseToAnyPublisher()),
             in: _ReadContext(),
             relationshipManager: coreManager
         )
             .includingAllRelationships(recursive: .none)
             .perform(GraphStub.self)
             .continuous
-            .observe { event in
-                switch event {
-                case .next(let graph):
-                    XCTAssertEqual(graph.entitySpies.count, 1)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
-                    expectation.fulfill()
-                case .completed:
-                    noCompletionExpectation.fulfill()
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    noCompletionExpectation.fulfill()
                 }
-            }
-            .dispose(in: bag)
+            }, receiveValue: { graph in
+                XCTAssertEqual(graph.entitySpies.count, 1)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         let result = QueryResult(data: .entitiesArray([EntitySpy()]))
         continuousSubject.send(result)
@@ -106,9 +110,9 @@ final class RelationshipControllerTests: XCTestCase {
     func test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_once_signal() {
 
         coreManager.getByIDsStubs = [
-            Signal(just: [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))]),
-            Signal(just: [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))])
-        ]
+            Future(just: [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))]),
+            Future(just: [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))])
+        ].map { $0.eraseToAnyPublisher() }
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 4
@@ -120,7 +124,7 @@ final class RelationshipControllerTests: XCTestCase {
         let continuousSubject = PassthroughSubject<QueryResult<EntitySpy>, Never>()
 
         let signals = RelationshipController.RelationshipQuery(
-            rootEntities: (once: onceSubject.toSignal(), continuous: continuousSubject.toSignal()),
+            rootEntities: (once: onceSubject.eraseToAnyPublisher(), continuous: continuousSubject.eraseToAnyPublisher()),
             in: _ReadContext(),
             relationshipManager: coreManager
         )
@@ -128,38 +132,39 @@ final class RelationshipControllerTests: XCTestCase {
             .perform(GraphStub.self)
 
         signals.once
-            .observe { event in
-                switch event {
-                case .next(let graph):
-                    XCTAssertEqual(graph.entitySpies.count, 1)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
-                    expectation.fulfill()
-                case .completed:
-                    expectation.fulfill()
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
                 }
-            }
-            .dispose(in: bag)
+            }, receiveValue: { graph in
+                XCTAssertEqual(graph.entitySpies.count, 1)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         signals.continuous
-            .observe { event in
-                switch event {
-                case .next(let graph):
-                    XCTAssertEqual(graph.entitySpies.count, 1)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
-                    expectation.fulfill()
-                case .completed:
-                    noCompletionExpectation.fulfill()
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    noCompletionExpectation.fulfill()
                 }
-            }
-            .dispose(in: bag)
+            }, receiveValue: { graph in
+                XCTAssertEqual(graph.entitySpies.count, 1)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         let result = QueryResult(data: .entitiesArray([EntitySpy()]))
 
-        onceSubject.send(lastElement: result)
+        onceSubject.send(result)
+        onceSubject.send(completion: .finished)
         continuousSubject.send(result)
         continuousSubject.send(result)
 
@@ -168,9 +173,9 @@ final class RelationshipControllerTests: XCTestCase {
 
     func test_relationship_controller_should_insert_one_relationship_entity_in_graph() {
 
-        coreManager.getByIDsStubs = [Signal(just: [
+        coreManager.getByIDsStubs = [Future(just: [
             .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
-        ])]
+        ])].map { $0.eraseToAnyPublisher() }
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -180,18 +185,19 @@ final class RelationshipControllerTests: XCTestCase {
             .includingAllRelationships(recursive: .none)
             .perform(GraphStub.self)
             .once
-            .observe { event in
-                switch event {
-                case .next(let graph):
-                    XCTAssertEqual(graph.entitySpies.count, 1)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
-                    expectation.fulfill()
-                case .completed:
-                    expectation.fulfill()
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
                 }
-            }.dispose(in: bag)
+            }, receiveValue: { graph in
+                XCTAssertEqual(graph.entitySpies.count, 1)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1)
     }
@@ -199,40 +205,43 @@ final class RelationshipControllerTests: XCTestCase {
     func test_relationship_controller_should_insert_many_relationship_entities_in_graph() {
 
         coreManager.getByIDsStubs = [
-            Signal(just: [
+            Future(just: [
                 .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
                 .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2"))
             ]),
-            Signal(just: [
+            Future(just: [
                 .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3"))
             ])
-        ]
+        ].map { $0.eraseToAnyPublisher() }
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
 
-        entity(EntitySpy(oneRelationshipIdValue: .remote(1, nil),
-                         manyRelationshipsIdValues: [.remote(2, nil), .remote(3, nil)]))
+        entity(EntitySpy(
+            oneRelationshipIdValue: .remote(1, nil),
+            manyRelationshipsIdValues: [.remote(2, nil), .remote(3, nil)]
+        ))
             .relationships(from: coreManager)
             .includingAllRelationships(recursive: .none)
             .perform(GraphStub.self)
             .once
-            .observe { event in
-                switch event {
-                case .next(let graph):
-                    XCTAssertEqual(graph.entitySpies.count, 1)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 3)
-
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 2)
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 2)
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.last?.identifiers.count, 1)
-                    expectation.fulfill()
-                case .completed:
-                    expectation.fulfill()
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
                 }
-            }.dispose(in: bag)
+            }, receiveValue: { graph in
+                XCTAssertEqual(graph.entitySpies.count, 1)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 3)
+
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 2)
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 2)
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.last?.identifiers.count, 1)
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1)
     }
@@ -240,16 +249,16 @@ final class RelationshipControllerTests: XCTestCase {
     func test_relationship_controller_should_insert_many_root_entities_with_many_relationship_entities_in_graph() {
 
         coreManager.getByIDsStubs = [
-            Signal(just: [
+            Future(just: [
                 .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
                 .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2")),
                 .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3"))
             ]),
-            Signal(just: [
+            Future(just: [
                 .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(4, nil), title: "fake_relationship_4")),
                 .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(5, nil), title: "fake_relationship_5"))
             ])
-        ]
+        ].map { $0.eraseToAnyPublisher() }
 
         let entities = self.entities([
             EntitySpy(idValue: .remote(1, nil),
@@ -268,22 +277,23 @@ final class RelationshipControllerTests: XCTestCase {
             .includingAllRelationships(recursive: .none)
             .perform(GraphStub.self)
             .once
-            .observe { event in
-                    switch event {
-                    case .next(let graph):
-                        XCTAssertEqual(graph.entitySpies.count, 2)
-                        XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
+                }
+            }, receiveValue: { graph in
+                XCTAssertEqual(graph.entitySpies.count, 2)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
 
-                        XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 2)
-                        XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 4)
-                        XCTAssertEqual(self.coreManager.getByIDsInvocations.last?.identifiers.count, 2)
-                        expectation.fulfill()
-                    case .completed:
-                        expectation.fulfill()
-                    case .failed(let error):
-                        XCTFail("Unexpected error: \(error)")
-                    }
-            }.dispose(in: bag)
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 2)
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 4)
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.last?.identifiers.count, 2)
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1)
     }
@@ -317,26 +327,27 @@ final class RelationshipControllerTests: XCTestCase {
                         .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(5, nil), title: "fake_relationship_5"))
                     ])
 
-                    return .custom(Signal(just: ()))
+                    return .custom(Future(just: ()).eraseToAnyPublisher())
                 },
                 forPath: [.entitySpy(.manyRelationships)]
             )
             .perform(GraphStub.self)
             .once
-            .observe { event in
-                switch event {
-                case .next(let graph):
-                    XCTAssertEqual(graph.entitySpies.count, 2)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
-
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 0)
-                    expectation.fulfill()
-                case .completed:
-                    expectation.fulfill()
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
                 }
-            }.dispose(in: bag)
+            }, receiveValue: { graph in
+                XCTAssertEqual(graph.entitySpies.count, 2)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
+
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 0)
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1)
     }
@@ -352,9 +363,9 @@ final class RelationshipControllerTests: XCTestCase {
                       manyRelationshipsIdValues: [.remote(4, nil), .remote(5, nil)])
         ])
 
-        coreManager.getByIDsStubs = [Signal(just: [
+        coreManager.getByIDsStubs = [Future(just: [
             .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
-        ])]
+        ])].map { $0.eraseToAnyPublisher() }
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 3
@@ -374,21 +385,22 @@ final class RelationshipControllerTests: XCTestCase {
             )
             .perform(GraphStub.self)
             .once
-            .observe { event in
-                switch event {
-                case .next(let graph):
-                    XCTAssertEqual(graph.entitySpies.count, 2)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
-
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 1)
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 1)
-                    expectation.fulfill()
-                case .completed:
-                    expectation.fulfill()
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
                 }
-            }.dispose(in: bag)
+            }, receiveValue: { graph in
+                XCTAssertEqual(graph.entitySpies.count, 2)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
+
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 1)
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 1)
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1)
     }
@@ -404,9 +416,9 @@ final class RelationshipControllerTests: XCTestCase {
                       manyRelationshipsIdValues: [.remote(4, nil), .remote(5, nil)]),
         ])
 
-        coreManager.getByIDsStubs = [Signal(just: [
+        coreManager.getByIDsStubs = [Future(just: [
             .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
-        ])]
+        ])].map { $0.eraseToAnyPublisher() }
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 3
@@ -423,20 +435,21 @@ final class RelationshipControllerTests: XCTestCase {
             )
             .perform(GraphStub.self)
             .once
-            .observe { event in
-                switch event {
-                case .next(let graph):
-                    XCTAssertEqual(graph.entitySpies.count, 2)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 0)
-
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 0)
-                    expectation.fulfill()
-                case .completed:
-                    expectation.fulfill()
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
                 }
-            }.dispose(in: bag)
+            }, receiveValue: { graph in
+                XCTAssertEqual(graph.entitySpies.count, 2)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 0)
+
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 0)
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1)
     }
@@ -452,9 +465,9 @@ final class RelationshipControllerTests: XCTestCase {
                       manyRelationshipsIdValues: [.remote(4, nil), .remote(5, nil)]),
         ])
 
-        coreManager.getByIDsStubs = [Signal(just: [
+        coreManager.getByIDsStubs = [Future(just: [
             .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
-        ])]
+        ])].map { $0.eraseToAnyPublisher() }
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -464,20 +477,21 @@ final class RelationshipControllerTests: XCTestCase {
             .excluding(path: [.entityRelationshipSpy(.relationships)])
             .perform(GraphStub.self)
             .once
-            .observe { event in
-                switch event {
-                case .next(let graph):
-                    XCTAssertEqual(graph.entitySpies.count, 2)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 0)
-
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 0)
-                    expectation.fulfill()
-                case .completed:
-                    expectation.fulfill()
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
                 }
-            }.dispose(in: bag)
+            }, receiveValue: { graph in
+                XCTAssertEqual(graph.entitySpies.count, 2)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 0)
+
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 0)
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1)
     }
@@ -494,16 +508,16 @@ final class RelationshipControllerTests: XCTestCase {
         ])
 
         coreManager.getByIDsStubs = [
-            Signal(just: [
+            Future(just: [
                 .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
                 .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2")),
                 .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3"))
             ]),
-            Signal(just: [
+            Future(just: [
                 .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(4, nil), title: "fake_relationship_4")),
                 .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(5, nil), title: "fake_relationship_5"))
             ])
-        ]
+        ].map { $0.eraseToAnyPublisher() }
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -513,29 +527,30 @@ final class RelationshipControllerTests: XCTestCase {
             .includingAllRelationships(recursive: .none)
             .perform(GraphStub.self)
             .once
-            .observe { event in
-                switch event {
-                case .next(let graph):
-                    XCTAssertEqual(graph.entitySpies.count, 2)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
-
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 2)
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 4)
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.last?.identifiers.count, 2)
-
-                    let givenIDs: [EntityRelationshipSpyIdentifier] = self.coreManager
-                        .getByIDsInvocations
-                        .flatMap { $0.identifiers }
-                        .compactMap { $0.toRelationshipID() }
-
-                    XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [2, 3, 4, 5, 1, 1])
-                    expectation.fulfill()
-                case .completed:
-                    expectation.fulfill()
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
                 }
-            }.dispose(in: bag)
+            }, receiveValue: { graph in
+                XCTAssertEqual(graph.entitySpies.count, 2)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
+
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 2)
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 4)
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.last?.identifiers.count, 2)
+
+                let givenIDs: [EntityRelationshipSpyIdentifier] = self.coreManager
+                    .getByIDsInvocations
+                    .flatMap { $0.identifiers }
+                    .compactMap { $0.toRelationshipID() }
+
+                XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [2, 3, 4, 5, 1, 1])
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1)
     }
@@ -546,31 +561,31 @@ final class RelationshipControllerTests: XCTestCase {
                                            oneRelationshipIdValue: .remote(1, nil)))
 
         coreManager.getByIDsStubs = [
-            Signal(just: [.entityRelationshipSpy(EntityRelationshipSpy(
+            Future(just: [.entityRelationshipSpy(EntityRelationshipSpy(
                 idValue: .remote(1, nil),
                 title: "fake_relationship_1",
                 relationships: [EntityRelationshipSpyIdentifier(value: .remote(2, nil))]
             ))]),
-            Signal(just: [.entityRelationshipSpy(EntityRelationshipSpy(
+            Future(just: [.entityRelationshipSpy(EntityRelationshipSpy(
                 idValue: .remote(2, nil),
                 title: "fake_relationship_2",
                 relationships: [EntityRelationshipSpyIdentifier(value: .remote(3, nil))]
             ))]),
-            Signal(just: [.entityRelationshipSpy(EntityRelationshipSpy(
+            Future(just: [.entityRelationshipSpy(EntityRelationshipSpy(
                 idValue: .remote(3, nil),
                 title: "fake_relationship_3",
                 relationships: [EntityRelationshipSpyIdentifier(value: .remote(4, nil))]
             ))]),
-            Signal(just: [.entityRelationshipSpy(EntityRelationshipSpy(
+            Future(just: [.entityRelationshipSpy(EntityRelationshipSpy(
                 idValue: .remote(4, nil),
                 title: "fake_relationship_4",
                 relationships: [EntityRelationshipSpyIdentifier(value: .remote(5, nil))]
             ))]),
-            Signal(just: [.entityRelationshipSpy(EntityRelationshipSpy(
+            Future(just: [.entityRelationshipSpy(EntityRelationshipSpy(
                 idValue: .remote(5, nil),
                 title: "fake_relationship_5"
             ))])
-        ]
+        ].map { $0.eraseToAnyPublisher() }
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -580,29 +595,30 @@ final class RelationshipControllerTests: XCTestCase {
             .includingAllRelationships(recursive: .full)
             .perform(GraphStub.self)
             .once
-            .observe { event in
-                switch event {
-                case .next(let graph):
-                    XCTAssertEqual(graph.entitySpies.count, 1)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
-
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 5)
-
-                    let givenIDs: [EntityRelationshipSpyIdentifier] = self
-                        .coreManager
-                        .getByIDsInvocations
-                        .flatMap { $0.identifiers }
-                        .compactMap { $0.toRelationshipID() }
-
-                    XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [1, 2, 3, 4, 5])
-
-                    expectation.fulfill()
-                case .completed:
-                    expectation.fulfill()
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
                 }
-            }.dispose(in: bag)
+            }, receiveValue: { graph in
+                XCTAssertEqual(graph.entitySpies.count, 1)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
+
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 5)
+
+                let givenIDs: [EntityRelationshipSpyIdentifier] = self
+                    .coreManager
+                    .getByIDsInvocations
+                    .flatMap { $0.identifiers }
+                    .compactMap { $0.toRelationshipID() }
+
+                XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [1, 2, 3, 4, 5])
+
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1)
     }
@@ -614,35 +630,35 @@ final class RelationshipControllerTests: XCTestCase {
                                            manyRelationshipsIdValues: [.remote(2, nil)]))
 
         coreManager.getByIDsStubs = [
-            Signal(just: [
+            Future(just: [
                 .entityRelationshipSpy(EntityRelationshipSpy(
                     idValue: .remote(1, nil),
                     title: "fake_relationship_1",
                     relationships: [EntityRelationshipSpyIdentifier(value: .remote(2, nil))]
                 ))
             ]),
-            Signal(just: [
+            Future(just: [
                 .entityRelationshipSpy(EntityRelationshipSpy(
                     idValue: .remote(2, nil),
                     title: "fake_relationship_2",
                     relationships: [EntityRelationshipSpyIdentifier(value: .remote(1, nil))]
                 ))
             ]),
-            Signal(just: [
+            Future(just: [
                 .entityRelationshipSpy(EntityRelationshipSpy(
                     idValue: .remote(1, nil),
                     title: "fake_relationship_1",
                     relationships: [EntityRelationshipSpyIdentifier(value: .remote(2, nil))]
                 ))
             ]),
-            Signal(just: [
+            Future(just: [
                 .entityRelationshipSpy(EntityRelationshipSpy(
                     idValue: .remote(2, nil),
                     title: "fake_relationship_2",
                     relationships: [EntityRelationshipSpyIdentifier(value: .remote(1, nil))]
                 ))
             ])
-        ]
+        ].map { $0.eraseToAnyPublisher() }
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -652,29 +668,30 @@ final class RelationshipControllerTests: XCTestCase {
             .includingAllRelationships(recursive: .full)
             .perform(GraphStub.self)
             .once
-            .observe { event in
-                switch event {
-                case .next(let graph):
-                    XCTAssertEqual(graph.entitySpies.count, 1)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 2)
-
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 4)
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 1)
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.last?.identifiers.count, 1)
-
-                    let givenIDs: [EntityRelationshipSpyIdentifier] = self.coreManager
-                        .getByIDsInvocations
-                        .flatMap { $0.identifiers }
-                        .compactMap { $0.toRelationshipID() }
-
-                    XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [2, 1, 2, 2])
-                    expectation.fulfill()
-                case .completed:
-                    expectation.fulfill()
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
                 }
-            }.dispose(in: bag)
+            }, receiveValue: { graph in
+                XCTAssertEqual(graph.entitySpies.count, 1)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 2)
+
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 4)
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 1)
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.last?.identifiers.count, 1)
+
+                let givenIDs: [EntityRelationshipSpyIdentifier] = self.coreManager
+                    .getByIDsInvocations
+                    .flatMap { $0.identifiers }
+                    .compactMap { $0.toRelationshipID() }
+
+                XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [2, 1, 2, 2])
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1)
     }
@@ -683,9 +700,9 @@ final class RelationshipControllerTests: XCTestCase {
 
     func test_relationship_controller_should_pass_down_relationship_contract_to_relationship_calls() {
 
-        coreManager.getByIDsStubs = [Signal(just: [
+        coreManager.getByIDsStubs = [Future(just: [
             .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
-        ])]
+        ])].map { $0.eraseToAnyPublisher() }
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -698,22 +715,23 @@ final class RelationshipControllerTests: XCTestCase {
             .includingAllRelationships(recursive: .full)
             .perform(GraphStub.self)
             .once
-            .observe { event in
-                switch event {
-                case .next:
-                    XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 1)
-                    guard let relationshipContract = self.coreManager.getByIDsInvocations.first?.context.contract as? RelationshipControllerContract<GraphStub> else {
-                        XCTFail("Received unexpected contract type.")
-                        return
-                    }
-                    XCTAssertEqual(relationshipContract.path, [.entitySpy(.oneRelationship)])
-                    expectation.fulfill()
-                case .completed:
-                    expectation.fulfill()
-                case .failed(let error):
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
                     XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
                 }
-            }.dispose(in: bag)
+            }, receiveValue: { graph in
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 1)
+                guard let relationshipContract = self.coreManager.getByIDsInvocations.first?.context.contract as? RelationshipControllerContract<GraphStub> else {
+                    XCTFail("Received unexpected contract type.")
+                    return
+                }
+                XCTAssertEqual(relationshipContract.path, [.entitySpy(.oneRelationship)])
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         waitForExpectations(timeout: 1)
     }
@@ -723,11 +741,13 @@ final class RelationshipControllerTests: XCTestCase {
 
 private extension RelationshipControllerTests {
 
-    func entities<E>(_ entities: [E]) -> Signal<QueryResult<E>, ManagerError> where E: Entity {
-        return Signal<QueryResult<E>, ManagerError>(just: QueryResult(data: .entitiesArray(entities)))
+    func entities<E>(_ entities: [E]) -> AnyPublisher<QueryResult<E>, ManagerError> where E: Entity {
+        return Future { fulfill in
+            fulfill(.success(QueryResult(data: .entitiesArray(entities))))
+        }.eraseToAnyPublisher()
     }
 
-    func entity<E>(_ entity: E) -> Signal<QueryResult<E>, ManagerError> where E: Entity {
+    func entity<E>(_ entity: E) -> AnyPublisher<QueryResult<E>, ManagerError> where E: Entity {
         return entities([entity])
     }
 }

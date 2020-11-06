@@ -47,9 +47,7 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
     }
 
     #else
-    public var getByIDsStubs: [AnyPublisher<[AnyEntitySpy], ManagerError>] = [
-        Just([]).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
-    ]
+    public var getByIDsStubs: [AnyPublisher<[AnyEntitySpy], ManagerError>] = [Future(just: []).eraseToAnyPublisher()]
 
     public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
                     entityType: String,

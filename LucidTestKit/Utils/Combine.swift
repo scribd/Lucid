@@ -7,6 +7,8 @@
 //
 
 import Foundation
+
+#if !LUCID_REACTIVE_KIT
 import Combine
 
 public extension Future {
@@ -23,3 +25,4 @@ public extension Future {
         }
     }
 }
+#endif

@@ -9,11 +9,7 @@
 import Foundation
 import UIKit
 
-#if LUCID_REACTIVE_KIT
-import Lucid_ReactiveKit
-#else
-import Lucid
-#endif
+@testable import Lucid
 
 public final class CoreBackgroundTaskManagerSpy: CoreBackgroundTaskManaging {
 

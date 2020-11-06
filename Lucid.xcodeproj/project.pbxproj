@@ -152,7 +152,6 @@
 		1987F9C12554A3470057F1CC /* Lucid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 190ADC082458D71000D22F6D /* Lucid.framework */; };
 		1987F9C22554A34C0057F1CC /* LucidTestKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 190ADCB32458D99600D22F6D /* LucidTestKit.framework */; };
 		1987F9D92554A4120057F1CC /* BackgroundTaskManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191F919324C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift */; };
-		1987F9E42554A45A0057F1CC /* BackgroundTaskManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBE2458D9A500D22F6D /* BackgroundTaskManagerSpy.swift */; };
 		1987F9F02554A4C00057F1CC /* DataStructuresTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ED00942481C3960033B7BD /* DataStructuresTests.swift */; };
 		1987F9F62554A4D70057F1CC /* DiskCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC9F2458D8FE00D22F6D /* DiskCacheTests.swift */; };
 		1987F9FC2554A4E50057F1CC /* DiskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC9D2458D8FE00D22F6D /* DiskQueueTests.swift */; };
@@ -167,7 +166,6 @@
 		1987FA322554A5670057F1CC /* CodingPathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A40EBF2513B8700025E48C /* CodingPathTests.swift */; };
 		1987FA382554A5740057F1CC /* StoreStackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC9A2458D8FE00D22F6D /* StoreStackTests.swift */; };
 		1987FA3E2554A5810057F1CC /* RelationshipControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC992458D8FE00D22F6D /* RelationshipControllerTests.swift */; };
-		1987FA462554A7210057F1CC /* Combine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1987FA452554A7210057F1CC /* Combine.swift */; };
 		1987FA4C2554AC1A0057F1CC /* EntitySearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC982458D8FE00D22F6D /* EntitySearchTests.swift */; };
 		1987FA522554AC270057F1CC /* DataTypeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE8294BA24BFB2FA0011A915 /* DataTypeTests.swift */; };
 		1987FA582554AC3C0057F1CC /* CoreManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC9B2458D8FE00D22F6D /* CoreManagerTests.swift */; };
@@ -176,6 +174,8 @@
 		1987FA7B2555DE8E0057F1CC /* APIClientQueueProcessorSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCD02458D9A500D22F6D /* APIClientQueueProcessorSpy.swift */; };
 		1987FA812555DED50057F1CC /* APIClientQueueProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F405C35224A41844004E1BB3 /* APIClientQueueProcessorTests.swift */; };
 		1987FA872555DEE10057F1CC /* APIClientQueueDefaultSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F405C35124A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift */; };
+		198A9B6625560DD1008E3C5E /* Combine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1987FA452554A7210057F1CC /* Combine.swift */; };
+		198A9B8625560F9F008E3C5E /* BackgroundTaskManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBE2458D9A500D22F6D /* BackgroundTaskManagerSpy.swift */; };
 		198CC31424C663D600E2F951 /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
 		19ED00972481C3D10033B7BD /* AsyncOperationQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */; };
 		F41D210724EF041E009444A2 /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
@@ -2060,6 +2060,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				198A9B8625560F9F008E3C5E /* BackgroundTaskManagerSpy.swift in Sources */,
 				1987FA262554A54E0057F1CC /* RecoverableStoreTests.swift in Sources */,
 				1987FA872555DEE10057F1CC /* APIClientQueueDefaultSchedulerTests.swift in Sources */,
 				1987FA4C2554AC1A0057F1CC /* EntitySearchTests.swift in Sources */,
@@ -2104,11 +2105,10 @@
 				190ADCD72458D9A500D22F6D /* APIClientSpy.swift in Sources */,
 				190ADCDE2458D9A500D22F6D /* APIClientQueueSchedulerSpy.swift in Sources */,
 				190ADCD52458D9A500D22F6D /* APIClientQueueSpy.swift in Sources */,
-				1987FA462554A7210057F1CC /* Combine.swift in Sources */,
+				198A9B6625560DD1008E3C5E /* Combine.swift in Sources */,
 				190ADCD12458D9A500D22F6D /* RelationshipCoreManagerSpy.swift in Sources */,
 				190ADCDC2458D9A500D22F6D /* APIRequestDeduplicatorSpy.swift in Sources */,
 				F47E5EFB24AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld in Sources */,
-				1987F9E42554A45A0057F1CC /* BackgroundTaskManagerSpy.swift in Sources */,
 				198CC31424C663D600E2F951 /* APIClientQueueResponseHandlerSpy.swift in Sources */,
 				190ADCDA2458D9A500D22F6D /* EntitySpy.swift in Sources */,
 			);

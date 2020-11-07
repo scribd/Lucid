@@ -198,19 +198,18 @@ private final class InternalSwiftCodeGenerator {
         
         // App Target
         
-        try generate(with: SubtypesGenerator(descriptions: currentDescriptions, reactiveKit: reactiveKit),
+        try generate(with: SubtypesGenerator(descriptions: currentDescriptions),
                      in: .subtypes,
                      for: .app,
                      deleteExtraFiles: true)
         
         try generate(with: EntitiesGenerator(descriptions: currentDescriptions,
-                                             reactiveKit: reactiveKit,
                                              useCoreDataLegacyNaming: useCoreDataLegacyNaming),
                      in: .entities,
                      for: .app,
                      deleteExtraFiles: true)
         
-        try generate(with: EndpointPayloadsGenerator(descriptions: currentDescriptions, reactiveKit: reactiveKit),
+        try generate(with: EndpointPayloadsGenerator(descriptions: currentDescriptions),
                      in: .payloads,
                      for: .app,
                      deleteExtraFiles: true)
@@ -245,12 +244,12 @@ private final class InternalSwiftCodeGenerator {
         
         // App Tests Target
 
-        try generate(with: PayloadTestsGenerator(descriptions: currentDescriptions, reactiveKit: reactiveKit),
+        try generate(with: PayloadTestsGenerator(descriptions: currentDescriptions),
                      in: .payloadTests,
                      for: .appTests,
                      deleteExtraFiles: true)
         
-        try generate(with: CoreDataTestsGenerator(descriptions: currentDescriptions, reactiveKit: reactiveKit),
+        try generate(with: CoreDataTestsGenerator(descriptions: currentDescriptions),
                      in: .coreDataTests,
                      for: .appTests,
                      deleteExtraFiles: true)
@@ -259,8 +258,7 @@ private final class InternalSwiftCodeGenerator {
             try generate(with: ExportSQLiteFileTestGenerator(descriptions: currentDescriptions,
                                                              descriptionsHash: descriptionsHash,
                                                              sqliteFile: sqliteFile,
-                                                             platform: platform,
-                                                             reactiveKit: reactiveKit),
+                                                             platform: platform),
                          in: .coreDataMigrationTests,
                          for: .appTests)
 
@@ -268,20 +266,19 @@ private final class InternalSwiftCodeGenerator {
                                                                sqliteFiles: sqliteFiles,
                                                                appVersion: appVersion,
                                                                oldestModelVersion: oldestModelVersion,
-                                                               platform: platform,
-                                                               reactiveKit: reactiveKit),
+                                                               platform: platform),
                          in: .coreDataMigrationTests,
                          for: .appTests)
         }
 
         // App Test Support Target
         
-        try generate(with: FactoriesGenerator(descriptions: currentDescriptions, reactiveKit: reactiveKit),
+        try generate(with: FactoriesGenerator(descriptions: currentDescriptions),
                      in: .factories,
                      for: .appTestSupport,
                      deleteExtraFiles: true)
 
-        try generate(with: SpyGenerator(descriptions: currentDescriptions, reactiveKit: reactiveKit),
+        try generate(with: SpyGenerator(descriptions: currentDescriptions),
                      in: .doubles,
                      for: .appTestSupport,
                      deleteExtraFiles: true)

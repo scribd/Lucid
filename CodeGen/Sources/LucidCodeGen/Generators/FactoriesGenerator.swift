@@ -15,11 +15,8 @@ public final class FactoriesGenerator: Generator {
     
     private let descriptions: Descriptions
 
-    private let reactiveKit: Bool
-    
-    public init(descriptions: Descriptions, reactiveKit: Bool) {
+    public init(descriptions: Descriptions) {
         self.descriptions = descriptions
-        self.reactiveKit = reactiveKit
     }
     
     public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
@@ -40,8 +37,7 @@ public final class FactoriesGenerator: Generator {
             
             let header = MetaHeader(filename: filename, organizationName: organizationName)
             let entityFactory = MetaEntityFactory(entityName: entityName,
-                                                  descriptions: descriptions,
-                                                  reactiveKit: reactiveKit)
+                                                  descriptions: descriptions)
             
             return Meta.File(name: filename)
                 .with(header: header.meta)
@@ -54,8 +50,7 @@ public final class FactoriesGenerator: Generator {
             
             let header = MetaHeader(filename: filename, organizationName: organizationName)
             let subtypeFactory = MetaSubtypeFactory(subtypeName: subtypeName,
-                                                    descriptions: descriptions,
-                                                    reactiveKit: reactiveKit)
+                                                    descriptions: descriptions)
             
             return Meta.File(name: filename)
                 .with(header: header.meta)

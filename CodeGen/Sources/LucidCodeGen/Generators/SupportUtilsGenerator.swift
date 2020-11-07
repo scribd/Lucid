@@ -35,7 +35,7 @@ public final class SupportUtilsGenerator: Generator {
 
         return Meta.File(name: filename)
             .with(header: header.meta)
-            .adding(import: .lucid(reactiveKit: reactiveKit))
+            .adding(import: .lucid)
             .adding(import: reactiveKit ? .reactiveKit : .combine)
             .with(body: [try localStoreCleanup.meta()])
             .swiftFile(in: directory)

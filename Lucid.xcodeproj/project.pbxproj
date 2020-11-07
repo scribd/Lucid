@@ -148,7 +148,6 @@
 		19830123249C1CAA00DFC685 /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19830122249C1CAA00DFC685 /* ImageManager.swift */; };
 		19830134249D417100DFC685 /* MovieDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19830133249D417000DFC685 /* MovieDetail.swift */; };
 		1987F981255361BF0057F1CC /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F912B24BFA7F50050C7C6 /* ReactiveKit.framework */; };
-		1987F982255361BF0057F1CC /* ReactiveKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 191F912B24BFA7F50050C7C6 /* ReactiveKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		1987F9C12554A3470057F1CC /* Lucid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 190ADC082458D71000D22F6D /* Lucid.framework */; };
 		1987F9C22554A34C0057F1CC /* LucidTestKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 190ADCB32458D99600D22F6D /* LucidTestKit.framework */; };
 		1987F9D92554A4120057F1CC /* BackgroundTaskManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191F919324C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift */; };
@@ -243,17 +242,6 @@
 			dstSubfolderSpec = 10;
 			files = (
 				1910671E2494128E00E65BA7 /* Lucid.framework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		1987F983255361BF0057F1CC /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				1987F982255361BF0057F1CC /* ReactiveKit.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1773,7 +1761,6 @@
 				190ADCE82458DA9B00D22F6D /* Sources */,
 				190ADD152458DA9B00D22F6D /* Frameworks */,
 				190ADD162458DA9B00D22F6D /* Resources */,
-				1987F983255361BF0057F1CC /* Embed Frameworks */,
 			);
 			buildRules = (
 			);

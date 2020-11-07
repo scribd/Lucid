@@ -19,15 +19,13 @@ struct MetaEndpointPayloadTests {
     let endpointName: String
     
     let descriptions: Descriptions
-
-    let reactiveKit: Bool
     
     func imports() -> [Import] {
         return [
             .xcTest,
-            .lucid(reactiveKit: reactiveKit),
+            .lucid,
             .app(descriptions, testable: true),
-            .lucidTestKit(reactiveKit: reactiveKit),
+            .lucidTestKit,
             .appTestKit(descriptions)
         ]
     }

@@ -69,12 +69,12 @@ public extension Import {
         return Import(name: "XCTest", testable: false)
     }
     
-    static func lucid(reactiveKit: Bool) -> Import {
-        return Import(name: "Lucid\(reactiveKit ? "_ReactiveKit" : "")", testable: false)
+    static var lucid: Import {
+        return Import(name: "Lucid", testable: false)
     }
     
-    static func lucidTestKit(reactiveKit: Bool) -> Import {
-        return Import(name: "LucidTestKit\(reactiveKit ? "_ReactiveKit" : "")", testable: false)
+    static var lucidTestKit: Import {
+        return Import(name: "LucidTestKit", testable: false)
     }
     
     static func app(_ descriptions: Descriptions, testable: Bool = false) -> Import {

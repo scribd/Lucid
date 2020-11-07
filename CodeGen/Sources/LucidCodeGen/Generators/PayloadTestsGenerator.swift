@@ -15,11 +15,8 @@ public final class PayloadTestsGenerator: Generator {
     
     private let descriptions: Descriptions
 
-    private let reactiveKit: Bool
-    
-    public init(descriptions: Descriptions, reactiveKit: Bool) {
+    public init(descriptions: Descriptions) {
         self.descriptions = descriptions
-        self.reactiveKit = reactiveKit
     }
     
     public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
@@ -29,8 +26,7 @@ public final class PayloadTestsGenerator: Generator {
         
         let header = MetaHeader(filename: filename, organizationName: organizationName)
         let endpointPayloadTests = MetaEndpointPayloadTests(endpointName: endpointName,
-                                                            descriptions: descriptions,
-                                                            reactiveKit: reactiveKit)
+                                                            descriptions: descriptions)
 
         return Meta.File(name: filename)
             .with(header: header.meta)

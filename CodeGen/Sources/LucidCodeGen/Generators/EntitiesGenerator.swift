@@ -15,13 +15,10 @@ public final class EntitiesGenerator: Generator {
     
     private let descriptions: Descriptions
     
-    private let reactiveKit: Bool
-
     private let useCoreDataLegacyNaming: Bool
     
-    public init(descriptions: Descriptions, reactiveKit: Bool, useCoreDataLegacyNaming: Bool) {
+    public init(descriptions: Descriptions, useCoreDataLegacyNaming: Bool) {
         self.descriptions = descriptions
-        self.reactiveKit = reactiveKit
         self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
     }
     
@@ -35,7 +32,7 @@ public final class EntitiesGenerator: Generator {
             
             return Meta.File(name: filename)
                 .with(header: header.meta)
-                .adding(import: .lucid(reactiveKit: reactiveKit))
+                .adding(import: .lucid)
                 .with(body: try subtype.meta())
                 .swiftFile(in: directory)
 
@@ -50,7 +47,7 @@ public final class EntitiesGenerator: Generator {
             
             var result: Meta.File = Meta.File(name: filename)
                 .with(header: header.meta)
-                .adding(import: .lucid(reactiveKit: reactiveKit))
+                .adding(import: .lucid)
                 .adding(imports: try entity.imports())
 
             let identifierMeta = try entityIdentifier.meta()

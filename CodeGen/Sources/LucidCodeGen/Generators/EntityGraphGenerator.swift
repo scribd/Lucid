@@ -37,7 +37,7 @@ public final class EntityGraphGenerator: Generator {
         
         return Meta.File(name: filename)
             .with(header: header.meta)
-            .adding(import: .lucid(reactiveKit: reactiveKit))
+            .adding(import: .lucid)
             .adding(import: reactiveKit ? .reactiveKit : .combine)
             .adding(members: entityGraph.meta())
             .swiftFile(in: directory)

@@ -14,12 +14,10 @@ struct MetaEntityFactory {
     
     let descriptions: Descriptions
 
-    let reactiveKit: Bool
-
     func imports() -> [Import] {
         return [
             .app(descriptions, testable: true),
-            .lucid(reactiveKit: reactiveKit)
+            .lucid
         ]
     }
     

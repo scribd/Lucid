@@ -8,7 +8,8 @@
 
 import Foundation
 import UIKit
-@testable import Lucid_ReactiveKit
+
+@testable import Lucid
 
 public final class CoreBackgroundTaskManagerSpy: CoreBackgroundTaskManaging {
 

@@ -8,13 +8,12 @@
 
 import Foundation
 import XCTest
+import Lucid
 
 #if LUCID_REACTIVE_KIT
 import ReactiveKit
-import Lucid_ReactiveKit
 #else
 import Combine
-import Lucid
 #endif
 
 public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
@@ -47,9 +46,7 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
     }
 
     #else
-    public var getByIDsStubs: [AnyPublisher<[AnyEntitySpy], ManagerError>] = [
-        Just([]).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
-    ]
+    public var getByIDsStubs: [AnyPublisher<[AnyEntitySpy], ManagerError>] = [Future(just: []).eraseToAnyPublisher()]
 
     public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
                     entityType: String,

@@ -6,11 +6,7 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
-#if LUCID_REACTIVE_KIT
-import Lucid_ReactiveKit
-#else
 import Lucid
-#endif
 
 public final class APIClientQueueSchedulerSpy: APIClientQueueScheduling {
 

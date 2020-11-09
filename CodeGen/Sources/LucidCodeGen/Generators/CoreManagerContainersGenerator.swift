@@ -44,7 +44,7 @@ public final class CoreManagerContainersGenerator: Generator {
                                                             reactiveKit: reactiveKit)
         
         return Meta.File(name: filename)
-            .adding(import: .lucid(reactiveKit: reactiveKit))
+            .adding(import: .lucid)
             .adding(import: reactiveKit ? .reactiveKit : .combine)
             .with(header: header.meta)
             .with(body: coreManagerContainer.meta())

@@ -18,15 +18,13 @@ struct MetaExportSQLiteFileTest {
     
     let platform: Platform?
 
-    let reactiveKit: Bool
-    
     func imports() -> [Import] {
         return [
             .xcTest,
             .app(descriptions, testable: true),
-            .lucid(reactiveKit: reactiveKit),
+            .lucid,
             .appTestKit(descriptions),
-            .lucidTestKit(reactiveKit: reactiveKit)
+            .lucidTestKit
         ]
     }
     

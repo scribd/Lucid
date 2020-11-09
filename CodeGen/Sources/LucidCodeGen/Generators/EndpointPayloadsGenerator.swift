@@ -15,11 +15,8 @@ public final class EndpointPayloadsGenerator: Generator {
     
     private let descriptions: Descriptions
 
-    private let reactiveKit: Bool
-    
-    public init(descriptions: Descriptions, reactiveKit: Bool) {
+    public init(descriptions: Descriptions) {
         self.descriptions = descriptions
-        self.reactiveKit = reactiveKit
     }
     
     public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
@@ -32,7 +29,7 @@ public final class EndpointPayloadsGenerator: Generator {
             
             return Meta.File(name: filename)
                 .with(header: header.meta)
-                .adding(import: .lucid(reactiveKit: reactiveKit))
+                .adding(import: .lucid)
                 .adding(member: try resultPayload.meta())
                 .swiftFile(in: directory)
 
@@ -48,7 +45,7 @@ public final class EndpointPayloadsGenerator: Generator {
             
             return Meta.File(name: filename)
                 .with(header: header.meta)
-                .adding(import: .lucid(reactiveKit: reactiveKit))
+                .adding(import: .lucid)
                 .with(body: try entityPayload.meta())
                 .swiftFile(in: directory)
             
@@ -61,7 +58,7 @@ public final class EndpointPayloadsGenerator: Generator {
             
             return Meta.File(name: filename)
                 .with(header: header.meta)
-                .adding(import: .lucid(reactiveKit: reactiveKit))
+                .adding(import: .lucid)
                 .with(body: try entityPayload.meta())
                 .swiftFile(in: directory)
             

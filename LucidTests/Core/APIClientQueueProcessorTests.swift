@@ -8,8 +8,8 @@
 
 import XCTest
 
-@testable import LucidTestKit_ReactiveKit
-@testable import Lucid_ReactiveKit
+@testable import LucidTestKit
+@testable import Lucid
 
 final class APIClientQueueProcessorTests: XCTestCase {
 

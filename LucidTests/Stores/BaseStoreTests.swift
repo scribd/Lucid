@@ -9,8 +9,8 @@
 import Foundation
 import XCTest
 
-@testable import Lucid_ReactiveKit
-@testable import LucidTestKit_ReactiveKit
+@testable import Lucid
+@testable import LucidTestKit
 
 class StoreTests: XCTestCase {
 

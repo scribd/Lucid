@@ -13,6 +13,6 @@ A `Store` can be one of three types:
 It is encouraged to implement your own stores in order to best fit your needs. However, Lucid comes with a few implementations which are meant to fit most scenarios.
 
 - [`RemoteStore`](../Lucid/Stores/RemoteStore.swift): Transforms queries into valid `APIClientRequest`s to forward them to a `APIClientQueue` instance and transforms the response into entities.
-- [`CoreDataStore`](../Lucid/Stores/CoreDataStore.swift): Transforms queries into `NSPredicate` to forwards them to a CoreData stack and transforms the response into entities.
-- [`InMemoryStore`](../Lucid/Stores/InMemoryStore.swift): Only compatible with queries only using identifiers. Transforms queries into a series of entity identifiers to retrieve their corresponding entities from a dictionary.
-- [`LRUStore`](../Lucid/Stores/LRUStore.swift): Only compatible with queries only using identifiers. Used as a **firewall in front of a disk and a memory `Store`** to make sure frequently used entities aren't repeatedly fetched from disk.
+- [`CoreDataStore`](../Lucid/Stores/CoreDataStore.swift): Transforms queries into `NSPredicate` to forward them to a CoreData stack and transforms the response into entities.
+- [`InMemoryStore`](../Lucid/Stores/InMemoryStore.swift): Transforms queries into a series of entity identifiers to retrieve their corresponding entities from a dictionary. Compatible with queries only using identifiers. 
+- [`LRUStore`](../Lucid/Stores/LRUStore.swift): Used as a **firewall in front of a disk and a memory `Store`** to make sure frequently used entities aren't repeatedly fetched from disk. Compatible with queries only using identifiers. 

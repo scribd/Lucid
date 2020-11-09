@@ -4,15 +4,15 @@
 
 Every method of `CoreManager` takes a `ReadContext<E>`/`WriteContext<E>`, and returns an object of type `AnyPublisher<QueryResult<E>, ManagerError>`.
 
-- `AnyPublisher` comes from the library `Combine` and allows you to subscribe to asynchronous events. For some operations, only one event is sent with a result, for some other operations, multiple events can be sent, so in a way, a publisher can be seen as a stream of results.
+- `AnyPublisher` comes from the library `Combine` and allows you to subscribe to asynchronous events. For some operations, only one event is sent with a result; for some other operations, multiple events can be sent, so in a way, a publisher can be seen as a stream of results.
 
-- `QueryResult<E>` is an object containing the requested entities. Depending on the operation, results can be grouped, or forming a simple list or even a single entity. `QueryResult` allows to retrieve the data in whichever format is expected.
+- `QueryResult<E>` is an object containing the requested entities. Depending on the operation, results can be grouped, combined into a simple list or even a single entity. `QueryResult` retrieves the data in whichever format is expected.
 
 - `ManagerError` is an enum for which every case represents an error that can happen when requesting entities. The errors are classified per domain to make it easier to understand the cause.
 
 ## Contexts
 
-Context objects contain contextual information about where entities should come from (data source), when they should be stored (target), and sometimes which endpoint should be reached and how the served data should be parsed
+Context objects contain contextual information about where entities should come from (data source), where they should be stored (target), and sometimes which endpoint should be reached and how the served data should be parsed.
 
 ### ReadContext
 
@@ -241,7 +241,7 @@ manager
 
 ### Remove Entities with IDs
 
-The same way one entity can be removed, a multiple entities can be removed using the same operation and a list of identifiers.
+Multiple entities can be removed by passing a list of identifiers.
 
 ```swift
 manager
@@ -256,7 +256,7 @@ Sometimes, fetching only one level of entities isn't enough and although it is p
 
 ### Entity Graph
 
-When fetching relationships, Lucid aggregates all the different types of entity in the `EntityGraph`. Once the `EntityGraph` is built, retrieving an entity's relationships becomes very easy.
+When fetching relationships, Lucid aggregates all the different types of entity in the `EntityGraph`. Once the `EntityGraph` is built, retrieving an entity's relationships becomes easy.
 
 For example:
 

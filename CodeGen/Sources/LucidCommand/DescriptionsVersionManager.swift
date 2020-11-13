@@ -27,9 +27,7 @@ final class DescriptionsVersionManager {
 
     private let logger: Logger
 
-    private var didFetch = false
-
-    private var _allVersionsFromGitTags: [Version]?
+    private var _versions: [Version]?
 
     private let currentVersion: Version
 
@@ -39,10 +37,6 @@ final class DescriptionsVersionManager {
 
     private var repositoryDescriptionsPath: Path {
         return repositoryPath + inputPath
-    }
-
-    private var currentVersionPath: Path {
-        return outputPath + ".version"
     }
 
     init?(workingPath: Path,
@@ -87,6 +81,7 @@ final class DescriptionsVersionManager {
             try shellOut(to: "git remote add origin \(gitRemote)", at: repositoryPath.absolute().string)
         }
 
+        try shellOut(to: "git fetch origin tag \(releaseTag) --no-tags --quiet", at: repositoryPath.absolute().string)
         try shellOut(to: "git reset --hard --quiet \(releaseTag) --", at: repositoryPath.absolute().string)
         logger.done("Checked out \(releaseTag).")
 
@@ -104,15 +99,20 @@ final class DescriptionsVersionManager {
         return destinationDescriptionsPath
     }
 
-    func allVersionsFromGitTags() throws -> [Version] {
-        if let versions = _allVersionsFromGitTags {
+    func versions() throws -> [Version] {
+        if let versions = _versions {
             return versions
         }
 
         try cacheRepository()
-        try fetchOrigin()
 
-        let versions: [Version] = try shellOut(to: "git tag", at: repositoryPath.absolute().string)
+        var output: String
+        output = (try? shellOut(to: "git ls-remote --quiet --tags | cut -d/ -f3", at: repositoryPath.absolute().string)) ?? String()
+        if output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            output = try shellOut(to: "git tag", at: repositoryPath.absolute().string)
+        }
+
+        let versions: [Version] = output
             .split(separator: "\n")
             .compactMap { tag -> Version? in
                 do {
@@ -125,7 +125,7 @@ final class DescriptionsVersionManager {
             .sorted()
             .reversed()
 
-        _allVersionsFromGitTags = versions
+        _versions = versions
         return versions
     }
 
@@ -133,7 +133,7 @@ final class DescriptionsVersionManager {
 
         logger.moveToChild("Resolving \(excluding ? "latest release tag " : "release tag for app version \(appVersion)")...")
 
-        let versions = try allVersionsFromGitTags()
+        let versions = try self.versions()
 
         let latestReleaseVersion = versions.first {
             $0.isAppStoreRelease && (excluding ? $0 < appVersion : Version.isMatchingRelease(appVersion, $0))
@@ -172,21 +172,6 @@ final class DescriptionsVersionManager {
             try repositoryPath.mkpath()
             try shellOut(to: "cp -r \(workingPath.absolute())/ \(repositoryPath.absolute()) || true")
             logger.done("Cached repository to \(repositoryPath.absolute()).")
-        }
-    }
-
-    private func fetchOrigin() throws {
-        let latestCachedVersion: Version?
-        do {
-            latestCachedVersion = try Version(try currentVersionPath.read(), source: .description)
-        } catch {
-            latestCachedVersion = nil
-        }
-
-        if latestCachedVersion != currentVersion && didFetch == false {
-            try shellOut(to: "git fetch origin --tags --quiet", at: repositoryPath.absolute().string)
-            didFetch = true
-            try currentVersionPath.write(currentVersion.versionString)
         }
     }
 

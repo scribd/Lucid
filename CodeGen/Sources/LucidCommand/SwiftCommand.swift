@@ -44,7 +44,7 @@ final class SwiftCommand {
                                                                         currentVersion: currentAppVersion,
                                                                         logger: logger)
 
-        var modelMappingHistoryVersions = try currentDescriptions.modelMappingHistory(derivedFrom: descriptionsVersionManager?.allVersionsFromGitTags() ?? [])
+        var modelMappingHistoryVersions = try currentDescriptions.modelMappingHistory(derivedFrom: descriptionsVersionManager?.versions() ?? [])
         modelMappingHistoryVersions.removeAll { $0 == currentAppVersion }
 
         var descriptions = try modelMappingHistoryVersions.reduce(into: [Version: Descriptions]()) { descriptions, appVersion in

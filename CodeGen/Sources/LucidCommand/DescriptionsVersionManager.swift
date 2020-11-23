@@ -61,6 +61,11 @@ final class DescriptionsVersionManager {
         guard inputPath.isRelative else {
             try logger.throwError("Input path needs to be a relative path.")
         }
+
+        if let gitRemote = gitRemote {
+            try shellOut(to: "git remote remove origin || true", at: repositoryPath.absolute().string)
+            try shellOut(to: "git remote add origin \(gitRemote)", at: repositoryPath.absolute().string)
+        }
     }
         
     func fetchDescriptionsVersion(releaseTag: String) throws -> Path {
@@ -75,11 +80,6 @@ final class DescriptionsVersionManager {
 
         logger.moveToChild("Fetching descriptions for tag: \(releaseTag)...")
         try cacheRepository()
-
-        if let gitRemote = gitRemote {
-            try shellOut(to: "git remote remove origin || true", at: repositoryPath.absolute().string)
-            try shellOut(to: "git remote add origin \(gitRemote)", at: repositoryPath.absolute().string)
-        }
 
         try shellOut(to: "git fetch origin tag \(releaseTag) --no-tags --quiet", at: repositoryPath.absolute().string)
         try shellOut(to: "git reset --hard --quiet \(releaseTag) --", at: repositoryPath.absolute().string)

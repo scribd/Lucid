@@ -207,10 +207,10 @@
 		19D01E5125744BA100784905 /* Shared */ = {
 			isa = PBXGroup;
 			children = (
-				19D01E5725744D2400784905 /* MovieManager.swift */,
-				19D01E5625744D2400784905 /* RequestConfig.swift */,
-				19D01E5425744BEF00784905 /* MovieDBClient.swift */,
 				19D01E5225744BA100784905 /* ImageManager.swift */,
+				19D01E5725744D2400784905 /* MovieManager.swift */,
+				19D01E5425744BEF00784905 /* MovieDBClient.swift */,
+				19D01E5625744D2400784905 /* RequestConfig.swift */,
 			);
 			name = Shared;
 			path = ../../Shared;
@@ -223,6 +223,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 19D01E122571D3C100784905 /* Build configuration list for PBXNativeTarget "LucidWeaver" */;
 			buildPhases = (
+				19D01E5A25744DB000784905 /* Weaver */,
 				19D01E022571D3C000784905 /* Sources */,
 				19D01E032571D3C000784905 /* Frameworks */,
 				19D01E042571D3C000784905 /* Resources */,
@@ -279,6 +280,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		19D01E5A25744DB000784905 /* Weaver */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = Weaver;
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "weaver swift --project-path $PROJECT_DIR\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		19D01E022571D3C000784905 /* Sources */ = {

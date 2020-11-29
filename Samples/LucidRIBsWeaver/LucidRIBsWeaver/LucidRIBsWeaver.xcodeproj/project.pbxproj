@@ -76,6 +76,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 19D01DFD2571C9D400784905 /* Build configuration list for PBXNativeTarget "LucidRIBsWeaver" */;
 			buildPhases = (
+				19D01E5B25744E5600784905 /* Weaver */,
 				19D01DEA2571C9D300784905 /* Sources */,
 				19D01DEB2571C9D300784905 /* Frameworks */,
 				19D01DEC2571C9D300784905 /* Resources */,
@@ -132,6 +133,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		19D01E5B25744E5600784905 /* Weaver */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = Weaver;
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "weaver swift --project-path $PROJECT_DIR\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		19D01DEA2571C9D300784905 /* Sources */ = {

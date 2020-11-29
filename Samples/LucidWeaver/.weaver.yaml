@@ -1,3 +1,4 @@
 main_output_path: LucidWeaver/Generated/Weaver
 input_paths: 
   - LucidWeaver
+  - ../Shared

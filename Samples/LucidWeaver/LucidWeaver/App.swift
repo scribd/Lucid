@@ -1,5 +1,5 @@
 //
-//  LucidWeaverApp.swift
+//  App.swift
 //  LucidWeaver
 //
 //  Created by Théophane Rupin on 11/27/20.
@@ -10,10 +10,10 @@ import SwiftUI
 @main
 struct LucidWeaverApp: App {
 
-    let dependencies: AppDelegateDependencyResolver = {
+    let dependencies: LucidWeaverAppDependencyResolver = {
         UITableView.appearance().allowsSelection = false
         UITableViewCell.appearance().selectionStyle = .none
-        return MainDependencyContainer.appDelegateDependencyResolver()
+        return MainDependencyContainer.lucidWeaverAppDependencyResolver()
     }()
 
     @Weaver(.registration)

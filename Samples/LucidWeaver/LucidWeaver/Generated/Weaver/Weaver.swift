@@ -168,7 +168,7 @@ final class MainDependencyContainer {
     fileprivate init() {
     }
 
-    private func appDelegateDependencyResolver() -> AppDelegateDependencyResolver {
+    private func lucidWeaverAppDependencyResolver() -> LucidWeaverAppDependencyResolver {
         let _self = MainDependencyContainer()
         _self.builders["movieDBClient"] = lazyBuilder { (_: Optional<ParametersCopier>) -> MovieDBClient in return MovieDBClient() }
         _self.builders["managers"] = lazyBuilder { [weak _self] (_: Optional<ParametersCopier>) -> MovieCoreManagerProviding in
@@ -207,26 +207,8 @@ final class MainDependencyContainer {
         return _self
     }
 
-    static func appDelegateDependencyResolver() -> AppDelegateDependencyResolver {
-        let _self = MainDependencyContainer().appDelegateDependencyResolver()
-        return _self
-    }
-
-    fileprivate func imageManagerDependencyResolver() -> ImageManagerDependencyResolver {
-        let _self = MainDependencyContainer()
-        _self.builders["movieDBClient"] = lazyBuilder { [weak _self] (_: Optional<ParametersCopier>) -> MovieDBClient in
-            guard let _self = _self else {
-                MainDependencyContainer.fatalError()
-            }
-            return ImageManager.makeMovieDBClient(_self as MovieDBClientInputDependencyResolver)
-        }
-        _ = _self.getBuilder(for: "movieDBClient", type: MovieDBClient.self)(nil)
-        MainDependencyContainer._pushDynamicResolver({ _self.movieDBClient })
-        return _self
-    }
-
-    static func imageManagerDependencyResolver() -> ImageManagerDependencyResolver {
-        let _self = MainDependencyContainer().imageManagerDependencyResolver()
+    static func lucidWeaverAppDependencyResolver() -> LucidWeaverAppDependencyResolver {
+        let _self = MainDependencyContainer().lucidWeaverAppDependencyResolver()
         return _self
     }
 
@@ -339,6 +321,24 @@ final class MainDependencyContainer {
         MainDependencyContainer._pushDynamicResolver({ _self.coreManagers })
         return _self
     }
+
+    fileprivate func imageManagerDependencyResolver() -> ImageManagerDependencyResolver {
+        let _self = MainDependencyContainer()
+        _self.builders["movieDBClient"] = lazyBuilder { [weak _self] (_: Optional<ParametersCopier>) -> MovieDBClient in
+            guard let _self = _self else {
+                MainDependencyContainer.fatalError()
+            }
+            return ImageManager.makeMovieDBClient(_self as MovieDBClientInputDependencyResolver)
+        }
+        _ = _self.getBuilder(for: "movieDBClient", type: MovieDBClient.self)(nil)
+        MainDependencyContainer._pushDynamicResolver({ _self.movieDBClient })
+        return _self
+    }
+
+    static func imageManagerDependencyResolver() -> ImageManagerDependencyResolver {
+        let _self = MainDependencyContainer().imageManagerDependencyResolver()
+        return _self
+    }
 }
 
 
@@ -388,9 +388,7 @@ extension MainDependencyContainer: Controller_35f3b1765c3e413b9aebf35708866b4d43
 extension MainDependencyContainer {
 }
 
-typealias AppDelegateDependencyResolver = MovieDBClientResolver & ManagersResolver & MovieListResolver & ImageManagerResolver
-
-typealias ImageManagerDependencyResolver = MovieDBClientResolver
+typealias LucidWeaverAppDependencyResolver = MovieDBClientResolver & ManagersResolver & MovieListResolver & ImageManagerResolver
 
 typealias MovieDetailControllerDependencyResolver = MovieManagerResolver
 
@@ -401,6 +399,8 @@ typealias MovieListControllerDependencyResolver = MovieManagerResolver & ImageMa
 typealias MovieListInternalDependencyResolver = Controller_b4f15911de1d23192220247df39643ae6375cab3_Resolver & MovieDetailResolver
 
 typealias MovieManagerDependencyResolver = CoreManagersResolver
+
+typealias ImageManagerDependencyResolver = MovieDBClientResolver
 
 typealias MovieCoreManagerProvidingInputDependencyResolver = ImageManagerResolver & ManagersResolver & MovieDBClientResolver & MovieListResolver
 

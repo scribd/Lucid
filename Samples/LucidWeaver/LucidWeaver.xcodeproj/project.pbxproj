@@ -7,13 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		19D01E172571D3ED00784905 /* LucidWeaverApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D882571C2DE00784905 /* LucidWeaverApp.swift */; };
+		19D01E172571D3ED00784905 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D882571C2DE00784905 /* App.swift */; };
 		19D01E192571D3F300784905 /* MovieList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D892571C2DE00784905 /* MovieList.swift */; };
-		19D01E1A2571D3F300784905 /* MovieDBClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D8E2571C2DF00784905 /* MovieDBClient.swift */; };
 		19D01E1B2571D3F300784905 /* MovieDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D8C2571C2DE00784905 /* MovieDetail.swift */; };
-		19D01E1C2571D3F300784905 /* MovieManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D862571C2DE00784905 /* MovieManager.swift */; };
-		19D01E1D2571D3F300784905 /* RequestConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D8D2571C2DE00784905 /* RequestConfig.swift */; };
-		19D01E1E2571D3F300784905 /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D872571C2DE00784905 /* ImageManager.swift */; };
 		19D01E1F2571D3F300784905 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 19D01D792571C22E00784905 /* Assets.xcassets */; };
 		19D01E222571D3F800784905 /* Weaver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DA72571C4AF00784905 /* Weaver.swift */; };
 		19D01E242571D40600784905 /* Genre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DB92571C4AF00784905 /* Genre.swift */; };
@@ -31,6 +27,10 @@
 		19D01E342571D41500784905 /* DiscoverMovieEndpointPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DAF2571C4AF00784905 /* DiscoverMovieEndpointPayload.swift */; };
 		19D01E382571D49400784905 /* Lucid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 19D01E362571D48B00784905 /* Lucid.framework */; };
 		19D01E392571D49400784905 /* Lucid.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 19D01E362571D48B00784905 /* Lucid.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		19D01E5325744BA100784905 /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01E5225744BA100784905 /* ImageManager.swift */; };
+		19D01E5525744BEF00784905 /* MovieDBClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01E5425744BEF00784905 /* MovieDBClient.swift */; };
+		19D01E5825744D2400784905 /* RequestConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01E5625744D2400784905 /* RequestConfig.swift */; };
+		19D01E5925744D2400784905 /* MovieManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01E5725744D2400784905 /* MovieManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -51,13 +51,9 @@
 		19D01D792571C22E00784905 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		19D01D7C2571C22E00784905 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		19D01D7E2571C22E00784905 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		19D01D862571C2DE00784905 /* MovieManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieManager.swift; sourceTree = "<group>"; };
-		19D01D872571C2DE00784905 /* ImageManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManager.swift; sourceTree = "<group>"; };
-		19D01D882571C2DE00784905 /* LucidWeaverApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LucidWeaverApp.swift; sourceTree = "<group>"; };
+		19D01D882571C2DE00784905 /* App.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
 		19D01D892571C2DE00784905 /* MovieList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieList.swift; sourceTree = "<group>"; };
 		19D01D8C2571C2DE00784905 /* MovieDetail.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieDetail.swift; sourceTree = "<group>"; };
-		19D01D8D2571C2DE00784905 /* RequestConfig.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RequestConfig.swift; sourceTree = "<group>"; };
-		19D01D8E2571C2DF00784905 /* MovieDBClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieDBClient.swift; sourceTree = "<group>"; };
 		19D01DA72571C4AF00784905 /* Weaver.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Weaver.swift; sourceTree = "<group>"; };
 		19D01DAA2571C4AF00784905 /* EndpointResultPayload.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EndpointResultPayload.swift; sourceTree = "<group>"; };
 		19D01DAB2571C4AF00784905 /* GenreMovieListEndpointPayload.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GenreMovieListEndpointPayload.swift; sourceTree = "<group>"; };
@@ -78,6 +74,10 @@
 		19D01DD62571C8FF00784905 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		19D01E062571D3C000784905 /* LucidWeaver.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LucidWeaver.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		19D01E362571D48B00784905 /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		19D01E5225744BA100784905 /* ImageManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManager.swift; sourceTree = "<group>"; };
+		19D01E5425744BEF00784905 /* MovieDBClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieDBClient.swift; sourceTree = "<group>"; };
+		19D01E5625744D2400784905 /* RequestConfig.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RequestConfig.swift; sourceTree = "<group>"; };
+		19D01E5725744D2400784905 /* MovieManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,13 +113,10 @@
 			isa = PBXGroup;
 			children = (
 				19D01DA52571C4AF00784905 /* Generated */,
-				19D01D882571C2DE00784905 /* LucidWeaverApp.swift */,
-				19D01D872571C2DE00784905 /* ImageManager.swift */,
-				19D01D8E2571C2DF00784905 /* MovieDBClient.swift */,
+				19D01E5125744BA100784905 /* Shared */,
+				19D01D882571C2DE00784905 /* App.swift */,
 				19D01D8C2571C2DE00784905 /* MovieDetail.swift */,
 				19D01D892571C2DE00784905 /* MovieList.swift */,
-				19D01D862571C2DE00784905 /* MovieManager.swift */,
-				19D01D8D2571C2DE00784905 /* RequestConfig.swift */,
 				19D01D792571C22E00784905 /* Assets.xcassets */,
 				19D01D7E2571C22E00784905 /* Info.plist */,
 				19D01D7B2571C22E00784905 /* Preview Content */,
@@ -207,6 +204,18 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		19D01E5125744BA100784905 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				19D01E5725744D2400784905 /* MovieManager.swift */,
+				19D01E5625744D2400784905 /* RequestConfig.swift */,
+				19D01E5425744BEF00784905 /* MovieDBClient.swift */,
+				19D01E5225744BA100784905 /* ImageManager.swift */,
+			);
+			name = Shared;
+			path = ../../Shared;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -280,22 +289,22 @@
 				19D01E302571D41500784905 /* GenreMovieListEndpointPayload.swift in Sources */,
 				19D01E242571D40600784905 /* Genre.swift in Sources */,
 				19D01E332571D41500784905 /* MoviePayloads.swift in Sources */,
-				19D01E1A2571D3F300784905 /* MovieDBClient.swift in Sources */,
 				19D01E222571D3F800784905 /* Weaver.swift in Sources */,
+				19D01E5825744D2400784905 /* RequestConfig.swift in Sources */,
 				19D01E2B2571D40F00784905 /* LucidWeaver.xcdatamodeld in Sources */,
 				19D01E192571D3F300784905 /* MovieList.swift in Sources */,
-				19D01E1E2571D3F300784905 /* ImageManager.swift in Sources */,
-				19D01E1C2571D3F300784905 /* MovieManager.swift in Sources */,
+				19D01E5325744BA100784905 /* ImageManager.swift in Sources */,
 				19D01E342571D41500784905 /* DiscoverMovieEndpointPayload.swift in Sources */,
-				19D01E172571D3ED00784905 /* LucidWeaverApp.swift in Sources */,
+				19D01E172571D3ED00784905 /* App.swift in Sources */,
 				19D01E252571D40600784905 /* EntityIndexValueTypes.swift in Sources */,
+				19D01E5525744BEF00784905 /* MovieDBClient.swift in Sources */,
 				19D01E1B2571D3F300784905 /* MovieDetail.swift in Sources */,
 				19D01E2D2571D41100784905 /* CoreManagerContainer.swift in Sources */,
 				19D01E322571D41500784905 /* GenrePayloads.swift in Sources */,
+				19D01E5925744D2400784905 /* MovieManager.swift in Sources */,
 				19D01E292571D40B00784905 /* EntityGraph.swift in Sources */,
 				19D01E312571D41500784905 /* MovieEndpointPayload.swift in Sources */,
 				19D01E262571D40600784905 /* Movie.swift in Sources */,
-				19D01E1D2571D3F300784905 /* RequestConfig.swift in Sources */,
 				19D01E282571D40B00784905 /* SupportUtils.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

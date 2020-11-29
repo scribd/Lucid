@@ -1,7 +1,0 @@
-input_path: Descriptions
-targets:
-  app:
-    module_name: Sample
-    output_path: Generated/Lucid
-cache_path: /usr/local/share/lucid/sample_cache
-organization_name: Scribd

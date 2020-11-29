@@ -1,0 +1,7 @@
+input_path: Descriptions
+targets:
+  app:
+    module_name: LucidWeaver
+    output_path: LucidWeaver/Generated/Lucid
+cache_path: /usr/local/share/lucid/lucid_weaver_cache
+organization_name: Scribd

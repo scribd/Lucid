@@ -1,0 +1,502 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		19D01E172571D3ED00784905 /* LucidWeaverApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D882571C2DE00784905 /* LucidWeaverApp.swift */; };
+		19D01E192571D3F300784905 /* MovieList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D892571C2DE00784905 /* MovieList.swift */; };
+		19D01E1A2571D3F300784905 /* MovieDBClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D8E2571C2DF00784905 /* MovieDBClient.swift */; };
+		19D01E1B2571D3F300784905 /* MovieDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D8C2571C2DE00784905 /* MovieDetail.swift */; };
+		19D01E1C2571D3F300784905 /* MovieManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D862571C2DE00784905 /* MovieManager.swift */; };
+		19D01E1D2571D3F300784905 /* RequestConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D8D2571C2DE00784905 /* RequestConfig.swift */; };
+		19D01E1E2571D3F300784905 /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01D872571C2DE00784905 /* ImageManager.swift */; };
+		19D01E1F2571D3F300784905 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 19D01D792571C22E00784905 /* Assets.xcassets */; };
+		19D01E222571D3F800784905 /* Weaver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DA72571C4AF00784905 /* Weaver.swift */; };
+		19D01E242571D40600784905 /* Genre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DB92571C4AF00784905 /* Genre.swift */; };
+		19D01E252571D40600784905 /* EntityIndexValueTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DBA2571C4AF00784905 /* EntityIndexValueTypes.swift */; };
+		19D01E262571D40600784905 /* Movie.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DB82571C4AF00784905 /* Movie.swift */; };
+		19D01E282571D40B00784905 /* SupportUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DB52571C4AF00784905 /* SupportUtils.swift */; };
+		19D01E292571D40B00784905 /* EntityGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DB62571C4AF00784905 /* EntityGraph.swift */; };
+		19D01E2B2571D40F00784905 /* LucidWeaver.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DB22571C4AF00784905 /* LucidWeaver.xcdatamodeld */; };
+		19D01E2D2571D41100784905 /* CoreManagerContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DB12571C4AF00784905 /* CoreManagerContainer.swift */; };
+		19D01E2F2571D41500784905 /* EndpointResultPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DAA2571C4AF00784905 /* EndpointResultPayload.swift */; };
+		19D01E302571D41500784905 /* GenreMovieListEndpointPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DAB2571C4AF00784905 /* GenreMovieListEndpointPayload.swift */; };
+		19D01E312571D41500784905 /* MovieEndpointPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DAD2571C4AF00784905 /* MovieEndpointPayload.swift */; };
+		19D01E322571D41500784905 /* GenrePayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DAC2571C4AF00784905 /* GenrePayloads.swift */; };
+		19D01E332571D41500784905 /* MoviePayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DAE2571C4AF00784905 /* MoviePayloads.swift */; };
+		19D01E342571D41500784905 /* DiscoverMovieEndpointPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D01DAF2571C4AF00784905 /* DiscoverMovieEndpointPayload.swift */; };
+		19D01E382571D49400784905 /* Lucid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 19D01E362571D48B00784905 /* Lucid.framework */; };
+		19D01E392571D49400784905 /* Lucid.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 19D01E362571D48B00784905 /* Lucid.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		19D01E3A2571D49400784905 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				19D01E392571D49400784905 /* Lucid.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		19D01D792571C22E00784905 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		19D01D7C2571C22E00784905 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		19D01D7E2571C22E00784905 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		19D01D862571C2DE00784905 /* MovieManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieManager.swift; sourceTree = "<group>"; };
+		19D01D872571C2DE00784905 /* ImageManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageManager.swift; sourceTree = "<group>"; };
+		19D01D882571C2DE00784905 /* LucidWeaverApp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LucidWeaverApp.swift; sourceTree = "<group>"; };
+		19D01D892571C2DE00784905 /* MovieList.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieList.swift; sourceTree = "<group>"; };
+		19D01D8C2571C2DE00784905 /* MovieDetail.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieDetail.swift; sourceTree = "<group>"; };
+		19D01D8D2571C2DE00784905 /* RequestConfig.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RequestConfig.swift; sourceTree = "<group>"; };
+		19D01D8E2571C2DF00784905 /* MovieDBClient.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieDBClient.swift; sourceTree = "<group>"; };
+		19D01DA72571C4AF00784905 /* Weaver.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Weaver.swift; sourceTree = "<group>"; };
+		19D01DAA2571C4AF00784905 /* EndpointResultPayload.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EndpointResultPayload.swift; sourceTree = "<group>"; };
+		19D01DAB2571C4AF00784905 /* GenreMovieListEndpointPayload.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GenreMovieListEndpointPayload.swift; sourceTree = "<group>"; };
+		19D01DAC2571C4AF00784905 /* GenrePayloads.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GenrePayloads.swift; sourceTree = "<group>"; };
+		19D01DAD2571C4AF00784905 /* MovieEndpointPayload.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MovieEndpointPayload.swift; sourceTree = "<group>"; };
+		19D01DAE2571C4AF00784905 /* MoviePayloads.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MoviePayloads.swift; sourceTree = "<group>"; };
+		19D01DAF2571C4AF00784905 /* DiscoverMovieEndpointPayload.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DiscoverMovieEndpointPayload.swift; sourceTree = "<group>"; };
+		19D01DB12571C4AF00784905 /* CoreManagerContainer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreManagerContainer.swift; sourceTree = "<group>"; };
+		19D01DB32571C4AF00784905 /* Sample_1.0.0.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Sample_1.0.0.xcdatamodel; sourceTree = "<group>"; };
+		19D01DB42571C4AF00784905 /* LucidWeaver_1.0.0.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = LucidWeaver_1.0.0.xcdatamodel; sourceTree = "<group>"; };
+		19D01DB52571C4AF00784905 /* SupportUtils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SupportUtils.swift; sourceTree = "<group>"; };
+		19D01DB62571C4AF00784905 /* EntityGraph.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EntityGraph.swift; sourceTree = "<group>"; };
+		19D01DB82571C4AF00784905 /* Movie.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Movie.swift; sourceTree = "<group>"; };
+		19D01DB92571C4AF00784905 /* Genre.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Genre.swift; sourceTree = "<group>"; };
+		19D01DBA2571C4AF00784905 /* EntityIndexValueTypes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EntityIndexValueTypes.swift; sourceTree = "<group>"; };
+		19D01DCC2571C53A00784905 /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		19D01DCE2571C54200784905 /* ReactiveKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = ReactiveKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		19D01DD62571C8FF00784905 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		19D01E062571D3C000784905 /* LucidWeaver.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LucidWeaver.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		19D01E362571D48B00784905 /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		19D01E032571D3C000784905 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				19D01E382571D49400784905 /* Lucid.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		19D01D692571C22C00784905 = {
+			isa = PBXGroup;
+			children = (
+				19D01D742571C22C00784905 /* LucidWeaver */,
+				19D01D732571C22C00784905 /* Products */,
+				19D01DCB2571C53A00784905 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		19D01D732571C22C00784905 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				19D01E062571D3C000784905 /* LucidWeaver.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		19D01D742571C22C00784905 /* LucidWeaver */ = {
+			isa = PBXGroup;
+			children = (
+				19D01DA52571C4AF00784905 /* Generated */,
+				19D01D882571C2DE00784905 /* LucidWeaverApp.swift */,
+				19D01D872571C2DE00784905 /* ImageManager.swift */,
+				19D01D8E2571C2DF00784905 /* MovieDBClient.swift */,
+				19D01D8C2571C2DE00784905 /* MovieDetail.swift */,
+				19D01D892571C2DE00784905 /* MovieList.swift */,
+				19D01D862571C2DE00784905 /* MovieManager.swift */,
+				19D01D8D2571C2DE00784905 /* RequestConfig.swift */,
+				19D01D792571C22E00784905 /* Assets.xcassets */,
+				19D01D7E2571C22E00784905 /* Info.plist */,
+				19D01D7B2571C22E00784905 /* Preview Content */,
+			);
+			path = LucidWeaver;
+			sourceTree = "<group>";
+		};
+		19D01D7B2571C22E00784905 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				19D01D7C2571C22E00784905 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		19D01DA52571C4AF00784905 /* Generated */ = {
+			isa = PBXGroup;
+			children = (
+				19D01DA62571C4AF00784905 /* Weaver */,
+				19D01DA82571C4AF00784905 /* Lucid */,
+			);
+			path = Generated;
+			sourceTree = "<group>";
+		};
+		19D01DA62571C4AF00784905 /* Weaver */ = {
+			isa = PBXGroup;
+			children = (
+				19D01DA72571C4AF00784905 /* Weaver.swift */,
+			);
+			path = Weaver;
+			sourceTree = "<group>";
+		};
+		19D01DA82571C4AF00784905 /* Lucid */ = {
+			isa = PBXGroup;
+			children = (
+				19D01DA92571C4AF00784905 /* Payloads */,
+				19D01DB02571C4AF00784905 /* Support */,
+				19D01DB72571C4AF00784905 /* Entities */,
+			);
+			path = Lucid;
+			sourceTree = "<group>";
+		};
+		19D01DA92571C4AF00784905 /* Payloads */ = {
+			isa = PBXGroup;
+			children = (
+				19D01DAA2571C4AF00784905 /* EndpointResultPayload.swift */,
+				19D01DAB2571C4AF00784905 /* GenreMovieListEndpointPayload.swift */,
+				19D01DAC2571C4AF00784905 /* GenrePayloads.swift */,
+				19D01DAD2571C4AF00784905 /* MovieEndpointPayload.swift */,
+				19D01DAE2571C4AF00784905 /* MoviePayloads.swift */,
+				19D01DAF2571C4AF00784905 /* DiscoverMovieEndpointPayload.swift */,
+			);
+			path = Payloads;
+			sourceTree = "<group>";
+		};
+		19D01DB02571C4AF00784905 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				19D01DB12571C4AF00784905 /* CoreManagerContainer.swift */,
+				19D01DB22571C4AF00784905 /* LucidWeaver.xcdatamodeld */,
+				19D01DB52571C4AF00784905 /* SupportUtils.swift */,
+				19D01DB62571C4AF00784905 /* EntityGraph.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+		19D01DB72571C4AF00784905 /* Entities */ = {
+			isa = PBXGroup;
+			children = (
+				19D01DB82571C4AF00784905 /* Movie.swift */,
+				19D01DB92571C4AF00784905 /* Genre.swift */,
+				19D01DBA2571C4AF00784905 /* EntityIndexValueTypes.swift */,
+			);
+			path = Entities;
+			sourceTree = "<group>";
+		};
+		19D01DCB2571C53A00784905 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				19D01E362571D48B00784905 /* Lucid.framework */,
+				19D01DD62571C8FF00784905 /* SwiftUI.framework */,
+				19D01DCE2571C54200784905 /* ReactiveKit.framework */,
+				19D01DCC2571C53A00784905 /* Lucid.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		19D01E052571D3C000784905 /* LucidWeaver */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 19D01E122571D3C100784905 /* Build configuration list for PBXNativeTarget "LucidWeaver" */;
+			buildPhases = (
+				19D01E022571D3C000784905 /* Sources */,
+				19D01E032571D3C000784905 /* Frameworks */,
+				19D01E042571D3C000784905 /* Resources */,
+				19D01E3A2571D49400784905 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LucidWeaver;
+			productName = LucidWeaver;
+			productReference = 19D01E062571D3C000784905 /* LucidWeaver.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		19D01D6A2571C22C00784905 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1210;
+				LastUpgradeCheck = 1210;
+				TargetAttributes = {
+					19D01E052571D3C000784905 = {
+						CreatedOnToolsVersion = 12.1;
+					};
+				};
+			};
+			buildConfigurationList = 19D01D6D2571C22C00784905 /* Build configuration list for PBXProject "LucidWeaver" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 19D01D692571C22C00784905;
+			productRefGroup = 19D01D732571C22C00784905 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				19D01E052571D3C000784905 /* LucidWeaver */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		19D01E042571D3C000784905 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				19D01E1F2571D3F300784905 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		19D01E022571D3C000784905 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				19D01E2F2571D41500784905 /* EndpointResultPayload.swift in Sources */,
+				19D01E302571D41500784905 /* GenreMovieListEndpointPayload.swift in Sources */,
+				19D01E242571D40600784905 /* Genre.swift in Sources */,
+				19D01E332571D41500784905 /* MoviePayloads.swift in Sources */,
+				19D01E1A2571D3F300784905 /* MovieDBClient.swift in Sources */,
+				19D01E222571D3F800784905 /* Weaver.swift in Sources */,
+				19D01E2B2571D40F00784905 /* LucidWeaver.xcdatamodeld in Sources */,
+				19D01E192571D3F300784905 /* MovieList.swift in Sources */,
+				19D01E1E2571D3F300784905 /* ImageManager.swift in Sources */,
+				19D01E1C2571D3F300784905 /* MovieManager.swift in Sources */,
+				19D01E342571D41500784905 /* DiscoverMovieEndpointPayload.swift in Sources */,
+				19D01E172571D3ED00784905 /* LucidWeaverApp.swift in Sources */,
+				19D01E252571D40600784905 /* EntityIndexValueTypes.swift in Sources */,
+				19D01E1B2571D3F300784905 /* MovieDetail.swift in Sources */,
+				19D01E2D2571D41100784905 /* CoreManagerContainer.swift in Sources */,
+				19D01E322571D41500784905 /* GenrePayloads.swift in Sources */,
+				19D01E292571D40B00784905 /* EntityGraph.swift in Sources */,
+				19D01E312571D41500784905 /* MovieEndpointPayload.swift in Sources */,
+				19D01E262571D40600784905 /* Movie.swift in Sources */,
+				19D01E1D2571D3F300784905 /* RequestConfig.swift in Sources */,
+				19D01E282571D40B00784905 /* SupportUtils.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		19D01D7F2571C22E00784905 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		19D01D802571C22E00784905 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.1;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		19D01E132571D3C100784905 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"LucidWeaver/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = LucidWeaver/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.lucid.LucidWeaver;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		19D01E142571D3C100784905 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_ASSET_PATHS = "\"LucidWeaver/Preview Content\"";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = LucidWeaver/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.lucid.LucidWeaver;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		19D01D6D2571C22C00784905 /* Build configuration list for PBXProject "LucidWeaver" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				19D01D7F2571C22E00784905 /* Debug */,
+				19D01D802571C22E00784905 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		19D01E122571D3C100784905 /* Build configuration list for PBXNativeTarget "LucidWeaver" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				19D01E132571D3C100784905 /* Debug */,
+				19D01E142571D3C100784905 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		19D01DB22571C4AF00784905 /* LucidWeaver.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				19D01DB32571C4AF00784905 /* Sample_1.0.0.xcdatamodel */,
+				19D01DB42571C4AF00784905 /* LucidWeaver_1.0.0.xcdatamodel */,
+			);
+			currentVersion = 19D01DB32571C4AF00784905 /* Sample_1.0.0.xcdatamodel */;
+			path = LucidWeaver.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
+	};
+	rootObject = 19D01D6A2571C22C00784905 /* Project object */;
+}

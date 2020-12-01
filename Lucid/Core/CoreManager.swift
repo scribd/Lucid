@@ -1543,7 +1543,7 @@ private extension CoreManager {
                         newEntities = newEntitiesUnion
                     }
 
-                    let newEntityIDsExclusion = results.lazy.filter(with: !filter).map { $0.identifier }
+                    let newEntityIDsExclusion = DualHashSet(results.lazy.filter(with: !filter).map { $0.identifier })
                     newEntities = newEntities.lazy.filter { newEntityIDsExclusion.contains($0.identifier) == false }.any
 
                     let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)

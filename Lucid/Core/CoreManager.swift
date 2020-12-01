@@ -750,14 +750,15 @@ private extension CoreManager {
                 storeStack.search(withQuery: query, in: context) { result in
 
                     switch result {
-                    case .success(let queryResult):
+                    case .success(let remoteResults):
+                        let remoteResults = remoteResults.materialized
 
                         if context.shouldOverwriteInLocalStores {
+
                             self.localStore.search(withQuery: query.order([]), in: context) { localResult in
 
                                 switch localResult {
                                 case .success(let localResults):
-                                    let remoteResults = queryResult.materialized
 
                                     var identifiersToDelete: [E.Identifier] = []
                                     if context.returnsCompleteResultSet {
@@ -807,9 +808,9 @@ private extension CoreManager {
                                 case .failure(let error):
                                     Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities: \(error)", assert: true)
 
-                                    let entitiesToUpdate = self.filter(entities: queryResult, basedOn: time).compactMap { $0 }
+                                    let entitiesToUpdate = self.filter(entities: remoteResults, basedOn: time).compactMap { $0 }
                                     guard entitiesToUpdate.isEmpty == false else {
-                                        guardedPromise(.success(queryResult))
+                                        guardedPromise(.success(remoteResults))
                                         return
                                     }
                                     self.setUpdateTime(time, for: entitiesToUpdate.lazy.map { $0.identifier })
@@ -818,16 +819,16 @@ private extension CoreManager {
                                         if let error = result?.error {
                                             Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
                                         }
-                                        guardedPromise(.success(queryResult))
+                                        guardedPromise(.success(remoteResults))
                                         self.raiseUpdateEvents(withQuery: query,
-                                                               results: queryResult,
+                                                               results: remoteResults,
                                                                returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
                                 }
                             }
                         } else {
-                            guardedPromise(.success(queryResult))
-                            property.update(with: queryResult)
+                            guardedPromise(.success(remoteResults))
+                            property.update(with: remoteResults)
                         }
 
                     case .failure(let error):
@@ -1361,7 +1362,8 @@ private extension CoreManager {
         }
 
         func update(with value: QueryResult<E>) {
-            property?.update(with: value.validatingContract(contract, with: query))
+            let value = value.validatingContract(contract, with: query).materialized
+            property?.update(with: value)
         }
 
         func shouldAllowUpdate() -> Bool {
@@ -1515,6 +1517,8 @@ private extension CoreManager {
                            results: QueryResult<E>,
                            returnsCompleteResultSet: Bool = true) {
 
+        let results = results.materialized
+
         raiseEventsQueue.async {
 
             let properties = self.propertiesQueue.sync { self._properties + self._pendingProperties }
@@ -1543,7 +1547,7 @@ private extension CoreManager {
                         newEntities = newEntitiesUnion
                     }
 
-                    let newEntityIDsExclusion = results.lazy.filter(with: !filter).map { $0.identifier }
+                    let newEntityIDsExclusion = DualHashSet(results.lazy.filter(with: !filter).map { $0.identifier })
                     newEntities = newEntities.lazy.filter { newEntityIDsExclusion.contains($0.identifier) == false }.any
 
                     let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)

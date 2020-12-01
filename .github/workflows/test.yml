@@ -15,7 +15,7 @@ jobs:
       - name: Run Lucid CodeGen tests
         run: |
           swift test --package-path CodeGen --enable-test-discovery --enable-code-coverage
-          echo "::set-env name=PRODUCT_PATH::`swift build --package-path CodeGen --show-bin-path`"
+          echo "PRODUCT_PATH=`swift build --package-path CodeGen --show-bin-path`" >> $GITHUB_ENV
 
       - name: Create code coverage
         if: github.ref == 'refs/heads/master'

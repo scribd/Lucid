@@ -6,13 +6,13 @@ Although it isn't required, we recommend using the `CoreManagerContainer`, as it
 
 ## Data Synchronization
 
-To understand why the container is useful, it's important to understand certain rules about core managers and data synchronization.
+To understand why the container is useful, it's important to understand certain rules about core managers and data synchronization:
 
-- Core manager instances aren't synchronized with each other. This means that **writing data with one instance** of a core manager **won't** necessarily **update continuous publishers of other instances** of the same entity type.
+- `CoreManager` instances aren't synchronized with each other. This means that **writing data with one instance** of a core manager **won't** necessarily **update continuous publishers of other instances** of the same entity type.
 
-- Core managers have an internal synchronization system in order to avoid overriding fresh data with outdated data. While this system doesn't share its state with other instances, it may share the same stores. Such a setup can lead to **data collisions** and **damage local stores' integrity**.
+- `CoreManagers` have an internal synchronization system in order to avoid overriding fresh data with outdated data. While this system doesn't share its state with other instances, it may share the same stores. Such a setup can lead to **data collisions** and **damage local stores' integrity**.
 
-Generally speaking, it is advised to use only one core manager instance per entity type in a project, which is where `CoreManagerContainer` comes handy.
+**Important:** Generally speaking, it is advised to only use one `CoreManager` instance per entity type in a project, which is where `CoreManagerContainer` comes in handy.
 
 ## Initialization
 
@@ -33,7 +33,7 @@ The `CoreManagerContainer` depends on two objects:
 1. [`APIClient`](./Client.md): An interface to your network APIs
 2. `DiskStoreConfig`: A struct containing any needed data to build your disk stores.
 
-By default, core managers are using an `InMemoryStore` as a caching system in front of a `CoreDataStore`. That's why it is required to set the `cacheLimit` to a reasonable value as it is the maximum amount of entities the `InMemoryStore` can contain per entity type.
+By default, `CoreManagers` use an `InMemoryStore` as a caching system in front of a `CoreDataStore`. That's why it is required to set the `cacheLimit` to a reasonable value as it is the maximum amount of entities the `InMemoryStore` can contain per entity type.
 
 ## Default Store Configuration
 
@@ -48,9 +48,7 @@ By default, it uses the following:
 
 ## Custom Store Configuration
 
-`CoreManagerContainer` provides a way to use your own configuration of stores for a type of entity. 
-
-Here's how to do so:
+The `CoreManagerContainer` file contains all of the default stores that will be used for all entities. This demonstrates the same way you can configure your own stores for any given entity type. In a separate file, simply add:
 
 ```swift
 extension MyEntityType {

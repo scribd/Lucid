@@ -1,12 +1,12 @@
 # Lucid - CoreData
 
-A big advantage of Lucid is that it completely abstracts the use of `CoreData` by containing it into `CoreDataStore`. However, there are several `CoreData` specificities to keep in mind when using `CoreDataStore` with Lucid.
+A big advantage of Lucid is that it completely abstracts the use of `CoreData` by containing it in `CoreDataStore`. However, there are several `CoreData` specificities to keep in mind when using `CoreDataStore` with Lucid.
 
 ## `CoreDataManager`
 
 `CoreDataManager` is an object in charge of initializing the `CoreData` stack and keeping a singular reference to it. In fact, it is also holding one single `NSManagedObjectContext`, which avoids having to merge multiple contexts.
 
-Once injected into the `CoreDataStore`s, `CoreDataManager` lazily loads the `CoreData` stack on its first access. This means one can start using Lucid right after the application has launched without having to wait for `CoreData` to initialize.
+Once injected into the `CoreDataStore`, `CoreDataManager` lazily loads the `CoreData` stack on its first access. This means you can start using Lucid right after the application has launched without having to wait for `CoreData` to initialize. Any requests that hit a CoreData store will just end up being slightly delayed.
 
 ## Migrations
 
@@ -14,10 +14,10 @@ One of the biggest hassles of `CoreData` is its migration system. Thankfully, Lu
 
 There are two types of migrations:
 
-- **Lightweight**: Model changes for which the migration can be inferred. For example, a renaming a property, adding a property with a default value, etc...
-- **Heavy**: Model or data changes for which the migration cannot be inferred. For example, adding a property without a default value, removing a case to an enum subtype, etc...
+- **Lightweight**: Model changes for which the migration can be inferred. For example, a renaming a property, adding a property with a default value, etc. These simply rely on the built-in CoreData lightweight migration system.
+- **Heavy**: Model or data changes for which the migration cannot be inferred. For example, adding a property without a default value, removing a case to an enum subtype, etc. Lucid adds custom support for heavy migration.
 
-### Writing an Heavy Migration
+### Writing a Heavy Migration
 
 Since lightweight migrations are automatically inferred, there's no code to write for them to work. However, heavy migrations need all your attention.
 
@@ -43,7 +43,7 @@ func myCoreDataMigrations() -> [CoreDataManager.Migration] {
 
 A migration can be useful even though the `CoreData` model hasn't actually changed. 
 
-Here's an example of how to do that:
+Here's an example of how to capitalize stored titles during an update:
 
 ```swift
 func myCoreDataMigrations() -> [CoreDataManager.Migration] {
@@ -65,7 +65,7 @@ func myCoreDataMigrations() -> [CoreDataManager.Migration] {
 
 #### Data Model Migration
 
-When the `CoreData` model is changing, you must specify a new model history version in the `Entity`s JSON description file.
+When the `CoreData` model is changing, you must specify a new model history version in the `Entity's` JSON description file.
 
 For example, the following code tells Lucid to generate a new `CoreData` entity: `ManagedMyEntity_1_1`.
 
@@ -121,4 +121,4 @@ It is very easy to mistake a lightweight migration for a heavy migration. Publis
 
 To prevent this from happening as much as possible, Lucid provides a series of Unit Tests (`CoreDataMigrationTests`). These tests are re-generated for every new version of the entity descriptions. The tests try to migrate databases using every previous version of the `CoreData` model to the newest one.
 
-Alongside these tests, Lucid also generates the test case `ExportSQLiteFile` which automatically exports a snapshot of a dummy database into an `sqlite` for the current entity descriptions' version. These snaphots are required for `CoreDataMigrationTests` to work properly, so it is important to run them often so that one snapshot is being stored for each version of the entity descriptions.
+**Important:** Alongside these tests, Lucid also generates the test case `ExportSQLiteFile` which automatically exports a snapshot of a dummy database into an `sqlite` for the current entity's description version. These snaphots are required for `CoreDataMigrationTests` to work properly, so it is important to run them often so that one snapshot is being stored for each version of the entity descriptions.

@@ -1,6 +1,8 @@
 # Lucid - [CoreManager](../Lucid/Core/CoreManager.swift)
 
-`CoreManager`s are the only interface Lucid provides to read and write entities to the stores.  
+`CoreManager` is the key class that binds lucid together. It is the interface Lucid provides to read and write entities to the stores. When you send a `get`, `search`, `set`, or `delete` action to the `CoreManager`, it will update your local stores and/or interact with the remote stores. In this sense, whether you are fetching data from memory, CoreData, or from your faraway server, the API your application interacts with is virtually identical, and the data returned is of a singular type. Saving/updating data can update your local stores and send out an http request to your server in a single expression.
+
+`CoreManager` is a generic object and there will be one per entity type in your application. The `CoreManager` will contain a generic `StoreStack` that by default will be populated by `Stores` that are informed by the entity description. If you so choose, you can override the store implementation on an entity per entity basis.
 
 Every method of `CoreManager` takes a `ReadContext<E>`/`WriteContext<E>`, and returns an object of type `AnyPublisher<QueryResult<E>, ManagerError>`.
 
@@ -12,15 +14,15 @@ Every method of `CoreManager` takes a `ReadContext<E>`/`WriteContext<E>`, and re
 
 ## Contexts
 
-Context objects contain contextual information about where entities should come from (data source), where they should be stored (target), and sometimes which endpoint should be reached and how the served data should be parsed.
+Context objects contain information about where entities should come from (data source), where they should be stored (target), and sometimes which endpoint should be reached and how the served data should be parsed.
 
 ### ReadContext
 
 `ReadContext` is a context used with read operations.
 
-To build it, the following parameters are to be passed:
+To build it, the following parameters are passed:
 
-- **Data Source**: Describes where the data comes from (defaults to `.local`).
+- **Data Source**: Describes where the data comes from ***(defaults to `.local`)***.
 
 	There are few useful combinations of data source:
 	- `.local`: The data can only come from local stores.
@@ -37,7 +39,7 @@ To build it, the following parameters are to be passed:
 
 `WriteContext` is a context used with write operations.
 
-To build it, the following parameters are to be passed:
+To build it, the following parameters are passed:
 
 - **Data Target**: Describes where the data goes (required).
 
@@ -52,7 +54,7 @@ To build it, the following parameters are to be passed:
 
 ## Query
 
-Queries are objects used to filter, group, order or paginate entities.
+Queries are objects used to filter, group, order or paginate entities. Lucid supports a number of functions and inline operators to make building queries more natural and readable. They are:
 
 ### Comparison Operators
 
@@ -195,13 +197,13 @@ publishers
 The `search` operation returns two publishers:
 
 - `once` receives one unique result. It is usually used for operations which don't require to be reactive to changes.
-- `continuous` receives one result per data change. It is usually used for refreshing views in a reactive manner.
+- `continuous` receives one result per data change. It is usually used for refreshing views or monitoring data in a reactive manner.
 
-When using a continuous publisher, it is important to make sure there isn't a possibility of retain cycle between the receive blocks and the cancellables store. Unlike for a once publisher, `CoreManager` retains continuous publishers until they aren't in used anymore. If a retain cycle keeps the publisher alive, `CoreManager` will keep track of it forever, which might become expensive over time.
+**Important:** When using a continuous publisher, make sure there isn't a possibility of retain cycle between the receive blocks and the cancellables store. Unlike for a `once` publisher, `CoreManager` retains `continuous` publishers until they aren't in use anymore. If a retain cycle keeps the publisher alive, `CoreManager` will keep track of it forever, which might become expensive over time. Use **weak** references for any calls back to the object holding the observer.
 
 ### Set Entity
 
-A mutable entity can be set using the `set` operation.
+A mutable entity can be saved or updated using the `set` operation.
 
 ```swift
 let myEntity = MyEntity(...)
@@ -256,7 +258,7 @@ Sometimes, fetching only one level of entities isn't enough and although it is p
 
 ### Entity Graph
 
-When fetching relationships, Lucid aggregates all the different types of entity in the `EntityGraph`. Once the `EntityGraph` is built, retrieving an entity's relationships becomes easy.
+When fetching relationships, Lucid aggregates all the different types of entities in the `EntityGraph`. Once the `EntityGraph` is built, retrieving an entity's relationships becomes easy (and synchronous).
 
 For example:
 
@@ -279,6 +281,8 @@ let myEntities = entityGraph.rootEntities.compactMap { entity in
   }
 }
 ```
+
+Note: The **array** `rootEntities` will always contain the root level of the graph only, whereas the **dictionary** `entityGraph.myEntities` will contain all of the objects at all nested levels of the graph. The former is where you can start parsing, and the latter is used for all relationship lookups.
 
 ### Root Entity with Relationships
 

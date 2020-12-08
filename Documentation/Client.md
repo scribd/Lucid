@@ -1,6 +1,6 @@
 # Lucid - `Client`
 
-Lucid uses two important objects in order to send and receive information from the network.
+Lucid uses two important objects in order to send and receive information from the network:
 
 - `APIClient` which is the lowest interface level between the `RemoteStore`s and your servers.
 - `APIClientQueue` which is in charge of picking the most appropriate time to send and/or, when they fail, retry sending requests.
@@ -30,43 +30,43 @@ It also requires the following methods:
 
 A request can be configured using the following attributes:
 
-- `method`: Method to be used for sending the request (defaults to `.get`).
-- `path`: Path to an endpoint (required). Being appended to the `host`. 
-- `host`:  Overrides the `host` property implemented in `APIClient` (optional).
-- `query`: A list of key/values being appended to the request's URL (optional).
-- `headers`: A list of key/values being added to the request's headers (optional).
-- `body`: Data added used as the request's body (optional). Can be either `.rawData` or `.formURLEncoded`. 
-- `includeSessionKey`: Whether or not the request should be authenticated (defaults to `true`).
-- `timeoutInterval`: Interval of time after which the request is expected to be cancelled (optional).
-- `deduplicate`: Whether or not the request should be deduplicated in the event several of them are similar and sent at the same time (defaults to `true`).
+- `method`: Method to be used for sending the request **(defaults to `.get`)**.
+- `path`: Path to an endpoint (It is appended to the `host`) ***(required)***. 
+- `host`:  Overrides the `host` property implemented in `APIClient` ***(optional)***.
+- `query`: A list of key/values being appended to the request's URL ***(optional)***.
+- `headers`: A list of key/values being added to the request's headers ***(optional)***.
+- `body`: Data added used as the request's body ***(optional)***. Can be either `.rawData` or `.formURLEncoded`. 
+- `includeSessionKey`: Whether or not the request should be authenticated **(defaults to `true`)**.
+- `timeoutInterval`: Interval of time after which the request is expected to be cancelled ***(optional)***.
+- `deduplicate`: Whether or not the request should be deduplicated in the event several of them are similar and sent at the same time **(defaults to `true`)**.
 - `tag`: A tag used for logging.
-- `queueingStrategy`: Describes how the request should be queued if it needs to (optional).
-- `background`: Whether or not the request should start a [background task](https://developer.apple.com/documentation/backgroundtasks) (defaults to `true`).
+- `queueingStrategy`: Describes how the request should be queued if it needs to ***(optional)***.
+- `background`: Whether or not the request should start a [background task](https://developer.apple.com/documentation/backgroundtasks) **(defaults to `true`)**.
 
 ## Request Queueing
 
-When Lucid gets a request to send from a `RemoteStore`, it doesn't always directly sends it, and that for two reasons:
+When Lucid builds a request to send to a `RemoteStore`, it doesn't always send it immediately. This for two reasons:
 
-- Some requests need more attention because they carry important information which can't be lost in case of failure or if the app gets terminated. For instance, requests using the method `POST` or `PUT` almost always carry a body, which needs to be safely brought to the server's attention.
+- Some requests need more attention because they carry important information which can't be lost, either in case of failure or if the app gets terminated. For instance, requests using the method `POST` or `PUT` almost always carry a body, which needs to be safely brought to the server's attention.
 
-- Some requests depend on one another and need to be sent sequentially so that the server can make sense out of them. For example, if request A creates an entity on the backend and request B updates that same entity, it only make sense to send those requests in the order A => B.
+- Some requests depend on one another and need to be sent sequentially so that the server can make sense out of them. For example, if request **A** creates an entity on the backend and request **B** updates that same entity, it only make sense to send those requests in the order **A => B**.
 
-For these reasons, Lucid first appends the requests to an `APIClientQueue` before sending them. The queue then decides if yes or not they should be sent in parrallele or sequentially, but also makes sure that requests carrying important data have the opportunity to re-enter in the queue after a network failure.
+For these reasons, Lucid first appends the requests to an `APIClientQueue` before sending them. The queue then decides whether or not they should be sent sequentially or in parallel, but also makes sure that requests carrying important data have the opportunity to re-enter in the queue after a network failure.
 
 ## Response Handler
 
-Lucid has two ways to propagate server response into its system:
+Lucid has two ways to propagate a server response into its system:
 
-1. Through a `CoreManager`'s publisher.
+1. Through a `CoreManager's` publisher.
 2. Through a *static* response handler.
 
-The first option is commonly used for read-only requests. When the app needs information to show to the screen, it fetches those data from the server and immediately apply them.
+The first option is commonly used for read-only requests. When the app needs information to show to the screen, it fetches that data from the server and immediately applies it.
 
 The second option is used for requests which aren't always sent immediately, potentially after the app was restarted.
 
 ### Registering a Response Handler
 
-To register a response handler you'll have to implement the `CoreManagerContainerClientQueueResponseHandler` protocol and make sure `CoreManagerContainer` is aware of it.
+To register a response handler you'll have to implement the `APIClientQueueResponseHandler` protocol. If you're using `CoreManagerContainer`, you'll instead need to implement `CoreManagerContainerClientQueueResponseHandler` protocol and make sure `CoreManagerContainer` is aware of it.
 
 ```swift
 extension CoreManagerContainer {

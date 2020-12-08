@@ -14,12 +14,12 @@ This command can take parameters which override the configuration file when ther
 
 ### Parameters
 
-- `--config-path`: Path to the configuration file (defaults to `.lucid.yaml`).
-- `--current-version`: Current version of the application (defaults to `1.0.0`).
-- `--cache-path`: Path to the cache directory (defaults to `/usr/local/share/lucid/cache`).
-- `--force-build-new-db-model`: Force to build a new database model refardless of changes (defaults to: `true`).
-- `--force-build-new-db-model-for-versions`: List of versions for which the database model should always be generated (optional).
-- `--selected-targets`: List of targets to generate (optional). Can be one or more of `.app`, `app_test`, `.app_test_support`.
+- `--config-path`: Path to the configuration file ***(defaults to `.lucid.yaml`)***.
+- `--current-version`: Current version of the application ***(defaults to `1.0.0`)***.
+- `--cache-path`: Path to the cache directory ***(defaults to `/usr/local/share/lucid/cache`)***.
+- `--force-build-new-db-model`: Force to build a new database model refardless of changes ***(defaults to: `true`)***.
+- `--force-build-new-db-model-for-versions`: List of versions for which the database model should always be generated ***(optional)***.
+- `--selected-targets`: List of targets to generate ***(optional)***. Can be one or more of `.app`, `app_test`, `.app_test_support`.
 
 ## Bootstrap
 
@@ -39,7 +39,7 @@ $ lucid json-payloads
 
 ### Parameters
 
-- `--input-path`: Path to the description files (defaults to `.`).
-- `--output-path`: Where the JSON paylaod stubs should be generated (defaults to `Generated`).
-- `--auth-token`: Authorization token used for URLs which require authentication (optional).
-- `--endpoint`: Selects an endpoint to fetch instead of fetching them all (optional).
+- `--input-path`: Path to the description files ***(defaults to `.`)***.
+- `--output-path`: Where the JSON paylaod stubs should be generated ***(defaults to `Generated`)***.
+- `--auth-token`: Authorization token used for URLs which require authentication ***(optional)***.
+- `--endpoint`: Selects an endpoint to fetch instead of fetching them all ***(optional)***.

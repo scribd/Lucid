@@ -40,7 +40,7 @@ After running the command `lucid swift` with this configuration, the directory `
 
 ## Description Files
 
-Lucid reads three types of description files: entities, subtypes and endpoint payloads. These files need to be placed in their respective directories, at the path specified with the `input_path` field of the configuration file.
+Lucid reads three types of description files: entities, subtypes, and endpoint payloads. These files need to be placed in their respective directories, at the path specified with the `input_path` field of the configuration file.
 
 The file structure should look like the following:
 
@@ -56,7 +56,7 @@ $ tree
         └── MySubtype.json
 ```
 
-Note that any file structure can be used under `Entities`, `Subtypes`, `EndpointPayloads` as long as there aren't any conflicting names.
+Note that any subdirectory structure can be used under `Entities`, `Subtypes`, `EndpointPayloads` as long as there aren't any conflicting names.
 
 ### Entity Description
 
@@ -104,7 +104,16 @@ Every entity has a unique identifier which is used to refer to it when using que
 
 There are three ways to declare an identifier:
 
-1. Using a property.
+1. Using a scalar type.
+
+	```json
+	"identifier": {
+	  "type": "$scalar_type"
+	}
+	```
+e.g. If you use `int`, your JSON payload must contain the field "id: \<int value>"
+
+2. Using a property.
 
 	```json
 	"identifier": {
@@ -112,15 +121,9 @@ There are three ways to declare an identifier:
 	  "property_name": "$property_name"
 	}
 	```
+*Note: property values must be unique, such as an email address, or else records can overwrite each other.*
 	
-2. Using a scalar type.
-
-	```json
-	"identifier": {
-	  "type": "$scalar_type"
-	}
-	```
-	
+		
 3. By deriving it from a set of relationships.
 
 	```json
@@ -160,7 +163,7 @@ A property is a named value stored as part of an entity object. For every proper
 
 #### Lazy Properties
 
-Lazy properties are a way to work around inconsistencies in the data model. Most of the time, these happens when an endpoint serves a set of properties but another endpoint serves a different set or properties for the same entity.
+Lazy properties are a way to work around an overloaded object or inconsistencies in the data model. Most of the time, these happens when an endpoint serves a set of properties but another endpoint serves a different set or properties for the same entity.
 
 Lazy properties can take two values:
 
@@ -313,7 +316,7 @@ Any of these types can be wrapped in brackets to form an array (e.g. `[string]`)
 
 ### Metadata Description
 
-Metadata are additional properties which can be retrieved from the remote store(s), but aren't persisted.
+Metadata are additional properties which can be retrieved from the remote store(s), but aren't persisted. These values must sit alongside the entity at the same depth in the JSON data.
 
 #### Fields
 
@@ -323,7 +326,7 @@ Metadata are additional properties which can be retrieved from the remote store(
 
 ### Endpoint Payload Description
 
-Endpoint payloads describe the structure Lucid should follow when parsing the data coming from the specific remote endpoints.
+Endpoint payloads describe the structure Lucid should follow when parsing the data coming from specific remote endpoints.
 
 Here is what a basic endpoint payload description looks like:
 

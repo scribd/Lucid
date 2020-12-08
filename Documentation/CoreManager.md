@@ -22,7 +22,7 @@ Context objects contain information about where entities should come from (data 
 
 To build it, the following parameters are passed:
 
-- **Data Source**: Describes where the data comes from (defaults to `.local`).
+- **Data Source**: Describes where the data comes from ***(defaults to `.local`)***.
 
 	There are few useful combinations of data source:
 	- `.local`: The data can only come from local stores.

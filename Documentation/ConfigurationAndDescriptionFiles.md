@@ -20,23 +20,23 @@ After running the command `lucid swift` with this configuration, the directory `
 
 ### Fields
 
-- `input_path`: Path to a directory containing the entity/subtype/payload description files (required).
+- `input_path`: Path to a directory containing the entity/subtype/payload description files ***(required)***.
 - `targets`:
 	- `app`/`app_test`/`app_test_support`:
-		- `module_name`: Module name for this target (optional).
-		- `output_path`: Path to directory which contains the generated code for this target (optional). 
-- `active_targets`: List of targets which should be generated (defaults to `app`).
-- `extensions_path`: Path to a directory containing the [extensions](CommandExtensions.md) (optional).
-- `cache_path`: Path to the cache directory (defaults to `/usr/local/share/lucid/cache`).
-- `organization_name`: Name of your organization (optional).
-- `current_version`: Current version of the application (defaults to `1.0.0`).
-- `git_remote`: URL pointing to your project's git remote (defaults to `$(git remote get-url origin)`).
-- `force_build_new_db_model`: Forces to re-generate a new database model for every version of the application (defaults to `true`). When set to `false`, Lucid requires the application to follow a [standard git versioning](CoreData.md) using one tag per version. 
-- `force_build_new_db_model_for_versions`: List of versions of the application for which a new database model should always be generated (optional).
-- `response_handler_function`: Name of the function handling repsonses from the main [client queue](Client.md) (optional)
-- `core_data_migrations_function`: Name of the function handling [core data heavy migrations](CoreData.md) (optional).
-- `lexicon`: List of words which should not be altered when from/to camel case/snake case  (optional).
-- `entity_suffix`: A suffix added to the generated entity names (optional). 
+		- `module_name`: Module name for this target ***(optional)***.
+		- `output_path`: Path to directory which contains the generated code for this target ***(optional)***. 
+- `active_targets`: List of targets which should be generated ***(defaults to `app`)***.
+- `extensions_path`: Path to a directory containing the [extensions](CommandExtensions.md) ***(optional)***.
+- `cache_path`: Path to the cache directory ***(defaults to `/usr/local/share/lucid/cache`)***.
+- `organization_name`: Name of your organization ***(optional)***.
+- `current_version`: Current version of the application ***(defaults to `1.0.0`)***.
+- `git_remote`: URL pointing to your project's git remote ***(defaults to `$(git remote get-url origin)`)***.
+- `force_build_new_db_model`: Forces to re-generate a new database model for every version of the application ***(defaults to `true`)***. When set to `false`, Lucid requires the application to follow a [standard git versioning](CoreData.md) using one tag per version. 
+- `force_build_new_db_model_for_versions`: List of versions of the application for which a new database model should always be generated ***(optional)***.
+- `response_handler_function`: Name of the function handling repsonses from the main [client queue](Client.md) ***(optional)***
+- `core_data_migrations_function`: Name of the function handling [core data heavy migrations](CoreData.md) ***(optional)***.
+- `lexicon`: List of words which should not be altered when to/from camel case/snake case  ***(optional)***.
+- `entity_suffix`: A suffix added to the generated entity names ***(optional)***. 
 
 ## Description Files
 
@@ -86,17 +86,17 @@ Here is what a basic entity looks like:
 
 #### Fields
 
-- `name`: Entity name (required).
-- `identifier`: [Identifier description](ConfigurationAndDescriptionFiles.md#entity-identifier-description) (required).
-- `properties`: [Property descriptions](ConfigurationAndDescriptionFiles.md#entity-property-description) (required).
-- `metadata`: [Metadata property descriptions](ConfigurationAndDescriptionFiles.md#metadata-description) (optional).
-- `system_properties`: [List of built-in property names](ConfigurationAndDescriptionFiles.md#system-properties) (optional).
-- `version_history`: [Version history description](ConfigurationAndDescriptionFiles.md#entity-version-history) (required). Initially, the current version should be used.
-- `remote`: Whether or not this entity can be read/written from/to a server (defaults to `true`).
-- `persist`: Whether or not this entity should be persisted (defaults to `false`).
-- `persisted_name`: Entity name used for persisting (defaults to `$name`).
-- `platforms`: Platforms for which the code should be generated (optional).
-- `client_queue_name`: Name of the designated client queue for this entity (defaults to `main`).
+- `name`: Entity name ***(required)***.
+- `identifier`: [Identifier description](ConfigurationAndDescriptionFiles.md#entity-identifier-description) ***(required)***.
+- `properties`: [Property descriptions](ConfigurationAndDescriptionFiles.md#entity-property-description) ***(required)***.
+- `metadata`: [Metadata property descriptions](ConfigurationAndDescriptionFiles.md#metadata-description) ***(optional)***.
+- `system_properties`: [List of built-in property names](ConfigurationAndDescriptionFiles.md#system-properties) ***(optional)***.
+- `version_history`: [Version history description](ConfigurationAndDescriptionFiles.md#entity-version-history) ***(required)***. Initially, the current version should be used.
+- `remote`: Whether or not this entity can be read/written to/from a server ***(defaults to `true`)***.
+- `persist`: Whether or not this entity should be persisted ***(defaults to `false`)***.
+- `persisted_name`: Entity name used for persisting ***(defaults to `$name`)***.
+- `platforms`: Platforms for which the code should be generated ***(optional)***.
+- `client_queue_name`: Name of the designated client queue for this entity ***(defaults to `main`)***.
 
 ### Entity Identifier Description
 
@@ -144,22 +144,22 @@ A property is a named value stored as part of an entity object. For every proper
 
 #### Fields
 
-- `name`: Property name (required).
-- `previous_name`: Previously used name for that property (optional). Used for local data model light migrations.
-- `added_at_version`: Version at which an entity was added (defaults to `$initial_version`). When using a local data model, this field is used for testing migrations between versions.
-- `property_type`: [Property type description](ConfigurationAndDescriptionFiles.md#entity-property-type-description) (required).
-- `key`: Key to use for parsing from a JSON payload (defaults to `$name`).
-- `match_exact_key`: When set to `false`, prevent Lucid from automatically appending `id` or `ids` to property keys which are declared as relationships (defaults to `false`).
-- `nullable`: Whether or not this property can be `nil` (defaults to `false`).
-- `default_value`: Value the property automatically takes when it hasn't a defined value (optional).
-- `log_error`: Whether or not Lucid should log non fatal conversion errors (defaults to `true`).
-- `use_for_equality`: Whether or not this property should be used when testing for equality (defaults to `true`).
-- `mutable`: Whether or not this property can be mutated locally (defaults to `false`).
-- `objc`: Whether or not this property must be accessible to ObjC (defaults to `false`).
-- `unused`: Whether or not this property should be included in the generated code (defaults to `false`).
-- `lazy`: Whether or not this property is lazy (defaults to `false`).
-- `platforms`: Platforms for which the code should be generated (optional).
-- `persisted_name`: Property name used for persistence (defaults to `$name`).
+- `name`: Property name ***(required)***.
+- `previous_name`: Previously used name for that property ***(optional)***. Used for local data model light migrations.
+- `added_at_version`: Version at which an entity was added ***(defaults to `$initial_version`)***. When using a local data model, this field is used for testing migrations between versions.
+- `property_type`: [Property type description](ConfigurationAndDescriptionFiles.md#entity-property-type-description) ***(required)***.
+- `key`: Key to use for parsing from a JSON payload ***(defaults to `$name`)***.
+- `match_exact_key`: When set to `false`, prevent Lucid from automatically appending `id` or `ids` to property keys which are declared as relationships ***(defaults to `false`)***.
+- `nullable`: Whether or not this property can be `nil` ***(defaults to `false`)***.
+- `default_value`: Value the property automatically takes when it hasn't a defined value ***(optional)***.
+- `log_error`: Whether or not Lucid should log non fatal conversion errors ***(defaults to `true`)***.
+- `use_for_equality`: Whether or not this property should be used when testing for equality ***(defaults to `true`)***.
+- `mutable`: Whether or not this property can be mutated locally ***(defaults to `false`)***.
+- `objc`: Whether or not this property must be accessible to ObjC ***(defaults to `false`)***.
+- `unused`: Whether or not this property should be included in the generated code ***(defaults to `false`)***.
+- `lazy`: Whether or not this property is lazy ***(defaults to `false`)***.
+- `platforms`: Platforms for which the code should be generated ***(optional)***.
+- `persisted_name`: Property name used for persistence ***(defaults to `$name`)***.
 
 #### Lazy Properties
 
@@ -214,11 +214,11 @@ Property types can be of three categories:
 	  ...
 	}
 	``` 
-	- `entity_name`: Entity type which this relationship refers to (required).
-	- `association`: Type of association (required). Can be either `one_to_one` or `one_to_many`.
-	- `id_only`: Whether or not this relationship is expected to be expressed as a nested object (defaults to `false`). When `true`, Lucid automatically appends `id` or `ids` (depending on the association type) to the parsing key, unless `match_exact_key` is `true`.
-	- `failable_items`: Whether or not this relationship is allowed to fail to parse as a nested object (defaults to `true`).
-	- `platforms`: Platforms for which the code should be generated (optional).
+	- `entity_name`: Entity type which this relationship refers to ***(required)***.
+	- `association`: Type of association ***(required)***. Can be either `one_to_one` or `one_to_many`.
+	- `id_only`: Whether or not this relationship is expected to be expressed as a nested object ***(defaults to `false`)***. When `true`, Lucid automatically appends `id` or `ids` (depending on the association type) to the parsing key, unless `match_exact_key` is `true`.
+	- `failable_items`: Whether or not this relationship is allowed to fail to parse as a nested object ***(defaults to `true`)***. When set to `true`, lucid will still attempt to capture the identifier of the failed relationship.
+	- `platforms`: Platforms for which the code should be generated ***(optional)***.
 
 ### Entity Version History
 
@@ -228,10 +228,10 @@ For every item in the version history, Lucid generates a data model for that ent
 
 #### Fields
 
-- `version`: Version (required). Initially, every entity use the current version at which they were added.
-- `previous_name`: In case the entity has been renamed, this field contains the name previously used for this version (optional).
-- `ignore_migration_checks`: Whether or not the migrations tests should ignore this version (defaults to `false`).
-- `ignore_property_migration_checks_on`: List of property which for which the migrations tests should ignore this version (optional).
+- `version`: Version number ***(required)***, Supports major, minor, and optional patch (e.g. ***5.2*** and ***5.2.1*** are both valid). Initially, every entity uses the current version at which they were added.
+- `previous_name`: In case the entity has been renamed, this field contains the name previously used for this version ***(optional)***.
+- `ignore_migration_checks`: Whether or not the migrations tests should ignore this version ***(defaults to `false`)***.
+- `ignore_property_migration_checks_on`: List of property which for which the migrations tests should ignore this version ***(optional)***.
 
 ### Subtype Description
 
@@ -274,24 +274,24 @@ Here is what a basic subtype looks like:
 
 #### Fields
 
-- `name`: Subtype name (required).
-- `manual_implementations`: List of protocols (`codable`) which should be left unimplemented by Lucid (optional).
-- `platforms`: Platforms for which the code should be generated (optional).
-- `objc`: Whether or not this subtype should be compatible with ObjC (defaults to `false`).
+- `name`: Subtype name ***(required)***.
+- `manual_implementations`: List of protocols (e.g. `codable`) which should be left unimplemented by Lucid ***(optional)***.
+- `platforms`: Platforms for which the code should be generated ***(optional)***.
+- `objc`: Whether or not this subtype should be compatible with ObjC ***(defaults to `false`)***.
 
 There are three categories of subtypes. The following fields must be added depending on the category. 
 
 - `enum`:
-	- `cases`: List of cases (required).
-	- `unused_cases`: List of cases which should not be generated (optional).
-	- `objc_none_case`: Whether or not this enum should include a none case for compatibility with ObjC (defaults to `false`).
+	- `cases`: List of cases ***(required)***.
+	- `unused_cases`: List of cases which should not be generated ***(optional)***.
+	- `objc_none_case`: Whether or not this enum should include a none case for compatibility with ObjC ***(defaults to `false`)***.
 	
 - `optionset`:
-	- `options`: List of options (required).
-	- `unused_options`: List of options which should not be generated (optional).
+	- `options`: List of options ***(required)***.
+	- `unused_options`: List of options which should not be generated ***(optional)***.
 
 - `struct`:
-	- `properties`: List of properties (required). 
+	- `properties`: List of properties ***(required)***. 
 
 Struct properties reuse the same following fields than for entities; `name`, `key`, `property_type`, `nullable`, `objc`, `unused`, `default_value`, `log_error` and `platforms`.
 
@@ -320,9 +320,9 @@ Metadata are additional properties which can be retrieved from the remote store(
 
 #### Fields
 
-- `name`: Metadata property name (required).
+- `name`: Metadata property name ***(required)***.
 - `property_type`: Either a [scalar type](ConfigurationAndDescriptionFiles.md#property-scalar-types) or [subtype](ConfigurationAndDescriptionFiles.md#subtype-description).
-- `nullable`: Whether or not this property can be `nil` (defaults to `false`).
+- `nullable`: Whether or not this property can be `nil` ***(defaults to `false`)***.
 
 ### Endpoint Payload Description
 
@@ -343,17 +343,17 @@ Here is what a basic endpoint payload description looks like:
 
 #### Fields
 
-- `name`: Endpoint name (required).
-- `base_key`: JSON key from which the payload should be parsed (optional). When `nil`, the parsing starts from the root.
-- `entity`: [Endpoint payload entity description](ConfigurationAndDescriptionFiles.md#endpoint-payload-entity-description) (required).
-- `excluded_paths`: JSON key paths which should not be parsed (optional).
+- `name`: Endpoint name ***(required)***.
+- `base_key`: JSON key from which the payload should be parsed ***(optional)***. When `nil`, the parsing starts from the root.
+- `entity`: [Endpoint payload entity description](ConfigurationAndDescriptionFiles.md#endpoint-payload-entity-description) ***(required)***.
+- `excluded_paths`: JSON key paths which should not be parsed ***(optional)***.
 - `metadata`: [Metadata descriptions](ConfigurationAndDescriptionFiles.md#metadata-description).
 
 ### Endpoint Payload Entity Description
 
 #### Fields
 
-- `entity_name`: Name of the entity type contained in the payload (required).
-- `entity_key`: JSON key at which the entities should be parsed (optional). When `nil`, the parsing starts from the root.
-- `structure`: Structure type which the entity payload is made of (required). Can be `single`, `array` or `nested_array`.
-- `nullable`: Whether or not the entity payload can be `nil` (defaults to `false`).
+- `entity_name`: Name of the entity type contained in the payload ***(required)***.
+- `entity_key`: JSON key at which the entities should be parsed ***(optional)***. When `nil`, the parsing starts from the root.
+- `structure`: Structure type which the entity payload is made of ***(required)***. Can be `single`, `array` or `nested_array`. A `nested_array` is a special case where each item in the array is a dictionary object that also contains an entity.
+- `nullable`: Whether or not the entity payload can be `nil` ***(defaults to `false`)***.

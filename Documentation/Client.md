@@ -30,18 +30,18 @@ It also requires the following methods:
 
 A request can be configured using the following attributes:
 
-- `method`: Method to be used for sending the request (defaults to `.get`).
-- `path`: Path to an endpoint (required). Being appended to the `host`. 
-- `host`:  Overrides the `host` property implemented in `APIClient` (optional).
-- `query`: A list of key/values being appended to the request's URL (optional).
-- `headers`: A list of key/values being added to the request's headers (optional).
-- `body`: Data added used as the request's body (optional). Can be either `.rawData` or `.formURLEncoded`. 
-- `includeSessionKey`: Whether or not the request should be authenticated (defaults to `true`).
-- `timeoutInterval`: Interval of time after which the request is expected to be cancelled (optional).
-- `deduplicate`: Whether or not the request should be deduplicated in the event several of them are similar and sent at the same time (defaults to `true`).
+- `method`: Method to be used for sending the request **(defaults to `.get`)**.
+- `path`: Path to an endpoint (It is appended to the `host`) ***(required)***. 
+- `host`:  Overrides the `host` property implemented in `APIClient` ***(optional)***.
+- `query`: A list of key/values being appended to the request's URL ***(optional)***.
+- `headers`: A list of key/values being added to the request's headers ***(optional)***.
+- `body`: Data added used as the request's body ***(optional)***. Can be either `.rawData` or `.formURLEncoded`. 
+- `includeSessionKey`: Whether or not the request should be authenticated **(defaults to `true`)**.
+- `timeoutInterval`: Interval of time after which the request is expected to be cancelled ***(optional)***.
+- `deduplicate`: Whether or not the request should be deduplicated in the event several of them are similar and sent at the same time **(defaults to `true`)**.
 - `tag`: A tag used for logging.
-- `queueingStrategy`: Describes how the request should be queued if it needs to (optional).
-- `background`: Whether or not the request should start a [background task](https://developer.apple.com/documentation/backgroundtasks) (defaults to `true`).
+- `queueingStrategy`: Describes how the request should be queued if it needs to ***(optional)***.
+- `background`: Whether or not the request should start a [background task](https://developer.apple.com/documentation/backgroundtasks) **(defaults to `true`)**.
 
 ## Request Queueing
 

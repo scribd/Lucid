@@ -52,7 +52,7 @@ $ cd Lucid/CodeGen
 $ make install
 ```
 
-When installing Lucid Run-time with:
+When installing Lucid runtime with:
 
 - Carthage - use `$ cd Carthage/Checkout/Lucid/CodeGen`
 - Cocoapods - use `$ cd Pods/Lucid/CodeGen`

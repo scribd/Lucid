@@ -1081,6 +1081,32 @@ extension APIRequest {
 
 // MARK: - URLRequest
 
+public extension APIClient {
+
+    private func _prepareURLRequest(_ requestConfig: APIRequestConfig) -> SafeSignal<URLRequest?> {
+        return FutureSubject { fulfill in
+            self.prepareRequest(requestConfig) { requestConfig in
+                let urlRequest = requestConfig.urlRequest(
+                    host: requestConfig.host ?? self.host,
+                    queryEncoder: Self.encodeQuery,
+                    bodyEncoder: Self.encodeBody
+                )
+                fulfill(.success(urlRequest))
+            }
+        }.toSignal()
+    }
+
+    #if LUCID_REACTIVE_KIT
+    func prepareURLRequest(_ requestConfig: APIRequestConfig) -> SafeSignal<URLRequest?> {
+        return _prepareURLRequest(requestConfig)
+    }
+    #else
+    func prepareURLRequest(_ requestConfig: APIRequestConfig) -> AnyPublisher<URLRequest?, Never> {
+        return _prepareURLRequest(requestConfig).toPublisher().eraseToAnyPublisher()
+    }
+    #endif
+}
+
 extension APIRequestConfig {
 
     func urlRequest(host: String,

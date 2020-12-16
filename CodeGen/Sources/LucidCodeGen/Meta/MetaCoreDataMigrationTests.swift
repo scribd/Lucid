@@ -78,7 +78,7 @@ struct MetaCoreDataMigrationTests {
 
             override func setUp() {
                 super.setUp()
-                LucidConfiguration.logger = LoggerMock()
+                LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
             }
             
             override func tearDown() {

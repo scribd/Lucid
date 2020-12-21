@@ -86,7 +86,7 @@ final class SwiftCommand {
         logger.moveToParent()
 
         logger.moveToChild("Starting code generation...")
-        for target in configuration.targets.all where target.isSelected {
+        for target in configuration.targets.value.all where target.isSelected {
             let descriptionsHash = try DescriptionsVersionManager.descriptionsHash(absoluteInputPath: configuration.inputPath)
             let generator = try SwiftCodeGenerator(to: target,
                                                    descriptions: descriptions,

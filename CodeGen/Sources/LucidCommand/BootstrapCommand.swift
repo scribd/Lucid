@@ -69,15 +69,15 @@ final class BootstrapCommand {
             logger.info("Adding \(configuration.inputPath).")
             try configuration.inputPath.mkdir()
 
-            let endpointsPath = configuration.inputPath + OutputDirectory.endpointPayloads.path(appModuleName: configuration.targets.app.moduleName)
+            let endpointsPath = configuration.inputPath + OutputDirectory.endpointPayloads.path(appModuleName: configuration.targets.value.app.moduleName)
             logger.info("Adding \(endpointsPath).")
             try endpointsPath.mkdir()
 
-            let entitiesPath = configuration.inputPath + OutputDirectory.entities.path(appModuleName: configuration.targets.app.moduleName)
+            let entitiesPath = configuration.inputPath + OutputDirectory.entities.path(appModuleName: configuration.targets.value.app.moduleName)
             logger.info("Adding \(entitiesPath).")
             try entitiesPath.mkdir()
 
-            let subtypesPath = configuration.inputPath + OutputDirectory.subtypes.path(appModuleName: configuration.targets.app.moduleName)
+            let subtypesPath = configuration.inputPath + OutputDirectory.subtypes.path(appModuleName: configuration.targets.value.app.moduleName)
             logger.info("Adding \(subtypesPath).")
             try subtypesPath.mkdir()
 
@@ -289,13 +289,13 @@ private extension CommandConfiguration {
 
     func save(_ entity: Entity) throws {
         let fileName = entity.name.camelCased(ignoreLexicon: false) + ".json"
-        let descriptionPath = inputPath + OutputDirectory.entities.path(appModuleName: targets.app.moduleName) + fileName
+        let descriptionPath = inputPath + OutputDirectory.entities.path(appModuleName: targets.value.app.moduleName) + fileName
         try save(entity, at: descriptionPath)
     }
 
     func save(_ endpointPayload: EndpointPayload) throws {
         let fileName = endpointPayload.name.camelCased(separators: "/_", ignoreLexicon: false) + ".json"
-        let descriptionPath = inputPath + OutputDirectory.endpointPayloads.path(appModuleName: targets.app.moduleName) + fileName
+        let descriptionPath = inputPath + OutputDirectory.endpointPayloads.path(appModuleName: targets.value.app.moduleName) + fileName
         try save(endpointPayload, at: descriptionPath)
     }
 }

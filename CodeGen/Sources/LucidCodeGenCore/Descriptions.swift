@@ -42,19 +42,28 @@ public enum Description: Equatable {
     }
 }
 
-public enum TargetName: String, CaseIterable, Decodable {
+public enum TargetName: String, CaseIterable, Codable {
     case app = "app"
     case appTests = "app_tests"
     case appTestSupport = "app_test_support"
 }
 
-public protocol Targets {
+public struct Targets {
+
+    public let app: Target
     
-    var app: Target { get }
+    public let appTests: Target
     
-    var appTests: Target { get }
-    
-    var appTestSupport: Target { get }
+    public let appTestSupport: Target
+
+    public init(app: Target,
+                appTests: Target,
+                appTestSupport: Target) {
+
+        self.app = app
+        self.appTests = appTests
+        self.appTestSupport = appTestSupport
+    }
 }
 
 public extension Targets {
@@ -64,39 +73,63 @@ public extension Targets {
     }
 }
 
-public protocol Target {
+public struct Target {
     
-    var name: TargetName { get }
+    public let name: TargetName
     
     /// Target's module name. Mostly used for imports.
-    var moduleName: String { get }
+    public let moduleName: String
     
     /// Where to generate the boilerplate code.
-    var outputPath: Path { get }
+    public let outputPath: Path
     
     /// Is target selected to be generated.
-    var isSelected: Bool { get }
+    public let isSelected: Bool
+
+    public init(name: TargetName,
+                moduleName: String,
+                outputPath: Path,
+                isSelected: Bool) {
+
+        self.name = name
+        self.moduleName = moduleName
+        self.outputPath = outputPath
+        self.isSelected = isSelected
+    }
 }
 
 public typealias Platform = String
 
-public protocol Descriptions {
+public final class Descriptions {
     
-    var subtypes: [Subtype] { get }
+    public let subtypes: [Subtype]
     
-    var entities: [Entity] { get }
+    public let entities: [Entity]
     
-    var endpoints: [EndpointPayload] { get }
-    
-    var subtypesByName: [String: Subtype] { get }
-    
-    var entitiesByName: [String: Entity] { get }
-    
-    var endpointsByName: [String: EndpointPayload] { get }
-    
-    var targets: Targets { get }
+    public let endpoints: [EndpointPayload]
 
-    var version: Version { get }
+    public let targets: Targets
+
+    public let version: Version
+
+    public lazy var subtypesByName = subtypes.reduce(into: [:]) { $0[$1.name] = $1 }
+
+    public lazy var entitiesByName = entities.reduce(into: [:]) { $0[$1.name] = $1 }
+    
+    public lazy var endpointsByName = endpoints.reduce(into: [:]) { $0[$1.name] = $1 }
+
+    public init(subtypes: [Subtype],
+                entities: [Entity],
+                endpoints: [EndpointPayload],
+                targets: Targets,
+                version: Version) {
+
+        self.subtypes = subtypes
+        self.entities = entities
+        self.endpoints = endpoints
+        self.targets = targets
+        self.version = version
+    }
 }
 
 // MARK: - EndpointPayload
@@ -503,7 +536,7 @@ public struct EntityRelationship: Equatable {
 
 public struct Subtype: Equatable {
     
-    public enum `Protocol`: String, Decodable {
+    public enum `Protocol`: String, Codable {
         case codable
     }
     

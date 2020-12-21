@@ -41,7 +41,7 @@ import PathKit
         logger.moveToParent()
 
         logger.moveToChild("Starting code generation...")
-        let generator = SwiftExtensionGenerator(to: configuration.targets.app,
+        let generator = SwiftExtensionGenerator(to: configuration.targets.value.app,
                                                 descriptions: currentDescriptions,
                                                 appVersion: currentAppVersion,
                                                 organizationName: configuration.organizationName,

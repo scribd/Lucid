@@ -67,20 +67,22 @@ final class SwiftCodeGenerator {
             }
             logger.moveToParent()
 
-            return InternalSwiftCodeGenerator(to: target,
-                                              descriptions: $1,
-                                              appVersion: appVersion,
-                                              oldestModelVersion: oldestModelVersion,
-                                              historyVersions: historyVersions,
-                                              shouldGenerateDataModel: shouldGenerateDataModel,
-                                              descriptionsHash: descriptionsHash,
-                                              platform: $0,
-                                              responseHandlerFunction: responseHandlerFunction,
-                                              coreDataMigrationsFunction: coreDataMigrationsFunction,
-                                              reactiveKit: reactiveKit,
-                                              useCoreDataLegacyNaming: useCoreDataLegacyNaming,
-                                              organizationName: organizationName,
-                                              logger: logger)
+            return InternalSwiftCodeGenerator(
+                to: target,
+                descriptions: $1,
+                appVersion: appVersion,
+                oldestModelVersion: oldestModelVersion,
+                historyVersions: historyVersions,
+                shouldGenerateDataModel: shouldGenerateDataModel,
+                descriptionsHash: descriptionsHash,
+                platform: $0,
+                responseHandlerFunction: responseHandlerFunction,
+                coreDataMigrationsFunction: coreDataMigrationsFunction,
+                reactiveKit: reactiveKit,
+                useCoreDataLegacyNaming: useCoreDataLegacyNaming,
+                organizationName: organizationName,
+                logger: logger
+            )
         }
     }
     

@@ -12,45 +12,15 @@ import PathKit
 
 // MARK: - Descriptions
 
-final class Descriptions: LucidCodeGenCore.Descriptions {
+extension Descriptions {
 
-    let subtypes: [Subtype]
-    let entities: [Entity]
-    let endpoints: [EndpointPayload]
-    
-    let subtypesByName: [String: Subtype]
-    let entitiesByName: [String: Entity]
-    let endpointsByName: [String: EndpointPayload]
-    
-    let persistedEntitiesByName: [String: Entity]
-    
-    let targets: Targets
-
-    let version: Version
-
-    private init(subtypes: [Subtype],
-                 entities: [Entity],
-                 endpoints: [EndpointPayload],
-                 targets: Targets,
-                 version: Version) {
-
-        self.subtypes = subtypes
-        self.entities = entities
-        self.endpoints = endpoints
-        
-        self.subtypesByName = subtypes.reduce(into: [:]) { $0[$1.name] = $1 }
-        self.entitiesByName = entities.reduce(into: [:]) { $0[$1.name] = $1 }
-        self.endpointsByName = endpoints.reduce(into: [:]) { $0[$1.name] = $1 }
-        
-        persistedEntitiesByName = entitiesByName
+    var persistedEntitiesByName: [String: Entity] {
+        return entitiesByName
             .values
             .filter { $0.persist }
             .reduce(into: [:]) { $0[$1.name] = $1 }
-
-        self.targets = targets
-        self.version = version
     }
-    
+
     fileprivate convenience init(_ parser: DescriptionsParser, _ targets: Targets, _ version: Version) throws {
         let subtypes: [Subtype] = try parser.parseDescription(.subtypes).sorted { $0.name < $1.name }
         let entities: [Entity] = try parser.parseDescription(.entities).sorted { $0.name < $1.name }
@@ -112,16 +82,16 @@ final class Descriptions: LucidCodeGenCore.Descriptions {
 
 extension Descriptions: Sequence {
 
-    typealias Iterator = DescriptionsIterator
+    public typealias Iterator = DescriptionsIterator
     
-    func makeIterator() -> DescriptionsIterator {
+    public func makeIterator() -> DescriptionsIterator {
         return DescriptionsIterator(self)
     }
 }
 
-struct DescriptionsIterator: IteratorProtocol {
+public struct DescriptionsIterator: IteratorProtocol {
     
-    typealias Element = Description
+    public typealias Element = Description
     
     private let descriptions: Descriptions
     
@@ -134,7 +104,7 @@ struct DescriptionsIterator: IteratorProtocol {
         self.descriptions = descriptions
     }
     
-    mutating func next() -> Description? {
+    public mutating func next() -> Description? {
         if all == false {
             all = true
             return .all
@@ -177,14 +147,14 @@ final class DescriptionsParser {
     
     func parse(version: Version) throws -> Descriptions {
         logger.moveToChild("Parsing Descriptions.")
-        let descriptions = try Descriptions(self, targets, version)
+        let descriptions = try Descriptions(self, targets.value, version)
         logger.moveToParent()
         return descriptions
     }
     
     fileprivate func parseDescription<D: Decodable>(_ directory: OutputDirectory) throws -> [D] {
         
-        let directory = directory.path(appModuleName: targets.app.moduleName)
+        let directory = directory.path(appModuleName: targets.value.app.moduleName)
         logger.moveToChild("Parsing \(directory.string).")
         
         let files = (inputPath + directory)

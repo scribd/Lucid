@@ -11,43 +11,40 @@ import LucidCodeGenCore
 
 public final class CoreDataXCDataModelGenerator: Generator {
 
+    public lazy var outputDirectory = OutputDirectory.coreDataModel(version: parameters.appVersion)
+
+    public var targetName = TargetName.app
+
     public let name = "Core Data model"
     
     private let filename = "contents"
 
-    private let version: Version
+    private let parameters: GeneratorParameters
 
-    private let historyVersions: [Version]
-
-    private let useCoreDataLegacyNaming: Bool
-
-    private let descriptions: [Version: Descriptions]
-    
-    public init(version: Version,
-                historyVersions: [Version],
-                useCoreDataLegacyNaming: Bool,
-                descriptions: [Version: Descriptions]) {
-
-        self.version = version
-        self.historyVersions = historyVersions
-        self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
-        self.descriptions = descriptions
+    public init(_ parameters: GeneratorParameters) {
+        self.parameters = parameters
     }
     
     public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
+        guard parameters.shouldGenerateDataModel else { return nil }
 
-        guard let currentDescriptions = self.descriptions[version] else {
-            fatalError("Could not find descriptions for version: \(version.dotDescription)")
+        guard let currentDescriptions = parameters.descriptions[parameters.appVersion] else {
+            fatalError("Could not find descriptions for version: \(parameters.appVersion.dotDescription)")
         }
         
         guard element == .all else { return nil }
         
         let content = """
         <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-        <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="14460.32" systemVersion="18A391" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="\(version.dotDescription)">
+        <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="14460.32" systemVersion="18A391" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="\(parameters.appVersion.dotDescription)">
 
         \(try currentDescriptions.entities.filter { $0.persist }.flatMap { entity -> [String] in
-            return try entity.versionHistory.resolve(for: entity, in: self.descriptions, currentVersion: version, historyVersions: historyVersions).map {
+            return try entity.versionHistory.resolve(
+                for: entity,
+                in: parameters.descriptions,
+                currentVersion: parameters.appVersion,
+                historyVersions: parameters.historyVersions
+            ).map {
                 try generate(for: $0, in: $1, version: $2, previousName: $3, previousDescriptions: $4)
             }
         }.joined(separator: "\n"))
@@ -65,8 +62,8 @@ public final class CoreDataXCDataModelGenerator: Generator {
         let versionHash: String = {
             var previousEntity: Entity? = nil
             var currentHash: String = String()
-            (historyVersions.reversed() + [version]).forEach { version in
-                let entity = try? descriptions[version]?.entity(for: entityName)
+            (parameters.historyVersions.reversed() + [version]).forEach { version in
+                let entity = try? parameters.descriptions[version]?.entity(for: entityName)
                 if entity?.identifier.identifierType != previousEntity?.identifier.identifierType {
                     currentHash = version.dotDescription
                 }
@@ -84,19 +81,19 @@ public final class CoreDataXCDataModelGenerator: Generator {
                 fatalError("Could not find descriptions for previous version, but found previous name \(previousName).")
             }
             let previousEntity = try previousDescriptions.entity(for: previousName)
-            let previousEntityCoreDataName = previousEntity.coreDataName(for: previousDescriptions.version, useCoreDataLegacyNaming: useCoreDataLegacyNaming)
+            let previousEntityCoreDataName = previousEntity.coreDataName(for: previousDescriptions.version, useCoreDataLegacyNaming: parameters.useCoreDataLegacyNaming)
             elementIDText = " elementID=\"\(previousEntityCoreDataName)\""
         } else {
             elementIDText = String()
         }
-        let entityCoreDataName = entity.coreDataName(for: version, useCoreDataLegacyNaming: useCoreDataLegacyNaming)
+        let entityCoreDataName = entity.coreDataName(for: version, useCoreDataLegacyNaming: parameters.useCoreDataLegacyNaming)
         let entityCoreDataManagedName = try entity.coreDataEntityTypeID(for: version).swiftString
 
         return """
             <entity name="\(entityCoreDataName)" representedClassName="\(entityCoreDataManagedName)" syncable="YES" codeGenerationType="class"\(elementIDText)>
                 <attribute name="_identifier" attributeType="\(try identifierCoreDataType(for: entity, in: currentDescriptions))" usesScalarValueType="YES" syncable="YES" optional="YES" versionHashModifier="\(versionHash)"/>
                 <attribute name="__identifier" attributeType="\(entity.hasVoidIdentifier ? "Integer 64" : "String")" usesScalarValueType="YES" syncable="YES" optional="YES" versionHashModifier="\(versionHash)"/>
-                <attribute name="\(useCoreDataLegacyNaming ? "__typeUID" : "__type_uid")" attributeType="String" usesScalarValueType="YES" syncable="YES" optional="YES"/>
+                <attribute name="\(parameters.useCoreDataLegacyNaming ? "__typeUID" : "__type_uid")" attributeType="String" usesScalarValueType="YES" syncable="YES" optional="YES"/>
                 <fetchIndex name="remoteIdentifier">
                     <fetchIndexElement property="_identifier" type="Binary" order="ascending"/>
                 </fetchIndex>
@@ -106,22 +103,22 @@ public final class CoreDataXCDataModelGenerator: Generator {
 
         \(entity.remote ?
             """
-                    <attribute name="\(useCoreDataLegacyNaming ? "_remoteSynchronizationState" : "_remote_synchronization_state")" attributeType="String" syncable="YES" optional="YES"/>
+                    <attribute name="\(parameters.useCoreDataLegacyNaming ? "_remoteSynchronizationState" : "_remote_synchronization_state")" attributeType="String" syncable="YES" optional="YES"/>
             """
             : String()
         )
         \(try (entity.usedProperties + entity.systemProperties.map { $0.property }).map { property in
-            let propertyCoreDataName = property.coreDataName(useCoreDataLegacyNaming: useCoreDataLegacyNaming)
+            let propertyCoreDataName = property.coreDataName(useCoreDataLegacyNaming: parameters.useCoreDataLegacyNaming)
             let propertyElementIDText = property.previousName.flatMap { " elementID=\"_\($0)\"" } ?? ""
             var value = String()
             if property.isRelationship && property.isArray == false {
                 let _propertyElementIDText = property.previousName.flatMap { " elementID=\"__\($0)\"" } ?? ""
-                let _typeUIDElementIDText = property.previousName.flatMap { " elementID=\"__\($0)\(useCoreDataLegacyNaming ? "TypeUID" : "_type_uid")\"" } ?? ""
+                let _typeUIDElementIDText = property.previousName.flatMap { " elementID=\"__\($0)\(parameters.useCoreDataLegacyNaming ? "TypeUID" : "_type_uid")\"" } ?? ""
 
                 value += """
                         <attribute name="_\(propertyCoreDataName)" optional="YES" attributeType="\(try propertyCoreDataType(for: property, in: currentDescriptions))" syncable="YES"\(propertyElementIDText)/>
                         <attribute name="__\(propertyCoreDataName)" optional="YES" attributeType="String" syncable="YES"\(_propertyElementIDText)/>
-                        <attribute name="__\(propertyCoreDataName)\(useCoreDataLegacyNaming ? "TypeUID" : "_type_uid")" optional="YES" attributeType="String" syncable="YES"\(_typeUIDElementIDText)/>
+                        <attribute name="__\(propertyCoreDataName)\(parameters.useCoreDataLegacyNaming ? "TypeUID" : "_type_uid")" optional="YES" attributeType="String" syncable="YES"\(_typeUIDElementIDText)/>
                 """
             } else {
                 let optional = property.nullable || property.lazy
@@ -135,7 +132,7 @@ public final class CoreDataXCDataModelGenerator: Generator {
             if property.lazy {
                 value += """
                 
-                        <attribute name="__\(propertyCoreDataName)\(useCoreDataLegacyNaming ? "ExtraFlag" : "_lazy_flag")" optional="NO" attributeType="\(PropertyScalarType.bool.coreDataType)" usesScalarValueType="YES" syncable="YES" defaultValueString="0"/>
+                        <attribute name="__\(propertyCoreDataName)\(parameters.useCoreDataLegacyNaming ? "ExtraFlag" : "_lazy_flag")" optional="NO" attributeType="\(PropertyScalarType.bool.coreDataType)" usesScalarValueType="YES" syncable="YES" defaultValueString="0"/>
                 """
             }
             return value

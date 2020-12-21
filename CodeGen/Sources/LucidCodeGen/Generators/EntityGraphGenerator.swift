@@ -10,35 +10,33 @@ import PathKit
 import LucidCodeGenCore
 
 public final class EntityGraphGenerator: Generator {
-    
+
     public let name = "entity_graph"
-    
-    private let descriptions: Descriptions
 
-    private let reactiveKit: Bool
+    public let outputDirectory = OutputDirectory.support
 
-    private let useCoreDataLegacyNaming: Bool
-    
-    public init(descriptions: Descriptions, reactiveKit: Bool, useCoreDataLegacyNaming: Bool) {
-        self.descriptions = descriptions
-        self.reactiveKit = reactiveKit
-        self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
+    public let targetName = TargetName.app
+
+    private let parameters: GeneratorParameters
+
+    public init(_ parameters: GeneratorParameters) {
+        self.parameters = parameters
     }
-    
+
     public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
         guard element == .all else { return nil }
         
         let filename = "EntityGraph.swift"
         
         let header = MetaHeader(filename: filename, organizationName: organizationName)
-        let entityGraph = MetaEntityGraph(descriptions: descriptions,
-                                          reactiveKit: reactiveKit,
-                                          useCoreDataLegacyNaming: useCoreDataLegacyNaming)
+        let entityGraph = MetaEntityGraph(descriptions: parameters.currentDescriptions,
+                                          reactiveKit: parameters.reactiveKit,
+                                          useCoreDataLegacyNaming: parameters.useCoreDataLegacyNaming)
         
         return Meta.File(name: filename)
             .with(header: header.meta)
             .adding(import: .lucid)
-            .adding(import: reactiveKit ? .reactiveKit : .combine)
+            .adding(import: parameters.reactiveKit ? .reactiveKit : .combine)
             .adding(members: entityGraph.meta())
             .swiftFile(in: directory)
     }

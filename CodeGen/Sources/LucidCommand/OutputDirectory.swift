@@ -9,22 +9,7 @@ import Foundation
 import LucidCodeGenCore
 import PathKit
 
-enum OutputDirectory {
-    case entities
-    case payloads
-    case endpointPayloads
-    case subtypes
-    case support
-    case factories
-    case doubles
-    case coreDataModel(version: Version)
-    case coreDataModelVersion
-    case jsonPayloads(String)
-    case payloadTests
-    case coreDataTests
-    case coreDataMigrationTests
-    case sqliteFiles
-    case extensions
+extension OutputDirectory {
     
     func path(appModuleName: String) -> Path {
         switch self {

@@ -15,44 +15,33 @@ public final class CoreDataMigrationTestsGenerator: Generator {
     
     private let filename = "CoreDataMigrationTests.swift"
 
-    private let descriptions: Descriptions
-    
-    private let sqliteFiles: [String]
-    
-    private let appVersion: Version
+    public let outputDirectory = OutputDirectory.coreDataMigrationTests
 
-    private let oldestModelVersion: Version
+    public var targetName = TargetName.appTests
 
-    private let platform: Platform?
+    private let parameters: GeneratorParameters
 
-    public init(descriptions: Descriptions,
-                sqliteFiles: [String],
-                appVersion: Version,
-                oldestModelVersion: Version,
-                platform: Platform?) {
-        
-        self.descriptions = descriptions
-        self.sqliteFiles = sqliteFiles
-        self.appVersion = appVersion
-        self.oldestModelVersion = oldestModelVersion
-        self.platform = platform
+    public init(_ parameters: GeneratorParameters) {
+        self.parameters = parameters
     }
-    
+
     public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
+        guard parameters.shouldGenerateDataModel else { return nil }
         guard element == .all else { return nil }
 
         let header = MetaHeader(filename: filename, organizationName: organizationName)
 
-        let sqliteVersions = sqliteFiles
+        let sqliteVersions = parameters
+            .sqliteFiles
             .compactMap { try? Version($0, source: .coreDataModel) }
-            .filter { $0 > oldestModelVersion || Version.isMatchingRelease($0, oldestModelVersion) }
+            .filter { $0 > parameters.oldestModelVersion || Version.isMatchingRelease($0, parameters.oldestModelVersion) }
             .sorted()
 
-        let coreDataMigrationTests = MetaCoreDataMigrationTests(descriptions: descriptions,
+        let coreDataMigrationTests = MetaCoreDataMigrationTests(descriptions: parameters.currentDescriptions,
                                                                 sqliteVersions: sqliteVersions,
-                                                                appVersion: appVersion,
-                                                                oldestModelVersion: oldestModelVersion,
-                                                                platform: platform)
+                                                                appVersion: parameters.appVersion,
+                                                                oldestModelVersion: parameters.oldestModelVersion,
+                                                                platform: parameters.platform)
         
         return Meta.File(name: filename)
             .with(header: header.meta)

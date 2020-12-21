@@ -12,36 +12,28 @@ import LucidCodeGenCore
 public final class ExportSQLiteFileTestGenerator: Generator {
 
     public let name = "SQLite file export"
-    
+
     private let filename = "ExportSQLiteFile.swift"
-    
-    private let descriptionsHash: String
-    
-    private let sqliteFile: Path
 
-    private let platform: Platform?
+    public let outputDirectory = OutputDirectory.coreDataMigrationTests
 
-    private let descriptions: Descriptions
+    public let targetName = TargetName.appTests
 
-    public init(descriptions: Descriptions,
-                descriptionsHash: String,
-                sqliteFile: Path,
-                platform: Platform?) {
+    private let parameters: GeneratorParameters
 
-        self.descriptions = descriptions
-        self.descriptionsHash = descriptionsHash
-        self.sqliteFile = sqliteFile
-        self.platform = platform
+    public init(_ parameters: GeneratorParameters) {
+        self.parameters = parameters
     }
-    
+
     public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
+        guard parameters.shouldGenerateDataModel else { return nil }
         guard element == .all else { return nil }
         
         let header = MetaHeader(filename: filename, organizationName: organizationName)
-        let exportSQLiteFileTest = MetaExportSQLiteFileTest(descriptions: descriptions,
-                                                            descriptionsHash: descriptionsHash,
-                                                            sqliteFileName: sqliteFile.lastComponentWithoutExtension,
-                                                            platform: platform)
+        let exportSQLiteFileTest = MetaExportSQLiteFileTest(descriptions: parameters.currentDescriptions,
+                                                            descriptionsHash: parameters.currentDescriptionsHash,
+                                                            sqliteFileName: parameters.sqliteFile.lastComponentWithoutExtension,
+                                                            platform: parameters.platform)
         
         return Meta.File(name: filename)
             .with(header: header.meta)

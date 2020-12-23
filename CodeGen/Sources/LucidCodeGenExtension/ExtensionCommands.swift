@@ -44,11 +44,10 @@ private extension Group {
 
         command(
             name,
-            Argument<String>("input-path"),
-            Argument<String>("output-path")
-        ) { inputPath, outputPath in
+            Argument<String>("io-path")
+        ) { ioPath in
             let command = ExtensionCommand<Void, Output>()
-            try command.respond(inputPath: Path(inputPath), outputPath: Path(outputPath), run: run)
+            try command.respond(ioPath: Path(ioPath), run: run)
         }
     }
 
@@ -57,11 +56,10 @@ private extension Group {
 
         command(
             name,
-            Argument<String>("input-path"),
-            Argument<String>("output-path")
-        ) { inputPath, outputPath in
+            Argument<String>("io-path")
+        ) { ioPath in
             let command = ExtensionCommand<Input, Output>()
-            try command.respond(inputPath: Path(inputPath), outputPath: Path(outputPath), run: run)
+            try command.respond(ioPath: Path(ioPath), run: run)
         }
     }
 }

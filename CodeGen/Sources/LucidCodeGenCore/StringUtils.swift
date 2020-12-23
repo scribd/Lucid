@@ -12,7 +12,7 @@ public extension String {
     
     enum Configuration {
 
-        fileprivate static var _lexicon = [String: String]()
+        fileprivate(set) static var _lexicon = [String: String]()
         public static func setLexicon(_ lexicon: [String]) {
             _lexicon = [:]
             for word in lexicon {

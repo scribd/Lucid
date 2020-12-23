@@ -28,16 +28,20 @@ extension ExtensionCommand where Input == Void, Output: Codable {
         return try ExtensionCommand<Empty, Output>().request(extensionPath: extensionPath, commandName: commandName, input: Empty())
     }
 
-    public func respond(inputPath: Path,
-                        outputPath: Path,
-                        run: @escaping () throws -> Output) throws {
-        try ExtensionCommand<Empty, Output>().respond(inputPath: inputPath, outputPath: outputPath) { _ in
+    public func respond(ioPath: Path, run: @escaping () throws -> Output) throws {
+        try ExtensionCommand<Empty, Output>().respond(ioPath: ioPath) { _ in
             return try run()
         }
     }
 }
 
 private var builtExtensionPaths = Set<Path>()
+
+private enum Paths {
+    static let input = "input.json"
+    static let output = "output.json"
+    static let environment = "environment.json"
+}
 
 extension ExtensionCommand where Input: Codable, Output: Codable {
 
@@ -50,8 +54,9 @@ extension ExtensionCommand where Input: Codable, Output: Codable {
         do {
             try tmpPath.mkdir()
 
-            let inputPath = tmpPath + "input.json"
-            let outputPath = tmpPath + "output.json"
+            let environmentPath = tmpPath + Paths.environment
+            let inputPath = tmpPath + Paths.input
+            let outputPath = tmpPath + Paths.output
 
             if builtExtensionPaths.contains(extensionPath) == false {
                 try shellOut(
@@ -61,10 +66,16 @@ extension ExtensionCommand where Input: Codable, Output: Codable {
                 builtExtensionPaths.insert(extensionPath)
             }
 
+            let environment = Environment(
+                lexicon: Array(String.Configuration._lexicon.values),
+                entitySuffix: String.Configuration.entitySuffix
+            )
+            try environmentPath.write(encoder.encode(environment))
+
             try inputPath.write(encoder.encode(input))
 
             try shellOut(
-                to: ".build/release/extension \(commandName) \(inputPath.absolute().string) \(outputPath.absolute().string)",
+                to: ".build/release/extension \(commandName) \(tmpPath.absolute().string)",
                 at: extensionPath.absolute().string
             )
 
@@ -80,11 +91,16 @@ extension ExtensionCommand where Input: Codable, Output: Codable {
         }
     }
 
-    public func respond(inputPath: Path,
-                        outputPath: Path,
-                        run: @escaping (Input) throws -> Output) throws {
+    public func respond(ioPath: Path, run: @escaping (Input) throws -> Output) throws {
+        let inputPath = ioPath + Paths.input
+        let outputPath = ioPath + Paths.output
+        let environmentPath = ioPath + Paths.environment
 
         do {
+            let environment = try decoder.decode(Environment.self, from: environmentPath.read())
+            String.Configuration.setLexicon(environment.lexicon)
+            String.Configuration.entitySuffix = environment.entitySuffix
+
             let input = try decoder.decode(Input.self, from: inputPath.read())
             let output = try run(input)
             try outputPath.write(encoder.encode(ExtensionCommandResponse.success(output)))
@@ -100,3 +116,10 @@ public enum ExtensionCommandResponse<Success> where Success: Codable {
 }
 
 private struct Empty: Codable {}
+
+public struct Environment: Codable {
+
+    public let lexicon: [String]
+
+    public let entitySuffix: String
+}

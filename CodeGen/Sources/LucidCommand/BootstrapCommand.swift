@@ -67,7 +67,7 @@ final class BootstrapCommand {
         let lucidPath = extensionsPath + ".lucid"
         if lucidPath.exists == false {
             try shellOut(
-                to: "git clone --single-branch --branch theo/plugins git@github.com:scribd/Lucid.git .lucid",
+                to: "git clone git@github.com:scribd/Lucid.git .lucid",
                 at: extensionsPath.absolute().string
             )
         }

@@ -1,1 +1,0 @@
-../../../Sources/LucidCommand/Descriptions.swift

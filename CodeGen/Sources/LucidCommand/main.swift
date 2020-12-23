@@ -69,13 +69,12 @@ let main = Group {
 
     $0.command(
         "bootstrap",
-        Option<String>("config-path", default: ".lucid.yaml", description: "Configuration file location."),
-        Option<String>("source-code-path", default: String(), description: "Source code directory location.")
-    ) { configPath, sourceCodePath in
+        Option<String>("config-path", default: ".lucid.yaml", description: "Configuration file location.")
+    ) { configPath in
 
         let logger = Logger()
         let configPath = Path(configPath)
-        let bootstrapCommand = BootstrapCommand(logger: logger, sourceCodePath: sourceCodePath)
+        let bootstrapCommand = BootstrapCommand(logger: logger)
 
         if configPath.exists == false {
             try bootstrapCommand.saveDefaultConfiguration(with: configPath)

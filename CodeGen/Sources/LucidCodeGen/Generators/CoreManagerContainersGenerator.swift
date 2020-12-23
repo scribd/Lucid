@@ -10,42 +10,33 @@ import PathKit
 import LucidCodeGenCore
 
 public final class CoreManagerContainersGenerator: Generator {
-    
+
     public let name = "core manager containers"
     
-    private let descriptions: Descriptions
-    
     private let filename = "CoreManagerContainer.swift"
-    
-    private let responseHandlerFunction: String?
 
-    private let coreDataMigrationsFunction: String?
+    public let outputDirectory = OutputDirectory.support
 
-    private let reactiveKit: Bool
+    public let targetName = TargetName.app
 
-    public init(descriptions: Descriptions,
-                responseHandlerFunction: String?,
-                coreDataMigrationsFunction: String?,
-                reactiveKit: Bool) {
+    private let parameters: GeneratorParameters
 
-        self.descriptions = descriptions
-        self.responseHandlerFunction = responseHandlerFunction
-        self.coreDataMigrationsFunction = coreDataMigrationsFunction
-        self.reactiveKit = reactiveKit
+    public init(_ parameters: GeneratorParameters) {
+        self.parameters = parameters
     }
-    
+
     public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
         guard element == .all else { return nil }
         
         let header = MetaHeader(filename: filename, organizationName: organizationName)
-        let coreManagerContainer = MetaCoreManagerContainer(descriptions: descriptions,
-                                                            responseHandlerFunction: responseHandlerFunction,
-                                                            coreDataMigrationsFunction: coreDataMigrationsFunction,
-                                                            reactiveKit: reactiveKit)
+        let coreManagerContainer = MetaCoreManagerContainer(descriptions: parameters.currentDescriptions,
+                                                            responseHandlerFunction: parameters.responseHandlerFunction,
+                                                            coreDataMigrationsFunction: parameters.coreDataMigrationsFunction,
+                                                            reactiveKit: parameters.reactiveKit)
         
         return Meta.File(name: filename)
             .adding(import: .lucid)
-            .adding(import: reactiveKit ? .reactiveKit : .combine)
+            .adding(import: parameters.reactiveKit ? .reactiveKit : .combine)
             .with(header: header.meta)
             .with(body: coreManagerContainer.meta())
             .swiftFile(in: directory)

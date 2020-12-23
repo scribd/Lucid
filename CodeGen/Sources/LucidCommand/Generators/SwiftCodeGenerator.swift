@@ -31,6 +31,7 @@ final class SwiftCodeGenerator {
          reactiveKit: Bool,
          useCoreDataLegacyNaming: Bool,
          organizationName: String,
+         extensionsPath: Path?,
          logger: Logger) throws {
 
         guard let latestDescription = descriptions[appVersion] else {
@@ -67,20 +68,23 @@ final class SwiftCodeGenerator {
             }
             logger.moveToParent()
 
-            return InternalSwiftCodeGenerator(to: target,
-                                              descriptions: $1,
-                                              appVersion: appVersion,
-                                              oldestModelVersion: oldestModelVersion,
-                                              historyVersions: historyVersions,
-                                              shouldGenerateDataModel: shouldGenerateDataModel,
-                                              descriptionsHash: descriptionsHash,
-                                              platform: $0,
-                                              responseHandlerFunction: responseHandlerFunction,
-                                              coreDataMigrationsFunction: coreDataMigrationsFunction,
-                                              reactiveKit: reactiveKit,
-                                              useCoreDataLegacyNaming: useCoreDataLegacyNaming,
-                                              organizationName: organizationName,
-                                              logger: logger)
+            return InternalSwiftCodeGenerator(
+                to: target,
+                descriptions: $1,
+                appVersion: appVersion,
+                oldestModelVersion: oldestModelVersion,
+                historyVersions: historyVersions,
+                shouldGenerateDataModel: shouldGenerateDataModel,
+                descriptionsHash: descriptionsHash,
+                platform: $0,
+                responseHandlerFunction: responseHandlerFunction,
+                coreDataMigrationsFunction: coreDataMigrationsFunction,
+                reactiveKit: reactiveKit,
+                useCoreDataLegacyNaming: useCoreDataLegacyNaming,
+                organizationName: organizationName,
+                extensionsPath: extensionsPath,
+                logger: logger
+            )
         }
     }
     
@@ -141,6 +145,7 @@ private final class InternalSwiftCodeGenerator {
     private let reactiveKit: Bool
     private let useCoreDataLegacyNaming: Bool
     private let organizationName: String
+    private let extensionsPath: Path?
 
     private let logger: Logger
     
@@ -174,6 +179,7 @@ private final class InternalSwiftCodeGenerator {
          reactiveKit: Bool,
          useCoreDataLegacyNaming: Bool,
          organizationName: String,
+         extensionsPath: Path?,
          logger: Logger) {
         
         self.target = target
@@ -189,113 +195,72 @@ private final class InternalSwiftCodeGenerator {
         self.reactiveKit = reactiveKit
         self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
         self.organizationName = organizationName
+        self.extensionsPath = extensionsPath
         self.logger = logger
     }
     
     func generate() throws {
         
         logger.moveToChild("Generating Code \(platform.flatMap { "for platform: \($0), " } ?? "")for target: '\(target.name.rawValue)'...")
-        
-        // App Target
-        
-        try generate(with: SubtypesGenerator(descriptions: currentDescriptions),
-                     in: .subtypes,
-                     for: .app,
-                     deleteExtraFiles: true)
-        
-        try generate(with: EntitiesGenerator(descriptions: currentDescriptions,
-                                             useCoreDataLegacyNaming: useCoreDataLegacyNaming),
-                     in: .entities,
-                     for: .app,
-                     deleteExtraFiles: true)
-        
-        try generate(with: EndpointPayloadsGenerator(descriptions: currentDescriptions),
-                     in: .payloads,
-                     for: .app,
-                     deleteExtraFiles: true)
-        
-        try generate(with: CoreManagerContainersGenerator(descriptions: currentDescriptions,
-                                                          responseHandlerFunction: responseHandlerFunction,
-                                                          coreDataMigrationsFunction: coreDataMigrationsFunction,
-                                                          reactiveKit: reactiveKit),
-                     in: .support,
-                     for: .app)
 
-        try generate(with: SupportUtilsGenerator(descriptions: currentDescriptions,
-                                                 reactiveKit: reactiveKit,
-                                                 moduleName: target.moduleName),
-                     in: .support,
-                     for: .app)
-        
-        try generate(with: EntityGraphGenerator(descriptions: currentDescriptions,
-                                                reactiveKit: reactiveKit,
-                                                useCoreDataLegacyNaming: useCoreDataLegacyNaming),
-                     in: .support,
-                     for: .app)
+        let parameters = GeneratorParameters(
+            appVersion: appVersion,
+            coreDataMigrationsFunction: coreDataMigrationsFunction,
+            currentDescriptions: currentDescriptions,
+            currentDescriptionsHash: descriptionsHash,
+            descriptions: descriptions,
+            historyVersions: historyVersions,
+            targetModuleName: target.moduleName,
+            oldestModelVersion: oldestModelVersion,
+            platform: platform,
+            reactiveKit: reactiveKit,
+            responseHandlerFunction: responseHandlerFunction,
+            shouldGenerateDataModel: shouldGenerateDataModel,
+            sqliteFile: sqliteFile,
+            sqliteFiles: sqliteFiles,
+            useCoreDataLegacyNaming: useCoreDataLegacyNaming
+        )
 
-        if shouldGenerateDataModel {
-            try generate(with: CoreDataXCDataModelGenerator(version: appVersion,
-                                                            historyVersions: historyVersions,
-                                                            useCoreDataLegacyNaming: useCoreDataLegacyNaming,
-                                                            descriptions: descriptions),
-                         in: .coreDataModel(version: appVersion),
-                         for: .app)
-        }
-        
-        // App Tests Target
+        var generators: [Generator] = [
+            SubtypesGenerator(parameters),
+            EntitiesGenerator(parameters),
+            EndpointPayloadsGenerator(parameters),
+            CoreManagerContainersGenerator(parameters),
+            SupportUtilsGenerator(parameters),
+            EntityGraphGenerator(parameters),
+            CoreDataXCDataModelGenerator(parameters),
+            PayloadTestsGenerator(parameters),
+            CoreDataTestsGenerator(parameters),
+            ExportSQLiteFileTestGenerator(parameters),
+            CoreDataMigrationTestsGenerator(parameters),
+            FactoriesGenerator(parameters),
+            SpyGenerator(parameters)
+        ]
 
-        try generate(with: PayloadTestsGenerator(descriptions: currentDescriptions),
-                     in: .payloadTests,
-                     for: .appTests,
-                     deleteExtraFiles: true)
-        
-        try generate(with: CoreDataTestsGenerator(descriptions: currentDescriptions),
-                     in: .coreDataTests,
-                     for: .appTests,
-                     deleteExtraFiles: true)
-        
-        if shouldGenerateDataModel {
-            try generate(with: ExportSQLiteFileTestGenerator(descriptions: currentDescriptions,
-                                                             descriptionsHash: descriptionsHash,
-                                                             sqliteFile: sqliteFile,
-                                                             platform: platform),
-                         in: .coreDataMigrationTests,
-                         for: .appTests)
-
-            try generate(with: CoreDataMigrationTestsGenerator(descriptions: currentDescriptions,
-                                                               sqliteFiles: sqliteFiles,
-                                                               appVersion: appVersion,
-                                                               oldestModelVersion: oldestModelVersion,
-                                                               platform: platform),
-                         in: .coreDataMigrationTests,
-                         for: .appTests)
+        if let extensionsPath = extensionsPath, extensionsPath.exists {
+            generators += try extensionsPath
+                .children()
+                .lazy
+                .filter {
+                    $0.lastComponent.hasPrefix(".") == false && $0.isDirectory && ($0 + "Package.swift").exists
+                }
+                .map { try ExtensionGenerator(parameters, extensionPath: $0, logger: logger) }
         }
 
-        // App Test Support Target
-        
-        try generate(with: FactoriesGenerator(descriptions: currentDescriptions),
-                     in: .factories,
-                     for: .appTestSupport,
-                     deleteExtraFiles: true)
-
-        try generate(with: SpyGenerator(descriptions: currentDescriptions),
-                     in: .doubles,
-                     for: .appTestSupport,
-                     deleteExtraFiles: true)
+        for generator in generators {
+            try generate(with: generator)
+        }
 
         logger.moveToParent()
     }
     
-    private func generate<G: Generator>(with generator: G,
-                                        in directory: OutputDirectory,
-                                        for targetName: TargetName,
-                                        deleteExtraFiles: Bool = false) throws {
+    private func generate(with generator: Generator) throws {
 
         guard let descriptions = self.descriptions[appVersion] else {
             fatalError("Could not find descriptions for version: \(appVersion)")
         }
 
-        guard targetName == target.name else { return }
+        guard generator.targetName == target.name else { return }
         
         logger.moveToChild("Generating \(generator.name)...")
         
@@ -304,29 +269,21 @@ private final class InternalSwiftCodeGenerator {
             if let platform = platform {
                 _directory = _directory + Path(platform)
             }
-            return _directory + directory.path(appModuleName: descriptions.targets.app.moduleName)
+            return _directory + generator.outputDirectory.path(appModuleName: descriptions.targets.app.moduleName)
         }()
         
         let preExistingFiles = Set(directory.glob("*.swift").map { $0.string })
         var generatedFiles = Set<String>()
         
-        for element in descriptions {
-            do {
-                guard let file = try generator.generate(for: element, in: directory, organizationName: organizationName) else {
-                    continue
-                }
-                try file.path.parent().mkpath()
-                try file.path.write(file.content)
-                generatedFiles.insert(file.path.string)
-                logger.done("Generated \(file.path).")
-            } catch {
-                logger.error("Failed to generate '\(element)'.")
-                throw error
-            }
+        for file in try generator.generate(for: Array(descriptions), in: directory, organizationName: organizationName, logger: logger) {
+            try file.path.parent().mkpath()
+            try file.path.write(file.content)
+            generatedFiles.insert(file.path.string)
+            logger.done("Generated \(file.path).")
         }
 
         let extraFiles = preExistingFiles.subtracting(generatedFiles).map { Path($0) }
-        if deleteExtraFiles && extraFiles.isEmpty == false {
+        if generator.deleteExtraFiles && extraFiles.isEmpty == false {
             logger.moveToChild("Deleting Extra Files...")
 
             for file in extraFiles where file.exists {

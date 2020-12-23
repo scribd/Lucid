@@ -108,9 +108,9 @@ struct CommandConfiguration {
         var configuration = configuration
 
         configuration._workingPath = configPath.parent()
-        configuration.targets._app._workingPath = configuration._workingPath
-        configuration.targets._appTests._workingPath = configuration._workingPath
-        configuration.targets._appTestSupport._workingPath = configuration._workingPath
+        configuration.targets.app._workingPath = configuration._workingPath
+        configuration.targets.appTests._workingPath = configuration._workingPath
+        configuration.targets.appTestSupport._workingPath = configuration._workingPath
         
         configuration.targets.select(with: try selectedTargets.map { targetString in
             guard let target = TargetName(rawValue: targetString) else {
@@ -158,60 +158,57 @@ struct CommandConfiguration {
             logger: logger
         )
 
-        configuration.targets._app.configure()
-        configuration.targets._appTests.configure()
-        configuration.targets._appTestSupport.configure()
+        configuration.targets.app.configure()
+        configuration.targets.appTests.configure()
+        configuration.targets.appTestSupport.configure()
 
         return configuration
     }
 }
 
-struct TargetConfigurations: Targets {
+struct TargetConfigurations {
     
-    fileprivate var _app: TargetConfiguration
-    var app: Target {
-        return _app
-    }
-    
-    fileprivate var _appTests: TargetConfiguration
-    var appTests: Target {
-        return _appTests
-    }
-    
-    fileprivate var _appTestSupport: TargetConfiguration
-    var appTestSupport: Target {
-        return _appTestSupport
-    }
-    
+    fileprivate var app: TargetConfiguration
+    fileprivate var appTests: TargetConfiguration
+    fileprivate var appTestSupport: TargetConfiguration
+
     init() {
-        _app = TargetConfiguration(.app)
-        _appTests = TargetConfiguration(.appTests)
-        _appTestSupport = TargetConfiguration(.appTestSupport)
+        app = TargetConfiguration(.app)
+        appTests = TargetConfiguration(.appTests)
+        appTestSupport = TargetConfiguration(.appTestSupport)
     }
     
     mutating fileprivate func select(with selectedTargets: [TargetName]) {
 
         if selectedTargets.isEmpty == false {
-            _app.isSelected = false
-            _appTests.isSelected = false
-            _appTestSupport.isSelected = false
+            app.isSelected = false
+            appTests.isSelected = false
+            appTestSupport.isSelected = false
         }
         
         for target in selectedTargets {
             switch target {
             case .app:
-                _app.isSelected = true
+                app.isSelected = true
             case .appTests:
-                _appTests.isSelected = true
+                appTests.isSelected = true
             case .appTestSupport:
-                _appTestSupport.isSelected = true
+                appTestSupport.isSelected = true
             }
         }
     }
+
+    var value: Targets {
+        return Targets(
+            app: app.value,
+            appTests: appTests.value,
+            appTestSupport: appTestSupport.value
+        )
+    }
 }
 
-struct TargetConfiguration: Target {
-   
+struct TargetConfiguration {
+
     fileprivate(set) var name: TargetName
     
     fileprivate var _outputPath: Path
@@ -242,6 +239,15 @@ struct TargetConfiguration: Target {
         if _outputPath == Path() {
             _outputPath = Path(moduleName) + Defaults.targetOutputPath
         }
+    }
+
+    var value: Target {
+        return Target(
+            name: name,
+            moduleName: moduleName,
+            outputPath: outputPath,
+            isSelected: isSelected
+        )
     }
 }
 
@@ -318,8 +324,8 @@ extension CommandConfiguration: Codable {
 
         let activeTargets = [
             TargetName.app.rawValue,
-            targets._appTests.isSelected ? TargetName.appTests.rawValue : nil,
-            targets._appTestSupport.isSelected ? TargetName.appTestSupport.rawValue : nil
+            targets.appTests.isSelected ? TargetName.appTests.rawValue : nil,
+            targets.appTestSupport.isSelected ? TargetName.appTestSupport.rawValue : nil
         ].compactMap { $0 }
 
         if activeTargets.count > 1 {
@@ -349,32 +355,32 @@ extension TargetConfigurations: Codable {
     
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: TargetName.self)
-        _app = try container.decodeIfPresent(TargetConfiguration.self, forKey: .app) ?? TargetConfiguration()
-        _appTests = try container.decodeIfPresent(TargetConfiguration.self, forKey: .appTests) ?? TargetConfiguration()
-        _appTestSupport = try container.decodeIfPresent(TargetConfiguration.self, forKey: .appTestSupport) ?? TargetConfiguration()
+        app = try container.decodeIfPresent(TargetConfiguration.self, forKey: .app) ?? TargetConfiguration()
+        appTests = try container.decodeIfPresent(TargetConfiguration.self, forKey: .appTests) ?? TargetConfiguration()
+        appTestSupport = try container.decodeIfPresent(TargetConfiguration.self, forKey: .appTestSupport) ?? TargetConfiguration()
         
-        _app.name = .app
-        _app.configure()
+        app.name = .app
+        app.configure()
 
-        _appTests.name = .appTests
-        _appTests.isSelected = false
-        _appTests.configure()
+        appTests.name = .appTests
+        appTests.isSelected = false
+        appTests.configure()
 
-        _appTestSupport.name = .appTestSupport
-        _appTestSupport.isSelected = false
-        _appTestSupport.configure()
+        appTestSupport.name = .appTestSupport
+        appTestSupport.isSelected = false
+        appTestSupport.configure()
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: TargetName.self)
-        try container.encode(_app, forKey: .app)
+        try container.encode(app, forKey: .app)
 
-        if _appTests.isSelected {
-            try container.encode(_appTests, forKey: .appTests)
+        if appTests.isSelected {
+            try container.encode(appTests, forKey: .appTests)
         }
 
-        if _appTestSupport.isSelected {
-            try container.encode(_appTestSupport, forKey: .appTestSupport)
+        if appTestSupport.isSelected {
+            try container.encode(appTestSupport, forKey: .appTestSupport)
         }
     }
 }
@@ -398,18 +404,5 @@ extension TargetConfiguration: Codable {
         var container = encoder.container(keyedBy: Keys.self)
         try container.encode(_outputPath, forKey: .outputPath)
         try container.encode(moduleName, forKey: .moduleName)
-    }
-}
-
-extension Path: Codable {
-    
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        self.init(try container.decode(String.self))
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(string)
     }
 }

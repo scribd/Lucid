@@ -17,7 +17,7 @@ public protocol ExtensionGenerator {
     /// Directory in which the files will be generated (defaults to `Extensions/$name`).
     static var outputDirectory: OutputDirectory { get }
 
-    /// Target in which the generated files will be generated.
+    /// Target in which the files will be generated.
     static var targetName: TargetName { get }
 
     /// Should remove extra files from target directory.

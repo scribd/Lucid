@@ -31,6 +31,7 @@ final class SwiftCodeGenerator {
          reactiveKit: Bool,
          useCoreDataLegacyNaming: Bool,
          organizationName: String,
+         extensionsPath: Path?,
          logger: Logger) throws {
 
         guard let latestDescription = descriptions[appVersion] else {
@@ -81,6 +82,7 @@ final class SwiftCodeGenerator {
                 reactiveKit: reactiveKit,
                 useCoreDataLegacyNaming: useCoreDataLegacyNaming,
                 organizationName: organizationName,
+                extensionsPath: extensionsPath,
                 logger: logger
             )
         }
@@ -143,6 +145,7 @@ private final class InternalSwiftCodeGenerator {
     private let reactiveKit: Bool
     private let useCoreDataLegacyNaming: Bool
     private let organizationName: String
+    private let extensionsPath: Path?
 
     private let logger: Logger
     
@@ -176,6 +179,7 @@ private final class InternalSwiftCodeGenerator {
          reactiveKit: Bool,
          useCoreDataLegacyNaming: Bool,
          organizationName: String,
+         extensionsPath: Path?,
          logger: Logger) {
         
         self.target = target
@@ -191,6 +195,7 @@ private final class InternalSwiftCodeGenerator {
         self.reactiveKit = reactiveKit
         self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
         self.organizationName = organizationName
+        self.extensionsPath = extensionsPath
         self.logger = logger
     }
     
@@ -216,7 +221,7 @@ private final class InternalSwiftCodeGenerator {
             useCoreDataLegacyNaming: useCoreDataLegacyNaming
         )
 
-        let generators: [Generator] = [
+        var generators: [Generator] = [
             SubtypesGenerator(parameters),
             EntitiesGenerator(parameters),
             EndpointPayloadsGenerator(parameters),
@@ -231,6 +236,16 @@ private final class InternalSwiftCodeGenerator {
             FactoriesGenerator(parameters),
             SpyGenerator(parameters)
         ]
+
+        if let extensionsPath = extensionsPath, extensionsPath.exists {
+            generators += try extensionsPath
+                .children()
+                .lazy
+                .filter {
+                    $0.lastComponent.hasPrefix(".") == false && $0.isDirectory && ($0 + "Package.swift").exists
+                }
+                .map { try ExtensionGenerator(parameters, extensionPath: $0, logger: logger) }
+        }
 
         for generator in generators {
             try generate(with: generator)
@@ -260,19 +275,11 @@ private final class InternalSwiftCodeGenerator {
         let preExistingFiles = Set(directory.glob("*.swift").map { $0.string })
         var generatedFiles = Set<String>()
         
-        for element in descriptions {
-            do {
-                guard let file = try generator.generate(for: element, in: directory, organizationName: organizationName) else {
-                    continue
-                }
-                try file.path.parent().mkpath()
-                try file.path.write(file.content)
-                generatedFiles.insert(file.path.string)
-                logger.done("Generated \(file.path).")
-            } catch {
-                logger.error("Failed to generate '\(element)'.")
-                throw error
-            }
+        for file in try generator.generate(for: Array(descriptions), in: directory, organizationName: organizationName, logger: logger) {
+            try file.path.parent().mkpath()
+            try file.path.write(file.content)
+            generatedFiles.insert(file.path.string)
+            logger.done("Generated \(file.path).")
         }
 
         let extraFiles = preExistingFiles.subtracting(generatedFiles).map { Path($0) }

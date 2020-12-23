@@ -99,6 +99,7 @@ final class SwiftCommand {
                                                    reactiveKit: configuration.reactiveKit,
                                                    useCoreDataLegacyNaming: configuration.useCoreDataLegacyNaming,
                                                    organizationName: configuration.organizationName,
+                                                   extensionsPath: configuration.extensionsPath,
                                                    logger: logger)
             try generator.generate()
         }

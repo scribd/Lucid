@@ -331,11 +331,13 @@ extension EntityIdentifier: Codable {
         
         objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? DescriptionDefaults.objc
         
-        let lowerCaseType = try container.decode(String.self, forKey: .type)
+        let lowerCaseType = try container.decodeIfPresent(String.self, forKey: .type)
         switch lowerCaseType {
-        case "property":
+        case .some("property"):
             identifierType = .property(try container.decode(String.self, forKey: .propertyName))
-        default:
+        case .none:
+            identifierType = .void
+        case .some(let lowerCaseType):
             do {
                 let relationshipIDs: [EntityIdentifierType.RelationshipID] = try container
                     .decode([String].self, forKey: .derivedFromRelationships)
@@ -884,62 +886,49 @@ extension Target: Codable {
     }
 }
 
-extension GeneratorParameters: Codable {
+extension Description: Codable {
 
     private enum Keys: String, CodingKey {
-        case appVersion
-        case coreDataMigrationsFunction
-        case currentDescriptions
-        case currentDescriptionsHash
-        case descriptions
-        case historyVersions
-        case targetModuleName
-        case oldestModelVersion
-        case platform
-        case reactiveKit
-        case responseHandlerFunction
-        case shouldGenerateDataModel
-        case sqliteFile
-        case sqliteFiles
-        case useCoreDataLegacyNaming
+        case kind
+        case value
+    }
+
+    private enum Kind: String, Codable {
+        case all
+        case subtype
+        case entity
+        case endpoint
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
-        appVersion = try container.decode(Version.self, forKey: .appVersion)
-        coreDataMigrationsFunction = try container.decode(String.self, forKey: .coreDataMigrationsFunction)
-        currentDescriptions = try container.decode(Descriptions.self, forKey: .currentDescriptions)
-        currentDescriptionsHash = try container.decode(String.self, forKey: .currentDescriptionsHash)
-        descriptions = try container.decode([Version: Descriptions].self, forKey: .descriptions)
-        historyVersions = try container.decode([Version].self, forKey: .historyVersions)
-        targetModuleName = try container.decode(String.self, forKey: .targetModuleName)
-        oldestModelVersion = try container.decode(Version.self, forKey: .oldestModelVersion)
-        platform = try container.decodeIfPresent(String.self, forKey: .platform)
-        reactiveKit = try container.decode(Bool.self, forKey: .reactiveKit)
-        responseHandlerFunction = try container.decodeIfPresent(String.self, forKey: .responseHandlerFunction)
-        shouldGenerateDataModel = try container.decode(Bool.self, forKey: .shouldGenerateDataModel)
-        sqliteFile = try container.decode(Path.self, forKey: .sqliteFile)
-        sqliteFiles = try container.decode([String].self, forKey: .sqliteFiles)
-        useCoreDataLegacyNaming = try container.decode(Bool.self, forKey: .useCoreDataLegacyNaming)
+        switch try container.decode(Kind.self, forKey: .kind) {
+        case .all:
+            self = .all
+        case .endpoint:
+            self = .endpoint(try container.decode(String.self, forKey: .value))
+        case .entity:
+            self = .entity(try container.decode(String.self, forKey: .value))
+        case .subtype:
+            self = .subtype(try container.decode(String.self, forKey: .value))
+        }
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: Keys.self)
-        try container.encode(appVersion, forKey: .appVersion)
-        try container.encode(coreDataMigrationsFunction, forKey: .coreDataMigrationsFunction)
-        try container.encode(currentDescriptions, forKey: .currentDescriptions)
-        try container.encode(currentDescriptionsHash, forKey: .currentDescriptionsHash)
-        try container.encode(descriptions, forKey: .descriptions)
-        try container.encode(historyVersions, forKey: .historyVersions)
-        try container.encode(targetModuleName, forKey: .targetModuleName)
-        try container.encode(oldestModelVersion, forKey: .oldestModelVersion)
-        try container.encode(platform, forKey: .platform)
-        try container.encode(reactiveKit, forKey: .reactiveKit)
-        try container.encode(responseHandlerFunction, forKey: .responseHandlerFunction)
-        try container.encode(shouldGenerateDataModel, forKey: .shouldGenerateDataModel)
-        try container.encode(sqliteFile, forKey: .sqliteFile)
-        try container.encode(sqliteFiles, forKey: .sqliteFiles)
-        try container.encode(useCoreDataLegacyNaming, forKey: .useCoreDataLegacyNaming)
+        switch self {
+        case .all:
+            try container.encode(Kind.all, forKey: .kind)
+        case .endpoint(let value):
+            try container.encode(Kind.endpoint, forKey: .kind)
+            try container.encode(value, forKey: .value)
+        case .entity(let value):
+            try container.encode(Kind.entity, forKey: .kind)
+            try container.encode(value, forKey: .value)
+        case .subtype(let value):
+            try container.encode(Kind.subtype, forKey: .kind)
+            try container.encode(value, forKey: .value)
+        }
     }
 }
 
@@ -953,5 +942,141 @@ extension Path: Codable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(string)
+    }
+}
+
+extension ExtensionCommandResponse: Codable {
+
+    private enum Keys: String, CodingKey {
+        case kind
+        case value
+    }
+
+    private enum Kind: String, Codable {
+        case success
+        case failure
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: Keys.self)
+        switch try container.decode(Kind.self, forKey: .kind) {
+        case .success:
+            self = .success(try container.decode(Success.self, forKey: .value))
+        case .failure:
+            self = .failure(try container.decode(String.self, forKey: .value))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+        switch self {
+        case .success(let value):
+            try container.encode(Kind.success, forKey: .kind)
+            try container.encode(value, forKey: .value)
+        case .failure(let value):
+            try container.encode(Kind.failure, forKey: .kind)
+            try container.encode(value, forKey: .value)
+        }
+    }
+}
+
+extension OutputDirectory: Codable {
+
+    private enum Keys: String, CodingKey {
+        case kind
+        case value
+    }
+
+    private enum Kind: String, Codable {
+        case entities
+        case payloads
+        case endpointPayloads
+        case subtypes
+        case support
+        case factories
+        case doubles
+        case coreDataModel
+        case coreDataModelVersion
+        case jsonPayloads
+        case payloadTests
+        case coreDataTests
+        case coreDataMigrationTests
+        case sqliteFiles
+        case extensions
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: Keys.self)
+        switch try container.decode(Kind.self, forKey: .kind) {
+        case .entities:
+            self = .entities
+        case .payloads:
+            self = .payloads
+        case .endpointPayloads:
+            self = .endpointPayloads
+        case .subtypes:
+            self = .subtypes
+        case .support:
+            self = .support
+        case .factories:
+            self = .factories
+        case .doubles:
+            self = .doubles
+        case .coreDataModel:
+            self = .coreDataModel(version: try container.decode(Version.self, forKey: .value))
+        case .coreDataModelVersion:
+            self = .coreDataModelVersion
+        case .jsonPayloads:
+            self = .jsonPayloads(try container.decode(String.self, forKey: .value))
+        case .payloadTests:
+            self = .payloadTests
+        case .coreDataTests:
+            self = .coreDataTests
+        case .coreDataMigrationTests:
+            self = .coreDataMigrationTests
+        case .sqliteFiles:
+            self = .sqliteFiles
+        case .extensions:
+            self = .extensions(try container.decode(Path.self, forKey: .value))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+        switch self {
+        case .entities:
+            try container.encode(Kind.entities, forKey: .kind)
+        case .payloads:
+            try container.encode(Kind.payloads, forKey: .kind)
+        case .endpointPayloads:
+            try container.encode(Kind.endpointPayloads, forKey: .kind)
+        case .subtypes:
+            try container.encode(Kind.subtypes, forKey: .kind)
+        case .support:
+            try container.encode(Kind.support, forKey: .kind)
+        case .factories:
+            try container.encode(Kind.factories, forKey: .kind)
+        case .doubles:
+            try container.encode(Kind.doubles, forKey: .kind)
+        case .coreDataModel(let version):
+            try container.encode(Kind.coreDataModel, forKey: .kind)
+            try container.encode(version, forKey: .value)
+        case .coreDataModelVersion:
+            try container.encode(Kind.coreDataModelVersion, forKey: .kind)
+        case .jsonPayloads(let value):
+            try container.encode(Kind.jsonPayloads, forKey: .kind)
+            try container.encode(value, forKey: .value)
+        case .payloadTests:
+            try container.encode(Kind.payloadTests, forKey: .kind)
+        case .coreDataTests:
+            try container.encode(Kind.coreDataTests, forKey: .kind)
+        case .coreDataMigrationTests:
+            try container.encode(Kind.coreDataMigrationTests, forKey: .kind)
+        case .sqliteFiles:
+            try container.encode(Kind.sqliteFiles, forKey: .kind)
+        case .extensions(let path):
+            try container.encode(Kind.extensions, forKey: .kind)
+            try container.encode(path, forKey: .value)
+        }
     }
 }

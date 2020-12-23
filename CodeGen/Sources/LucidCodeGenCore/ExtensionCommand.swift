@@ -14,10 +14,12 @@ public final class ExtensionCommand<Input, Output> {
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
+    private let logger: Logger?
+
     public static var defaultCommandName: String { "command" }
 
-    public init() {
-        // no-op
+    public init(_ logger: Logger? = nil) {
+        self.logger = logger
     }
 }
 
@@ -25,11 +27,15 @@ extension ExtensionCommand where Input == Void, Output: Codable {
 
     public func request(extensionPath: Path,
                         commandName: String = ExtensionCommand.defaultCommandName) throws -> ExtensionCommandResponse<Output> {
-        return try ExtensionCommand<Empty, Output>().request(extensionPath: extensionPath, commandName: commandName, input: Empty())
+        return try ExtensionCommand<Empty, Output>(logger).request(
+            extensionPath: extensionPath,
+            commandName: commandName,
+            input: Empty()
+        )
     }
 
     public func respond(ioPath: Path, run: @escaping () throws -> Output) throws {
-        try ExtensionCommand<Empty, Output>().respond(ioPath: ioPath) { _ in
+        try ExtensionCommand<Empty, Output>(logger).respond(ioPath: ioPath) { _ in
             return try run()
         }
     }
@@ -59,6 +65,7 @@ extension ExtensionCommand where Input: Codable, Output: Codable {
             let outputPath = tmpPath + Paths.output
 
             if builtExtensionPaths.contains(extensionPath) == false {
+                logger?.info("Building extension '\(extensionPath.lastComponent)'...")
                 try shellOut(
                     to: "swift build --configuration release",
                     at: extensionPath.absolute().string

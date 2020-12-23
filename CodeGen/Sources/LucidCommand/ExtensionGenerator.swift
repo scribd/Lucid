@@ -29,7 +29,7 @@ final class ExtensionGenerator: Generator {
         self.extensionPath = extensionPath
         self.logger = logger
 
-        let command = ExtensionCommand<Void, ExtensionGeneratorConfiguration>()
+        let command = ExtensionCommand<Void, ExtensionGeneratorConfiguration>(logger)
         switch try command.request(extensionPath: extensionPath, commandName: "configuration") {
         case .success(let configuration):
             outputDirectory = configuration.outputDirectory
@@ -46,7 +46,7 @@ final class ExtensionGenerator: Generator {
 
     func generate(for elements: [Description], in directory: Path, organizationName: String, logger: Logger?) throws -> [SwiftFile] {
 
-        let command = ExtensionCommand<ExtensionGeneratorInput, [SwiftFile]>()
+        let command = ExtensionCommand<ExtensionGeneratorInput, [SwiftFile]>(self.logger)
 
         let input = ExtensionGeneratorInput(
             paramters: parameters,

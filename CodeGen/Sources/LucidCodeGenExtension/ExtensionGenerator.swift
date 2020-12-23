@@ -11,12 +11,16 @@ import PathKit
 
 public protocol ExtensionGenerator {
 
+    /// Name of the generator.
     static var name: String { get }
 
+    /// Directory in which the files will be generated (defaults to `Extensions/$name`).
     static var outputDirectory: OutputDirectory { get }
 
+    /// Target in which the generated files will be generated.
     static var targetName: TargetName { get }
 
+    /// Should remove extra files from target directory.
     static var deleteExtraFiles: Bool { get }
 
     init(_ parameters: GeneratorParameters)

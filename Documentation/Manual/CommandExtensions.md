@@ -1,6 +1,6 @@
 # Lucid - Extensions
 
-For projects with very specific needs, Lucid supports extensions which have the ability to generate their own swift files, using the same environment and frameworks than the Lucid command line tool. 
+For projects with very specific needs, Lucid supports extensions which have the ability to generate their own swift files, using the same environment and frameworks as the Lucid command line tool. 
 
 ## Setup Extensions
 
@@ -112,4 +112,4 @@ ExtensionCommands.generator(Generator.self).run()
 
 ## Run an Extension
 
-Extensions are automatically built and run by the Lucid command line tool. Once your extension is ready, re-running `lucid swift` should execute it.
+Extensions are automatically built and run by the Lucid command line tool. Once your extension is ready, re-running `lucid swift` will execute it.

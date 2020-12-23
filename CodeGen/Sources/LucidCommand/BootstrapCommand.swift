@@ -76,6 +76,8 @@ final class BootstrapCommand {
         if gitIgnorePath.exists == false {
             try gitIgnorePath.write("""
             .lucid
+            */*.xcodeproj
+            */*.build
             """)
         }
 

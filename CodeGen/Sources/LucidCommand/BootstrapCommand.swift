@@ -81,12 +81,8 @@ final class BootstrapCommand {
             """)
         }
 
-        let myExtensionPath = extensionsPath + "MyExtension"
-        if myExtensionPath.exists == false {
-
-            try myExtensionPath.mkdir()
-
-            let packagePath = myExtensionPath + "package.swift"
+        let packagePath = extensionsPath + ".Package.swift"
+        if packagePath.exists == false {
             try packagePath.write("""
             // swift-tools-version:5.0
             import PackageDescription
@@ -104,6 +100,17 @@ final class BootstrapCommand {
                 ]
             )
             """)
+        }
+
+        let myExtensionPath = extensionsPath + "MyExtension"
+        if myExtensionPath.exists == false {
+
+            try myExtensionPath.mkdir()
+
+            try shellOut(
+                to: "ln -s ../.Package.swift Package.swift",
+                at: myExtensionPath.absolute().string
+            )
 
             let sourcesPath = myExtensionPath + "Sources/Extension"
             try sourcesPath.mkpath()

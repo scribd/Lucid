@@ -68,7 +68,7 @@ $ swift package generate-xcodeproj
 
 This will create for you the file `Extension.xcodeproj` which you can then open with Xcode.
 
-You can then start writing the code of you extension which should contain a main file. 
+You can then start writing the code of your extension which should contain a main file. 
 
 For example:
 

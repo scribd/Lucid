@@ -1,4 +1,4 @@
-# Lucid - Documentation (WIP)
+# Lucid - Documentation
 
 1. [Philosophy](Philosophy.md)
 2. [Architecture](Architecture.md)

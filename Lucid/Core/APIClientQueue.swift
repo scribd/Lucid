@@ -771,7 +771,6 @@ private extension APIClientQueueProcessor {
             delegate?.prepend(request)
         case .api,
              .deserialization,
-             .sessionKeyMismatch,
              .network,
              .networkingProtocolIsNotHTTP,
              .url,
@@ -799,7 +798,6 @@ private extension APIClientQueueProcessor {
                      .deserialization,
                      .network,
                      .networkingProtocolIsNotHTTP,
-                     .sessionKeyMismatch,
                      .url,
                      .other:
                     handler(.failure(error), request)

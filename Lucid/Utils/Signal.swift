@@ -188,7 +188,6 @@ public extension APIError {
              .deserialization,
              .network,
              .networkingProtocolIsNotHTTP,
-             .sessionKeyMismatch,
              .url,
              .other:
             return false

@@ -21,7 +21,6 @@ public enum APIError: Error, Equatable {
     case url
     case deserialization(Error)
     case api(httpStatusCode: Int, errorPayload: APIErrorPayload?, response: APIClientResponse<Data>)
-    case sessionKeyMismatch
     case other(String)
 }
 
@@ -164,10 +163,10 @@ public struct APIRequestConfig: Codable, Hashable {
         var query: OrderedDictionary<String, QueryValue>
         var headers: OrderedDictionary<String, String>
         var body: Body?
-        var includeSessionKey: Bool
         var timeoutInterval: TimeInterval?
         var queueingStrategy: QueueingStrategy?
         var background: Bool?
+        var userInfo: [String: String]?
     }
 
     private var core: Core
@@ -194,10 +193,6 @@ public struct APIRequestConfig: Codable, Hashable {
         get { return core.body }
         set { core.body = newValue }
     }
-    public var includeSessionKey: Bool {
-        get { return core.includeSessionKey }
-        set { core.includeSessionKey = newValue }
-    }
     public var timeoutInterval: TimeInterval? {
         get { return core.timeoutInterval }
         set { core.timeoutInterval = newValue }
@@ -210,6 +205,10 @@ public struct APIRequestConfig: Codable, Hashable {
         get { return core.background ?? core.method.defaultBackground }
         set { core.background = newValue }
     }
+    public var userInfo: [String: String]? {
+        get { return core.userInfo }
+        set { core.userInfo = newValue }
+    }
 
     public let deduplicate: Bool
     public let tag: String?
@@ -220,12 +219,12 @@ public struct APIRequestConfig: Codable, Hashable {
                 query: [(String, QueryValue?)] = [],
                 headers: [(String, String?)] = [],
                 body: Body? = nil,
-                includeSessionKey: Bool = true,
                 timeoutInterval: TimeInterval? = nil,
                 deduplicate: Bool? = nil,
                 tag: String? = nil,
                 queueingStrategy: QueueingStrategy? = nil,
-                background: Bool? = nil) {
+                background: Bool? = nil,
+                userInfo: [String: String]? = nil) {
 
         self.core = Core(method: method,
                          host: host,
@@ -233,10 +232,10 @@ public struct APIRequestConfig: Codable, Hashable {
                          query: OrderedDictionary(query.compactMap { key, value in value.flatMap { (key, $0) } }),
                          headers: OrderedDictionary(headers.compactMap { key, value in value.flatMap { (key, $0) } }),
                          body: body,
-                         includeSessionKey: includeSessionKey,
                          timeoutInterval: timeoutInterval,
                          queueingStrategy: queueingStrategy,
-                         background: background)
+                         background: background,
+                         userInfo: userInfo)
         self.deduplicate = {
             if let deduplicate = deduplicate { return deduplicate }
             switch method {
@@ -445,7 +444,7 @@ public protocol APIClient: AnyObject {
     /// - Parameters:
     ///     - requestConfig: The configuration of the request being sent.
     /// - Returns: A bool determining if the response is handled or ignored.
-    func shouldHandleResponse(for requestConfig: APIRequestConfig, completion: @escaping (Bool) -> Void)
+    func shouldHandleResponse(for requestConfig: APIRequestConfig, completion: @escaping (Result<Void, APIError>) -> Void)
 
     /// Allows the client to track events that were sent. This will not be called for deduplicated requests.
     ///
@@ -531,46 +530,47 @@ extension APIClient {
 
                 let task = self.networkClient.dataTask(with: urlRequest) { (data, response, error) in
 
-                    self.shouldHandleResponse(for: requestConfig) { shouldHandle in
+                    self.shouldHandleResponse(for: requestConfig) { result in
 
-                        guard shouldHandle else {
-                            Logger.log(.debug, "\(Self.self): \(self.identifier): Session has changed since request \(urlRequest) was sent. Ignoring response.")
-                            wrappedCompletion(.failure(.sessionKeyMismatch))
-                            return
-                        }
-
-                        if let error = error as NSError? {
-                            let apiError = APIError(network: error)
-                            if apiError.isNetworkConnectionFailure {
-                                Logger.log(.debug, "\(Self.self): \(self.identifier): Network connection failure occurred for request: \(urlRequest): \(error)")
-                            } else {
-                                Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
+                        switch result {
+                        case .success:
+                            if let error = error as NSError? {
+                                let apiError = APIError(network: error)
+                                if apiError.isNetworkConnectionFailure {
+                                    Logger.log(.debug, "\(Self.self): \(self.identifier): Network connection failure occurred for request: \(urlRequest): \(error)")
+                                } else {
+                                    Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
+                                }
+                                wrappedCompletion(.failure(apiError))
+                                return
                             }
-                            wrappedCompletion(.failure(apiError))
-                            return
-                        }
 
-                        guard let response = response as? HTTPURLResponse else {
-                            let error = APIError.networkingProtocolIsNotHTTP
+                            guard let response = response as? HTTPURLResponse else {
+                                let error = APIError.networkingProtocolIsNotHTTP
+                                Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
+                                wrappedCompletion(.failure(error))
+                                return
+                            }
+
+                            let wrappedResponse = APIClientResponse(data: data ?? Data(),
+                                                                    urlResponse: response,
+                                                                    jsonCoderConfig: self.jsonCoderConfig())
+
+                            guard response.isSuccess else {
+                                let errorPayload = data.flatMap { self.errorPayload(from: $0) }
+                                let error = APIError.api(httpStatusCode: response.statusCode, errorPayload: errorPayload, response: wrappedResponse)
+                                Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
+                                wrappedCompletion(.failure(error))
+                                return
+                            }
+
+                            Logger.log(.info, "\(Self.self): \(self.identifier): Request succeeded: \(requestDescription).")
+                            wrappedCompletion(.success(wrappedResponse))
+
+                        case .failure(let error):
                             Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
                             wrappedCompletion(.failure(error))
-                            return
                         }
-
-                        let wrappedResponse = APIClientResponse(data: data ?? Data(),
-                                                                urlResponse: response,
-                                                                jsonCoderConfig: self.jsonCoderConfig())
-
-                        guard response.isSuccess else {
-                            let errorPayload = data.flatMap { self.errorPayload(from: $0) }
-                            let error = APIError.api(httpStatusCode: response.statusCode, errorPayload: errorPayload, response: wrappedResponse)
-                            Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
-                            wrappedCompletion(.failure(error))
-                            return
-                        }
-
-                        Logger.log(.info, "\(Self.self): \(self.identifier): Request succeeded: \(requestDescription).")
-                        wrappedCompletion(.success(wrappedResponse))
                     }
                 }
 
@@ -1174,8 +1174,7 @@ extension APIError {
         case (.networkingProtocolIsNotHTTP, .networkingProtocolIsNotHTTP),
              (.network, .network),
              (.url, .url),
-             (.deserialization, .deserialization),
-             (.sessionKeyMismatch, .sessionKeyMismatch):
+             (.deserialization, .deserialization):
             return true
         case (.api(let lHTTPStatusCode, let lErrorPayload, _), .api(let rHTTPStatusCode, let rErrorPayload, _)):
             guard lHTTPStatusCode == rHTTPStatusCode else { return false }
@@ -1187,7 +1186,6 @@ extension APIError {
              (.network, _),
              (.url, _),
              (.deserialization, _),
-             (.sessionKeyMismatch, _),
              (.api, _),
              (.other, _):
             return false

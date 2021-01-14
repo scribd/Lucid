@@ -27,13 +27,13 @@ public final class APIClientSpy: APIClient {
 
     public var completionDelay: TimeInterval?
 
-    public var willHandleResponse: Bool = true
+    public var willHandleResponse: Result<Void, APIError> = .success(())
 
     // MARK: - Records
 
     public private(set) var requestRecords = [Any]()
 
-    public private(set) var shouldHandleResponseRecords = [(APIRequestConfig, (Bool) -> Void)]()
+    public private(set) var shouldHandleResponseRecords = [(APIRequestConfig, (Result<Void, APIError>) -> Void)]()
 
     // MARK: - Implementation
 
@@ -93,7 +93,7 @@ public final class APIClientSpy: APIClient {
         }
     }
 
-    public func shouldHandleResponse(for requestConfig: APIRequestConfig, completion: @escaping (Bool) -> Void) {
+    public func shouldHandleResponse(for requestConfig: APIRequestConfig, completion: @escaping (Result<Void, APIError>) -> Void) {
         shouldHandleResponseRecords.append((requestConfig, completion))
         completion(willHandleResponse)
     }

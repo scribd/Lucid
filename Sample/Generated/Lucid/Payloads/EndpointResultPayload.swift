@@ -38,24 +38,24 @@ public final class EndpointResultPayload: ResultPayloadConvertible {
 
         switch endpoint {
         case .discoverMovie:
-            decoder.setExcludedPaths(DiscoverMovieEndpointPayload.excludedPaths)
-            let payload = try decoder.decode(DiscoverMovieEndpointPayload.self, from: data)
+            decoder.setExcludedPaths(DiscoverMovieEndpointReadPayload.excludedPaths)
+            let payload = try decoder.decode(DiscoverMovieEndpointReadPayload.self, from: data)
             entities = payload.allEntities
             metadata = EndpointResultMetadata(
                 endpoint: payload.endpointMetadata,
                 entity: payload.entityMetadata.lazy.map { $0 as Optional<EntityMetadata> }.any
             )
         case .genreMovieList:
-            decoder.setExcludedPaths(GenreMovieListEndpointPayload.excludedPaths)
-            let payload = try decoder.decode(GenreMovieListEndpointPayload.self, from: data)
+            decoder.setExcludedPaths(GenreMovieListEndpointReadPayload.excludedPaths)
+            let payload = try decoder.decode(GenreMovieListEndpointReadPayload.self, from: data)
             entities = payload.allEntities
             metadata = EndpointResultMetadata(
                 endpoint: payload.endpointMetadata,
                 entity: payload.entityMetadata.lazy.map { $0 as Optional<EntityMetadata> }.any
             )
         case .movie:
-            decoder.setExcludedPaths(MovieEndpointPayload.excludedPaths)
-            let payload = try decoder.decode(MovieEndpointPayload.self, from: data)
+            decoder.setExcludedPaths(MovieEndpointReadPayload.excludedPaths)
+            let payload = try decoder.decode(MovieEndpointReadPayload.self, from: data)
             entities = payload.allEntities
             metadata = EndpointResultMetadata(
                 endpoint: payload.endpointMetadata,

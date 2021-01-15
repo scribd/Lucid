@@ -99,7 +99,11 @@ struct MetaEndpointPayload {
     private func commentMarkString() -> String {
         switch payloadType {
         case .read:
-            return "Endpoint Read Payload"
+            if endpoint.readPayload == endpoint.writePayload {
+                return "Endpoint ReadWrite Payload"
+            } else {
+                return "Endpoint Read Payload"
+            }
         case .write:
             return "Endpoint Write Payload"
         }
@@ -357,43 +361,52 @@ struct MetaEndpointPayload {
     
     private func accessors() throws -> Extension {
         let entity = try descriptions.entity(for: readWritePayload.entity.entityName)
-        let extractableEntities = try entity.extractablePropertyEntities(descriptions)
-        
-        var accessors = try extractableEntities.flatMap { entity -> [TypeBodyMember] in
-            return [
-                EmptyLine(),
-                try accessor(for: entity, isExtractable: true)
-            ]
+
+        switch payloadType {
+        case .write:
+            return Extension(type: try endpoint.typeID(for: readWritePayload))
+                .adding(members: [
+                    EmptyLine(),
+                    try accessor(for: entity, isExtractable: false)
+                ])
+        case .read:
+            let extractableEntities = try entity.extractablePropertyEntities(descriptions)
+
+            var accessors = try extractableEntities.flatMap { entity -> [TypeBodyMember] in
+                return [
+                    EmptyLine(),
+                    try accessor(for: entity, isExtractable: true)
+                ]
+            }
+
+            let isSelfExtractable = extractableEntities.contains { $0.name == entity.name }
+            if isSelfExtractable == false {
+                accessors.append(EmptyLine())
+                accessors.append(try accessor(for: entity, isExtractable: false))
+            }
+
+            let extractableEntitiesAndSelf = extractableEntities + (isSelfExtractable == false ? [entity] : [])
+
+            return Extension(type: try endpoint.typeID(for: readWritePayload))
+                .adding(members: accessors)
+                .adding(member: EmptyLine())
+                .adding(member: ComputedProperty(variable: Variable(name: "allEntities")
+                    .with(type: .anySequence(element: .appAnyEntity)))
+                    .adding(members: extractableEntitiesAndSelf.map { entity in
+                        Assignment(
+                            variable: entity.payloadEntityAccessorVariable,
+                            value: .named(.`self`) + entity.payloadEntityAccessorVariable.reference + .named(.map) | .block(FunctionBody()
+                                .adding(member: TypeIdentifier.appAnyEntity.reference + .named(entity.name.camelCased().variableCased()) | .call(Tuple()
+                                    .adding(parameter: TupleParameter(value: Reference.named("$0")))
+                                ))
+                            ) + .named("any")
+                        )
+                    })
+                    .adding(member: Return(value: Reference.array(with: extractableEntitiesAndSelf.map { entity in
+                        entity.payloadEntityAccessorVariable.reference
+                    }) + .named("joined") | .call() + .named("any")))
+                )
         }
-
-        let isSelfExtractable = extractableEntities.contains { $0.name == entity.name }
-
-        if isSelfExtractable == false {
-            accessors.append(EmptyLine())
-            accessors.append(try accessor(for: entity, isExtractable: false))
-        }
-
-        let extractableEntitiesAndSelf = extractableEntities + (isSelfExtractable == false ? [entity] : [])
-        
-        return Extension(type: try endpoint.typeID(for: readWritePayload))
-            .adding(members: accessors)
-            .adding(member: EmptyLine())
-            .adding(member: ComputedProperty(variable: Variable(name: "allEntities")
-                .with(type: .anySequence(element: .appAnyEntity)))
-                .adding(members: extractableEntitiesAndSelf.map { entity in
-                    Assignment(
-                        variable: entity.payloadEntityAccessorVariable,
-                        value: .named(.`self`) + entity.payloadEntityAccessorVariable.reference + .named(.map) | .block(FunctionBody()
-                            .adding(member: TypeIdentifier.appAnyEntity.reference + .named(entity.name.camelCased().variableCased()) | .call(Tuple()
-                                .adding(parameter: TupleParameter(value: Reference.named("$0")))
-                            ))
-                        ) + .named("any")
-                    )
-                })
-                .adding(member: Return(value: Reference.array(with: extractableEntitiesAndSelf.map { entity in
-                    entity.payloadEntityAccessorVariable.reference
-                }) + .named("joined") | .call() + .named("any")))
-            )
     }
     
     private func accessor(for entity: Entity, isExtractable: Bool) throws -> ComputedProperty {

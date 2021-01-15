@@ -53,7 +53,7 @@ final class SwiftCommand {
             let releaseTag = try descriptionsVersionManager.resolveLatestReleaseTag(excluding: false, appVersion: appVersion)
             let descriptionsPath = try descriptionsVersionManager.fetchDescriptionsVersion(releaseTag: releaseTag)
             let descriptionsParser = DescriptionsParser(inputPath: descriptionsPath, logger: Logger(level: .none))
-            descriptions[appVersion] = try descriptionsParser.parse(version: appVersion)
+            descriptions[appVersion] = try descriptionsParser.parse(version: appVersion, includeEndpoints: false)
         }
 
         descriptions[currentAppVersion] = currentDescriptions
@@ -70,7 +70,7 @@ final class SwiftCommand {
                                                                   targets: configuration.targets,
                                                                   logger: Logger(level: .none))
                 let appVersion = try Version(latestReleaseTag, source: .description)
-                let latestDescriptions = try latestDescriptionsParser.parse(version: appVersion)
+                let latestDescriptions = try latestDescriptionsParser.parse(version: appVersion, includeEndpoints: false)
 
                 _shouldGenerateDataModel = try shouldGenerateDataModel(byComparing: latestDescriptions,
                                                                        to: currentDescriptions,

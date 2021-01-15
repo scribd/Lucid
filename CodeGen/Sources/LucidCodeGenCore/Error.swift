@@ -15,6 +15,7 @@ public enum CodeGenError: Error, CustomStringConvertible {
     case entityUIDNotFound(String)
     case endpointPayloadNotFound(String)
     case endpointRequiresAtLeastOnePayload(String)
+    case endpointRequiresSeparateReadAndWritePayloads(String)
     case endpointTestsRequiresAtLeastOneType
     case propertyNotFound(Entity, String)
     case unsupportedPayloadIdentifier
@@ -49,6 +50,8 @@ public extension CodeGenError {
             return "Could not find endpoint named: '\(name)'."
         case .endpointRequiresAtLeastOnePayload(let name):
             return "Endpoint '\(name)' requires at least one read, write, or readwrite payload."
+        case .endpointRequiresSeparateReadAndWritePayloads(let name):
+            return "Endpoint '\(name)' with shared 'read_write' payload cannot specify custom HTTP methods. Create separate 'read' and 'write' payloads."
         case .endpointTestsRequiresAtLeastOneType:
             return "Tests for endpoint requires at least one read or write value."
         case .propertyNotFound(let entity, let name):

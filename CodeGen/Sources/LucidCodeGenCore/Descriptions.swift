@@ -160,6 +160,16 @@ public struct EndpointPayload: Equatable {
 
 public struct ReadWriteEndpointPayload: Equatable {
 
+    public enum HTTPMethod: String, Codable {
+        case get
+        case post
+        case put
+        case delete
+
+        public static var defaultRead: HTTPMethod { return .get }
+        public static var defaultWrite: HTTPMethod { return .post }
+    }
+
     public let baseKey: String?
 
     public let entity: EndpointPayloadEntity
@@ -170,17 +180,21 @@ public struct ReadWriteEndpointPayload: Equatable {
 
     public let metadata: [MetadataProperty]?
 
+    public let httpMethod: HTTPMethod?
+
     public init(baseKey: String? = nil,
                 entity: EndpointPayloadEntity,
                 entityVariations: [EndpointPayloadEntityVariation]? = nil,
                 excludedPaths: [String] = [],
-                metadata: [MetadataProperty]? = nil) {
+                metadata: [MetadataProperty]? = nil,
+                httpMethod: HTTPMethod? = nil) {
 
         self.baseKey = baseKey
         self.entity = entity
         self.entityVariations = entityVariations
         self.excludedPaths = excludedPaths
         self.metadata = metadata
+        self.httpMethod = httpMethod
     }
 }
 

@@ -74,6 +74,11 @@ extension EndpointPayload: Codable {
         if readPayload == nil && writePayload == nil {
             throw CodeGenError.endpointRequiresAtLeastOnePayload(name)
         }
+
+        if try container.decodeIfPresent(ReadWriteEndpointPayload.self, forKey: .readWrite) != nil,
+           (readPayload?.httpMethod != nil || writePayload?.httpMethod != nil) {
+            throw CodeGenError.endpointRequiresSeparateReadAndWritePayloads(name)
+        }
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -94,6 +99,7 @@ extension ReadWriteEndpointPayload: Codable {
         case entityVariations
         case excludedPaths
         case metadata
+        case httpMethod
     }
 
     public init(from decoder: Decoder) throws {
@@ -103,6 +109,7 @@ extension ReadWriteEndpointPayload: Codable {
         entityVariations = try container.decodeIfPresent([EndpointPayloadEntityVariation].self, forKey: .entityVariations)
         excludedPaths = try container.decodeIfPresent([String].self, forKey: .excludedPaths) ?? []
         metadata = try container.decodeIfPresent([MetadataProperty].self, forKey: .metadata)
+        httpMethod = try container.decodeIfPresent(HTTPMethod.self, forKey: .httpMethod)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -113,6 +120,7 @@ extension ReadWriteEndpointPayload: Codable {
         try container.encodeIfPresent(entityVariations, forKey: .entityVariations)
         try container.encodeIfPresent(excludedPaths.isEmpty ? nil : excludedPaths, forKey: .excludedPaths)
         try container.encodeIfPresent(metadata, forKey: .metadata)
+        try container.encodeIfPresent(httpMethod, forKey: .httpMethod)
     }
 }
 

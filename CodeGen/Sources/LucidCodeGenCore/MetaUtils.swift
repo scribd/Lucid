@@ -1444,7 +1444,7 @@ public extension EntityProperty {
 }
 
 public extension EndpointPayload {
-    
+
     var metadataVariable: Variable {
         return Variable(name: "endpointMetadata")
     }
@@ -1461,6 +1461,10 @@ public extension EndpointPayload {
         } else {
             throw CodeGenError.endpointRequiresAtLeastOnePayload(name)
         }
+    }
+
+    var normalizedPathName: String {
+        return name.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
     }
 
     var transformedName: String {

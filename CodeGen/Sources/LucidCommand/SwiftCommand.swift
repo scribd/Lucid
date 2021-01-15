@@ -94,7 +94,6 @@ final class SwiftCommand {
                                                    historyVersions: modelMappingHistoryVersions,
                                                    shouldGenerateDataModel: _shouldGenerateDataModel,
                                                    descriptionsHash: descriptionsHash,
-                                                   responseHandlerFunction: configuration.responseHandlerFunction,
                                                    coreDataMigrationsFunction: configuration.coreDataMigrationsFunction,
                                                    reactiveKit: configuration.reactiveKit,
                                                    useCoreDataLegacyNaming: configuration.useCoreDataLegacyNaming,

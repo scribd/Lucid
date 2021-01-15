@@ -60,6 +60,18 @@ public extension Descriptions {
             }
         }
     }
+
+    func endpointsWithMergeableIdentifiers() throws -> [EndpointPayload] {
+        return try endpoints
+            .filter {
+                if let writePayload = $0.writePayload {
+                    let entity = try self.entity(for: writePayload.entity.entityName)
+                    return entity.mutable
+                }
+                return false
+            }
+            .sorted { $0.normalizedPathName < $1.normalizedPathName }
+    }
 }
 
 public extension Entity {

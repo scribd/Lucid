@@ -1021,6 +1021,10 @@ extension APIRequestConfig.Path {
         }
     }
 
+    public var normalizedString: String {
+        return description.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    }
+
     public var debugDescription: String {
         return description
     }

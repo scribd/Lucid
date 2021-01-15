@@ -1482,6 +1482,11 @@ public extension EndpointPayload {
             throw CodeGenError.endpointRequiresAtLeastOnePayload(name)
         }
     }
+
+    var allTests: [EndpointPayloadTest] {
+        guard let tests = tests else { return [] }
+        return tests.readTests + tests.writeTests
+    }
 }
 
 public extension ReadWriteEndpointPayload {

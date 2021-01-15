@@ -50,11 +50,9 @@ final class JSONPayloadsGenerator {
         logger.moveToChild("Generating JSON Payloads")
 
         let dispatchGroup = DispatchGroup()
-        for endpoint in descriptions.endpoints where (endpointFilter?.contains(endpoint.name) ?? true) {
+        for endpoint in descriptions.endpoints where (endpointFilter?.contains(endpoint.name) ?? true) && endpoint.allTests.isEmpty == false {
 
-            guard let readTests = endpoint.tests?.readTests, readTests.isEmpty == false else { continue }
-
-            for test in readTests {
+            for test in endpoint.allTests {
 
                 dispatchGroup.enter()
                 

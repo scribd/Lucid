@@ -58,10 +58,13 @@ extension Descriptions {
             }
         
         let endpoints = self.endpoints.filter { endpoint in
-            guard let entity = self.entitiesByName[endpoint.entity.entityName] else {
+            if let readPayload = endpoint.readPayload, let entity = self.entitiesByName[readPayload.entity.entityName] {
+                return entity.platforms.isEmpty || entity.platforms.contains(platform)
+            } else if let writePayload = endpoint.writePayload, let entity = self.entitiesByName[writePayload.entity.entityName] {
+                return entity.platforms.isEmpty || entity.platforms.contains(platform)
+            } else {
                 return false
             }
-            return entity.platforms.isEmpty || entity.platforms.contains(platform)
         }
         
         return Descriptions(

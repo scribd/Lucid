@@ -15,11 +15,43 @@ struct MetaEndpointPayloadTests {
         context: String,
         entity: EndpointPayloadTest.Entity
     )
-    
+
+    enum PayloadType {
+        case read
+        case write
+    }
+
     let endpointName: String
-    
+
+    let payloadType: PayloadType
+
+    let tests: [EndpointPayloadTest]
+
     let descriptions: Descriptions
-    
+
+    init?(endpointName: String,
+          payloadType: PayloadType,
+          descriptions: Descriptions) throws {
+
+        let endpoint = try descriptions.endpoint(for: endpointName)
+
+        guard let testValues: [EndpointPayloadTest] = {
+            switch payloadType {
+            case .read:
+                return endpoint.tests?.readTests
+            case .write:
+                return endpoint.tests?.writeTests
+            }
+        }() else {
+            return nil
+        }
+
+        self.endpointName = endpointName
+        self.payloadType = payloadType
+        self.tests = testValues
+        self.descriptions = descriptions
+    }
+
     func imports() -> [Import] {
         return [
             .xcTest,
@@ -56,7 +88,7 @@ struct MetaEndpointPayloadTests {
             .adding(member: EmptyLine())
             .adding(member: Comment.mark("Payloads"))
             .adding(member: EmptyLine())
-            .adding(members: endpoint.tests.map { test in
+            .adding(members: tests.map { test in
                 Property(variable: Variable(name: "\(endpoint.testJSONResourceName(for: test).variableCased())")
                     .with(kind: .lazy)
                     .with(immutable: false)
@@ -113,8 +145,7 @@ struct MetaEndpointPayloadTests {
     }
     
     private func testCombinations() throws -> [TestCombination] {
-        let endpoint = try descriptions.endpoint(for: endpointName)
-        return endpoint.tests.flatMap { test in
+        return tests.flatMap { test in
             return test.endpoints.flatMap { endpointName in
                 return test.entities.map { entity in
                     return (test, endpointName, entity)

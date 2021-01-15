@@ -50,11 +50,9 @@ extension EndpointPayload: Codable {
     
     private enum Keys: String, CodingKey {
         case name
-        case baseKey
-        case entity
-        case entityVariations
-        case excludedPaths
-        case metadata
+        case read
+        case write
+        case readWrite
         case tests
     }
     
@@ -62,24 +60,85 @@ extension EndpointPayload: Codable {
         let container = try decoder.container(keyedBy: Keys.self)
         
         name = try container.decode(String.self, forKey: .name)
-        baseKey = try container.decodeIfPresent(String.self, forKey: .baseKey)
-        entity = try container.decode(EndpointPayloadEntity.self, forKey: .entity)
-        entityVariations = try container.decodeIfPresent([EndpointPayloadEntityVariation].self, forKey: .entityVariations)
-        excludedPaths = try container.decodeIfPresent([String].self, forKey: .excludedPaths) ?? []
-        metadata = try container.decodeIfPresent([MetadataProperty].self, forKey: .metadata)
-        tests = try container.decodeIfPresent([EndpointPayloadTest].self, forKey: .tests) ?? []
+
+        if let readWriteValue = try container.decodeIfPresent(ReadWriteEndpointPayload.self, forKey: .readWrite) {
+            readPayload = readWriteValue
+            writePayload = readWriteValue
+        } else {
+            readPayload = try container.decodeIfPresent(ReadWriteEndpointPayload.self, forKey: .read)
+            writePayload = try container.decodeIfPresent(ReadWriteEndpointPayload.self, forKey: .write)
+        }
+
+        tests = try container.decodeIfPresent(EndpointPayloadTests.self, forKey: .tests)
+
+        if readPayload == nil && writePayload == nil {
+            throw CodeGenError.endpointRequiresAtLeastOnePayload(name)
+        }
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: Keys.self)
 
         try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(readPayload, forKey: .read)
+        try container.encodeIfPresent(writePayload, forKey: .write)
+        try container.encodeIfPresent(tests, forKey: .tests)
+    }
+}
+
+extension ReadWriteEndpointPayload: Codable {
+
+    private enum Keys: String, CodingKey {
+        case baseKey
+        case entity
+        case entityVariations
+        case excludedPaths
+        case metadata
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: Keys.self)
+        baseKey = try container.decodeIfPresent(String.self, forKey: .baseKey)
+        entity = try container.decode(EndpointPayloadEntity.self, forKey: .entity)
+        entityVariations = try container.decodeIfPresent([EndpointPayloadEntityVariation].self, forKey: .entityVariations)
+        excludedPaths = try container.decodeIfPresent([String].self, forKey: .excludedPaths) ?? []
+        metadata = try container.decodeIfPresent([MetadataProperty].self, forKey: .metadata)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+
         try container.encodeIfPresent(baseKey, forKey: .baseKey)
         try container.encode(entity, forKey: .entity)
         try container.encodeIfPresent(entityVariations, forKey: .entityVariations)
         try container.encodeIfPresent(excludedPaths.isEmpty ? nil : excludedPaths, forKey: .excludedPaths)
         try container.encodeIfPresent(metadata, forKey: .metadata)
-        try container.encodeIfPresent(tests.isEmpty ? nil : tests, forKey: .tests)
+    }
+}
+
+extension EndpointPayloadTests: Codable {
+
+    private enum Keys: String, CodingKey {
+        case read
+        case write
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: Keys.self)
+
+        readTests = try container.decodeIfPresent([EndpointPayloadTest].self, forKey: .read) ?? []
+        writeTests = try container.decodeIfPresent([EndpointPayloadTest].self, forKey: .write) ?? []
+
+        if readTests.isEmpty && writeTests.isEmpty {
+            throw CodeGenError.endpointTestsRequiresAtLeastOneType
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+
+        try container.encodeIfPresent(readTests.isEmpty ? nil : readTests, forKey: .read)
+        try container.encodeIfPresent(writeTests.isEmpty ? nil : writeTests, forKey: .write)
     }
 }
 

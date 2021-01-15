@@ -138,34 +138,59 @@ public struct EndpointPayload: Equatable {
     
     public let name: String
     
+    public let readPayload: ReadWriteEndpointPayload?
+
+    public let writePayload: ReadWriteEndpointPayload?
+
+    public let tests: EndpointPayloadTests?
+
+    public init(name: String,
+                readPayload: ReadWriteEndpointPayload? = nil,
+                writePayload: ReadWriteEndpointPayload? = nil,
+                tests: EndpointPayloadTests? = nil) {
+
+        self.name = name
+        self.readPayload = readPayload
+        self.writePayload = writePayload
+        self.tests = tests
+    }
+}
+
+// MARK: - ReadWriteEndpointPayload
+
+public struct ReadWriteEndpointPayload: Equatable {
+
     public let baseKey: String?
 
     public let entity: EndpointPayloadEntity
-    
+
     public let entityVariations: [EndpointPayloadEntityVariation]?
 
     public let excludedPaths: [String]
 
     public let metadata: [MetadataProperty]?
-    
-    public let tests: [EndpointPayloadTest]
 
-    public init(name: String,
-                baseKey: String? = nil,
+    public init(baseKey: String? = nil,
                 entity: EndpointPayloadEntity,
                 entityVariations: [EndpointPayloadEntityVariation]? = nil,
                 excludedPaths: [String] = [],
-                metadata: [MetadataProperty]? = nil,
-                tests: [EndpointPayloadTest] = []) {
+                metadata: [MetadataProperty]? = nil) {
 
-        self.name = name
         self.baseKey = baseKey
         self.entity = entity
         self.entityVariations = entityVariations
         self.excludedPaths = excludedPaths
         self.metadata = metadata
-        self.tests = tests
     }
+}
+
+// MARK: - EndpointPayloadTests
+
+public struct EndpointPayloadTests: Equatable {
+
+    public let readTests: [EndpointPayloadTest]
+
+    public let writeTests: [EndpointPayloadTest]
 }
 
 // MARK: - EndpointPayloadTest

@@ -503,7 +503,7 @@ public extension EndpointPayloadEntity.Structure {
     }
 }
 
-public extension EndpointPayload {
+public extension ReadWriteEndpointPayload {
 
     enum InitializerType {
         case initFromRoot(_ subkey: String?)
@@ -512,7 +512,7 @@ public extension EndpointPayload {
         case mapFromSubstruct(key: String, subkey: String)
     }
     
-    func initializerType() throws -> InitializerType {
+    var initializerType: InitializerType {
 
         if let key = baseKey, let subkey = entity.entityKey {
             switch entity.structure {

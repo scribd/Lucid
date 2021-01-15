@@ -31,8 +31,12 @@ public final class PayloadTestsGenerator: Generator {
         let filename = "\(endpointName.camelCased(separators: "/_").suffixedName())PayloadsTests.swift"
         
         let header = MetaHeader(filename: filename, organizationName: organizationName)
-        let endpointPayloadTests = MetaEndpointPayloadTests(endpointName: endpointName,
-                                                            descriptions: parameters.currentDescriptions)
+
+        guard let endpointPayloadTests = try MetaEndpointPayloadTests(endpointName: endpointName,
+                                                                      payloadType: .read,
+                                                                      descriptions: parameters.currentDescriptions) else {
+            return nil
+        }
 
         return Meta.File(name: filename)
             .with(header: header.meta)

@@ -1449,23 +1449,39 @@ public extension EndpointPayload {
         return Variable(name: "endpointMetadata")
     }
     
-    var metadataTypeID: TypeIdentifier {
-        return TypeIdentifier(name: "\(metadata == nil ? "Void" : transformedName)Metadata")
+    func metadataTypeID(for readWritePayload: ReadWriteEndpointPayload) throws -> TypeIdentifier {
+        let voidMetadata = "VoidMetadata"
+
+        if readWritePayload == readPayload, readWritePayload == writePayload {
+            return TypeIdentifier(name: readWritePayload.metadata == nil ? voidMetadata : "\(transformedName)ReadWriteMetadata")
+        } else if readWritePayload == readPayload {
+            return TypeIdentifier(name: readWritePayload.metadata == nil ? voidMetadata : "\(transformedName)ReadMetadata")
+        } else if readWritePayload == writePayload {
+            return TypeIdentifier(name: readWritePayload.metadata == nil ? voidMetadata : "\(transformedName)WriteMetadata")
+        } else {
+            throw CodeGenError.endpointRequiresAtLeastOnePayload(name)
+        }
     }
-}
-
-// MARK: - Endpoints
-
-public extension EndpointPayload {
 
     var transformedName: String {
         return name.camelCased(separators: "_/")
     }
     
-    var typeID: TypeIdentifier {
-        return TypeIdentifier(name: "\(transformedName)EndpointPayload")
+    func typeID(for readWritePayload: ReadWriteEndpointPayload) throws -> TypeIdentifier {
+        if readWritePayload == readPayload, readWritePayload == writePayload {
+            return TypeIdentifier(name: "\(transformedName)EndpointReadWritePayload")
+        } else if readWritePayload == readPayload {
+            return TypeIdentifier(name: "\(transformedName)EndpointReadPayload")
+        } else if readWritePayload == writePayload {
+            return TypeIdentifier(name: "\(transformedName)EndpointWritePayload")
+        } else {
+            throw CodeGenError.endpointRequiresAtLeastOnePayload(name)
+        }
     }
-    
+}
+
+public extension ReadWriteEndpointPayload {
+
     var payloadVariable: Variable {
         return entity.payloadVariable
     }

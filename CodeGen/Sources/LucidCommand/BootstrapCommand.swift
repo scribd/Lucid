@@ -51,9 +51,11 @@ final class BootstrapCommand {
     private func saveExampleEndpointPayloadDescription(_ configuration: CommandConfiguration) throws {
         let endpoint = EndpointPayload(
             name: "/my_entity",
-            entity: EndpointPayloadEntity(
-                entityName: "my_entity",
-                structure: .single
+            readPayload: ReadWriteEndpointPayload(
+                entity: EndpointPayloadEntity(
+                    entityName: "my_entity",
+                    structure: .single
+                )
             )
         )
         try configuration.save(endpoint)

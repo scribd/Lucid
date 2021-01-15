@@ -14,6 +14,8 @@ public enum CodeGenError: Error, CustomStringConvertible {
     case entityAddedAtVersionNotFound(String)
     case entityUIDNotFound(String)
     case endpointPayloadNotFound(String)
+    case endpointRequiresAtLeastOnePayload(String)
+    case endpointTestsRequiresAtLeastOneType
     case propertyNotFound(Entity, String)
     case unsupportedPayloadIdentifier
     case unsupportedMetadataIdentifier
@@ -45,6 +47,10 @@ public extension CodeGenError {
             return "Could not find added_at_version for entity named: '\(name)'."
         case .endpointPayloadNotFound(let name):
             return "Could not find endpoint named: '\(name)'."
+        case .endpointRequiresAtLeastOnePayload(let name):
+            return "Endpoint '\(name)' requires at least one read, write, or readwrite payload."
+        case .endpointTestsRequiresAtLeastOneType:
+            return "Tests for endpoint requires at least one read or write value."
         case .propertyNotFound(let entity, let name):
             return "Could not find property named: '\(name)' in entity named: '\(entity.name)'."
         case .unsupportedPayloadIdentifier:

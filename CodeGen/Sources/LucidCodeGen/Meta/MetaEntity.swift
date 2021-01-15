@@ -140,10 +140,10 @@ struct MetaEntity {
     private func initializer() throws -> Function {
         let entity = try descriptions.entity(for: entityName)
         return Function(kind: .`init`)
-            .with(accessLevel: entity.mutable ? .public : .none)
+            .with(accessLevel: entity.mutable(descriptions) ? .public : .none)
             .adding(parameter: entity.hasVoidIdentifier ? nil :
                 FunctionParameter(name: "identifier", type: entity.identifiableTypeID)
-                    .with(defaultValue: entity.mutable && entity.identifier.isProperty == false ?
+                    .with(defaultValue: entity.mutable(descriptions) && entity.identifier.isProperty == false ?
                         entity.identifierTypeID().reference | .call(Tuple()
                             .adding(parameter: TupleParameter(name: "value", value: +.named("local") | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: TypeIdentifier.uuid.reference | .call() + .named("uuidString")))
@@ -158,7 +158,7 @@ struct MetaEntity {
             })
             .adding(parameters: entity.systemProperties.map { systemProperty in
                 let property = systemProperty.property
-                return entity.mutable ? FunctionParameter(name: property.transformedName(), type: systemProperty.type).with(defaultValue: property.defaultValue?.variableValue) :
+                return entity.mutable(descriptions) ? FunctionParameter(name: property.transformedName(), type: systemProperty.type).with(defaultValue: property.defaultValue?.variableValue) :
                     FunctionParameter(name: property.transformedName(), type: systemProperty.type)
             })
             .adding(member: EmptyLine())
@@ -299,7 +299,7 @@ struct MetaEntity {
     
     private func mutableSupportExtension() throws -> [FileBodyMember] {
         let entity = try descriptions.entity(for: entityName)
-        guard entity.mutable else { return [] }
+        guard entity.mutable(descriptions) else { return [] }
 
         return [
             EmptyLine(),

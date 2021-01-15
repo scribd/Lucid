@@ -1,54 +1,43 @@
 //
-//  MetaEndpointPayloadTests.swift
+//  MetaEndpointWritePayloadTests.swift
 //  LucidCodeGen
 //
-//  Created by Théophane Rupin on 4/12/19.
+//  Created by Stephane Magne on 1/14/21.
 //
 
 import Meta
 import LucidCodeGenCore
 
-struct MetaEndpointPayloadTests {
-    
+struct MetaEndpointWritePayloadTests {
+
     private typealias TestCombination = (
         test: EndpointPayloadTest,
         context: String,
         entity: EndpointPayloadTest.Entity
     )
 
-    enum PayloadType {
-        case read
-        case write
-    }
-
     let endpointName: String
 
-    let payloadType: PayloadType
-
     let tests: [EndpointPayloadTest]
+
+    let writePayload: ReadWriteEndpointPayload
 
     let descriptions: Descriptions
 
     init?(endpointName: String,
-          payloadType: PayloadType,
           descriptions: Descriptions) throws {
 
         let endpoint = try descriptions.endpoint(for: endpointName)
+        let writeTests = endpoint.tests?.writeTests ?? []
 
-        guard let testValues: [EndpointPayloadTest] = {
-            switch payloadType {
-            case .read:
-                return endpoint.tests?.readTests
-            case .write:
-                return endpoint.tests?.writeTests
-            }
-        }() else {
+        guard writeTests.isEmpty == false,
+              let writePayloadValue = endpoint.writePayload else {
             return nil
         }
 
         self.endpointName = endpointName
-        self.payloadType = payloadType
-        self.tests = testValues
+        self.tests = writeTests
+        self.writePayload = writePayloadValue
         self.descriptions = descriptions
     }
 
@@ -61,11 +50,17 @@ struct MetaEndpointPayloadTests {
             .appTestKit(descriptions)
         ]
     }
-    
+
     func meta() throws -> Type {
         let endpoint = try descriptions.endpoint(for: endpointName)
         let testCombinations = try self.testCombinations()
-        return Type(identifier: TypeIdentifier(name: "\(endpoint.transformedName)PayloadTests"))
+
+        let unexpectedEntities = testCombinations.filter { $0.entity.name != writePayload.entity.entityName }
+        guard unexpectedEntities.isEmpty else {
+            throw CodeGenError.endpointWriteTestsShouldOnlyTestForMainEntity(endpoint: endpoint.name, entity: writePayload.entity.entityName)
+        }
+
+        return Type(identifier: TypeIdentifier(name: "\(endpoint.transformedName)WritePayloadTests"))
             .adding(inheritedType: .xcTestCase)
             .adding(member: EmptyLine())
             .adding(member: Function(kind: .named("setUp"))
@@ -112,8 +107,7 @@ struct MetaEndpointPayloadTests {
             })
             .adding(member: EmptyLine())
             .adding(member: Comment.mark("Tests"))
-            .adding(members: testCombinations.flatMap { (test, endpointName, entity) -> [TypeBodyMember] in
-                
+            .adding(members: try testCombinations.flatMap { (test, endpointName, entity) -> [TypeBodyMember] in
                 let assert: Reference = entity.count.flatMap {
                     return Reference.named("XCTAssertEqual") | .call(Tuple()
                         .adding(parameter: TupleParameter(value: .named("endpointResult") + .named(entity.name.camelCased().variableCased().pluralName) + .named("array") + .named("count")))
@@ -122,15 +116,14 @@ struct MetaEndpointPayloadTests {
                 } ?? Reference.named("XCTAssertFalse") | .call(Tuple()
                     .adding(parameter: TupleParameter(value: .named("endpointResult") + .named(entity.name.camelCased().variableCased().pluralName) + .named("isEmpty")))
                 )
-                
+
                 let function = Function(kind: .named("test_\(test.name)_\(endpointName.camelCased(separators: "_/").snakeCased)_\(entity.name)"))
                     .adding(member: Do(body: [
                         Assignment(
                             variable: Variable(name: "endpointResult"),
-                            value: .try | .named("EndpointResultPayload") | .call(Tuple()
+                            value: .try | .named("APIJSONCoderConfig") + .named("defaultJSONDecoder") + .named("decode") | .call(Tuple()
+                                .adding(parameter: TupleParameter(value: try endpoint.typeID(for: writePayload).reference + .named(.`self`)))
                                 .adding(parameter: TupleParameter(name: "from", value: Reference.named(endpoint.testJSONResourceName(for: test).variableCased())))
-                                .adding(parameter: TupleParameter(name: "endpoint", value: +.named(endpointName.camelCased(separators: "_/").variableCased())))
-                                .adding(parameter: TupleParameter(name: "decoder", value: .named("APIJSONCoderConfig") + .named("defaultJSONDecoder")))
                             )
                         ),
                         assert
@@ -139,11 +132,11 @@ struct MetaEndpointPayloadTests {
                             .adding(parameter: TupleParameter(value: Value.string("Unexpected error: \\(error).")))
                         ))
                     ))
-                
+
                 return [EmptyLine(), function]
             })
     }
-    
+
     private func testCombinations() throws -> [TestCombination] {
         return tests.flatMap { test in
             return test.endpoints.flatMap { endpointName in

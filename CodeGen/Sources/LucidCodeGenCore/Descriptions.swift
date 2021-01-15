@@ -423,7 +423,9 @@ public struct VersionHistoryItem: Equatable {
 // MARK: - Identifier
 
 public struct EntityIdentifier: Equatable {
-    
+
+    public let key: String
+
     public let identifierType: EntityIdentifierType
     
     public let equivalentIdentifierName: String?
@@ -432,11 +434,13 @@ public struct EntityIdentifier: Equatable {
 
     public let atomic: Bool?
 
-    public init(identifierType: EntityIdentifierType,
+    public init(key: String = DescriptionDefaults.idKey,
+                identifierType: EntityIdentifierType,
                 equivalentIdentifierName: String? = nil,
                 objc: Bool = DescriptionDefaults.objc,
                 atomic: Bool? = nil) {
 
+        self.key = key
         self.identifierType = identifierType
         self.equivalentIdentifierName = equivalentIdentifierName
         self.objc = objc

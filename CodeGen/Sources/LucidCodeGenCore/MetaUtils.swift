@@ -1179,10 +1179,10 @@ public extension Entity {
         }
     }
     
-    func payloadIdentifierValueReference() throws -> Reference {
+    func payloadIdentifierValueReference(ignoreLexicon: Bool = false) throws -> Reference {
         switch identifier.identifierType {
         case .scalarType:
-            return .named("id")
+            return .named(ignoreLexicon ? identifier.key : "id")
         case .property(let name):
             let property = try self.property(for: name)
             if property.isRelationship {
@@ -1248,7 +1248,7 @@ public extension EntityIdentifier {
     func payloadVariable(ignoreLexicon: Bool = false) -> Variable? {
         switch identifierType {
         case .scalarType:
-            return Variable(name: "id")
+            return Variable(name: ignoreLexicon ? key : "id")
         case .property(let name):
             return Variable(name: name.camelCased(ignoreLexicon: ignoreLexicon).variableCased(ignoreLexicon: true))
         case .void,

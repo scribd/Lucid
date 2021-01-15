@@ -21,6 +21,7 @@ public enum DescriptionDefaults {
     public static let persist = false
     public static let useForEquality = true
     public static let idOnly = false
+    public static let idKey = "id"
     public static let failableItems = true
     public static let isTarget = false
     public static let nullable = false
@@ -385,6 +386,7 @@ extension EndpointPayloadEntityVariation: Codable {
 extension EntityIdentifier: Codable {
     
     private enum Keys: String, CodingKey {
+        case key
         case type
         case derivedFromRelationships
         case equivalentToIdentifierOf
@@ -395,7 +397,8 @@ extension EntityIdentifier: Codable {
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
-        
+
+        key = try container.decodeIfPresent(String.self, forKey: .key) ?? DescriptionDefaults.idKey
         objc = try container.decodeIfPresent(Bool.self, forKey: .objc) ?? DescriptionDefaults.objc
         
         let lowerCaseType = try container.decodeIfPresent(String.self, forKey: .type)
@@ -432,6 +435,7 @@ extension EntityIdentifier: Codable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: Keys.self)
 
+        try container.encode(key, forKey: .key)
         try container.encodeIfPresent(objc == DescriptionDefaults.objc ? nil : objc, forKey: .objc)
         try container.encodeIfPresent(equivalentIdentifierName, forKey: .equivalentToIdentifierOf)
 

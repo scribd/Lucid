@@ -59,7 +59,7 @@ struct MetaClientQueueResponseHandler {
         return Type(identifier: TypeIdentifier(name: "RootClientQueueResponseHandler"))
             .with(kind: .class(final: false))
             .adding(inheritedType: TypeIdentifier(name: "CoreManagerContainerClientQueueResponseHandler"))
-            .with(accessLevel: .public)
+            .with(accessLevel: .open)
             .adding(members: [
                 EmptyLine(),
                 Property(variable: Variable(name: "managers")
@@ -118,9 +118,9 @@ struct MetaClientQueueResponseHandler {
 
     private func clientQueueFunctionCombine() -> TypeBodyMember {
         return PlainCode(code: """
-        public func clientQueue(_ clientQueue: APIClientQueuing,
-                                didReceiveResponse result: APIClientQueueResult<Data, APIError>,
-                                for request: APIClientQueueRequest) {
+        open func clientQueue(_ clientQueue: APIClientQueuing,
+                              didReceiveResponse result: APIClientQueueResult<Data, APIError>,
+                              for request: APIClientQueueRequest) {
 
             mergeIdentifiers(clientQueue: clientQueue,
                              result: result,
@@ -140,9 +140,9 @@ struct MetaClientQueueResponseHandler {
 
     private func clientQueueFunctionReactiveKit() -> TypeBodyMember {
         return PlainCode(code: """
-        public func clientQueue(_ clientQueue: APIClientQueuing,
-                                didReceiveResponse result: APIClientQueueResult<Data, APIError>,
-                                for request: APIClientQueueRequest) {
+        open func clientQueue(_ clientQueue: APIClientQueuing,
+                              didReceiveResponse result: APIClientQueueResult<Data, APIError>,
+                              for request: APIClientQueueRequest) {
 
             mergeIdentifiers(clientQueue: clientQueue,
                              result: result,
@@ -158,6 +158,7 @@ struct MetaClientQueueResponseHandler {
     private func mergeIdentifiers() throws -> TypeBodyMember {
 
         return Function(kind: .named("mergeIdentifiers"))
+            .with(accessLevel: .private)
             .adding(parameters: [
                 FunctionParameter(name: "clientQueue", type: TypeIdentifier(name: "APIClientQueuing")),
                 FunctionParameter(name: "result", type: TypeIdentifier(name: "APIClientQueueResult<Data, APIError>")),
@@ -208,48 +209,50 @@ struct MetaClientQueueResponseHandler {
 
         let entity = try descriptions.entity(for: writePayload.entity.entityName)
 
-        let functionParameterBuffer = String(repeating: " ", count: endpoint.transformedName.count)
+        return Function(kind: .named("merge\(endpoint.transformedName)Identifiers"))
+            .with(accessLevel: .private)
+            .adding(parameter: FunctionParameter(name: "clientQueue", type: TypeIdentifier(name: "APIClientQueuing")))
+            .adding(parameter: FunctionParameter(name: "result", type: TypeIdentifier(name: "APIClientQueueResult<Data, APIError>")))
+            .adding(parameter: FunctionParameter(name: "request", type: TypeIdentifier(name: "APIClientQueueRequest")))
+            .adding(parameter: FunctionParameter(name: "coreManager", type: TypeIdentifier(name: "CoreManaging<\(entity.typeID().swiftString), AppAnyEntity>")))
+            .with(resultType: TypeIdentifier(name: "AnyPublisher<Void, Never>"))
+            .adding(member:
+                PlainCode(code: """
 
-        return PlainCode(code: """
-        private func merge\(endpoint.transformedName)Identifiers(clientQueue: APIClientQueuing,
-                                      \(functionParameterBuffer)result: APIClientQueueResult<Data, APIError>,
-                                      \(functionParameterBuffer)request: APIClientQueueRequest,
-                                      \(functionParameterBuffer)coreManager: CoreManaging<\(entity.typeID().swiftString), AppAnyEntity>) -> AnyPublisher<Void, Never> {
+                guard let identifiersData = request.identifiers,
+                      let localIdentifiers = try? RootClientQueueResponseHandler.identifierDecoder.decode([\(entity.identifierTypeID().swiftString)].self, from: identifiersData) else {
+                        Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Expected a \(entity.name.camelCased().variableCased()) identifier to be stored in \\(request).\", assert: true)
+                        return Just<Void>(()).eraseToAnyPublisher()
+                }
 
-            guard let identifiersData = request.identifiers,
-                  let localIdentifiers = try? RootClientQueueResponseHandler.identifierDecoder.decode([\(entity.identifierTypeID().swiftString)].self, from: identifiersData) else {
-                    Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Expected a \(entity.name.camelCased().variableCased()) identifier to be stored in \\(request).\", assert: true)
+                switch result {
+                case .success(let response):
+                    let payloadDecoder = response.jsonCoderConfig.decoder
+                    do {
+                        let writePayload = try payloadDecoder.decode(\(try endpoint.typeID(for: writePayload).swiftString).self, from: response.data)
+                        let publishers: [AnyPublisher<Void, Never>] = writePayload.\(entity.name.camelCased().variableCased().pluralName).enumerated().map { index, \(entity.name.camelCased().variableCased()) in
+                            Logger.log(.debug, \"\\(RootClientQueueResponseHandler.self): Set \(entity.name.camelCased().variableCased()): \\(\(entity.name.camelCased().variableCased()).identifier)\")
+                            \(entity.name.camelCased().variableCased()).merge(identifier: localIdentifiers[index])
+                            clientQueue.merge(with: \(entity.name.camelCased().variableCased()).identifier)
+                            return coreManager.setAndUpdateIdentifierInLocalStores(\(entity.name.camelCased().variableCased()), originTimestamp: request.timestamp)
+                        }
+                        return Publishers.MergeMany(publishers).eraseToAnyPublisher()
+                    } catch {
+                        Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Failed to deserialize \\(\(try endpoint.typeID(for: writePayload).swiftString).self): \\(error)\", assert: true)
+                        return Just<Void>(()).eraseToAnyPublisher()
+                    }
+                case .aborted:
+                    Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Create \(entity.name.camelCased().variableCased()) aborted.\")
                     return Just<Void>(()).eraseToAnyPublisher()
-            }
-
-            switch result {
-            case .success(let response):
-                let payloadDecoder = response.jsonCoderConfig.decoder
-                do {
-                    let writePayload = try payloadDecoder.decode(\(try endpoint.typeID(for: writePayload).swiftString).self, from: response.data)
-                    let publishers: [AnyPublisher<Void, Never>] = writePayload.\(entity.name.camelCased().variableCased().pluralName).enumerated().map { index, \(entity.name.camelCased().variableCased()) in
-                        Logger.log(.debug, \"\\(RootClientQueueResponseHandler.self): Set \(entity.name.camelCased().variableCased()): \\(\(entity.name.camelCased().variableCased()).identifier)\")
-                        \(entity.name.camelCased().variableCased()).merge(identifier: localIdentifiers[index])
-                        clientQueue.merge(with: \(entity.name.camelCased().variableCased()).identifier)
-                        return coreManager.setAndUpdateIdentifierInLocalStores(\(entity.name.camelCased().variableCased()), originTimestamp: request.timestamp)
+                case .failure(let error):
+                    Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Failed to create \(entity.name.camelCased().variableCased()): \\(error).\")
+                    let publishers: [AnyPublisher<Void, Never>] = localIdentifiers.map { localIdentifier in
+                        return coreManager.removeFromLocalStores(localIdentifier, originTimestamp: request.timestamp)
                     }
                     return Publishers.MergeMany(publishers).eraseToAnyPublisher()
-                } catch {
-                    Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Failed to deserialize \\(\(try endpoint.typeID(for: writePayload).swiftString).self): \\(error)\", assert: true)
-                    return Just<Void>(()).eraseToAnyPublisher()
                 }
-            case .aborted:
-                Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Create \(entity.name.camelCased().variableCased()) aborted.\")
-                return Just<Void>(()).eraseToAnyPublisher()
-            case .failure(let error):
-                Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Failed to create \(entity.name.camelCased().variableCased()): \\(error).\")
-                let publishers: [AnyPublisher<Void, Never>] = localIdentifiers.map { localIdentifier in
-                    return coreManager.removeFromLocalStores(localIdentifier, originTimestamp: request.timestamp)
-                }
-                return Publishers.MergeMany(publishers).eraseToAnyPublisher()
-            }
-        }
-        """)
+                """)
+            )
     }
 
     private func mergeEntityIdentifierReactiveKit(_ endpoint: EndpointPayload) throws -> TypeBodyMember {
@@ -260,52 +263,54 @@ struct MetaClientQueueResponseHandler {
 
         let entity = try descriptions.entity(for: writePayload.entity.entityName)
 
-        let functionParameterBuffer = String(repeating: " ", count: endpoint.transformedName.count)
+        return Function(kind: .named("merge\(endpoint.transformedName)Identifiers"))
+            .with(accessLevel: .private)
+            .adding(parameter: FunctionParameter(name: "clientQueue", type: TypeIdentifier(name: "APIClientQueuing")))
+            .adding(parameter: FunctionParameter(name: "result", type: TypeIdentifier(name: "APIClientQueueResult<Data, APIError>")))
+            .adding(parameter: FunctionParameter(name: "request", type: TypeIdentifier(name: "APIClientQueueRequest")))
+            .adding(parameter: FunctionParameter(name: "coreManager", type: TypeIdentifier(name: "CoreManaging<\(entity.typeID().swiftString), AppAnyEntity>")))
+            .with(resultType: TypeIdentifier(name: "SafeSignal<Void>"))
+            .adding(member:
+                PlainCode(code: """
 
-        return PlainCode(code: """
-        private func merge\(endpoint.transformedName)Identifiers(clientQueue: APIClientQueuing,
-                                      \(functionParameterBuffer)result: APIClientQueueResult<Data, APIError>,
-                                      \(functionParameterBuffer)request: APIClientQueueRequest,
-                                      \(functionParameterBuffer)coreManager: CoreManaging<\(entity.typeID().swiftString), AppAnyEntity>) -> SafeSignal<Void> {
+                guard let identifiersData = request.identifiers,
+                      let localIdentifiers = try? RootClientQueueResponseHandler.identifierDecoder.decode([\(entity.identifierTypeID().swiftString)].self, from: identifiersData) else {
+                        Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Expected a \(entity.name.camelCased().variableCased()) identifier to be stored in \\(request).\", assert: true)
+                        return Signal(just: ())
+                }
 
-            guard let identifiersData = request.identifiers,
-                  let localIdentifiers = try? RootClientQueueResponseHandler.identifierDecoder.decode([\(entity.identifierTypeID().swiftString)].self, from: identifiersData) else {
-                    Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Expected a \(entity.name.camelCased().variableCased()) identifier to be stored in \\(request).\", assert: true)
+                switch result {
+                case .success(let response):
+                    let payloadDecoder = response.jsonCoderConfig.decoder
+                    do {
+                        let writePayload = try payloadDecoder.decode(\(try endpoint.typeID(for: writePayload).swiftString).self, from: response.data)
+                        let signals: [SafeSignal<Void>] = writePayload.\(entity.name.camelCased().variableCased().pluralName).enumerated().map { index, \(entity.name.camelCased().variableCased()) in
+                            Logger.log(.debug, \"\\(RootClientQueueResponseHandler.self): Set \(entity.name.camelCased().variableCased()): \\(\(entity.name.camelCased().variableCased()).identifier)\")
+                            \(entity.name.camelCased().variableCased()).merge(identifier: localIdentifiers[index])
+                            clientQueue.merge(with: \(entity.name.camelCased().variableCased()).identifier)
+                            return coreManager.setAndUpdateIdentifierInLocalStores(\(entity.name.camelCased().variableCased()), originTimestamp: request.timestamp)
+                        }
+                        return Signal(combiningLatest: signals) { _ in
+                            return ()
+                        }
+                    } catch {
+                        Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Failed to deserialize \\(\(try endpoint.typeID(for: writePayload).swiftString).self): \\(error)\", assert: true)
+                        return Signal(just: ())
+                    }
+                case .aborted:
+                    Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Create \(entity.name.camelCased().variableCased()) aborted.\")
                     return Signal(just: ())
-            }
-
-            switch result {
-            case .success(let response):
-                let payloadDecoder = response.jsonCoderConfig.decoder
-                do {
-                    let writePayload = try payloadDecoder.decode(\(try endpoint.typeID(for: writePayload).swiftString).self, from: response.data)
-                    let signals: [SafeSignal<Void>] = writePayload.\(entity.name.camelCased().variableCased().pluralName).enumerated().map { index, \(entity.name.camelCased().variableCased()) in
-                        Logger.log(.debug, \"\\(RootClientQueueResponseHandler.self): Set \(entity.name.camelCased().variableCased()): \\(\(entity.name.camelCased().variableCased()).identifier)\")
-                        \(entity.name.camelCased().variableCased()).merge(identifier: localIdentifiers[index])
-                        clientQueue.merge(with: \(entity.name.camelCased().variableCased()).identifier)
-                        return coreManager.setAndUpdateIdentifierInLocalStores(\(entity.name.camelCased().variableCased()), originTimestamp: request.timestamp)
+                case .failure(let error):
+                    Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Failed to create \(entity.name.camelCased().variableCased()): \\(error).\")
+                    let signals: [SafeSignal<Void>] = localIdentifiers.map { localIdentifier in
+                        return coreManager.removeFromLocalStores(localIdentifier, originTimestamp: request.timestamp)
                     }
                     return Signal(combiningLatest: signals) { _ in
                         return ()
                     }
-                } catch {
-                    Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Failed to deserialize \\(\(try endpoint.typeID(for: writePayload).swiftString).self): \\(error)\", assert: true)
-                    return Signal(just: ())
                 }
-            case .aborted:
-                Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Create \(entity.name.camelCased().variableCased()) aborted.\")
-                return Signal(just: ())
-            case .failure(let error):
-                Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Failed to create \(entity.name.camelCased().variableCased()): \\(error).\")
-                let signals: [SafeSignal<Void>] = localIdentifiers.map { localIdentifier in
-                    return coreManager.removeFromLocalStores(localIdentifier, originTimestamp: request.timestamp)
-                }
-                return Signal(combiningLatest: signals) { _ in
-                    return ()
-                }
-            }
-        }
-        """)
+                """)
+        )
     }
 }
 

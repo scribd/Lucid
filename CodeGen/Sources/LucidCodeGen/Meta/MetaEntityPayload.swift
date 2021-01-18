@@ -319,7 +319,7 @@ struct MetaEntityPayload {
                         TupleParameter(name: "id", value: .try |
                             .named("container") + .named("decode") | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: try entity.remoteIdentifierValueTypeID(descriptions).reference + .named(.`self`)))
-                                                                            .adding(parameter: TupleParameter(name: "forKey", value: try +entity.payloadIdentifierValueReference(ignoreLexicon: true)))
+                                .adding(parameter: TupleParameter(name: "forKey", value: try +entity.payloadIdentifierValueReference(ignoreLexicon: true)))
                                 .adding(parameter: TupleParameter(name: "defaultValue", value: Value.nil))
                                 .adding(parameter: TupleParameter(name: "excludedProperties", value: Reference.named("excludedProperties")))
                                 .adding(parameter: TupleParameter(name: "logError", value: Value.bool(true)))

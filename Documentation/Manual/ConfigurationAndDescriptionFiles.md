@@ -137,6 +137,16 @@ e.g. If you use `int`, your JSON payload must contain the field "id: \<int value
 	
 	This is mostly used when two or more entities are able to share an identifier. When used, Lucid generates some additional conversion methods necessary to convert identifiers from one entity type to another.
 
+#### Identifier Key
+
+By default the identifier is parsed on the key `"id"`. To set a custom key name, you can also set the property `"key"` in your description. e.g.:
+
+```json
+"identifier": {
+  "key": "remote_id",
+  "type": "int"
+}
+```
 
 ### Entity Property Description
 
@@ -334,12 +344,24 @@ Here is what a basic endpoint payload description looks like:
 {
   "name": "/my/endpoint",
   "base_key": "result",
-  "entity": {
-    "entity_name": "my_entity",
-    "structure": "array"
+  "read": {
+    "entity": {
+	   "entity_name": "my_entity",
+	   "structure": "array"
+	 }
   }
 }
 ```
+
+#### Types
+
+Endpoints can have three types of paylaods:
+
+* `read`: for fetching data, by default this will use the HTTP method `get`. (You can override this by setting the property **"http_method": "get/put/post/delete"**).
+* `write`: This is only necessary if your application can create an entity locally. When you send the data to the server, this payload will be used to merge the response remote identifier with the locally created identifier so that the data is treated as a single entity. Not doing so can result in duplicate data. By default this uses the HTTP method `post` and can be overridden.
+* `read_write`: You can use this payload for cases where the `read` and `write` payloads are identical and you want to generate less code. When using this payload type you cannot override the default `get` and `post` actions.
+
+
 
 #### Fields
 

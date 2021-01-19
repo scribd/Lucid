@@ -588,7 +588,6 @@
 		191F90F924BFA7F40050C7C6 /* MovieEndpointPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovieEndpointPayload.swift; sourceTree = "<group>"; };
 		191F90FA24BFA7F40050C7C6 /* MoviePayloads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoviePayloads.swift; sourceTree = "<group>"; };
 		191F90FB24BFA7F40050C7C6 /* DiscoverMovieEndpointPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverMovieEndpointPayload.swift; sourceTree = "<group>"; };
-		191F90FD24BFA7F40050C7C6 /* LocalStoreCleanupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalStoreCleanupManager.swift; sourceTree = "<group>"; };
 		191F90FE24BFA7F40050C7C6 /* CoreManagerContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreManagerContainer.swift; sourceTree = "<group>"; };
 		191F910024BFA7F40050C7C6 /* Sample_1.0.0.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Sample_1.0.0.xcdatamodel; sourceTree = "<group>"; };
 		191F910124BFA7F40050C7C6 /* EntityGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntityGraph.swift; sourceTree = "<group>"; };
@@ -1536,7 +1535,6 @@
 		191F90FC24BFA7F40050C7C6 /* Support */ = {
 			isa = PBXGroup;
 			children = (
-				191F90FD24BFA7F40050C7C6 /* LocalStoreCleanupManager.swift */,
 				191F90FE24BFA7F40050C7C6 /* CoreManagerContainer.swift */,
 				191F90FF24BFA7F40050C7C6 /* Sample.xcdatamodeld */,
 				191F910124BFA7F40050C7C6 /* EntityGraph.swift */,

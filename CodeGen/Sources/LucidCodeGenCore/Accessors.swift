@@ -60,6 +60,18 @@ public extension Descriptions {
             }
         }
     }
+
+    func endpointsWithMergeableIdentifiers() throws -> [EndpointPayload] {
+        return try endpoints
+            .filter {
+                if let writePayload = $0.writePayload {
+                    let entity = try self.entity(for: writePayload.entity.entityName)
+                    return entity.mutable(self)
+                }
+                return false
+            }
+            .sorted { $0.normalizedPathName < $1.normalizedPathName }
+    }
 }
 
 public extension Entity {
@@ -119,12 +131,19 @@ public extension Entity {
         }
     }
     
-    var mutable: Bool {
+    func mutable(_ descriptions: Descriptions) -> Bool {
+        if descriptions.endpoints.contains(where: {
+            guard let writePayload = $0.writePayload else { return false }
+            if writePayload.entity.entityName == name && identifier.identifierType.isScalar { return true }
+            return false
+        }) {
+            return true
+        }
         return properties.contains { $0.mutable }
     }
 
-    var atomicIdentifier: Bool {
-        return identifier.atomic ?? mutable
+    func atomicIdentifier(_ descriptions: Descriptions) -> Bool {
+        return identifier.atomic ?? mutable(descriptions)
     }
     
     var objc: Bool {
@@ -177,6 +196,22 @@ public extension Entity {
 
     var previousNameForCoreData: String? {
         return versionHistory.first { $0.previousName != nil }?.previousName
+    }
+}
+
+// MARK: - EntityIdentifierType
+
+public extension EntityIdentifierType {
+
+    var isScalar: Bool {
+        switch self {
+        case .scalarType:
+            return true
+        case .relationships,
+             .property,
+             .void:
+            return false
+        }
     }
 }
 
@@ -503,7 +538,7 @@ public extension EndpointPayloadEntity.Structure {
     }
 }
 
-public extension EndpointPayload {
+public extension ReadWriteEndpointPayload {
 
     enum InitializerType {
         case initFromRoot(_ subkey: String?)
@@ -512,7 +547,7 @@ public extension EndpointPayload {
         case mapFromSubstruct(key: String, subkey: String)
     }
     
-    func initializerType() throws -> InitializerType {
+    var initializerType: InitializerType {
 
         if let key = baseKey, let subkey = entity.entityKey {
             switch entity.structure {

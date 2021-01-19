@@ -1,7 +1,9 @@
 {
     "name": "/movie",
-    "entity": {
-        "entity_name": "movie",
-        "structure": "single"
+    "read": {
+        "entity": {
+            "entity_name": "movie",
+            "structure": "single"
+        }
     }
 }

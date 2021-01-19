@@ -85,7 +85,7 @@ final class MovieManager {
             .eraseToAnyPublisher()
     }
 
-    func discoverMovies(at offset: Int = 0) -> AnyPublisher<(movies: [Movie], metadata: DiscoverMovieMetadata?), ManagerError> {
+    func discoverMovies(at offset: Int = 0) -> AnyPublisher<(movies: [Movie], metadata: DiscoverMovieReadMetadata?), ManagerError> {
         return coreManagers.movieManager
             .search(
                 withQuery: Query.all
@@ -96,7 +96,7 @@ final class MovieManager {
                 in: .init(dataSource: .remoteOrLocal(trustRemoteFiltering: true))
             )
             .once
-            .map { ($0.array, $0.metadata?.endpoint as? DiscoverMovieMetadata) }
+            .map { ($0.array, $0.metadata?.endpoint as? DiscoverMovieReadMetadata) }
             .eraseToAnyPublisher()
     }
 }

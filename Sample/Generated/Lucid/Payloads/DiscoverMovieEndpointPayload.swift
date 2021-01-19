@@ -7,13 +7,13 @@
 
 import Lucid
 
-// MARK: - Endpoint Payload
+// MARK: - Endpoint Read Payload
 
-public struct DiscoverMovieEndpointPayload {
+public struct DiscoverMovieEndpointReadPayload {
 
     let moviePayloads: AnySequence<DefaultEndpointMoviePayload>
 
-    let endpointMetadata: DiscoverMovieMetadata
+    let endpointMetadata: DiscoverMovieReadMetadata
 
     var entityMetadata: AnySequence<Optional<MovieMetadata>> {
         return moviePayloads.lazy.map { $0.entityMetadata }.any
@@ -26,7 +26,7 @@ public struct DiscoverMovieEndpointPayload {
 
 // MARK: - Decodable
 
-extension DiscoverMovieEndpointPayload: Decodable {
+extension DiscoverMovieEndpointReadPayload: Decodable {
 
     private enum Keys: String, CodingKey {
         case results
@@ -36,13 +36,13 @@ extension DiscoverMovieEndpointPayload: Decodable {
         let container = try decoder.container(keyedBy: Keys.self)
         self.moviePayloads = try container.decode(Array<FailableValue<DefaultEndpointMoviePayload>>.self, forKey: .results).lazy.compactMap { $0.value() }.any
         let singleValueContainer = try decoder.singleValueContainer()
-        self.endpointMetadata = try singleValueContainer.decode(DiscoverMovieMetadata.self)
+        self.endpointMetadata = try singleValueContainer.decode(DiscoverMovieReadMetadata.self)
     }
 }
 
 // MARK: - Metadata
 
-public struct DiscoverMovieMetadata: Decodable, EndpointMetadata {
+public struct DiscoverMovieReadMetadata: Decodable, EndpointMetadata {
     public let totalResults: Int
 
     private enum Keys: String, CodingKey {
@@ -57,7 +57,7 @@ public struct DiscoverMovieMetadata: Decodable, EndpointMetadata {
 
 // MARK: - Accessors
 
-extension DiscoverMovieEndpointPayload {
+extension DiscoverMovieEndpointReadPayload {
 
     var genres: AnySequence<Genre> {
         return Array(arrayLiteral: moviePayloads.lazy.flatMap { $0.rootPayload.genres }.any).joined().any

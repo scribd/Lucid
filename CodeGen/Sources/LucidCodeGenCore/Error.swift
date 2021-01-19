@@ -14,6 +14,10 @@ public enum CodeGenError: Error, CustomStringConvertible {
     case entityAddedAtVersionNotFound(String)
     case entityUIDNotFound(String)
     case endpointPayloadNotFound(String)
+    case endpointRequiresAtLeastOnePayload(String)
+    case endpointRequiresSeparateReadAndWritePayloads(String)
+    case endpointTestsRequiresAtLeastOneType
+    case endpointWriteTestsShouldOnlyTestForMainEntity(endpoint: String, entity: String)
     case propertyNotFound(Entity, String)
     case unsupportedPayloadIdentifier
     case unsupportedMetadataIdentifier
@@ -45,6 +49,14 @@ public extension CodeGenError {
             return "Could not find added_at_version for entity named: '\(name)'."
         case .endpointPayloadNotFound(let name):
             return "Could not find endpoint named: '\(name)'."
+        case .endpointRequiresAtLeastOnePayload(let name):
+            return "Endpoint '\(name)' requires at least one read, write, or readwrite payload."
+        case .endpointRequiresSeparateReadAndWritePayloads(let name):
+            return "Endpoint '\(name)' with shared 'read_write' payload cannot specify custom HTTP methods. Create separate 'read' and 'write' payloads."
+        case .endpointTestsRequiresAtLeastOneType:
+            return "Tests for endpoint requires at least one read or write value."
+        case .endpointWriteTestsShouldOnlyTestForMainEntity(let endpoint, let entity):
+            return "WritePayload tests for endpoint '\(endpoint)' should only test for entity \(entity). Remove any additional entities from the test."
         case .propertyNotFound(let entity, let name):
             return "Could not find property named: '\(name)' in entity named: '\(entity.name)'."
         case .unsupportedPayloadIdentifier:

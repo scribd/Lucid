@@ -138,34 +138,73 @@ public struct EndpointPayload: Equatable {
     
     public let name: String
     
+    public let readPayload: ReadWriteEndpointPayload?
+
+    public let writePayload: ReadWriteEndpointPayload?
+
+    public let tests: EndpointPayloadTests?
+
+    public init(name: String,
+                readPayload: ReadWriteEndpointPayload? = nil,
+                writePayload: ReadWriteEndpointPayload? = nil,
+                tests: EndpointPayloadTests? = nil) {
+
+        self.name = name
+        self.readPayload = readPayload
+        self.writePayload = writePayload
+        self.tests = tests
+    }
+}
+
+// MARK: - ReadWriteEndpointPayload
+
+public struct ReadWriteEndpointPayload: Equatable {
+
+    public enum HTTPMethod: String, Codable {
+        case get
+        case post
+        case put
+        case delete
+
+        public static var defaultRead: HTTPMethod { return .get }
+        public static var defaultWrite: HTTPMethod { return .post }
+    }
+
     public let baseKey: String?
 
     public let entity: EndpointPayloadEntity
-    
+
     public let entityVariations: [EndpointPayloadEntityVariation]?
 
     public let excludedPaths: [String]
 
     public let metadata: [MetadataProperty]?
-    
-    public let tests: [EndpointPayloadTest]
 
-    public init(name: String,
-                baseKey: String? = nil,
+    public let httpMethod: HTTPMethod?
+
+    public init(baseKey: String? = nil,
                 entity: EndpointPayloadEntity,
                 entityVariations: [EndpointPayloadEntityVariation]? = nil,
                 excludedPaths: [String] = [],
                 metadata: [MetadataProperty]? = nil,
-                tests: [EndpointPayloadTest] = []) {
+                httpMethod: HTTPMethod? = nil) {
 
-        self.name = name
         self.baseKey = baseKey
         self.entity = entity
         self.entityVariations = entityVariations
         self.excludedPaths = excludedPaths
         self.metadata = metadata
-        self.tests = tests
+        self.httpMethod = httpMethod
     }
+}
+
+// MARK: - EndpointPayloadTests
+
+public struct EndpointPayloadTests: Equatable {
+
+    public let readTests: [EndpointPayloadTest]
+
+    public let writeTests: [EndpointPayloadTest]
 }
 
 // MARK: - EndpointPayloadTest
@@ -384,7 +423,9 @@ public struct VersionHistoryItem: Equatable {
 // MARK: - Identifier
 
 public struct EntityIdentifier: Equatable {
-    
+
+    public let key: String
+
     public let identifierType: EntityIdentifierType
     
     public let equivalentIdentifierName: String?
@@ -393,11 +434,13 @@ public struct EntityIdentifier: Equatable {
 
     public let atomic: Bool?
 
-    public init(identifierType: EntityIdentifierType,
+    public init(key: String = DescriptionDefaults.idKey,
+                identifierType: EntityIdentifierType,
                 equivalentIdentifierName: String? = nil,
                 objc: Bool = DescriptionDefaults.objc,
                 atomic: Bool? = nil) {
 
+        self.key = key
         self.identifierType = identifierType
         self.equivalentIdentifierName = equivalentIdentifierName
         self.objc = objc

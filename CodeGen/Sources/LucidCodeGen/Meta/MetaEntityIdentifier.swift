@@ -118,7 +118,7 @@ struct MetaEntityIdentifier {
                             variable: Reference.named("property"),
                             value: TypeIdentifier.propertyBox().reference | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: Reference.named("value")))
-                                .adding(parameter: TupleParameter(name: "atomic", value: Value.bool(entity.atomicIdentifier)))
+                                .adding(parameter: TupleParameter(name: "atomic", value: Value.bool(entity.atomicIdentifier(descriptions))))
                             )),
                         Assignment(
                             variable: Reference.named(.`self`) + .named("identifierTypeID"),
@@ -128,7 +128,7 @@ struct MetaEntityIdentifier {
                             variable: Reference.named(.`self`) + .named("_remoteSynchronizationState"),
                             value: TypeIdentifier.propertyBox().reference | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: Reference.named("remoteSynchronizationState")))
-                                .adding(parameter: TupleParameter(name: "atomic", value: Value.bool(entity.atomicIdentifier)))
+                                .adding(parameter: TupleParameter(name: "atomic", value: Value.bool(entity.atomicIdentifier(descriptions))))
                             ))
                     ])
             ]
@@ -143,7 +143,7 @@ struct MetaEntityIdentifier {
                         variable: Reference.named("property"),
                         value: TypeIdentifier.propertyBox().reference | .call(Tuple()
                             .adding(parameter: TupleParameter(value: Reference.named("value")))
-                            .adding(parameter: TupleParameter(name: "atomic", value: Value.bool(entity.atomicIdentifier)))
+                            .adding(parameter: TupleParameter(name: "atomic", value: Value.bool(entity.atomicIdentifier(descriptions))))
                         )
                     ))
                     .adding(member: Assignment(
@@ -167,7 +167,7 @@ struct MetaEntityIdentifier {
                 variable: Reference.named("_remoteSynchronizationState"),
                 value: TypeIdentifier.propertyBox().reference | .call(Tuple()
                     .adding(parameter: TupleParameter(value: +.named("synced")))
-                    .adding(parameter: TupleParameter(name: "atomic", value: Value.bool(entity.atomicIdentifier)))
+                    .adding(parameter: TupleParameter(name: "atomic", value: Value.bool(entity.atomicIdentifier(descriptions))))
                 )
             ) : nil)
             .adding(member: Switch(reference: .named("decoder") + .named("context"))
@@ -182,7 +182,7 @@ struct MetaEntityIdentifier {
                             .adding(parameter: TupleParameter(value: .try | container.reference + .named("decode") | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: .type(identifierValueTypeID) + .named(.`self`)))
                                 )))
-                            .adding(parameter: TupleParameter(name: "atomic", value: Value.bool(entity.atomicIdentifier)))
+                            .adding(parameter: TupleParameter(name: "atomic", value: Value.bool(entity.atomicIdentifier(descriptions))))
                         )
                     ))
                     .adding(member: Assignment(
@@ -204,7 +204,7 @@ struct MetaEntityIdentifier {
                                 .adding(parameter: TupleParameter(value: .type(identifierValueTypeID) + .named(.`self`)))
                                 .adding(parameter: TupleParameter(name: "forKey", value: +.named("value")))
                                 )))
-                            .adding(parameter: TupleParameter(name: "atomic", value: Value.bool(entity.atomicIdentifier)))
+                            .adding(parameter: TupleParameter(name: "atomic", value: Value.bool(entity.atomicIdentifier(descriptions))))
                         )
                     ))
                     .adding(member: Assignment(
@@ -282,7 +282,7 @@ struct MetaEntityIdentifier {
                 .adding(member: .named("hasher") + .named("combine") | .call(Tuple()
                     .adding(parameter: TupleParameter(value: Reference.named("identifierTypeID")))
                 ))
-        ] + (entity.atomicIdentifier ? [
+        ] + (entity.atomicIdentifier(descriptions) ? [
             EmptyLine(),
             Function(kind: .named("update"))
                 .with(accessLevel: .public)

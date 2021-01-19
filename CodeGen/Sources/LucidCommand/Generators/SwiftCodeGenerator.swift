@@ -26,7 +26,6 @@ final class SwiftCodeGenerator {
          historyVersions: [Version],
          shouldGenerateDataModel: Bool,
          descriptionsHash: String,
-         responseHandlerFunction: String?,
          coreDataMigrationsFunction: String?,
          reactiveKit: Bool,
          useCoreDataLegacyNaming: Bool,
@@ -77,7 +76,6 @@ final class SwiftCodeGenerator {
                 shouldGenerateDataModel: shouldGenerateDataModel,
                 descriptionsHash: descriptionsHash,
                 platform: $0,
-                responseHandlerFunction: responseHandlerFunction,
                 coreDataMigrationsFunction: coreDataMigrationsFunction,
                 reactiveKit: reactiveKit,
                 useCoreDataLegacyNaming: useCoreDataLegacyNaming,
@@ -140,7 +138,6 @@ private final class InternalSwiftCodeGenerator {
     private let shouldGenerateDataModel: Bool
     private let descriptionsHash: String
     private let platform: Platform?
-    private let responseHandlerFunction: String?
     private let coreDataMigrationsFunction: String?
     private let reactiveKit: Bool
     private let useCoreDataLegacyNaming: Bool
@@ -174,7 +171,6 @@ private final class InternalSwiftCodeGenerator {
          shouldGenerateDataModel: Bool,
          descriptionsHash: String,
          platform: Platform?,
-         responseHandlerFunction: String?,
          coreDataMigrationsFunction: String?,
          reactiveKit: Bool,
          useCoreDataLegacyNaming: Bool,
@@ -190,7 +186,6 @@ private final class InternalSwiftCodeGenerator {
         self.shouldGenerateDataModel = shouldGenerateDataModel
         self.descriptionsHash = descriptionsHash
         self.platform = platform
-        self.responseHandlerFunction = responseHandlerFunction
         self.coreDataMigrationsFunction = coreDataMigrationsFunction
         self.reactiveKit = reactiveKit
         self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
@@ -214,7 +209,6 @@ private final class InternalSwiftCodeGenerator {
             oldestModelVersion: oldestModelVersion,
             platform: platform,
             reactiveKit: reactiveKit,
-            responseHandlerFunction: responseHandlerFunction,
             shouldGenerateDataModel: shouldGenerateDataModel,
             sqliteFile: sqliteFile,
             sqliteFiles: sqliteFiles,
@@ -228,6 +222,7 @@ private final class InternalSwiftCodeGenerator {
             CoreManagerContainersGenerator(parameters),
             SupportUtilsGenerator(parameters),
             EntityGraphGenerator(parameters),
+            ClientQueueResponseHandlerGenerator(parameters),
             CoreDataXCDataModelGenerator(parameters),
             PayloadTestsGenerator(parameters),
             CoreDataTestsGenerator(parameters),

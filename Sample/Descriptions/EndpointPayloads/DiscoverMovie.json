@@ -1,14 +1,16 @@
 {
     "name": "/discover/movie",
-    "entity": {
-        "entity_key": "results",
-        "entity_name": "movie",
-        "structure": "array"
-    },
-    "metadata": [
-        {
-            "name": "total_results",
-            "property_type": "int"
-        }
-    ]
+    "read": {
+        "entity": {
+            "entity_key": "results",
+            "entity_name": "movie",
+            "structure": "array"
+        },
+        "metadata": [
+            {
+                "name": "total_results",
+                "property_type": "int"
+            }
+        ]
+    }
 }

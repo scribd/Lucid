@@ -10,9 +10,10 @@ import Combine
 
 // MARK: - Response Handler
 
-protocol CoreManagerContainerClientQueueResponseHandler: APIClientQueueResponseHandler {
+public protocol CoreManagerContainerClientQueueResponseHandler: APIClientQueueResponseHandler {
     var managers: CoreManagerContainer? { get set } // Should be declared weak in order to avoid a retain cycle
 }
+
 // MARK: - Resolvers
 
 typealias CoreManagerResolver = GenreCoreManagerProviding &
@@ -41,7 +42,7 @@ public final class CoreManagerContainer {
         }
     }
 
-    private let _responseHandler: CoreManagerContainerClientQueueResponseHandler? = nil
+    private let _responseHandler: CoreManagerContainerClientQueueResponseHandler?
     public var responseHandler: APIClientQueueResponseHandler? {
         return _responseHandler
     }
@@ -65,8 +66,10 @@ public final class CoreManagerContainer {
 
     public init(cacheLimit: Int,
                 client: APIClient,
-                diskStoreConfig: DiskStoreConfig = .coreData) {
+                diskStoreConfig: DiskStoreConfig = .coreData,
+                responseHandler: Optional<CoreManagerContainerClientQueueResponseHandler> = nil) {
 
+        _responseHandler = responseHandler
         var clientQueues = Set<APIClientQueue>()
         var clientQueue: APIClientQueue
 

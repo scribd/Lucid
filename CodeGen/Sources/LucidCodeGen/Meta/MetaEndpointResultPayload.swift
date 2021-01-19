@@ -88,15 +88,16 @@ struct MetaEndpointResultPayload {
             })
             .adding(member: Variable(name: "entities").with(type: .anySequence(element: .appAnyEntity)))
             .adding(member: EmptyLine())
-            .adding(member: Switch(reference: .named("endpoint")).with(cases: descriptions.endpoints.map { endpoint in
-                SwitchCase(name: endpoint.transformedName.variableCased())
+            .adding(member: Switch(reference: .named("endpoint")).with(cases: try descriptions.endpoints.compactMap { endpoint in
+                guard let readPayload = endpoint.readPayload else { return nil }
+                return SwitchCase(name: endpoint.transformedName.variableCased())
                     .adding(member: Reference.named("decoder") + .named("setExcludedPaths") | .call(Tuple()
-                        .adding(parameter: TupleParameter(value: endpoint.typeID.reference + .named("excludedPaths")))
+                        .adding(parameter: TupleParameter(value: try endpoint.typeID(for: readPayload).reference + .named("excludedPaths")))
                     ))
                     .adding(member: Assignment(
                         variable: Variable(name: "payload"),
                         value: .try | .named("decoder") + .named("decode") | .call(Tuple()
-                            .adding(parameter: TupleParameter(value: endpoint.typeID.reference + .named(.`self`)))
+                            .adding(parameter: TupleParameter(value: try endpoint.typeID(for: readPayload).reference + .named(.`self`)))
                             .adding(parameter: TupleParameter(name: "from", value: Reference.named("data")))
                         ))
                     )

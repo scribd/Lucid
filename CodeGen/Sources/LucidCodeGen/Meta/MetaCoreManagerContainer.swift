@@ -12,13 +12,11 @@ struct MetaCoreManagerContainer {
     
     let descriptions: Descriptions
     
-    let responseHandlerFunction: String?
-
     let coreDataMigrationsFunction: String?
 
     let reactiveKit: Bool
 
-    func meta() -> [FileBodyMember] {
+    func meta() throws -> [FileBodyMember] {
         return [
             [
                 Comment.mark("Response Handler"),
@@ -34,7 +32,7 @@ struct MetaCoreManagerContainer {
                 EmptyLine(),
                 Comment.mark("Container"),
                 EmptyLine(),
-                coreManagerType(),
+                try coreManagerType(),
                 EmptyLine(),
                 Extension(type: .coreManagerContainer)
                     .adding(inheritedType: .coreManagerResolver),
@@ -62,9 +60,10 @@ struct MetaCoreManagerContainer {
     
     private var responseHandlerProtocol: PlainCode {
         return PlainCode(code: """
-        protocol CoreManagerContainerClientQueueResponseHandler: APIClientQueueResponseHandler {
+        public protocol CoreManagerContainerClientQueueResponseHandler: APIClientQueueResponseHandler {
             var managers: CoreManagerContainer? { get set } // Should be declared weak in order to avoid a retain cycle
         }
+
         """)
     }
     
@@ -79,7 +78,7 @@ struct MetaCoreManagerContainer {
         }
     }
     
-    private func coreManagerType() -> Type {
+    private func coreManagerType() throws -> Type {
         return Type(identifier: .coreManagerContainer)
             .with(kind: .class(final: true))
             .with(accessLevel: .public)
@@ -109,7 +108,7 @@ struct MetaCoreManagerContainer {
                     }
                 }
 
-                private let _responseHandler: CoreManagerContainerClientQueueResponseHandler? = \(responseHandlerFunction.flatMap { "\($0)()" } ?? "nil")
+                private let _responseHandler: CoreManagerContainerClientQueueResponseHandler?
                 public var responseHandler: APIClientQueueResponseHandler? {
                     return _responseHandler
                 }
@@ -148,9 +147,17 @@ struct MetaCoreManagerContainer {
                 .adding(parameter: FunctionParameter(name: "diskStoreConfig", type: TypeIdentifier(name: "DiskStoreConfig"))
                     .with(defaultValue: +.named("coreData"))
                 )
+                .adding(parameter: FunctionParameter(name: "responseHandler", type: .optional(wrapped: .named("CoreManagerContainerClientQueueResponseHandler")))
+                    .with(defaultValue:
+                        try descriptions.endpointsWithMergeableIdentifiers().isEmpty ?
+                            Value.nil :
+                            .named("RootClientQueueResponseHandler") | .call(Tuple())
+                    )
+                )
                 .adding(member:
                     PlainCode(code: """
 
+                    _responseHandler = responseHandler
                     var clientQueues = Set<APIClientQueue>()
                     var clientQueue: APIClientQueue
 

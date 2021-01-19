@@ -21,10 +21,10 @@ extension Descriptions {
             .reduce(into: [:]) { $0[$1.name] = $1 }
     }
 
-    fileprivate convenience init(_ parser: DescriptionsParser, _ targets: Targets, _ version: Version) throws {
+    fileprivate convenience init(_ parser: DescriptionsParser, _ targets: Targets, _ version: Version, _ includeEndpoints: Bool) throws {
         let subtypes: [Subtype] = try parser.parseDescription(.subtypes).sorted { $0.name < $1.name }
         let entities: [Entity] = try parser.parseDescription(.entities).sorted { $0.name < $1.name }
-        let endpoints: [EndpointPayload] = try parser.parseDescription(.endpointPayloads).sorted { $0.name < $1.name }
+        let endpoints: [EndpointPayload] = includeEndpoints ? try parser.parseDescription(.endpointPayloads).sorted { $0.name < $1.name } : []
 
         self.init(subtypes: subtypes, entities: entities, endpoints: endpoints, targets: targets, version: version)
     }
@@ -58,10 +58,13 @@ extension Descriptions {
             }
         
         let endpoints = self.endpoints.filter { endpoint in
-            guard let entity = self.entitiesByName[endpoint.entity.entityName] else {
+            if let readPayload = endpoint.readPayload, let entity = self.entitiesByName[readPayload.entity.entityName] {
+                return entity.platforms.isEmpty || entity.platforms.contains(platform)
+            } else if let writePayload = endpoint.writePayload, let entity = self.entitiesByName[writePayload.entity.entityName] {
+                return entity.platforms.isEmpty || entity.platforms.contains(platform)
+            } else {
                 return false
             }
-            return entity.platforms.isEmpty || entity.platforms.contains(platform)
         }
         
         return Descriptions(
@@ -132,7 +135,7 @@ final class DescriptionsParser {
     private let targets: TargetConfigurations
     
     private let logger: Logger
-    
+
     private let jsonDecoder: JSONDecoder = {
         let jsonDecoder = JSONDecoder()
         jsonDecoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -145,9 +148,9 @@ final class DescriptionsParser {
         self.logger = logger
     }
     
-    func parse(version: Version) throws -> Descriptions {
+    func parse(version: Version, includeEndpoints: Bool = true) throws -> Descriptions {
         logger.moveToChild("Parsing Descriptions.")
-        let descriptions = try Descriptions(self, targets.value, version)
+        let descriptions = try Descriptions(self, targets.value, version, includeEndpoints)
         logger.moveToParent()
         return descriptions
     }

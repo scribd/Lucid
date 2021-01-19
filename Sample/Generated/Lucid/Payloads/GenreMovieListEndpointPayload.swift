@@ -7,9 +7,9 @@
 
 import Lucid
 
-// MARK: - Endpoint Payload
+// MARK: - Endpoint Read Payload
 
-public struct GenreMovieListEndpointPayload {
+public struct GenreMovieListEndpointReadPayload {
 
     let genrePayloads: AnySequence<DefaultEndpointGenrePayload>
 
@@ -26,7 +26,7 @@ public struct GenreMovieListEndpointPayload {
 
 // MARK: - Decodable
 
-extension GenreMovieListEndpointPayload: Decodable {
+extension GenreMovieListEndpointReadPayload: Decodable {
 
     private enum Keys: String, CodingKey {
         case genres
@@ -41,7 +41,7 @@ extension GenreMovieListEndpointPayload: Decodable {
 
 // MARK: - Accessors
 
-extension GenreMovieListEndpointPayload {
+extension GenreMovieListEndpointReadPayload {
 
     var genres: AnySequence<Genre> {
         return Array(arrayLiteral: genrePayloads.lazy.map { Genre(payload: $0.rootPayload) }.any).joined().any

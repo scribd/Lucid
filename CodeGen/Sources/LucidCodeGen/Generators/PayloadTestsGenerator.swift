@@ -31,13 +31,38 @@ public final class PayloadTestsGenerator: Generator {
         let filename = "\(endpointName.camelCased(separators: "/_").suffixedName())PayloadsTests.swift"
         
         let header = MetaHeader(filename: filename, organizationName: organizationName)
-        let endpointPayloadTests = MetaEndpointPayloadTests(endpointName: endpointName,
-                                                            descriptions: parameters.currentDescriptions)
+
+        var body: [FileBodyMember] = []
+        var imports: [Import] = []
+
+        if let readPayloadTests = try MetaEndpointReadPayloadTests(endpointName: endpointName,
+                                                                   descriptions: parameters.currentDescriptions) {
+
+            imports = readPayloadTests.imports()
+            body.append(try readPayloadTests.meta())
+        }
+
+        if let writePayloadTests = try MetaEndpointWritePayloadTests(endpointName: endpointName,
+                                                                     descriptions: parameters.currentDescriptions) {
+
+            if imports.isEmpty {
+                imports = writePayloadTests.imports()
+            }
+            if body.isEmpty == false {
+                body.append(EmptyLine())
+            }
+
+            body.append(try writePayloadTests.meta())
+        }
+
+        guard body.isEmpty == false else {
+            return nil
+        }
 
         return Meta.File(name: filename)
             .with(header: header.meta)
-            .with(imports: endpointPayloadTests.imports())
-            .adding(member: try endpointPayloadTests.meta())
+            .with(imports: imports)
+            .with(body: body)
             .swiftFile(in: directory)
     }
 }

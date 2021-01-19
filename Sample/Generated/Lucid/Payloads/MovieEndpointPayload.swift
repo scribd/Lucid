@@ -7,9 +7,9 @@
 
 import Lucid
 
-// MARK: - Endpoint Payload
+// MARK: - Endpoint Read Payload
 
-public struct MovieEndpointPayload {
+public struct MovieEndpointReadPayload {
 
     let moviePayload: DefaultEndpointMoviePayload
 
@@ -26,7 +26,7 @@ public struct MovieEndpointPayload {
 
 // MARK: - Decodable
 
-extension MovieEndpointPayload: Decodable {
+extension MovieEndpointReadPayload: Decodable {
 
     public init(from decoder: Decoder) throws {
         self.moviePayload = try DefaultEndpointMoviePayload(from: decoder)
@@ -36,7 +36,7 @@ extension MovieEndpointPayload: Decodable {
 
 // MARK: - Accessors
 
-extension MovieEndpointPayload {
+extension MovieEndpointReadPayload {
 
     var genres: AnySequence<Genre> {
         return Array(arrayLiteral: moviePayload.values().lazy.flatMap { $0.rootPayload.genres }.any).joined().any

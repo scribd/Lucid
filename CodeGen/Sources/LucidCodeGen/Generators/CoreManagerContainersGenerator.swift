@@ -30,7 +30,6 @@ public final class CoreManagerContainersGenerator: Generator {
         
         let header = MetaHeader(filename: filename, organizationName: organizationName)
         let coreManagerContainer = MetaCoreManagerContainer(descriptions: parameters.currentDescriptions,
-                                                            responseHandlerFunction: parameters.responseHandlerFunction,
                                                             coreDataMigrationsFunction: parameters.coreDataMigrationsFunction,
                                                             reactiveKit: parameters.reactiveKit)
         
@@ -38,7 +37,7 @@ public final class CoreManagerContainersGenerator: Generator {
             .adding(import: .lucid)
             .adding(import: parameters.reactiveKit ? .reactiveKit : .combine)
             .with(header: header.meta)
-            .with(body: coreManagerContainer.meta())
+            .with(body: try coreManagerContainer.meta())
             .swiftFile(in: directory)
     }
 }

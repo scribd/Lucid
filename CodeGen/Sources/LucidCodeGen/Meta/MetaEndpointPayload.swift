@@ -9,15 +9,49 @@ import Meta
 import LucidCodeGenCore
 
 struct MetaEndpointPayload {
-    
-    let endpointName: String
-    
+
+    enum PayloadType {
+        case read
+        case write
+    }
+
     let descriptions: Descriptions
-    
+
+    let payloadType: PayloadType
+
+    let endpoint: EndpointPayload
+
+    let readWritePayload: ReadWriteEndpointPayload
+
+    public init?(endpointName: String,
+                 payloadType: PayloadType,
+                 descriptions: Descriptions) throws {
+
+        let endpointValue = try descriptions.endpoint(for: endpointName)
+
+        guard let readWritePayloadValue: ReadWriteEndpointPayload = {
+            switch payloadType {
+            case .read:
+                return endpointValue.readPayload
+            case .write:
+                guard endpointValue.writePayload != endpointValue.readPayload else { return nil }
+                return endpointValue.writePayload
+            }
+        }() else {
+            return nil
+        }
+
+        self.descriptions = descriptions
+        self.payloadType = payloadType
+        self.endpoint = endpointValue
+        self.readWritePayload = readWritePayloadValue
+    }
+
     func meta() throws -> [FileBodyMember] {
+
         return [
             [
-                Comment.mark("Endpoint Payload"),
+                Comment.mark(commentMarkString()),
                 EmptyLine(),
                 try endpointPayload(),
                 EmptyLine(),
@@ -42,15 +76,13 @@ struct MetaEndpointPayload {
     }
     
     private func endpointPayload() throws -> Type {
-        let endpoint = try descriptions.endpoint(for: endpointName)
-
-        return Type(identifier: endpoint.typeID)
+        return Type(identifier: try endpoint.typeID(for: readWritePayload))
             .with(kind: .struct)
             .with(accessLevel: .public)
             .adding(member: EmptyLine())
-            .adding(member: Property(variable: endpoint.payloadVariable.with(type: try payloadPropertyTypeID())))
+            .adding(member: Property(variable: readWritePayload.payloadVariable.with(type: readWritePayload.payloadTypeID)))
             .adding(member: EmptyLine())
-            .adding(member: Property(variable: endpoint.metadataVariable.with(type: try metadataPropertyTypeID())))
+            .adding(member: Property(variable: endpoint.metadataVariable.with(type: try endpoint.metadataTypeID(for: readWritePayload))))
             .adding(member: EmptyLine())
             .adding(member: try entityMetadataComputedProperty())
             .adding(member: EmptyLine())
@@ -60,34 +92,36 @@ struct MetaEndpointPayload {
                 )
                 .with(static: true)
                 .with(accessLevel: .public)
-                .adding(member: Return(value: Value.array(endpoint.allExcludedPaths.map { Value.string($0) })))
+                    .adding(member: Return(value: Value.array(readWritePayload.allExcludedPaths.map { Value.string($0) })))
             )
     }
-    
-    private func payloadPropertyTypeID() throws -> TypeIdentifier {
-        let endpoint = try descriptions.endpoint(for: endpointName)
-        return endpoint.payloadTypeID
-    }
-    
-    private func metadataPropertyTypeID() throws -> TypeIdentifier {
-        let endpoint = try descriptions.endpoint(for: endpointName)
-        return endpoint.metadataTypeID
+
+    private func commentMarkString() -> String {
+        switch payloadType {
+        case .read:
+            if endpoint.readPayload == endpoint.writePayload {
+                return "Endpoint ReadWrite Payload"
+            } else {
+                return "Endpoint Read Payload"
+            }
+        case .write:
+            return "Endpoint Write Payload"
+        }
     }
 
     private func entityMetadataComputedProperty() throws -> ComputedProperty {
-        let endpoint = try descriptions.endpoint(for: endpointName)
-        let rootEntity = try descriptions.entity(for: endpoint.entity.entityName)
+        let rootEntity = try descriptions.entity(for: readWritePayload.entity.entityName)
 
         let returnReference: Reference
-        if endpoint.payloadTypeID.isArray == false {
+        if readWritePayload.payloadTypeID.isArray == false {
             returnReference = .array(with: [
-                endpoint.payloadVariable.reference | (endpoint.payloadTypeID.isOptional ? .unwrap : .none) + .named("entityMetadata")
+                readWritePayload.payloadVariable.reference | (readWritePayload.payloadTypeID.isOptional ? .unwrap : .none) + .named("entityMetadata")
             ]) + .named("lazy") + .named(.map) | .block(FunctionBody()
                 .adding(member: Reference.named("$0"))
             ) + .named("any")
         } else {
-            returnReference = endpoint.payloadVariable.reference |
-                (endpoint.payloadTypeID.isOptional ? .unwrap : .none) +
+            returnReference = readWritePayload.payloadVariable.reference |
+                (readWritePayload.payloadTypeID.isOptional ? .unwrap : .none) +
                 .named("lazy") + .named(.map) | .block(FunctionBody()
                     .adding(member: .named("$0") + .named("entityMetadata"))
                 ) + .named("any")
@@ -99,12 +133,11 @@ struct MetaEndpointPayload {
     }
     
     private func decodableExtension() throws -> Extension {
-        let endpoint = try descriptions.endpoint(for: endpointName)
 
         let keys = try decodableKeys()
         let subkeys = try decodableSubkeys()
         
-        return Extension(type: endpoint.typeID)
+        return Extension(type: try endpoint.typeID(for: readWritePayload))
             .adding(inheritedType: .decodable)
             .adding(member: EmptyLine())
             .adding(member: keys)
@@ -115,9 +148,8 @@ struct MetaEndpointPayload {
     }
     
     private func decodableKeys() throws -> Type? {
-        let endpoint = try descriptions.endpoint(for: endpointName)
 
-        switch try endpoint.initializerType() {
+        switch readWritePayload.initializerType {
         case .initFromKey(let key),
              .initFromSubkey(let key, _),
              .mapFromSubstruct(let key, _),
@@ -135,9 +167,8 @@ struct MetaEndpointPayload {
     }
     
     private func decodableSubkeys() throws -> Type? {
-        let endpoint = try descriptions.endpoint(for: endpointName)
 
-        switch try endpoint.initializerType() {
+        switch readWritePayload.initializerType {
         case .initFromSubkey(_ , let subkey):
             return Type(identifier: TypeIdentifier(name: "Subkeys"))
                 .with(kind: .enum(indirect: false))
@@ -152,7 +183,7 @@ struct MetaEndpointPayload {
                 .with(accessLevel: .private)
                 .adding(inheritedType: .decodable)
                 .adding(member: Property(variable: Variable(name: subkey.camelCased(ignoreLexicon: true).variableCased())
-                    .with(type: endpoint.payloadTypeID.arrayElementOrSelf.wrappedOrSelf)
+                    .with(type: readWritePayload.payloadTypeID.arrayElementOrSelf.wrappedOrSelf)
                 ))
             
         case .initFromKey,
@@ -162,17 +193,16 @@ struct MetaEndpointPayload {
     }
     
     private func initFromDecoder() throws -> Function {
-        let endpoint = try descriptions.endpoint(for: endpointName)
 
         var function = Function.initFromDecoder.with(accessLevel: .public)
-        let decodeMethod: Reference = endpoint.entity.nullable ? .named("decodeIfPresent") : .named("decode")
+        let decodeMethod: Reference = readWritePayload.entity.nullable ? .named("decodeIfPresent") : .named("decode")
         
         let container = Assignment(
             variable: Variable(name: "container"),
             value: Reference.named("decoder").container(keyedBy: TypeIdentifier(name: "Keys"))
         )
 
-        var payloadPropertyTypeID = try self.payloadPropertyTypeID().wrappedOrSelf
+        var payloadPropertyTypeID = readWritePayload.payloadTypeID.wrappedOrSelf
         if let arrayElementTypeID = payloadPropertyTypeID.arrayElement {
             payloadPropertyTypeID = .array(element: .failableValue(of: arrayElementTypeID))
         }
@@ -183,12 +213,12 @@ struct MetaEndpointPayload {
             ) + .named("any") : .none
         
         let metadataKey: String?
-        switch try endpoint.initializerType() {
+        switch readWritePayload.initializerType {
         case .initFromRoot(nil):
             metadataKey = nil
             function = function
                 .adding(member: Assignment(
-                    variable: Reference.named(.`self`) + endpoint.payloadVariable.reference,
+                    variable: Reference.named(.`self`) + readWritePayload.payloadVariable.reference,
                     value: .try | payloadPropertyTypeID.reference | .call(Tuple()
                         .adding(parameter: TupleParameter(name: "from", value: Reference.named("decoder")))
                     ) | unwrappedValues
@@ -199,7 +229,7 @@ struct MetaEndpointPayload {
             function = function
                 .adding(member: container)
                 .adding(member: Assignment(
-                    variable: .named(.`self`) + endpoint.payloadVariable.reference,
+                    variable: .named(.`self`) + readWritePayload.payloadVariable.reference,
                     value: .try | .named("container") + decodeMethod | .call(Tuple()
                         .adding(parameter: TupleParameter(value: payloadPropertyTypeID.reference + .named(.`self`)))
                         .adding(parameter: TupleParameter(name: "forKey", value: +.named(key)))
@@ -211,7 +241,7 @@ struct MetaEndpointPayload {
             function = function
                 .adding(member: container)
                 .adding(member: Assignment(
-                    variable: .named(.`self`) + endpoint.payloadVariable.reference,
+                    variable: .named(.`self`) + readWritePayload.payloadVariable.reference,
                     value: .try | .named("container") + decodeMethod | .call(Tuple()
                         .adding(parameter: TupleParameter(value: payloadPropertyTypeID.reference + .named(.`self`)))
                         .adding(parameter: TupleParameter(name: "forKey", value: +.named(key)))
@@ -230,7 +260,7 @@ struct MetaEndpointPayload {
                     )
                 ))
                 .adding(member: Assignment(
-                    variable: .named(.`self`) + endpoint.payloadVariable.reference,
+                    variable: .named(.`self`) + readWritePayload.payloadVariable.reference,
                     value: .try | .named("nestedContainer") + decodeMethod | .call(Tuple()
                         .adding(parameter: TupleParameter(value: payloadPropertyTypeID.reference + .named(.`self`)))
                         .adding(parameter: TupleParameter(name: "forKey", value: +.named(subkey.camelCased().variableCased())))
@@ -240,23 +270,23 @@ struct MetaEndpointPayload {
         case .mapFromSubstruct(let key, let subkey):
             metadataKey = key
             var nestedDecodingType = TypeIdentifier(name: "NestedValue")
-            if endpoint.entity.structure.isArray {
+            if readWritePayload.entity.structure.isArray {
                 nestedDecodingType = .array(element: .failableValue(of: nestedDecodingType))
             }
             function = function
                 .adding(member: container)
                 .adding(member: Assignment(
-                    variable: .named(.`self`) + endpoint.payloadVariable.reference,
+                    variable: .named(.`self`) + readWritePayload.payloadVariable.reference,
                     value: .try | .named("container") + decodeMethod | .call(Tuple()
                         .adding(parameter: TupleParameter(value: nestedDecodingType.reference + .named(.`self`)))
                         .adding(parameter: TupleParameter(name: "forKey", value: +.named(key)))
-                    ) + .named("lazy") + .named(endpoint.entity.structure.isArray ? .compactMap : .map) | .block(FunctionBody()
+                    ) + .named("lazy") + .named(readWritePayload.entity.structure.isArray ? .compactMap : .map) | .block(FunctionBody()
                         .adding(member: Reference.named("$0") | (+.named("value") | .call() | .unwrap) + .named(subkey.camelCased().variableCased()))
                     ) + .named("any")
                 ))
         }
         
-        if endpoint.metadata == nil {
+        if readWritePayload.metadata == nil {
             return function
                 .adding(member: Assignment(
                     variable: .named(.`self`) + .named("endpointMetadata"),
@@ -266,8 +296,8 @@ struct MetaEndpointPayload {
             return function
                 .adding(member: Assignment(
                     variable: .named(.`self`) + .named("endpointMetadata"),
-                    value: try .try | .named("container") + decodeMethod | .call(Tuple()
-                        .adding(parameter: TupleParameter(value: metadataPropertyTypeID().reference + .named(.`self`)))
+                    value: .try | .named("container") + decodeMethod | .call(Tuple()
+                        .adding(parameter: TupleParameter(value: try endpoint.metadataTypeID(for: readWritePayload).reference + .named(.`self`)))
                         .adding(parameter: TupleParameter(name: "forKey", value: +.named(metadataKeyName)))
                     )
                 ))
@@ -279,18 +309,17 @@ struct MetaEndpointPayload {
                 ))
                 .adding(member: Assignment(
                     variable: .named(.`self`) + .named("endpointMetadata"),
-                    value: try .try | .named("singleValueContainer") + decodeMethod | .call(Tuple()
-                        .adding(parameter: TupleParameter(value: metadataPropertyTypeID().reference + .named(.`self`)))
+                    value: .try | .named("singleValueContainer") + decodeMethod | .call(Tuple()
+                        .adding(parameter: TupleParameter(value: try endpoint.metadataTypeID(for: readWritePayload).reference + .named(.`self`)))
                     )
                 ))
         }
     }
     
     private func metadata() throws -> Type? {
-        let endpoint = try descriptions.endpoint(for: endpointName)
-        guard let metadata = endpoint.metadata else { return nil }
+        guard let metadata = readWritePayload.metadata else { return nil }
         
-        return Type(identifier: endpoint.metadataTypeID)
+        return Type(identifier: try endpoint.metadataTypeID(for: readWritePayload))
             .with(kind: .struct)
             .with(accessLevel: .public)
             .adding(inheritedType: .decodable)
@@ -331,59 +360,66 @@ struct MetaEndpointPayload {
     }
     
     private func accessors() throws -> Extension {
-        let endpoint = try descriptions.endpoint(for: endpointName)
-        let entity = try descriptions.entity(for: endpoint.entity.entityName)
-        let extractableEntities = try entity.extractablePropertyEntities(descriptions)
-        
-        var accessors = try extractableEntities.flatMap { entity -> [TypeBodyMember] in
-            return [
-                EmptyLine(),
-                try accessor(for: entity, isExtractable: true)
-            ]
+        let entity = try descriptions.entity(for: readWritePayload.entity.entityName)
+
+        switch payloadType {
+        case .write:
+            return Extension(type: try endpoint.typeID(for: readWritePayload))
+                .adding(members: [
+                    EmptyLine(),
+                    try accessor(for: entity, isExtractable: false)
+                ])
+        case .read:
+            let extractableEntities = try entity.extractablePropertyEntities(descriptions)
+
+            var accessors = try extractableEntities.flatMap { entity -> [TypeBodyMember] in
+                return [
+                    EmptyLine(),
+                    try accessor(for: entity, isExtractable: true)
+                ]
+            }
+
+            let isSelfExtractable = extractableEntities.contains { $0.name == entity.name }
+            if isSelfExtractable == false {
+                accessors.append(EmptyLine())
+                accessors.append(try accessor(for: entity, isExtractable: false))
+            }
+
+            let extractableEntitiesAndSelf = extractableEntities + (isSelfExtractable == false ? [entity] : [])
+
+            return Extension(type: try endpoint.typeID(for: readWritePayload))
+                .adding(members: accessors)
+                .adding(member: EmptyLine())
+                .adding(member: ComputedProperty(variable: Variable(name: "allEntities")
+                    .with(type: .anySequence(element: .appAnyEntity)))
+                    .adding(members: extractableEntitiesAndSelf.map { entity in
+                        Assignment(
+                            variable: entity.payloadEntityAccessorVariable,
+                            value: .named(.`self`) + entity.payloadEntityAccessorVariable.reference + .named(.map) | .block(FunctionBody()
+                                .adding(member: TypeIdentifier.appAnyEntity.reference + .named(entity.name.camelCased().variableCased()) | .call(Tuple()
+                                    .adding(parameter: TupleParameter(value: Reference.named("$0")))
+                                ))
+                            ) + .named("any")
+                        )
+                    })
+                    .adding(member: Return(value: Reference.array(with: extractableEntitiesAndSelf.map { entity in
+                        entity.payloadEntityAccessorVariable.reference
+                    }) + .named("joined") | .call() + .named("any")))
+                )
         }
-
-        let isSelfExtractable = extractableEntities.contains { $0.name == entity.name }
-
-        if isSelfExtractable == false {
-            accessors.append(EmptyLine())
-            accessors.append(try accessor(for: entity, isExtractable: false))
-        }
-
-        let extractableEntitiesAndSelf = extractableEntities + (isSelfExtractable == false ? [entity] : [])
-        
-        return Extension(type: endpoint.typeID)
-            .adding(members: accessors)
-            .adding(member: EmptyLine())
-            .adding(member: ComputedProperty(variable: Variable(name: "allEntities")
-                .with(type: .anySequence(element: .appAnyEntity)))
-                .adding(members: extractableEntitiesAndSelf.map { entity in
-                    Assignment(
-                        variable: entity.payloadEntityAccessorVariable,
-                        value: .named(.`self`) + entity.payloadEntityAccessorVariable.reference + .named(.map) | .block(FunctionBody()
-                            .adding(member: TypeIdentifier.appAnyEntity.reference + .named(entity.name.camelCased().variableCased()) | .call(Tuple()
-                                .adding(parameter: TupleParameter(value: Reference.named("$0")))
-                            ))
-                        ) + .named("any")
-                    )
-                })
-                .adding(member: Return(value: Reference.array(with: extractableEntitiesAndSelf.map { entity in
-                    entity.payloadEntityAccessorVariable.reference
-                }) + .named("joined") | .call() + .named("any")))
-            )
     }
     
     private func accessor(for entity: Entity, isExtractable: Bool) throws -> ComputedProperty {
-        let endpoint = try descriptions.endpoint(for: endpointName)
-        
-        let selfMapping: Reference? = entity.name == endpoint.entity.entityName ?
-            endpoint.payloadVariable.reference | (endpoint.entity.structure.isArray == false ? +.named("values") | .call() : .none) + .named("lazy") + .named(.map) | .block(FunctionBody()
+
+        let selfMapping: Reference? = entity.name == readWritePayload.entity.entityName ?
+            readWritePayload.payloadVariable.reference | (readWritePayload.entity.structure.isArray == false ? +.named("values") | .call() : .none) + .named("lazy") + .named(.map) | .block(FunctionBody()
                 .adding(member: entity.typeID().reference | .call(Tuple()
                     .adding(parameter: TupleParameter(name: "payload", value: .named("$0") + .named("rootPayload")))
                 ))
             ) + .named("any") : nil
         
         let extractionMapping: Reference? = isExtractable ?
-            endpoint.payloadVariable.reference | (endpoint.entity.structure.isArray == false ? +.named("values") | .call() : .none) + .named("lazy") + .named(.flatMap) | .block(FunctionBody()
+            readWritePayload.payloadVariable.reference | (readWritePayload.entity.structure.isArray == false ? +.named("values") | .call() : .none) + .named("lazy") + .named(.flatMap) | .block(FunctionBody()
                 .adding(member: .named("$0") + .named("rootPayload") + entity.payloadEntityAccessorVariable.reference)
             ) + .named("any") : nil
         

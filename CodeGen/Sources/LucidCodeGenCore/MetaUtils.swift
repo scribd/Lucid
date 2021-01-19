@@ -1179,10 +1179,10 @@ public extension Entity {
         }
     }
     
-    func payloadIdentifierValueReference() throws -> Reference {
+    func payloadIdentifierValueReference(ignoreLexicon: Bool = false) throws -> Reference {
         switch identifier.identifierType {
         case .scalarType:
-            return .named("id")
+            return .named(ignoreLexicon ? identifier.key : "id")
         case .property(let name):
             let property = try self.property(for: name)
             if property.isRelationship {
@@ -1248,7 +1248,7 @@ public extension EntityIdentifier {
     func payloadVariable(ignoreLexicon: Bool = false) -> Variable? {
         switch identifierType {
         case .scalarType:
-            return Variable(name: "id")
+            return Variable(name: ignoreLexicon ? key : "id")
         case .property(let name):
             return Variable(name: name.camelCased(ignoreLexicon: ignoreLexicon).variableCased(ignoreLexicon: true))
         case .void,
@@ -1444,28 +1444,53 @@ public extension EntityProperty {
 }
 
 public extension EndpointPayload {
-    
+
     var metadataVariable: Variable {
         return Variable(name: "endpointMetadata")
     }
     
-    var metadataTypeID: TypeIdentifier {
-        return TypeIdentifier(name: "\(metadata == nil ? "Void" : transformedName)Metadata")
+    func metadataTypeID(for readWritePayload: ReadWriteEndpointPayload) throws -> TypeIdentifier {
+        let voidMetadata = "VoidMetadata"
+
+        if readWritePayload == readPayload, readWritePayload == writePayload {
+            return TypeIdentifier(name: readWritePayload.metadata == nil ? voidMetadata : "\(transformedName)ReadWriteMetadata")
+        } else if readWritePayload == readPayload {
+            return TypeIdentifier(name: readWritePayload.metadata == nil ? voidMetadata : "\(transformedName)ReadMetadata")
+        } else if readWritePayload == writePayload {
+            return TypeIdentifier(name: readWritePayload.metadata == nil ? voidMetadata : "\(transformedName)WriteMetadata")
+        } else {
+            throw CodeGenError.endpointRequiresAtLeastOnePayload(name)
+        }
     }
-}
 
-// MARK: - Endpoints
-
-public extension EndpointPayload {
+    var normalizedPathName: String {
+        return name.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    }
 
     var transformedName: String {
         return name.camelCased(separators: "_/")
     }
     
-    var typeID: TypeIdentifier {
-        return TypeIdentifier(name: "\(transformedName)EndpointPayload")
+    func typeID(for readWritePayload: ReadWriteEndpointPayload) throws -> TypeIdentifier {
+        if readWritePayload == readPayload, readWritePayload == writePayload {
+            return TypeIdentifier(name: "\(transformedName)EndpointReadWritePayload")
+        } else if readWritePayload == readPayload {
+            return TypeIdentifier(name: "\(transformedName)EndpointReadPayload")
+        } else if readWritePayload == writePayload {
+            return TypeIdentifier(name: "\(transformedName)EndpointWritePayload")
+        } else {
+            throw CodeGenError.endpointRequiresAtLeastOnePayload(name)
+        }
     }
-    
+
+    var allTests: [EndpointPayloadTest] {
+        guard let tests = tests else { return [] }
+        return tests.readTests + tests.writeTests
+    }
+}
+
+public extension ReadWriteEndpointPayload {
+
     var payloadVariable: Variable {
         return entity.payloadVariable
     }

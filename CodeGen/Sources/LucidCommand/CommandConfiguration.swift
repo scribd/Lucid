@@ -53,9 +53,6 @@ struct CommandConfiguration {
     /// Build a new Database Model regardless of changes for selected versions only.
     var forceBuildNewDBModelForVersions = Defaults.forceBuildNewDBModelForVersions
 
-    /// Name of the function building `CoreManagerContainerClientQueueResponseHandler`.
-    var responseHandlerFunction: String? = nil
-    
     /// Name of the function building `[CoreDataManager.Migration]`
     var coreDataMigrationsFunction: String? = nil
 
@@ -286,7 +283,6 @@ extension CommandConfiguration: Codable {
         case forceBuildNewDBModelForVersions = "force_build_new_db_model_for_versions"
         case lexicon = "lexicon"
         case activeTargets = "active_targets"
-        case responseHandlerFunction = "response_handler_function"
         case coreDataMigrationsFunction = "core_data_migrations_function"
         case entitySuffix = "entity_suffix"
         case reactiveKit = "reactive_kit"
@@ -309,7 +305,6 @@ extension CommandConfiguration: Codable {
         gitRemote = try container.decodeIfPresent(String.self, forKey: .gitRemote) ?? Defaults.gitRemote
         forceBuildNewDBModel = try container.decodeIfPresent(Bool.self, forKey: .forceBuildNewDBModel) ?? Defaults.forceBuildNewDBModel
         forceBuildNewDBModelForVersions = try container.decodeIfPresent(Set<String>.self, forKey: .forceBuildNewDBModelForVersions) ?? Defaults.forceBuildNewDBModelForVersions
-        responseHandlerFunction = try container.decodeIfPresent(String.self, forKey: .responseHandlerFunction)
         coreDataMigrationsFunction = try container.decodeIfPresent(String.self, forKey: .coreDataMigrationsFunction)
         useCoreDataLegacyNaming = try container.decodeIfPresent(Bool.self, forKey: .useCoreDataLegacyNaming) ?? Defaults.useCoreDataLegacyNaming
         reactiveKit = try container.decodeIfPresent(Bool.self, forKey: .reactiveKit) ?? Defaults.reactiveKit
@@ -340,7 +335,6 @@ extension CommandConfiguration: Codable {
         try container.encodeIfPresent(gitRemote, forKey: .gitRemote)
         try container.encodeIfPresent(forceBuildNewDBModel == Defaults.forceBuildNewDBModel ? nil : forceBuildNewDBModel, forKey: .forceBuildNewDBModel)
         try container.encodeIfPresent(forceBuildNewDBModelForVersions.isEmpty ? nil : forceBuildNewDBModelForVersions.sorted(), forKey: .forceBuildNewDBModelForVersions)
-        try container.encodeIfPresent(responseHandlerFunction, forKey: .responseHandlerFunction)
         try container.encodeIfPresent(coreDataMigrationsFunction, forKey: .coreDataMigrationsFunction)
         try container.encodeIfPresent(useCoreDataLegacyNaming == Defaults.useCoreDataLegacyNaming ? nil : useCoreDataLegacyNaming, forKey: .useCoreDataLegacyNaming)
         try container.encodeIfPresent(reactiveKit == Defaults.reactiveKit ? nil : reactiveKit, forKey: .reactiveKit)

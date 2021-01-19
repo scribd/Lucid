@@ -59,13 +59,33 @@ public final class EndpointPayloadsGenerator: Generator {
             let filename = "\(endpointName.camelCased(separators: "_/").suffixedName())EndpointPayload.swift"
             
             let header = MetaHeader(filename: filename, organizationName: organizationName)
-            let entityPayload = MetaEndpointPayload(endpointName: endpointName,
-                                                    descriptions: parameters.currentDescriptions)
+
+            var body: [FileBodyMember] = []
+
+            if let readEntityPayload = try MetaEndpointPayload(endpointName: endpointName,
+                                                               payloadType: .read,
+                                                               descriptions: parameters.currentDescriptions) {
+                body += try readEntityPayload.meta()
+            }
             
+            if let writeEntityPayload = try MetaEndpointPayload(endpointName: endpointName,
+                                                                payloadType: .write,
+                                                                descriptions: parameters.currentDescriptions) {
+                if body.isEmpty == false {
+                    body.append(EmptyLine())
+                }
+
+                body += try writeEntityPayload.meta()
+            }
+
+            guard body.isEmpty == false else {
+                throw CodeGenError.endpointRequiresAtLeastOnePayload(endpointName)
+            }
+
             return Meta.File(name: filename)
                 .with(header: header.meta)
                 .adding(import: .lucid)
-                .with(body: try entityPayload.meta())
+                .with(body: body)
                 .swiftFile(in: directory)
             
         case .subtype:

@@ -3,6 +3,7 @@ on: push
 
 env:
   CARTHAGE_BOOTSTRAP_OUTPUT: carthage_bootstrap_output.log
+  ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
 jobs:
   codegen_tests:

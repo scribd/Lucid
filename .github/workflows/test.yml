@@ -15,26 +15,7 @@ jobs:
 
       - name: Run Lucid CodeGen tests
         run: |
-          swift test --package-path CodeGen --enable-test-discovery --enable-code-coverage
-          echo "PRODUCT_PATH=`swift build --package-path CodeGen --show-bin-path`" >> $GITHUB_ENV
-
-      - name: Create code coverage
-        if: github.ref == 'refs/heads/master'
-        uses: mattpolzin/swift-codecov-action@0.4.0
-        with:
-          CODECOV_JSON: ${{ env.PRODUCT_PATH }}/codecov/*.json
-
-      - name: Upload code coverage badge
-        if: github.ref == 'refs/heads/master'
-        uses: alvivi/shield-badge@v1
-        with:
-          aws-access-key-id: ${{ secrets.S3_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.S3_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-          aws-bucket: mobile.scribd.com
-          aws-filepath: badges/Lucid/CodeGen
-          label: CodeGen Coverage
-          text: ${{ env.CODECOV }}
+          swift test --package-path CodeGen --enable-test-discovery
 
   lucid_tests:
     name: Lucid-iOS Tests

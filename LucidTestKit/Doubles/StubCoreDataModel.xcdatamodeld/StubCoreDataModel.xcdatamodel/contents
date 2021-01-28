@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="15508" systemVersion="18G95" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
-    <entity name="EntityRelationshipSpy" representedClassName="ManagedEntityRelationshipSpy" syncable="YES" codeGenerationType="class">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="17192" systemVersion="19H2" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="EntityRelationshipSpy" representedClassName="ManagedEntityRelationshipSpy" syncable="YES">
         <attribute name="__identifier" optional="YES" attributeType="String"/>
         <attribute name="__type_uid" optional="YES" attributeType="String"/>
         <attribute name="_identifier" optional="YES" attributeType="Integer 64" usesScalarValueType="YES"/>
-        <attribute name="_title" optional="YES" attributeType="String"/>
         <attribute name="_relationships" optional="YES" attributeType="Binary"/>
+        <attribute name="_title" optional="YES" attributeType="String"/>
     </entity>
-    <entity name="EntitySpy" representedClassName="ManagedEntitySpy" syncable="YES" codeGenerationType="class">
-        <attribute name="__lazyLazyFlag" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+    <entity name="EntitySpy" representedClassName="ManagedEntitySpy" syncable="YES">
         <attribute name="__identifier" optional="YES" attributeType="String"/>
+        <attribute name="__lazyLazyFlag" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="__oneRelationship" optional="YES" attributeType="String"/>
         <attribute name="__oneRelationshipTypeUID" optional="YES" attributeType="String"/>
         <attribute name="__type_uid" optional="YES" attributeType="String"/>
-        <attribute name="_lazy" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="_identifier" optional="YES" attributeType="Integer 64" usesScalarValueType="YES"/>
+        <attribute name="_lazy" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="_manyRelationships" optional="YES" attributeType="Binary"/>
         <attribute name="_oneRelationship" optional="YES" attributeType="Integer 64"/>
-        <attribute name="_title" optional="YES" attributeType="String"/>
         <attribute name="_subtitle" optional="YES" attributeType="String"/>
+        <attribute name="_title" optional="YES" attributeType="String"/>
     </entity>
     <elements>
         <element name="EntityRelationshipSpy" positionX="162" positionY="252" width="128" height="118"/>
-        <element name="EntitySpy" positionX="160" positionY="192" width="128" height="193"/>
+        <element name="EntitySpy" positionX="160" positionY="192" width="128" height="208"/>
     </elements>
 </model>

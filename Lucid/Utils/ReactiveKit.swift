@@ -7,6 +7,7 @@
 //
 
 import ReactiveKit
+import Foundation
 
 /// A wrapper which acts like a future.
 ///

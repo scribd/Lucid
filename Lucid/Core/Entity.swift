@@ -7,7 +7,6 @@
 //
 
 import AVFoundation
-import UIKit
 import CoreData
 
 // MARK: - IdentifierValueType

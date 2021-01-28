@@ -7,8 +7,11 @@
 //
 
 import Foundation
-import UIKit
 import ReactiveKit
+
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Constants
 
@@ -470,7 +473,7 @@ final class APIClientQueueProcessor {
 
     private let lock = NSRecursiveLock(name: "\(APIClientQueueProcessor.self)")
 
-    #if os(iOS)
+    #if canImport(UIKit) && os(iOS)
     private let _backgroundTaskManager: BackgroundTaskManaging
     private let backgroundTaskID = Property<UIBackgroundTaskIdentifier>(.invalid)
     #endif
@@ -490,7 +493,7 @@ final class APIClientQueueProcessor {
         }
     }
 
-    #if os(iOS)
+    #if canImport(UIKit) && os(iOS)
 
     init(client: APIClient,
          backgroundTaskManager: BackgroundTaskManaging,
@@ -535,7 +538,7 @@ final class APIClientQueueProcessor {
                   responseHandlers: responseHandlers)
     }
 
-    #elseif os(watchOS)
+    #else
 
     init(client: APIClient,
          scheduler: APIClientQueueScheduling,
@@ -666,7 +669,7 @@ private extension APIClientQueueProcessor {
 
     func _process(_ request: APIClientQueueRequest, _ operationCompletion: @escaping () -> Void) {
 
-        #if os(iOS)
+        #if canImport(UIKit) && os(iOS)
         let taskID: UUID?
         if request.wrapped.config.background {
             taskID = _backgroundTaskManager.start {
@@ -688,7 +691,7 @@ private extension APIClientQueueProcessor {
             self.lock.lock()
             defer { self.lock.unlock() }
 
-            #if os(iOS)
+            #if canImport(UIKit) && os(iOS)
             if let taskID = taskID, self._backgroundTaskManager.stop(taskID) == false {
                 Logger.log(.warning, "\(APIClientQueueProcessor.self): Received response after background task timed out: \(requestDescription).")
                 return

@@ -6,10 +6,11 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
-import Foundation
-import UIKit
-
 @testable import Lucid
+import Foundation
+
+#if canImport(UIKit) && os(iOS)
+import UIKit
 
 public final class CoreBackgroundTaskManagerSpy: CoreBackgroundTaskManaging {
 
@@ -72,3 +73,5 @@ public final class BackgroundTaskManagerSpy: BackgroundTaskManaging {
         return stopValue
     }
 }
+
+#endif

@@ -7,6 +7,7 @@
 //
 
 import ReactiveKit
+import Foundation
 
 public extension Signal where Error == ManagerError {
 

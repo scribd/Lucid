@@ -2,7 +2,7 @@
 
 ### Abstract Concepts
 
-![Architecture Diagram](ArchitectureDiagram.png)
+![Architecture Diagram](https://docs.google.com/drawings/d/e/2PACX-1vQ1BkNqPJO6dlox3AyQAN2MD066GLZVr7B7MCCldmI1Et-Xnlqzzr5Yxw0_OS5VaDAW3O6jCPILvlj_/pub?w=960&h=720)
 
 Lucid is designed around the idea that a data flow should be derived from its resources, and not the other way around. Therefore, almost every piece depends on an entity type. An entity is usually a business-related object which holds the data required to run the app's business logic. For example, it could be a user, or a [movie](../Sample/Generated/Lucid/Entities/Movie.swift), or anything useful to run a business.
 

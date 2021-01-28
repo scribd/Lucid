@@ -59,14 +59,14 @@ extension APIClientQueueDefaultSchedulerTests {
         delegate.processNextStubs = [.processedBarrier]
 
         // ensure delegate starts out clean
-        XCTAssertEqual(delegate.processNextInvocations, 0)
+        XCTAssertEqual(delegate.processNextInvocations.count, 0)
 
         // invoke scheduler
         scheduler.didEnqueueNewRequest()
 
         // ensure delegate was invoked
         dispatchQueue.sync {
-            XCTAssertEqual(delegate.processNextInvocations, 1)
+            XCTAssertEqual(delegate.processNextInvocations.count, 1)
         }
     }
 
@@ -76,14 +76,14 @@ extension APIClientQueueDefaultSchedulerTests {
         delegate.processNextStubs = [.processedBarrier]
 
         // ensure delegate starts out clean
-        XCTAssertEqual(delegate.processNextInvocations, 0)
+        XCTAssertEqual(delegate.processNextInvocations.count, 0)
 
         // invoke scheduler
         scheduler.flush()
 
         // ensure delegate was invoked
         dispatchQueue.sync {
-            XCTAssertEqual(delegate.processNextInvocations, 1)
+            XCTAssertEqual(delegate.processNextInvocations.count, 1)
         }
     }
 
@@ -93,7 +93,7 @@ extension APIClientQueueDefaultSchedulerTests {
         delegate.processNextStubs = [.didNotProcess]
 
         // ensure delegate starts out clean
-        XCTAssertEqual(delegate.processNextInvocations, 0)
+        XCTAssertEqual(delegate.processNextInvocations.count, 0)
 
         // invoke scheduler
         scheduler.didEnqueueNewRequest()
@@ -102,7 +102,7 @@ extension APIClientQueueDefaultSchedulerTests {
 
         // ensure delegate was invoked
         dispatchQueue.sync {
-            XCTAssertEqual(delegate.processNextInvocations, 3)
+            XCTAssertEqual(delegate.processNextInvocations.count, 3)
         }
     }
 
@@ -112,7 +112,7 @@ extension APIClientQueueDefaultSchedulerTests {
         delegate.processNextStubs = [.didNotProcess]
 
         // ensure delegate starts out clean
-        XCTAssertEqual(delegate.processNextInvocations, 0)
+        XCTAssertEqual(delegate.processNextInvocations.count, 0)
 
         // invoke scheduler
         scheduler.flush()
@@ -121,7 +121,7 @@ extension APIClientQueueDefaultSchedulerTests {
 
         // ensure delegate was invoked
         dispatchQueue.sync {
-            XCTAssertEqual(delegate.processNextInvocations, 3)
+            XCTAssertEqual(delegate.processNextInvocations.count, 3)
         }
     }
 
@@ -136,7 +136,7 @@ extension APIClientQueueDefaultSchedulerTests {
 
         dispatchQueue.sync {
             // ensure delegate was invoked twice
-            XCTAssertEqual(delegate.processNextInvocations, 2)
+            XCTAssertEqual(delegate.processNextInvocations.count, 2)
         }
     }
 
@@ -151,7 +151,7 @@ extension APIClientQueueDefaultSchedulerTests {
 
         dispatchQueue.sync {
             // ensure delegate was invoked twice
-            XCTAssertEqual(delegate.processNextInvocations, 2)
+            XCTAssertEqual(delegate.processNextInvocations.count, 2)
         }
     }
 
@@ -166,7 +166,7 @@ extension APIClientQueueDefaultSchedulerTests {
 
         dispatchQueue.sync {
             // ensure delegate was invoked twice
-            XCTAssertEqual(delegate.processNextInvocations, 2)
+            XCTAssertEqual(delegate.processNextInvocations.count, 2)
         }
     }
 
@@ -184,7 +184,7 @@ extension APIClientQueueDefaultSchedulerTests {
 
         dispatchQueue.sync {
             // ensure delegate was invoked three times
-            XCTAssertEqual(delegate.processNextInvocations, 3)
+            XCTAssertEqual(delegate.processNextInvocations.count, 3)
         }
     }
 
@@ -200,7 +200,7 @@ extension APIClientQueueDefaultSchedulerTests {
 
         dispatchQueue.sync {
             // ensure delegate was invoked three times
-            XCTAssertEqual(delegate.processNextInvocations, 3)
+            XCTAssertEqual(delegate.processNextInvocations.count, 3)
         }
     }
 
@@ -242,7 +242,7 @@ extension APIClientQueueDefaultSchedulerTests {
 
         dispatchQueue.sync {
             // ensure delegate starts out clean
-            XCTAssertEqual(delegate.processNextInvocations, 1)
+            XCTAssertEqual(delegate.processNextInvocations.count, 1)
 
             // ensure timer provider was invoked
             XCTAssertEqual(timerProvider.scheduledTimerInvocations.count, 1)
@@ -254,7 +254,7 @@ extension APIClientQueueDefaultSchedulerTests {
 
         dispatchQueue.sync {
             // ensure delegate was invoked
-            XCTAssertEqual(delegate.processNextInvocations, 2)
+            XCTAssertEqual(delegate.processNextInvocations.count, 2)
         }
     }
 
@@ -277,7 +277,7 @@ extension APIClientQueueDefaultSchedulerTests {
             XCTAssertEqual(timer.invalidateInvocations, 1)
 
             // ensure delegate was invoked only twice
-            XCTAssertEqual(delegate.processNextInvocations, 2)
+            XCTAssertEqual(delegate.processNextInvocations.count, 2)
         }
     }
 
@@ -305,7 +305,7 @@ extension APIClientQueueDefaultSchedulerTests {
             XCTAssertEqual(timer.invalidateInvocations, 1)
 
             // ensure delegate was invoked only twice
-            XCTAssertEqual(delegate.processNextInvocations, 2)
+            XCTAssertEqual(delegate.processNextInvocations.count, 2)
         }
     }
 
@@ -321,7 +321,7 @@ extension APIClientQueueDefaultSchedulerTests {
 
         dispatchQueue.sync {
             // ensure delegate was not invoked
-            XCTAssertEqual(delegate.processNextInvocations, 1)
+            XCTAssertEqual(delegate.processNextInvocations.count, 1)
         }
     }
 
@@ -335,7 +335,7 @@ extension APIClientQueueDefaultSchedulerTests {
 
         dispatchQueue.sync {
             // ensure delegate was not invoked
-            XCTAssertEqual(delegate.processNextInvocations, 2)
+            XCTAssertEqual(delegate.processNextInvocations.count, 2)
         }
     }
 }

@@ -55,11 +55,11 @@ public final class APIClientQueueSchedulerDelegateSpy: APIClientQueueSchedulerDe
 
     public var processNextStubs: [APIClientQueueSchedulerProcessNextResult] = []
 
-    public private(set) var processNextInvocations = 0
+    public private(set) var processNextInvocations: [Void] = [Void]()
 
     @discardableResult
     public func processNext() -> APIClientQueueSchedulerProcessNextResult {
-        processNextInvocations += 1
+        processNextInvocations.append(())
         defer { processNextStubs = processNextStubs.dropFirst().array }
         return processNextStubs.first ?? .didNotProcess
     }

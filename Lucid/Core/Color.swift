@@ -7,6 +7,8 @@
 //
 
 import Foundation
+
+#if canImport(UIKit)
 import UIKit
 
 private extension UIColor {
@@ -50,6 +52,7 @@ private extension UIColor {
         self.init(red: r, green: g, blue: b, alpha: 1)
     }
 }
+#endif
 
 public struct Color: Equatable, Hashable {
     let hex: String
@@ -58,9 +61,11 @@ public struct Color: Equatable, Hashable {
         self.hex = hex
     }
 
+    #if canImport(UIKit)
     public var colorValue: UIColor {
         return UIColor(hex: hex)
     }
+    #endif
 }
 
 @objc public final class SCColorObjc: NSObject {

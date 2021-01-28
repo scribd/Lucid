@@ -7,10 +7,10 @@
 //
 
 import Foundation
-import UIKit
 import ReactiveKit
 
-#if os(iOS)
+#if canImport(UIKit) && os(iOS)
+import UIKit
 
 protocol CoreBackgroundTaskManaging: AnyObject {
     func beginBackgroundTask(expirationHandler: (() -> Void)?) -> UIBackgroundTaskIdentifier

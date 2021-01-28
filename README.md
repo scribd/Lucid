@@ -29,4 +29,4 @@ $ lucid swift
 
 This command generates the code to insert in your project under the directory `Generated`.
 
-## [Documentation](Documentation)
+## [Documentation](Documentation/Manual)

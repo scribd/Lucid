@@ -30,3 +30,7 @@ $ lucid swift
 This command generates the code to insert in your project under the directory `Generated`.
 
 ## [Documentation](Documentation/Manual)
+
+## Want to help?
+
+You are more than welcome to contribute to Lucid. You can open a PR or file tickets here on Github. Please refer to our [contributions guidelines](CONTRIBUTING.md) before doing so.

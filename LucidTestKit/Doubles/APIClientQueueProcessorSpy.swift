@@ -27,6 +27,11 @@ public final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
 
     public private(set) var abortRequestInvocations = [APIClientQueueRequest]()
 
+    public private(set) var prepareRequestInvocations = [(
+        requestConfig: APIRequestConfig,
+        completion: (APIRequestConfig) -> Void
+    )]()
+
     // MARK: - Stubs
 
     public var tokenStub = UUID()
@@ -69,6 +74,10 @@ public final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
     }
 
     public var jsonCoderConfig = APIJSONCoderConfig()
+
+    public func prepareRequest(_ requestConfig: APIRequestConfig, completion: @escaping (APIRequestConfig) -> Void) {
+        prepareRequestInvocations.append((requestConfig, completion))
+    }
 }
 
 public final class APIClientQueueProcessorDelegateSpy: APIClientQueueProcessorDelegate {

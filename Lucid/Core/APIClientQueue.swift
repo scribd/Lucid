@@ -274,21 +274,26 @@ public final class APIClientQueue: NSObject {
 extension APIClientQueue: APIClientQueuing {
 
     public func append(_ request: APIClientQueueRequest) {
-        switch cache {
-        case .default(let queue):
-            queue.append(request)
-            processor.didEnqueueNewRequest()
-        case .uniquing(let orderingSetCache, let valueCache, let dataQueue, let uniquingFunction):
-            let key = uniquingFunction(request)
-            dataQueue.async(flags: .barrier) {
-                var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
-                orderingSet.append(key)
-                orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
-                if let existingRequest = valueCache[key] {
-                    self.processor.abortRequest(existingRequest)
-                }
-                valueCache[key] = request
+        processor.prepareRequest(request.wrapped.config) { config in
+            var request = request
+            request.wrapped.config = config
+
+            switch self.cache {
+            case .default(let queue):
+                queue.append(request)
                 self.processor.didEnqueueNewRequest()
+            case .uniquing(let orderingSetCache, let valueCache, let dataQueue, let uniquingFunction):
+                let key = uniquingFunction(request)
+                dataQueue.async(flags: .barrier) {
+                    var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
+                    orderingSet.append(key)
+                    orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
+                    if let existingRequest = valueCache[key] {
+                        self.processor.abortRequest(existingRequest)
+                    }
+                    valueCache[key] = request
+                    self.processor.didEnqueueNewRequest()
+                }
             }
         }
     }
@@ -338,20 +343,25 @@ extension APIClientQueue: APIClientQueuing {
 extension APIClientQueue: APIClientPriorityQueuing {
 
     func prepend(_ request: APIClientQueueRequest) {
-        switch cache {
-        case .default(let queue):
-            queue.prepend(request)
-        case .uniquing(let orderingSetCache, let valueCache, let dataQueue, let uniquingFunction):
-            let key = uniquingFunction(request)
-            dataQueue.async(flags: .barrier) {
-                var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
-                guard orderingSet.contains(key) == false else {
-                    self.processor.abortRequest(request)
-                    return
+        processor.prepareRequest(request.wrapped.config) { config in
+            var request = request
+            request.wrapped.config = config
+
+            switch self.cache {
+            case .default(let queue):
+                queue.prepend(request)
+            case .uniquing(let orderingSetCache, let valueCache, let dataQueue, let uniquingFunction):
+                let key = uniquingFunction(request)
+                dataQueue.async(flags: .barrier) {
+                    var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
+                    guard orderingSet.contains(key) == false else {
+                        self.processor.abortRequest(request)
+                        return
+                    }
+                    orderingSet.prepend(key)
+                    orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
+                    valueCache[key] = request
                 }
-                orderingSet.prepend(key)
-                orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
-                valueCache[key] = request
             }
         }
     }
@@ -441,6 +451,8 @@ protocol APIClientQueueProcessing: AnyObject {
     func unregister(_ token: APIClientQueueProcessorResponseHandlerToken)
 
     func abortRequest(_ request: APIClientQueueRequest)
+
+    func prepareRequest(_ requestConfig: APIRequestConfig, completion: @escaping (APIRequestConfig) -> Void)
 
     var delegate: APIClientQueueProcessorDelegate? { get set }
 }
@@ -620,6 +632,10 @@ extension APIClientQueueProcessor: APIClientQueueProcessing {
 
     func flush() {
         scheduler.flush()
+    }
+
+    func prepareRequest(_ requestConfig: APIRequestConfig, completion: @escaping (APIRequestConfig) -> Void) {
+        client.prepareRequest(requestConfig, completion: completion)
     }
 }
 

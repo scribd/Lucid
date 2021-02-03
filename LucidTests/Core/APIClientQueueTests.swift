@@ -106,6 +106,7 @@ extension APIClientQueueTests {
         XCTAssertEqual(defaultQueueCache.setInvocations.count, 0)
 
         defaultQueue.append(request)
+        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
 
         XCTAssertEqual(defaultQueueCache.setInvocations.count, 1)
         XCTAssertEqual(defaultQueueCache.setInvocations[0].1, request)
@@ -121,6 +122,9 @@ extension APIClientQueueTests {
         defaultQueue.append(request0)
         defaultQueue.append(request1)
 
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+
         XCTAssertEqual(defaultQueueCache.setInvocations.count, 2)
         XCTAssertEqual(defaultQueueCache.setInvocations[0].1, request0)
         XCTAssertEqual(defaultQueueCache.setInvocations[1].1, request1)
@@ -134,6 +138,7 @@ extension APIClientQueueTests {
         XCTAssertEqual(queueProcessor.flushInvocations, 0)
 
         defaultQueue.append(request)
+        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 1)
         XCTAssertEqual(queueProcessor.flushInvocations, 0)
@@ -146,6 +151,9 @@ extension APIClientQueueTests {
 
         defaultQueue.append(request0)
         defaultQueue.append(request1)
+
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 2)
         XCTAssertEqual(queueProcessor.flushInvocations, 0)
@@ -163,6 +171,7 @@ extension APIClientQueueTests {
         XCTAssertEqual(defaultQueueCache.setInvocations.count, 0)
 
         defaultQueue.prepend(request)
+        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
 
         XCTAssertEqual(defaultQueueCache.setInvocations.count, 1)
         XCTAssertEqual(defaultQueueCache.setInvocations[0].1, request)
@@ -178,6 +187,9 @@ extension APIClientQueueTests {
         defaultQueue.prepend(request0)
         defaultQueue.prepend(request1)
 
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+
         XCTAssertEqual(defaultQueueCache.setInvocations.count, 2)
         XCTAssertEqual(defaultQueueCache.setInvocations[0].1, request0)
         XCTAssertEqual(defaultQueueCache.setInvocations[1].1, request1)
@@ -190,6 +202,9 @@ extension APIClientQueueTests {
 
         defaultQueue.prepend(request0)
         defaultQueue.prepend(request1)
+
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 0)
         XCTAssertEqual(queueProcessor.flushInvocations, 0)
@@ -208,6 +223,7 @@ extension APIClientQueueTests {
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations.count, 0)
 
         uniquingQueue.append(request)
+        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
         uniquingCacheDataQueue.sync { }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 1)
@@ -228,6 +244,10 @@ extension APIClientQueueTests {
 
         uniquingQueue.append(request0)
         uniquingQueue.append(request1)
+
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+
         uniquingCacheDataQueue.sync { }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 2)
@@ -254,6 +274,11 @@ extension APIClientQueueTests {
         uniquingQueue.append(request0)
         uniquingQueue.append(request1)
         uniquingQueue.append(request2)
+
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
+
         uniquingCacheDataQueue.sync { }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 3)
@@ -283,6 +308,8 @@ extension APIClientQueueTests {
         XCTAssertEqual(queueProcessor.flushInvocations, 0)
 
         uniquingQueue.append(request)
+        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
+
         uniquingCacheDataQueue.sync { }
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 1)
@@ -296,6 +323,10 @@ extension APIClientQueueTests {
 
         uniquingQueue.append(request0)
         uniquingQueue.append(request1)
+
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+
         uniquingCacheDataQueue.sync { }
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 2)
@@ -315,6 +346,8 @@ extension APIClientQueueTests {
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations.count, 0)
 
         uniquingQueue.prepend(request)
+        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
+
         uniquingCacheDataQueue.sync { }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 1)
@@ -335,6 +368,10 @@ extension APIClientQueueTests {
 
         uniquingQueue.prepend(request0)
         uniquingQueue.prepend(request1)
+
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+
         uniquingCacheDataQueue.sync { }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 2)
@@ -361,6 +398,11 @@ extension APIClientQueueTests {
         uniquingQueue.prepend(request0)
         uniquingQueue.prepend(request1)
         uniquingQueue.prepend(request2)
+
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
+
         uniquingCacheDataQueue.sync { }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 2)
@@ -383,6 +425,10 @@ extension APIClientQueueTests {
 
         uniquingQueue.prepend(request0)
         uniquingQueue.prepend(request1)
+
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+
         uniquingCacheDataQueue.sync { }
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 0)
@@ -404,6 +450,10 @@ extension APIClientQueueTests {
         defaultQueue.append(request1)
         defaultQueue.append(request2)
 
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
+
         defaultQueue.flush()
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 3)
@@ -424,6 +474,11 @@ extension APIClientQueueTests {
         uniquingQueue.append(request0)
         uniquingQueue.append(request1)
         uniquingQueue.append(request2)
+
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
+
         uniquingCacheDataQueue.sync { }
 
         uniquingQueue.flush()
@@ -442,6 +497,8 @@ extension APIClientQueueTests {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
 
         defaultQueue.append(request)
+        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
+
         let retrievedRequest = defaultQueue.nextRequest()
 
         XCTAssertEqual(retrievedRequest, request)
@@ -457,6 +514,10 @@ extension APIClientQueueTests {
         defaultQueue.append(request0)
         defaultQueue.append(request1)
         defaultQueue.append(request2)
+
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
 
         let retrievedRequest0 = defaultQueue.nextRequest()
         XCTAssertEqual(request0, retrievedRequest0)
@@ -481,6 +542,8 @@ extension APIClientQueueTests {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
 
         uniquingQueue.append(request)
+        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
+
         uniquingCacheDataQueue.sync { }
 
         let retrievedRequest = uniquingQueue.nextRequest()
@@ -500,6 +563,12 @@ extension APIClientQueueTests {
         uniquingQueue.append(request1)
         uniquingQueue.append(request2)
         uniquingQueue.append(request3)
+
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
+        queueProcessor.prepareRequestInvocations[3].completion(request3.wrapped.config)
+
         uniquingCacheDataQueue.sync { }
 
         let retrievedRequest0 = uniquingQueue.nextRequest()
@@ -529,6 +598,9 @@ extension APIClientQueueTests {
         defaultQueue.append(request0)
         defaultQueue.append(request1)
 
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+
         let remoteIdentifier = EntitySpyIdentifier(value: .remote(1, "1"))
         defaultQueue.merge(with: remoteIdentifier)
 
@@ -557,6 +629,10 @@ extension APIClientQueueTests {
 
         uniquingQueue.append(request0)
         uniquingQueue.append(request1)
+
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+
         uniquingCacheDataQueue.sync { }
 
         let remoteIdentifier = EntitySpyIdentifier(value: .remote(1, "1"))
@@ -597,6 +673,11 @@ extension APIClientQueueTests {
         defaultQueue.append(request2)
         defaultQueue.append(request3)
 
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
+        queueProcessor.prepareRequestInvocations[3].completion(request3.wrapped.config)
+
         let removedRequests = defaultQueue.removeRequests(matching: { $0.wrapped.config.queueingStrategy.retryPolicy.contains(.onNetworkInterrupt) == false })
 
         // test correct requests were removed
@@ -634,6 +715,11 @@ extension APIClientQueueTests {
         uniquingQueue.append(request1)
         uniquingQueue.append(request2)
         uniquingQueue.append(request3)
+
+        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
+        queueProcessor.prepareRequestInvocations[3].completion(request3.wrapped.config)
 
         let removedRequests = uniquingQueue.removeRequests(matching: { $0.wrapped.config.queueingStrategy.retryPolicy.contains(.onNetworkInterrupt) == false })
 

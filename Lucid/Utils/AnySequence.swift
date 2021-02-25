@@ -25,6 +25,21 @@ public extension Sequence {
     }
 }
 
+public extension Sequence where Element: DualHashable {
+
+    @inlinable func uniquified() -> AnySequence<Element> {
+        var encounteredElements = DualHashSet<Element>()
+        return Array(compactMap { element in
+            if encounteredElements.contains(element) {
+                return nil
+            } else {
+                encounteredElements.insert(element)
+                return element
+            }
+        }).any
+    }
+}
+
 public extension AnySequence {
 
     @inlinable static var empty: AnySequence<Element> {

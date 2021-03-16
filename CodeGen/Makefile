@@ -1,8 +1,8 @@
-VERSION := $(shell /bin/cat .version)
+VERSION := $(shell /bin/cat ../VERSION)
 PREFIX=/usr/local
 SWIFT_BUILD_FLAGS=--configuration release
 
-.PHONY: clean build install package test
+.PHONY: clean build install package
 
 init:
 	@swift package generate-xcodeproj

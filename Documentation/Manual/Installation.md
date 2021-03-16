@@ -8,37 +8,31 @@
 github "git@github.com:scribd/Lucid.git"
 ```
 
-### [CocoaPods](https://cocoapods.org) (coming soon)
+### [CocoaPods](https://cocoapods.org)
 
 ```
 pod 'Lucid'
 ```
 
-### [Swift Package Manager](https://swift.org/package-manager/) (coming soon)
+Optionally for your tests,
 
-```swift
-// swift-tools-version:5.0
-
-import PackageDescription
-
-let package = Package(
-  name: "MyApp",
-  dependencies: [
-    .package(url: "https://github.com/scribd/Lucid.git", from: "1.0")
-  ],
-  targets: [
-    .target(name: "MyApp", dependencies: ["Lucid"])
-  ]
-)
 ```
+pod 'LucidTestKit'
+```
+
+### [Swift Package Manager](https://swift.org/package-manager/)
+
+In Xcode, `File -> Swift Packages -> Add Package Dependency -> Lucid`
+
+If you are using `LucidTestKit`, you'll have to add `DISABLE_DIAMOND_PROBLEM_DIAGNOSTIC=YES` to your test target's build settings. You can learn more about this issue [here](https://forums.swift.org/t/swift-packages-in-multiple-targets-results-in-this-will-result-in-duplication-of-library-code-errors/34892/51). 
 
 ## Compile-time
 
 ### Binary form
 
-Download the latest release with the prebuilt binary from release tab. Unzip the archive into the desired destination and run `bin/lucid`
+Download the latest release with the prebuilt binary from [release tab](https://github.com/scribd/Lucid/releases). Unzip the archive into the desired destination and run `bin/lucid`
 
-### [Homebrew](https://brew.sh) (coming soon)
+### [Homebrew](https://brew.sh)
 
 ```bash
 $ brew install lucid

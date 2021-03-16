@@ -8,18 +8,6 @@
 github "git@github.com:scribd/Lucid.git"
 ```
 
-### [CocoaPods](https://cocoapods.org)
-
-```
-pod 'Lucid'
-```
-
-Optionally for your tests,
-
-```
-pod 'LucidTestKit'
-```
-
 ### [Swift Package Manager](https://swift.org/package-manager/)
 
 In Xcode, `File -> Swift Packages -> Add Package Dependency -> Lucid`

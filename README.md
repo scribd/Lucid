@@ -12,14 +12,14 @@ Lucid is a Swift library for building robust data layers for applications.
 
 ## Quick Setup
 
-To quickly boostrap a project, try running the following:
+To quickly bootstrap a project, try running the following:
 
 ```bash
 $ mkdir MyProject && cd MyProject
 $ lucid bootstrap
 ```
 
-The boostrap command creates a configuration file (`.lucid.yaml`) and an example of entity and endpoint description (under the directory `Descriptions`), which you can rename and edit at your convenience.
+The bootstrap command creates a configuration file (`.lucid.yaml`) and an example of entity and endpoint description (under the directory `Descriptions`), which you can rename and edit at your convenience.
 
 Then, to generate the code, run:
 

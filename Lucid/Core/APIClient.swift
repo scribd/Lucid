@@ -452,6 +452,12 @@ public protocol APIClient: AnyObject {
     ///     - request: Data that was sent.
     func didSend(request: APIRequest<Data>)
 
+    /// Allows the client to track events that were received. This will not be called for deduplicated requests.
+    ///
+    /// - Parameters:
+    ///     - result: A result object containing either a valid response or an error value.
+    func didReceive(result: Result<APIClientResponse<Data>, APIError>)
+
     /// Provide an error payload from a response's body if this one contains an error's info.
     func errorPayload(from body: Data) -> APIErrorPayload?
 
@@ -515,6 +521,7 @@ extension APIClient {
                 let wrappedCompletion: (Result<APIClientResponse<Data>, APIError>) -> Void = { result in
                     completion(result)
                     self.deduplicator.applyResultToDuplicates(request: requestConfig, result: result)
+                    self.didReceive(result: result)
                 }
 
                 let host = requestConfig.host ?? self.host
@@ -607,6 +614,8 @@ extension APIClient {
     }
 
     public func didSend(request: APIRequest<Data>) {}
+
+    public func didReceive(result: Result<APIClientResponse<Data>, APIError>) {}
 
     public func response<Model>(from body: Data, with coderConfig: APIJSONCoderConfig) throws -> Model where Model: Decodable {
         return try coderConfig.decoder.decode(Model.self, from: body)

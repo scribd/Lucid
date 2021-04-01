@@ -665,7 +665,7 @@ extension APIClient {
             return "Invalid request."
         }
 
-        let base = "\(request.method.rawValue.uppercased()) - \(url.absoluteString)"
+        let base = "\(request.method.rawValue.uppercased()) - \(url.absoluteString) "
         if let tag = request.tag {
             return "\(base) (\(tag))"
         } else {

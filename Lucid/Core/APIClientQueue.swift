@@ -701,7 +701,7 @@ private extension APIClientQueueProcessor {
         #endif
 
         let requestDescription = client.description(for: request.wrapped.config)
-        Logger.log(.info, "\(APIClientQueueProcessor.self): Processing request: \(requestDescription)...")
+        Logger.log(.info, "\(APIClientQueueProcessor.self): Processing request: \(requestDescription)")
 
         client.send(request: request.wrapped) { result in
             self.lock.lock()
@@ -709,18 +709,18 @@ private extension APIClientQueueProcessor {
 
             #if canImport(UIKit) && os(iOS)
             if let taskID = taskID, self._backgroundTaskManager.stop(taskID) == false {
-                Logger.log(.warning, "\(APIClientQueueProcessor.self): Received response after background task timed out: \(requestDescription).")
+                Logger.log(.warning, "\(APIClientQueueProcessor.self): Received response after background task timed out: \(requestDescription)")
                 return
             }
             #endif
 
             switch result {
             case .success(let response):
-                Logger.log(.info, "\(APIClientQueueProcessor.self): Request succeeded: \(requestDescription).")
+                Logger.log(.info, "\(APIClientQueueProcessor.self): Request succeeded: \(requestDescription)")
                 self._complete(.success(response, request), operationCompletion)
 
             case .failure(let apiError):
-                Logger.log(.info, "\(APIClientQueueProcessor.self): Request \(requestDescription) failed: \(apiError).")
+                Logger.log(.info, "\(APIClientQueueProcessor.self): Request \(requestDescription) failed: \(apiError)")
                 self._complete(.apiError(apiError, request), operationCompletion)
             }
         }
@@ -784,7 +784,7 @@ private extension APIClientQueueProcessor {
             if request.retryOnNetworkInterrupt {
                 delegate?.prepend(request)
             } else {
-                Logger.log(.error, "\(APIClientQueueProcessor.self): Request: \(client.description(for: request.wrapped.config)) failed and won't be retried: \(apiError).")
+                Logger.log(.error, "\(APIClientQueueProcessor.self): Request: \(client.description(for: request.wrapped.config)) failed and won't be retried: \(apiError)")
             }
         case .network(.networkConnectionFailure(.requestTimedOut)) where request.retryOnRequestTimeout:
             delegate?.prepend(request)
@@ -794,7 +794,7 @@ private extension APIClientQueueProcessor {
              .networkingProtocolIsNotHTTP,
              .url,
              .other:
-            Logger.log(.error, "\(APIClientQueueProcessor.self): Request: \(client.description(for: request.wrapped.config)) failed and won't be retried: \(apiError).")
+            Logger.log(.error, "\(APIClientQueueProcessor.self): Request: \(client.description(for: request.wrapped.config)) failed and won't be retried: \(apiError)")
         }
     }
 

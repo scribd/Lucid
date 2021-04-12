@@ -105,7 +105,7 @@ extension ReadWriteEndpointPayload: Codable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: Keys.self)
-        baseKey = try container.decodeIfPresent(String.self, forKey: .baseKey)
+        baseKey = try container.decodeIfPresent(BaseKey.self, forKey: .baseKey)
         entity = try container.decode(EndpointPayloadEntity.self, forKey: .entity)
         entityVariations = try container.decodeIfPresent([EndpointPayloadEntityVariation].self, forKey: .entityVariations)
         excludedPaths = try container.decodeIfPresent([String].self, forKey: .excludedPaths) ?? []
@@ -122,6 +122,28 @@ extension ReadWriteEndpointPayload: Codable {
         try container.encodeIfPresent(excludedPaths.isEmpty ? nil : excludedPaths, forKey: .excludedPaths)
         try container.encodeIfPresent(metadata, forKey: .metadata)
         try container.encodeIfPresent(httpMethod, forKey: .httpMethod)
+    }
+}
+
+extension ReadWriteEndpointPayload.BaseKey: Codable {
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let arrayBaseKey = try? container.decode([String].self) {
+            self = .array(arrayBaseKey)
+        } else {
+            self = .single(try container.decode(String.self))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .single(let key):
+            try container.encode(key)
+        case .array(let keys):
+            try container.encode(keys)
+        }
     }
 }
 

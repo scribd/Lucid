@@ -149,26 +149,21 @@ struct MetaEndpointPayload {
     
     private func decodableKeys() throws -> Type? {
 
-        let allKeys: [String]
         switch readWritePayload.initializerType {
-        case .initFromKeys(let keys),
-             .initFromSubkey(let keys, _),
-             .mapFromSubstruct(let keys, _):
-            allKeys = keys
-        case .initFromRoot(.some(let subkey)):
-            allKeys = [subkey]
+        case .initFromKey(let key),
+             .initFromSubkey(let key, _),
+             .mapFromSubstruct(let key, _),
+             .initFromRoot(.some(let key)):
+            return Type(identifier: TypeIdentifier(name: "Keys"))
+                .with(kind: .enum(indirect: false))
+                .with(accessLevel: .private)
+                .adding(inheritedType: .string)
+                .adding(inheritedType: .codingKey)
+                .adding(member: Case(name: key))
+            
         case .initFromRoot:
             return nil
         }
-
-        return Type(identifier: TypeIdentifier(name: "Keys"))
-            .with(kind: .enum(indirect: false))
-            .with(accessLevel: .private)
-            .adding(inheritedType: .string)
-            .adding(inheritedType: .codingKey)
-            .adding(members: allKeys.map { key in
-                Case(name: key)
-            })
     }
     
     private func decodableSubkeys() throws -> Type? {
@@ -191,7 +186,7 @@ struct MetaEndpointPayload {
                     .with(type: readWritePayload.payloadTypeID.arrayElementOrSelf.wrappedOrSelf)
                 ))
             
-        case .initFromKeys,
+        case .initFromKey,
              .initFromRoot:
             return nil
         }
@@ -201,18 +196,10 @@ struct MetaEndpointPayload {
 
         var function = Function.initFromDecoder.with(accessLevel: .public)
         let decodeMethod: Reference = readWritePayload.entity.nullable ? .named("decodeIfPresent") : .named("decode")
-
-        var containerVariable = Variable(name: "container")
-
-        var containerValue = Reference.named("decoder").container(keyedBy: TypeIdentifier(name: "Keys"))
-
-        readWritePayload.initializerType.keys.dropLast().forEach { key in
-            containerValue = containerValue.nestedContainer(keyedBy: TypeIdentifier(name: "Keys"), forKey: TypeIdentifier(name: key))
-        }
-
+        
         let container = Assignment(
-            variable: containerVariable,
-            value: containerValue
+            variable: Variable(name: "container"),
+            value: Reference.named("decoder").container(keyedBy: TypeIdentifier(name: "Keys"))
         )
 
         var payloadPropertyTypeID = readWritePayload.payloadTypeID.wrappedOrSelf
@@ -237,7 +224,7 @@ struct MetaEndpointPayload {
                     ) | unwrappedValues
                 ))
             
-        case .initFromRoot(.some(let subkey)):
+        case .initFromRoot(.some(let key)):
             metadataKey = nil
             function = function
                 .adding(member: container)
@@ -245,35 +232,32 @@ struct MetaEndpointPayload {
                     variable: .named(.`self`) + readWritePayload.payloadVariable.reference,
                     value: .try | .named("container") + decodeMethod | .call(Tuple()
                         .adding(parameter: TupleParameter(value: payloadPropertyTypeID.reference + .named(.`self`)))
-                        .adding(parameter: TupleParameter(name: "forKey", value: +.named(subkey)))
+                        .adding(parameter: TupleParameter(name: "forKey", value: +.named(key)))
                     ) | unwrappedValues
                 ))
             
-        case .initFromKeys(let keys):
-            guard let lastKey = keys.last else {
-                throw CodeGenError.expectedValidPayloadKeys
-            }
-            metadataKey = lastKey
+        case .initFromKey(let key):
+            metadataKey = key
             function = function
                 .adding(member: container)
                 .adding(member: Assignment(
                     variable: .named(.`self`) + readWritePayload.payloadVariable.reference,
                     value: .try | .named("container") + decodeMethod | .call(Tuple()
                         .adding(parameter: TupleParameter(value: payloadPropertyTypeID.reference + .named(.`self`)))
-                        .adding(parameter: TupleParameter(name: "forKey", value: +.named(lastKey)))
+                        .adding(parameter: TupleParameter(name: "forKey", value: +.named(key)))
                     ) | unwrappedValues
                 ))
             
-        case .initFromSubkey(let keys, let subkey):
-            guard let lastKey = keys.last else {
-                throw CodeGenError.expectedValidPayloadKeys
-            }
-            metadataKey = lastKey
+        case .initFromSubkey(let key, let subkey):
+            metadataKey = key
             function = function
                 .adding(member: container)
                 .adding(member: Assignment(
                     variable: Variable(name: "nestedContainer"),
-                    value: .try | Reference.named("container").nestedContainer(keyedBy: TypeIdentifier(name: "Subkeys"), forKey: TypeIdentifier(name: lastKey))
+                    value: .try | .named("container") + .named("nestedContainer") | .call(Tuple()
+                        .adding(parameter: TupleParameter(name: "keyedBy", value: .named("Subkeys") + .named(.`self`)))
+                        .adding(parameter: TupleParameter(name: "forKey", value: +.named(key)))
+                    )
                 ))
                 .adding(member: Assignment(
                     variable: .named(.`self`) + readWritePayload.payloadVariable.reference,
@@ -283,11 +267,8 @@ struct MetaEndpointPayload {
                     ) | unwrappedValues
                 ))
             
-        case .mapFromSubstruct(let keys, let subkey):
-            guard let lastKey = keys.last else {
-                throw CodeGenError.expectedValidPayloadKeys
-            }
-            metadataKey = lastKey
+        case .mapFromSubstruct(let key, let subkey):
+            metadataKey = key
             var nestedDecodingType = TypeIdentifier(name: "NestedValue")
             if readWritePayload.entity.structure.isArray {
                 nestedDecodingType = .array(element: .failableValue(of: nestedDecodingType))
@@ -298,7 +279,7 @@ struct MetaEndpointPayload {
                     variable: .named(.`self`) + readWritePayload.payloadVariable.reference,
                     value: .try | .named("container") + decodeMethod | .call(Tuple()
                         .adding(parameter: TupleParameter(value: nestedDecodingType.reference + .named(.`self`)))
-                        .adding(parameter: TupleParameter(name: "forKey", value: +.named(lastKey)))
+                        .adding(parameter: TupleParameter(name: "forKey", value: +.named(key)))
                     ) + .named("lazy") + .named(readWritePayload.entity.structure.isArray ? .compactMap : .map) | .block(FunctionBody()
                         .adding(member: Reference.named("$0") | (+.named("value") | .call() | .unwrap) + .named(subkey.camelCased().variableCased()))
                     ) + .named("any")

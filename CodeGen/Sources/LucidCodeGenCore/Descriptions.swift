@@ -170,12 +170,7 @@ public struct ReadWriteEndpointPayload: Equatable {
         public static var defaultWrite: HTTPMethod { return .post }
     }
 
-    public enum BaseKey: Equatable {
-        case single(String)
-        case array([String])
-    }
-
-    public let baseKey: BaseKey?
+    public let baseKey: String?
 
     public let entity: EndpointPayloadEntity
 
@@ -187,7 +182,7 @@ public struct ReadWriteEndpointPayload: Equatable {
 
     public let httpMethod: HTTPMethod?
 
-    public init(baseKey: BaseKey? = nil,
+    public init(baseKey: String? = nil,
                 entity: EndpointPayloadEntity,
                 entityVariations: [EndpointPayloadEntityVariation]? = nil,
                 excludedPaths: [String] = [],

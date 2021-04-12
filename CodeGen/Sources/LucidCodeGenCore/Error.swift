@@ -21,7 +21,6 @@ public enum CodeGenError: Error, CustomStringConvertible {
     case propertyNotFound(Entity, String)
     case unsupportedPayloadIdentifier
     case unsupportedMetadataIdentifier
-    case expectedValidPayloadKeys
     case unsupportedNestedKeys
     case couldNotFindTargetEntity
     case subtypeDoesNotHaveAnyCase(String)
@@ -64,8 +63,6 @@ public extension CodeGenError {
             return "Unsupported payload identifier."
         case .unsupportedMetadataIdentifier:
             return "Unsupported metadata identifier."
-        case .expectedValidPayloadKeys:
-            return "Expected at least one base_key value."
         case .unsupportedNestedKeys:
             return "Nested keys with more than two levels aren't supported."
         case .couldNotFindTargetEntity:

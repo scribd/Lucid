@@ -582,14 +582,7 @@ public extension Reference {
             .adding(parameter: TupleParameter(name: "keyedBy", value: keyType.reference + .named(.`self`)))
         )
     }
-
-    func nestedContainer(keyedBy keyType: TypeIdentifier, forKey key: TypeIdentifier) -> Reference {
-        return self + .named("nestedContainer") | .call(Tuple()
-            .adding(parameter: TupleParameter(name: "keyedBy", value: keyType.reference + .named(.`self`)))
-            .adding(parameter: TupleParameter(name: "forKey", value: +key.reference))
-        )
-    }
-
+    
     static func orderedDualHashDictionary() -> Reference {
         return TypeIdentifier.orderedDualHashDictionary().reference | .call()
     }

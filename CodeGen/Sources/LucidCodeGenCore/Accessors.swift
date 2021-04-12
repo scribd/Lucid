@@ -538,39 +538,27 @@ public extension EndpointPayloadEntity.Structure {
     }
 }
 
-public extension ReadWriteEndpointPayload.BaseKey {
-
-    var keys: [String] {
-        switch self {
-        case .single(let key):
-            return [key]
-        case .array(let keys):
-            return keys
-        }
-    }
-}
-
 public extension ReadWriteEndpointPayload {
 
     enum InitializerType {
         case initFromRoot(_ subkey: String?)
-        case initFromKeys(_ keys: [String])
-        case initFromSubkey(keys: [String], subkey: String)
-        case mapFromSubstruct(keys: [String], subkey: String)
+        case initFromKey(_ key: String)
+        case initFromSubkey(key: String, subkey: String)
+        case mapFromSubstruct(key: String, subkey: String)
     }
     
     var initializerType: InitializerType {
 
-        if let baseKey = baseKey, let subkey = entity.entityKey {
+        if let key = baseKey, let subkey = entity.entityKey {
             switch entity.structure {
             case .single,
                  .array:
-                return .initFromSubkey(keys: baseKey.keys, subkey: subkey)
+                return .initFromSubkey(key: key, subkey: subkey)
             case .nestedArray:
-                return .mapFromSubstruct(keys: baseKey.keys, subkey: subkey)
+                return .mapFromSubstruct(key: key, subkey: subkey)
             }
-        } else if let baseKey = baseKey {
-            return .initFromKeys(baseKey.keys)
+        } else if let key = baseKey {
+            return .initFromKey(key)
         } else {
             return .initFromRoot(entity.entityKey)
         }
@@ -596,20 +584,6 @@ public extension ReadWriteEndpointPayload {
         }
 
         return excludedPaths + additionalPaths
-    }
-}
-
-public extension ReadWriteEndpointPayload.InitializerType {
-
-    var keys: [String] {
-        switch self {
-        case .initFromRoot:
-            return []
-        case .initFromKeys(let keys),
-             .initFromSubkey(let keys, _),
-             .mapFromSubstruct(let keys, _):
-            return keys
-        }
     }
 }
 

@@ -353,6 +353,22 @@ Here is what a basic endpoint payload description looks like:
 }
 ```
 
+or
+
+```json
+{
+  "name": "/my/endpoint",
+  "base_key": ["result", "modules"],
+  "read": {
+    "entity": {
+       "entity_key": "object",
+       "entity_name": "my_entity",
+       "structure": "array"
+     }
+  }
+}
+```
+
 #### Types
 
 Endpoints can have three types of paylaods:
@@ -366,7 +382,7 @@ Endpoints can have three types of paylaods:
 #### Fields
 
 - `name`: Endpoint name ***(required)***.
-- `base_key`: JSON key from which the payload should be parsed ***(optional)***. When `nil`, the parsing starts from the root.
+- `base_key`: JSON key from which the payload should be parsed ***(optional)***. Can be a string for a single key or an array of strings for a nested path. When `nil`, the parsing starts from the root.
 - `entity`: [Endpoint payload entity description](ConfigurationAndDescriptionFiles.md#endpoint-payload-entity-description) ***(required)***.
 - `excluded_paths`: JSON key paths which should not be parsed ***(optional)***.
 - `metadata`: [Metadata descriptions](ConfigurationAndDescriptionFiles.md#metadata-description).
@@ -376,6 +392,6 @@ Endpoints can have three types of paylaods:
 #### Fields
 
 - `entity_name`: Name of the entity type contained in the payload ***(required)***.
-- `entity_key`: JSON key at which the entities should be parsed ***(optional)***. When `nil`, the parsing starts from the root.
+- `entity_key`: JSON key at which the entities should be parsed ***(optional)***. This key is applied at the end of the path defined by `base_key`.
 - `structure`: Structure type which the entity payload is made of ***(required)***. Can be `single`, `array` or `nested_array`. A `nested_array` is a special case where each item in the array is a dictionary object that also contains an entity.
 - `nullable`: Whether or not the entity payload can be `nil` ***(defaults to `false`)***.

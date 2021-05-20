@@ -10,7 +10,7 @@ import Foundation
 import Lucid
 
 final class MovieDBClient: APIClient {
-    
+
     let networkClient: NetworkClient
 
     let identifier = Constants.identifier
@@ -27,7 +27,11 @@ final class MovieDBClient: APIClient {
 // MARK: - Request Handling
 
 extension MovieDBClient {
-    
+
+    func shouldHandleResponse(for requestConfig: APIRequestConfig, completion: @escaping (Result<Void, APIError>) -> Void) {
+        completion(.success(()))
+    }
+
     func prepareRequest(_ requestConfig: APIRequestConfig, completion: @escaping (APIRequestConfig) -> Void) {
         var requestConfig = requestConfig
         requestConfig.query["api_key"] = .value(Constants.apiKey)

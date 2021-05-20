@@ -443,7 +443,7 @@ public protocol APIClient: AnyObject {
     ///
     /// - Parameters:
     ///     - requestConfig: The configuration of the request being sent.
-    /// - Returns: A bool determining if the response is handled or ignored.
+    ///     - completion: A completion block determining if the response is handled or ignored. Call completion(.success(())) to proceed with the request.
     func shouldHandleResponse(for requestConfig: APIRequestConfig, completion: @escaping (Result<Void, APIError>) -> Void)
 
     /// Allows the client to track events that were sent. This will not be called for deduplicated requests.

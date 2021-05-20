@@ -736,7 +736,6 @@ public extension APIClient {
         return _send(request: request).toPublisher().eraseToAnyPublisher()
     }
     #endif
-
 }
 
 // MARK: - Identifier Placeholder

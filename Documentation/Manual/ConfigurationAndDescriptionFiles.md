@@ -97,6 +97,7 @@ Here is what a basic entity looks like:
 - `persisted_name`: Entity name used for persisting ***(defaults to `$name`)***.
 - `platforms`: Platforms for which the code should be generated ***(optional)***.
 - `client_queue_name`: Name of the designated client queue for this entity ***(defaults to `main`)***.
+- `cache_size`: Determines the in-memory cache size for this entity. This can be set to one of the following: "small", "medium", "large", or <arbitrary int value>. The default values for small, medium, and large are defined in the class CoreManagerContainer and can be overridden at initialization of that object. ***(defaults to `"medium"`)***. 
 
 ### Entity Identifier Description
 

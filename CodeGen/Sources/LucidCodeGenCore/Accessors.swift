@@ -74,6 +74,18 @@ public extension Descriptions {
     }
 }
 
+public extension EntityCacheSize {
+
+    var value: VariableValue {
+        switch self {
+        case .group(let groupValue):
+            return Reference.named("cacheSize.\(groupValue.rawValue)")
+        case .fixed(let value):
+            return Reference.named("\(value)")
+        }
+    }
+}
+
 public extension Entity {
     
     func property(for name: String) throws -> EntityProperty {

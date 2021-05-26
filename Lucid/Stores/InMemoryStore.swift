@@ -7,6 +7,11 @@
 //
 
 import Foundation
+#if os(iOS) || os(tvOS)
+import UIKit
+#elseif os(watchOS)
+import WatchKit
+#endif
 
 public final class InMemoryStore<E>: StoringConvertible where E: LocalEntity {
 
@@ -16,8 +21,20 @@ public final class InMemoryStore<E>: StoringConvertible where E: LocalEntity {
 
     public let level: StoreLevel = .memory
 
-    public init() {
-        // no-op
+    private let notificationCenter: NotificationCenter
+
+    deinit {
+        notificationCenter.removeObserver(self)
+    }
+
+    public init(notificationCenter: NotificationCenter = .default) {
+        self.notificationCenter = notificationCenter
+        if let memoryPressureNotification = Constants.memoryPressureNotification {
+            notificationCenter.addObserver(forName: memoryPressureNotification, object: nil, queue: nil) { [weak self] _ in
+                guard let self = self else { return }
+                self.didReceiveMemoryWarning()
+            }
+        }
     }
 
     public func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
@@ -94,5 +111,38 @@ private extension InMemoryStore {
         return QueryResult(from: _cache.filter(with: filter),
                            for: query,
                            entitiesByID: _cache).materialized
+    }
+}
+
+// MARK: - Memory Pressure
+
+private extension InMemoryStore {
+
+    func didReceiveMemoryWarning() {
+        dispatchQueue.sync(flags: .barrier) {
+            _cache = DualHashDictionary<E.Identifier, E>()
+        }
+    }
+}
+
+// MARK: - Constants
+
+extension InMemoryStore {
+
+    enum Constants {
+
+        static var memoryPressureNotification: Notification.Name? {
+            #if os(iOS) || os(tvOS)
+            return UIApplication.didReceiveMemoryWarningNotification
+            #elseif os(macOS) || os(Linux)
+            return nil
+            #elseif os(watchOS)
+            if #available(watchOS 7.0, *) {
+                return WKExtension.applicationWillResignActiveNotification
+            } else {
+                return nil
+            }
+            #endif
+        }
     }
 }

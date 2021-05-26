@@ -39,6 +39,7 @@ public enum DescriptionDefaults {
     public static let ignoreMigrationChecks = false
     public static let ignorePropertyMigrationChecksOn = [String]()
     public static let httpMethod: EndpointPayloadTest.HTTPMethod = .get
+    public static let cacheSize: EntityCacheSize = .group(.medium)
 }
 
 public extension Entity {
@@ -271,6 +272,33 @@ extension EndpointPayloadEntity: Codable {
 
 extension EndpointPayloadEntity.Structure: Codable {}
 
+// MARK: - EntityCacheSize
+
+extension EntityCacheSize: Codable {
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+
+        if let groupValue = try? container.decode(Group.self) {
+            self = .group(groupValue)
+        } else {
+            let intValue = try container.decode(Int.self)
+            self = .fixed(intValue)
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+
+        switch self {
+        case .group(let groupName):
+            try container.encode(groupName)
+        case .fixed(let value):
+            try container.encode(value)
+        }
+    }
+}
+
 // MARK: - Entity
 
 extension Entity: Codable {
@@ -293,6 +321,7 @@ extension Entity: Codable {
         case lastRemoteRead
         case queryContext
         case clientQueueName
+        case cacheSize
     }
     
     public init(from decoder: Decoder) throws {
@@ -318,6 +347,7 @@ extension Entity: Codable {
         platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? DescriptionDefaults.platforms
         queryContext = try container.decodeIfPresent(Bool.self, forKey: .queryContext) ?? DescriptionDefaults.queryContext
         clientQueueName = try container.decodeIfPresent(String.self, forKey: .clientQueueName) ?? DescriptionDefaults.clientQueueName
+        cacheSize = try container.decodeIfPresent(EntityCacheSize.self, forKey: .cacheSize) ?? DescriptionDefaults.cacheSize
 
         let systemPropertiesSet = Set(SystemPropertyName.allCases.map { $0.rawValue })
         for property in properties where systemPropertiesSet.contains(property.name) {

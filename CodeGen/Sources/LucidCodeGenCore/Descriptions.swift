@@ -319,6 +319,20 @@ public struct MetadataProperty: Equatable {
     public let nullable: Bool
 }
 
+// MARK: - EntityCacheSize
+
+public enum EntityCacheSize: Hashable {
+
+    public enum Group: String, Hashable, Codable {
+        case small
+        case medium
+        case large
+    }
+
+    case group(Group)
+    case fixed(Int)
+}
+
 // MARK: - Entities
 
 public struct Entity: Equatable {
@@ -353,6 +367,8 @@ public struct Entity: Equatable {
 
     public let clientQueueName: String
 
+    public let cacheSize: EntityCacheSize
+
     public init(name: String,
                 persistedName: String? = nil,
                 platforms: Set<Platform> = DescriptionDefaults.platforms,
@@ -365,7 +381,8 @@ public struct Entity: Equatable {
                 identifierTypeID: String? = nil,
                 versionHistory: [VersionHistoryItem] = [],
                 queryContext: Bool = DescriptionDefaults.queryContext,
-                clientQueueName: String = DescriptionDefaults.clientQueueName) {
+                clientQueueName: String = DescriptionDefaults.clientQueueName,
+                cacheSize: EntityCacheSize = DescriptionDefaults.cacheSize) {
 
         self.name = name
         self.persistedName = persistedName
@@ -382,6 +399,7 @@ public struct Entity: Equatable {
         self.versionHistory = versionHistory
         self.queryContext = queryContext
         self.clientQueueName = clientQueueName
+        self.cacheSize = cacheSize
     }
 }
 

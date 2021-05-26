@@ -184,6 +184,100 @@
 		F41D210724EF041E009444A2 /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
 		F45FA8FB24EC8D3C00368CCB /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
 		F47E5EFB24AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = F47E5EF924AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld */; };
+		F48C80112655955A00581182 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F912D24BFA7F50050C7C6 /* ReactiveKit.framework */; };
+		F48C80142655958500581182 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC3B2458D89C00D22F6D /* Color.swift */; };
+		F48C80152655958500581182 /* Entity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2B2458D89C00D22F6D /* Entity.swift */; };
+		F48C80162655958500581182 /* RelationshipController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC352458D89C00D22F6D /* RelationshipController.swift */; };
+		F48C80172655958500581182 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC362458D89C00D22F6D /* Store.swift */; };
+		F48C80182655958500581182 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1907AD8224A6826400727F82 /* Configuration.swift */; };
+		F48C80192655958500581182 /* Entity+Query.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC392458D89C00D22F6D /* Entity+Query.swift */; };
+		F48C801A2655958500581182 /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
+		F48C801B2655958500581182 /* APIRequestDeduplicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC262458D89C00D22F6D /* APIRequestDeduplicator.swift */; };
+		F48C801C2655958500581182 /* Context.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC342458D89C00D22F6D /* Context.swift */; };
+		F48C801D2655958500581182 /* Metadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC282458D89C00D22F6D /* Metadata.swift */; };
+		F48C801E2655958500581182 /* Query.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC272458D89C00D22F6D /* Query.swift */; };
+		F48C801F2655958500581182 /* CoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC292458D89C00D22F6D /* CoreManager.swift */; };
+		F48C80202655958500581182 /* APIClientQueueDefaultScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC3A2458D89C00D22F6D /* APIClientQueueDefaultScheduler.swift */; };
+		F48C80212655958500581182 /* CoreDataConversion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC322458D89C00D22F6D /* CoreDataConversion.swift */; };
+		F48C80222655958500581182 /* ManagerResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC312458D89C00D22F6D /* ManagerResult.swift */; };
+		F48C80232655958500581182 /* Time.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2C2458D89C00D22F6D /* Time.swift */; };
+		F48C80242655958500581182 /* APIClientQueueScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC372458D89C00D22F6D /* APIClientQueueScheduling.swift */; };
+		F48C80252655958500581182 /* APIClientQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2F2458D89C00D22F6D /* APIClientQueue.swift */; };
+		F48C80262655958500581182 /* EntityIndexValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC3C2458D89C00D22F6D /* EntityIndexValue.swift */; };
+		F48C80272655958500581182 /* HTTPTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2E2458D89C00D22F6D /* HTTPTypes.swift */; };
+		F48C80282655958500581182 /* Version.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC302458D89C00D22F6D /* Version.swift */; };
+		F48C80292655958500581182 /* Payload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC382458D89C00D22F6D /* Payload.swift */; };
+		F48C802A2655958500581182 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2D2458D89C00D22F6D /* APIClient.swift */; };
+		F48C802B2655958500581182 /* Codable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC332458D89C00D22F6D /* Codable.swift */; };
+		F48C802C2655958500581182 /* BatchManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2A2458D89C00D22F6D /* BatchManager.swift */; };
+		F48C802D2655958A00581182 /* LRUStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC3F2458D89C00D22F6D /* LRUStore.swift */; };
+		F48C802E2655958A00581182 /* RecoverableStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC3E2458D89C00D22F6D /* RecoverableStore.swift */; };
+		F48C802F2655958A00581182 /* RemoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC422458D89C00D22F6D /* RemoteStore.swift */; };
+		F48C80302655958A00581182 /* InMemoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC432458D89C00D22F6D /* InMemoryStore.swift */; };
+		F48C80312655958A00581182 /* CoreDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC412458D89C00D22F6D /* CoreDataStore.swift */; };
+		F48C80322655958A00581182 /* CacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC402458D89C00D22F6D /* CacheStore.swift */; };
+		F48C80332655958E00581182 /* BackgroundTaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */; };
+		F48C80342655958E00581182 /* DiskQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4C2458D89C00D22F6D /* DiskQueue.swift */; };
+		F48C80352655958E00581182 /* ScheduledTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC502458D89C00D22F6D /* ScheduledTimer.swift */; };
+		F48C80362655958E00581182 /* PropertyBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC482458D89C00D22F6D /* PropertyBox.swift */; };
+		F48C80372655958E00581182 /* ReactiveKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4A2458D89C00D22F6D /* ReactiveKit.swift */; };
+		F48C80382655958E00581182 /* AsyncOperationQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4B2458D89C00D22F6D /* AsyncOperationQueue.swift */; };
+		F48C80392655958E00581182 /* AnySequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC462458D89C00D22F6D /* AnySequence.swift */; };
+		F48C803A2655958E00581182 /* DataStructures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC452458D89C00D22F6D /* DataStructures.swift */; };
+		F48C803B2655958E00581182 /* AnyEquatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC532458D89C00D22F6D /* AnyEquatable.swift */; };
+		F48C803C2655958E00581182 /* DiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4E2458D89C00D22F6D /* DiskCache.swift */; };
+		F48C803D2655958E00581182 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC472458D89C00D22F6D /* Logger.swift */; };
+		F48C803E2655958E00581182 /* Signal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal.swift */; };
+		F48C803F2655958E00581182 /* Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4D2458D89C00D22F6D /* Timestamp.swift */; };
+		F48C80402655958E00581182 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
+		F48C80412655958E00581182 /* CancellationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC512458D89C00D22F6D /* CancellationToken.swift */; };
+		F48C8072265596F100581182 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F912924BFA7F50050C7C6 /* ReactiveKit.framework */; };
+		F48C80882655972700581182 /* Context.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC342458D89C00D22F6D /* Context.swift */; };
+		F48C80892655972700581182 /* CoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC292458D89C00D22F6D /* CoreManager.swift */; };
+		F48C808A2655972700581182 /* Entity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2B2458D89C00D22F6D /* Entity.swift */; };
+		F48C808B2655972700581182 /* Query.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC272458D89C00D22F6D /* Query.swift */; };
+		F48C808C2655972700581182 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC3B2458D89C00D22F6D /* Color.swift */; };
+		F48C808D2655972700581182 /* APIClientQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2F2458D89C00D22F6D /* APIClientQueue.swift */; };
+		F48C808E2655972700581182 /* APIClientQueueScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC372458D89C00D22F6D /* APIClientQueueScheduling.swift */; };
+		F48C808F2655972700581182 /* Version.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC302458D89C00D22F6D /* Version.swift */; };
+		F48C80902655972700581182 /* APIRequestDeduplicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC262458D89C00D22F6D /* APIRequestDeduplicator.swift */; };
+		F48C80912655972700581182 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC362458D89C00D22F6D /* Store.swift */; };
+		F48C80922655972700581182 /* RelationshipController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC352458D89C00D22F6D /* RelationshipController.swift */; };
+		F48C80932655972700581182 /* Metadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC282458D89C00D22F6D /* Metadata.swift */; };
+		F48C80942655972700581182 /* Codable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC332458D89C00D22F6D /* Codable.swift */; };
+		F48C80952655972700581182 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2D2458D89C00D22F6D /* APIClient.swift */; };
+		F48C80962655972700581182 /* ManagerResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC312458D89C00D22F6D /* ManagerResult.swift */; };
+		F48C80972655972700581182 /* Time.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2C2458D89C00D22F6D /* Time.swift */; };
+		F48C80982655972700581182 /* EntityIndexValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC3C2458D89C00D22F6D /* EntityIndexValue.swift */; };
+		F48C80992655972700581182 /* CoreDataConversion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC322458D89C00D22F6D /* CoreDataConversion.swift */; };
+		F48C809A2655972700581182 /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
+		F48C809B2655972700581182 /* Payload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC382458D89C00D22F6D /* Payload.swift */; };
+		F48C809C2655972700581182 /* HTTPTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2E2458D89C00D22F6D /* HTTPTypes.swift */; };
+		F48C809D2655972700581182 /* APIClientQueueDefaultScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC3A2458D89C00D22F6D /* APIClientQueueDefaultScheduler.swift */; };
+		F48C809E2655972700581182 /* BatchManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2A2458D89C00D22F6D /* BatchManager.swift */; };
+		F48C809F2655972700581182 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1907AD8224A6826400727F82 /* Configuration.swift */; };
+		F48C80A02655972700581182 /* Entity+Query.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC392458D89C00D22F6D /* Entity+Query.swift */; };
+		F48C80A72655972B00581182 /* LRUStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC3F2458D89C00D22F6D /* LRUStore.swift */; };
+		F48C80A82655972B00581182 /* RemoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC422458D89C00D22F6D /* RemoteStore.swift */; };
+		F48C80A92655972B00581182 /* CoreDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC412458D89C00D22F6D /* CoreDataStore.swift */; };
+		F48C80AA2655972B00581182 /* CacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC402458D89C00D22F6D /* CacheStore.swift */; };
+		F48C80AB2655972B00581182 /* InMemoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC432458D89C00D22F6D /* InMemoryStore.swift */; };
+		F48C80AC2655972B00581182 /* RecoverableStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC3E2458D89C00D22F6D /* RecoverableStore.swift */; };
+		F48C80B32655973000581182 /* AnySequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC462458D89C00D22F6D /* AnySequence.swift */; };
+		F48C80B42655973000581182 /* PropertyBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC482458D89C00D22F6D /* PropertyBox.swift */; };
+		F48C80B52655973000581182 /* CancellationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC512458D89C00D22F6D /* CancellationToken.swift */; };
+		F48C80B62655973000581182 /* AsyncOperationQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4B2458D89C00D22F6D /* AsyncOperationQueue.swift */; };
+		F48C80B72655973000581182 /* DataStructures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC452458D89C00D22F6D /* DataStructures.swift */; };
+		F48C80B82655973000581182 /* DiskQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4C2458D89C00D22F6D /* DiskQueue.swift */; };
+		F48C80B92655973000581182 /* ScheduledTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC502458D89C00D22F6D /* ScheduledTimer.swift */; };
+		F48C80BA2655973000581182 /* DiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4E2458D89C00D22F6D /* DiskCache.swift */; };
+		F48C80BB2655973000581182 /* Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4D2458D89C00D22F6D /* Timestamp.swift */; };
+		F48C80BC2655973000581182 /* BackgroundTaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */; };
+		F48C80BD2655973000581182 /* Signal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal.swift */; };
+		F48C80BE2655973000581182 /* ReactiveKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4A2458D89C00D22F6D /* ReactiveKit.swift */; };
+		F48C80BF2655973000581182 /* AnyEquatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC532458D89C00D22F6D /* AnyEquatable.swift */; };
+		F48C80C02655973000581182 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
+		F48C80C12655973000581182 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC472458D89C00D22F6D /* Logger.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -649,6 +743,8 @@
 		F45FA8FA24EC8D3C00368CCB /* Contract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Contract.swift; sourceTree = "<group>"; };
 		F47E5EFA24AA57BC007DCC4A /* StubCoreDataModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = StubCoreDataModel.xcdatamodel; sourceTree = "<group>"; };
 		F48C717624896F5400099980 /* CoreManagerContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreManagerContractTests.swift; sourceTree = "<group>"; };
+		F48C7FFA2655948200581182 /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		F48C8058265596D700581182 /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F4A40EBF2513B8700025E48C /* CodingPathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodingPathTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -695,6 +791,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F48C7FF72655948200581182 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F48C80112655955A00581182 /* ReactiveKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F48C8055265596D700581182 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F48C8072265596F100581182 /* ReactiveKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -718,6 +830,8 @@
 				190ADCB32458D99600D22F6D /* LucidTestKit.framework */,
 				190ADD1A2458DA9B00D22F6D /* Lucid.framework */,
 				1965B2942493E4690007B6CE /* Sample.app */,
+				F48C7FFA2655948200581182 /* Lucid.framework */,
+				F48C8058265596D700581182 /* Lucid.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1705,6 +1819,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F48C7FF52655948200581182 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F48C8053265596D700581182 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
@@ -1802,6 +1930,42 @@
 			productReference = 1965B2942493E4690007B6CE /* Sample.app */;
 			productType = "com.apple.product-type.application";
 		};
+		F48C7FF92655948200581182 /* Lucid-macOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F48C80062655948200581182 /* Build configuration list for PBXNativeTarget "Lucid-macOS" */;
+			buildPhases = (
+				F48C7FF52655948200581182 /* Headers */,
+				F48C7FF62655948200581182 /* Sources */,
+				F48C7FF72655948200581182 /* Frameworks */,
+				F48C7FF82655948200581182 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Lucid-macOS";
+			productName = Lucid;
+			productReference = F48C7FFA2655948200581182 /* Lucid.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		F48C8057265596D700581182 /* Lucid-tvOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F48C805D265596D700581182 /* Build configuration list for PBXNativeTarget "Lucid-tvOS" */;
+			buildPhases = (
+				F48C8053265596D700581182 /* Headers */,
+				F48C8054265596D700581182 /* Sources */,
+				F48C8055265596D700581182 /* Frameworks */,
+				F48C8056265596D700581182 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Lucid-tvOS";
+			productName = Lucid;
+			productReference = F48C8058265596D700581182 /* Lucid.framework */;
+			productType = "com.apple.product-type.framework";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -1823,6 +1987,12 @@
 					};
 					1965B2932493E4690007B6CE = {
 						CreatedOnToolsVersion = 11.3.1;
+					};
+					F48C7FF92655948200581182 = {
+						CreatedOnToolsVersion = 12.4;
+					};
+					F48C8057265596D700581182 = {
+						CreatedOnToolsVersion = 12.4;
 					};
 				};
 			};
@@ -1849,7 +2019,9 @@
 			);
 			projectRoot = "";
 			targets = (
+				F48C7FF92655948200581182 /* Lucid-macOS */,
 				190ADC072458D71000D22F6D /* Lucid-iOS */,
+				F48C8057265596D700581182 /* Lucid-tvOS */,
 				190ADCE52458DA9B00D22F6D /* Lucid-watchOS */,
 				190ADC832458D8DC00D22F6D /* LucidTests */,
 				190ADCB22458D99600D22F6D /* LucidTestKit */,
@@ -1933,6 +2105,20 @@
 				1965B2A02493E46C0007B6CE /* Preview Assets.xcassets in Resources */,
 				1965B29D2493E46C0007B6CE /* Assets.xcassets in Resources */,
 				1965B2C12493F3360007B6CE /* Descriptions in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F48C7FF82655948200581182 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F48C8056265596D700581182 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2194,6 +2380,112 @@
 				1953A1822524E0AD00552EF9 /* SupportUtils.swift in Sources */,
 				1965B29B2493E4690007B6CE /* MovieList.swift in Sources */,
 				191E33E4251D4E600008233A /* GenreMovieListEndpointPayload.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F48C7FF62655948200581182 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F48C80322655958A00581182 /* CacheStore.swift in Sources */,
+				F48C801F2655958500581182 /* CoreManager.swift in Sources */,
+				F48C80152655958500581182 /* Entity.swift in Sources */,
+				F48C80372655958E00581182 /* ReactiveKit.swift in Sources */,
+				F48C80302655958A00581182 /* InMemoryStore.swift in Sources */,
+				F48C80332655958E00581182 /* BackgroundTaskManager.swift in Sources */,
+				F48C802B2655958500581182 /* Codable.swift in Sources */,
+				F48C80182655958500581182 /* Configuration.swift in Sources */,
+				F48C801D2655958500581182 /* Metadata.swift in Sources */,
+				F48C80282655958500581182 /* Version.swift in Sources */,
+				F48C80232655958500581182 /* Time.swift in Sources */,
+				F48C80252655958500581182 /* APIClientQueue.swift in Sources */,
+				F48C801B2655958500581182 /* APIRequestDeduplicator.swift in Sources */,
+				F48C80162655958500581182 /* RelationshipController.swift in Sources */,
+				F48C803F2655958E00581182 /* Timestamp.swift in Sources */,
+				F48C80222655958500581182 /* ManagerResult.swift in Sources */,
+				F48C803C2655958E00581182 /* DiskCache.swift in Sources */,
+				F48C801E2655958500581182 /* Query.swift in Sources */,
+				F48C80262655958500581182 /* EntityIndexValue.swift in Sources */,
+				F48C802F2655958A00581182 /* RemoteStore.swift in Sources */,
+				F48C80242655958500581182 /* APIClientQueueScheduling.swift in Sources */,
+				F48C80192655958500581182 /* Entity+Query.swift in Sources */,
+				F48C80382655958E00581182 /* AsyncOperationQueue.swift in Sources */,
+				F48C80212655958500581182 /* CoreDataConversion.swift in Sources */,
+				F48C80142655958500581182 /* Color.swift in Sources */,
+				F48C80362655958E00581182 /* PropertyBox.swift in Sources */,
+				F48C803D2655958E00581182 /* Logger.swift in Sources */,
+				F48C803E2655958E00581182 /* Signal.swift in Sources */,
+				F48C80272655958500581182 /* HTTPTypes.swift in Sources */,
+				F48C801C2655958500581182 /* Context.swift in Sources */,
+				F48C80292655958500581182 /* Payload.swift in Sources */,
+				F48C802C2655958500581182 /* BatchManager.swift in Sources */,
+				F48C802D2655958A00581182 /* LRUStore.swift in Sources */,
+				F48C80312655958A00581182 /* CoreDataStore.swift in Sources */,
+				F48C80412655958E00581182 /* CancellationToken.swift in Sources */,
+				F48C803A2655958E00581182 /* DataStructures.swift in Sources */,
+				F48C80342655958E00581182 /* DiskQueue.swift in Sources */,
+				F48C80402655958E00581182 /* Result.swift in Sources */,
+				F48C802E2655958A00581182 /* RecoverableStore.swift in Sources */,
+				F48C803B2655958E00581182 /* AnyEquatable.swift in Sources */,
+				F48C80352655958E00581182 /* ScheduledTimer.swift in Sources */,
+				F48C80392655958E00581182 /* AnySequence.swift in Sources */,
+				F48C80202655958500581182 /* APIClientQueueDefaultScheduler.swift in Sources */,
+				F48C801A2655958500581182 /* Contract.swift in Sources */,
+				F48C802A2655958500581182 /* APIClient.swift in Sources */,
+				F48C80172655958500581182 /* Store.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F48C8054265596D700581182 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F48C808E2655972700581182 /* APIClientQueueScheduling.swift in Sources */,
+				F48C80BD2655973000581182 /* Signal.swift in Sources */,
+				F48C80952655972700581182 /* APIClient.swift in Sources */,
+				F48C80922655972700581182 /* RelationshipController.swift in Sources */,
+				F48C80B62655973000581182 /* AsyncOperationQueue.swift in Sources */,
+				F48C809E2655972700581182 /* BatchManager.swift in Sources */,
+				F48C80982655972700581182 /* EntityIndexValue.swift in Sources */,
+				F48C80BB2655973000581182 /* Timestamp.swift in Sources */,
+				F48C808B2655972700581182 /* Query.swift in Sources */,
+				F48C80C12655973000581182 /* Logger.swift in Sources */,
+				F48C809F2655972700581182 /* Configuration.swift in Sources */,
+				F48C80AB2655972B00581182 /* InMemoryStore.swift in Sources */,
+				F48C80B72655973000581182 /* DataStructures.swift in Sources */,
+				F48C80AA2655972B00581182 /* CacheStore.swift in Sources */,
+				F48C80BF2655973000581182 /* AnyEquatable.swift in Sources */,
+				F48C80B92655973000581182 /* ScheduledTimer.swift in Sources */,
+				F48C80AC2655972B00581182 /* RecoverableStore.swift in Sources */,
+				F48C80B42655973000581182 /* PropertyBox.swift in Sources */,
+				F48C80972655972700581182 /* Time.swift in Sources */,
+				F48C80902655972700581182 /* APIRequestDeduplicator.swift in Sources */,
+				F48C80B82655973000581182 /* DiskQueue.swift in Sources */,
+				F48C80A82655972B00581182 /* RemoteStore.swift in Sources */,
+				F48C80B32655973000581182 /* AnySequence.swift in Sources */,
+				F48C809D2655972700581182 /* APIClientQueueDefaultScheduler.swift in Sources */,
+				F48C80BA2655973000581182 /* DiskCache.swift in Sources */,
+				F48C80892655972700581182 /* CoreManager.swift in Sources */,
+				F48C80962655972700581182 /* ManagerResult.swift in Sources */,
+				F48C80882655972700581182 /* Context.swift in Sources */,
+				F48C80A92655972B00581182 /* CoreDataStore.swift in Sources */,
+				F48C809C2655972700581182 /* HTTPTypes.swift in Sources */,
+				F48C80992655972700581182 /* CoreDataConversion.swift in Sources */,
+				F48C80BC2655973000581182 /* BackgroundTaskManager.swift in Sources */,
+				F48C80912655972700581182 /* Store.swift in Sources */,
+				F48C809A2655972700581182 /* Contract.swift in Sources */,
+				F48C808C2655972700581182 /* Color.swift in Sources */,
+				F48C808A2655972700581182 /* Entity.swift in Sources */,
+				F48C80942655972700581182 /* Codable.swift in Sources */,
+				F48C80C02655973000581182 /* Result.swift in Sources */,
+				F48C808F2655972700581182 /* Version.swift in Sources */,
+				F48C80B52655973000581182 /* CancellationToken.swift in Sources */,
+				F48C80BE2655973000581182 /* ReactiveKit.swift in Sources */,
+				F48C80A72655972B00581182 /* LRUStore.swift in Sources */,
+				F48C80932655972700581182 /* Metadata.swift in Sources */,
+				F48C809B2655972700581182 /* Payload.swift in Sources */,
+				F48C80A02655972700581182 /* Entity+Query.swift in Sources */,
+				F48C808D2655972700581182 /* APIClientQueue.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2674,6 +2966,114 @@
 			};
 			name = Release;
 		};
+		F48C7FFF2655948200581182 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = E7MUW2QU95;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INFOPLIST_FILE = Lucid/Info.plist;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.Lucid;
+				PRODUCT_NAME = Lucid;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		F48C80002655948200581182 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = E7MUW2QU95;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INFOPLIST_FILE = Lucid/Info.plist;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.Lucid;
+				PRODUCT_NAME = Lucid;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		F48C805E265596D700581182 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = E7MUW2QU95;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INFOPLIST_FILE = Lucid/Info.plist;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.Lucid;
+				PRODUCT_NAME = Lucid;
+				SDKROOT = appletvos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 13.0;
+			};
+			name = Debug;
+		};
+		F48C805F265596D700581182 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = E7MUW2QU95;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INFOPLIST_FILE = Lucid/Info.plist;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.Lucid;
+				PRODUCT_NAME = Lucid;
+				SDKROOT = appletvos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 13.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -2727,6 +3127,24 @@
 			buildConfigurations = (
 				1965B2A52493E46C0007B6CE /* Debug */,
 				1965B2A82493E46C0007B6CE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F48C80062655948200581182 /* Build configuration list for PBXNativeTarget "Lucid-macOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F48C7FFF2655948200581182 /* Debug */,
+				F48C80002655948200581182 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F48C805D265596D700581182 /* Build configuration list for PBXNativeTarget "Lucid-tvOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F48C805E265596D700581182 /* Debug */,
+				F48C805F265596D700581182 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

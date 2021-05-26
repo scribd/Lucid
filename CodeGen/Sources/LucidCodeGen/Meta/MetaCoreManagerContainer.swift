@@ -108,6 +108,14 @@ struct MetaCoreManagerContainer {
                     }
                 }
 
+                public struct CacheSize {
+                    let small: Int
+                    let medium: Int
+                    let large: Int
+
+                    public static var `default`: CacheSize { return CacheSize(small: 100, medium: 500, large: 2000) }
+                }
+
                 private let _responseHandler: CoreManagerContainerClientQueueResponseHandler?
                 public var responseHandler: APIClientQueueResponseHandler? {
                     return _responseHandler
@@ -142,7 +150,9 @@ struct MetaCoreManagerContainer {
             .adding(member: EmptyLine())
             .adding(member: Function(kind: .`init`)
                 .with(accessLevel: .public)
-                .adding(parameter: FunctionParameter(name: "cacheLimit", type: .int))
+                .adding(parameter: FunctionParameter(name: "cacheSize", type: TypeIdentifier(name: "CacheSize"))
+                    .with(defaultValue: Value.reference(+Reference.named("default")))
+                )
                 .adding(parameter: FunctionParameter(name: "client", type: .apiClient))
                 .adding(parameter: FunctionParameter(name: "diskStoreConfig", type: TypeIdentifier(name: "DiskStoreConfig"))
                     .with(defaultValue: +.named("coreData"))
@@ -185,7 +195,7 @@ struct MetaCoreManagerContainer {
                                     Tuple()
                                         .adding(parameter: TupleParameter(name: "with", value: Reference.named("client")))
                                         .adding(parameter: TupleParameter(name: "clientQueue", value: Reference.named("&clientQueue")))
-                                        .adding(parameter: TupleParameter(name: "cacheLimit", value: Reference.named("cacheLimit")))
+                                        .adding(parameter: TupleParameter(name: "cacheLimit", value: entity.cacheSize.value))
                                         .adding(parameter: TupleParameter(name: "diskStoreConfig", value: Reference.named("diskStoreConfig")))
                                 ))))
                         ),

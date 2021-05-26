@@ -202,7 +202,7 @@ struct MetaEndpointPayload {
         var function = Function.initFromDecoder.with(accessLevel: .public)
         let decodeMethod: Reference = readWritePayload.entity.nullable ? .named("decodeIfPresent") : .named("decode")
 
-        var containerVariable = Variable(name: "container")
+        let containerVariable = Variable(name: "container")
 
         var containerValue = Reference.named("decoder").container(keyedBy: TypeIdentifier(name: "Keys"))
 

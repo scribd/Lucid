@@ -2664,7 +2664,6 @@
 				OTHER_LDFLAGS = (
 					"-weak_framework",
 					XCTest,
-					"-weak-lswiftXCTest",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.LucidTestKit;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
@@ -2956,7 +2955,6 @@
 				OTHER_LDFLAGS = (
 					"-weak_framework",
 					XCTest,
-					"-weak-lswiftXCTest",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.LucidTestKit;
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";

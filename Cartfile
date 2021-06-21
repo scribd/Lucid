@@ -1,1 +1,3 @@
-github "DeclarativeHub/ReactiveKit" == 3.17.3
+# if you are seeing arm64 related errors, try running 'carthage update --use-xcframeworks' instead.
+
+github "DeclarativeHub/ReactiveKit" == 3.18.2

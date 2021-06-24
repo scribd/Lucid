@@ -181,9 +181,9 @@
 		198CC31424C663D600E2F951 /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
 		19ED00972481C3D10033B7BD /* AsyncOperationQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */; };
 		F41D210724EF041E009444A2 /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
-		F41EAF51268460DB008C764B /* BackgroundTaskManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBE2458D9A500D22F6D /* BackgroundTaskManagerSpy.swift */; };
 		F45FA8FB24EC8D3C00368CCB /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
 		F47E5EFB24AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = F47E5EF924AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld */; };
+		F487D3982684702A00AB701B /* BackgroundTaskManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBE2458D9A500D22F6D /* BackgroundTaskManagerSpy.swift */; };
 		F48C80112655955A00581182 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F912D24BFA7F50050C7C6 /* ReactiveKit.framework */; };
 		F48C80142655958500581182 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC3B2458D89C00D22F6D /* Color.swift */; };
 		F48C80152655958500581182 /* Entity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2B2458D89C00D22F6D /* Entity.swift */; };
@@ -919,6 +919,7 @@
 			isa = PBXGroup;
 			children = (
 				190ADC972458D8FE00D22F6D /* Core */,
+				F487D3992684D6E000AB701B /* Doubles */,
 				190ADC8F2458D8FE00D22F6D /* Stores */,
 				190ADC9C2458D8FE00D22F6D /* Utils */,
 				190ADC882458D8DC00D22F6D /* Info.plist */,
@@ -990,13 +991,11 @@
 				1922E27D25C345AB0038DD8F /* ManagedEntityRelationshipSpy+CoreDataClass.swift */,
 				1922E27E25C345AB0038DD8F /* ManagedEntityRelationshipSpy+CoreDataProperties.swift */,
 				190ADCCF2458D9A500D22F6D /* AnyEntitySpy.swift */,
-				190ADCD02458D9A500D22F6D /* APIClientQueueProcessorSpy.swift */,
 				190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */,
 				190ADCC92458D9A500D22F6D /* APIClientQueueSchedulerSpy.swift */,
 				190ADCC02458D9A500D22F6D /* APIClientQueueSpy.swift */,
 				190ADCC22458D9A500D22F6D /* APIClientSpy.swift */,
 				190ADCC72458D9A500D22F6D /* APIRequestDeduplicatorSpy.swift */,
-				190ADCBE2458D9A500D22F6D /* BackgroundTaskManagerSpy.swift */,
 				190ADCC62458D9A500D22F6D /* CoreManagerSpy.swift */,
 				190ADCCD2458D9A500D22F6D /* DiskCacheSpy.swift */,
 				190ADCBF2458D9A500D22F6D /* EntityRelationshipSpy.swift */,
@@ -1792,6 +1791,15 @@
 			path = Utils;
 			sourceTree = "<group>";
 		};
+		F487D3992684D6E000AB701B /* Doubles */ = {
+			isa = PBXGroup;
+			children = (
+				190ADCD02458D9A500D22F6D /* APIClientQueueProcessorSpy.swift */,
+				190ADCBE2458D9A500D22F6D /* BackgroundTaskManagerSpy.swift */,
+			);
+			path = Doubles;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -2243,6 +2251,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F487D3982684702A00AB701B /* BackgroundTaskManagerSpy.swift in Sources */,
 				1987FA262554A54E0057F1CC /* RecoverableStoreTests.swift in Sources */,
 				1987FA872555DEE10057F1CC /* APIClientQueueDefaultSchedulerTests.swift in Sources */,
 				1987FA4C2554AC1A0057F1CC /* EntitySearchTests.swift in Sources */,
@@ -2285,7 +2294,6 @@
 				190ADCD62458D9A500D22F6D /* GraphStub.swift in Sources */,
 				1922E27F25C345AB0038DD8F /* ManagedEntitySpy+CoreDataClass.swift in Sources */,
 				1922E28025C345AB0038DD8F /* ManagedEntitySpy+CoreDataProperties.swift in Sources */,
-				F41EAF51268460DB008C764B /* BackgroundTaskManagerSpy.swift in Sources */,
 				1922E28225C345AB0038DD8F /* ManagedEntityRelationshipSpy+CoreDataProperties.swift in Sources */,
 				1922E28125C345AB0038DD8F /* ManagedEntityRelationshipSpy+CoreDataClass.swift in Sources */,
 				190ADCE32458D9A500D22F6D /* AnyEntitySpy.swift in Sources */,

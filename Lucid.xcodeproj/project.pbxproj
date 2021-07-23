@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -131,9 +131,6 @@
 		191E33ED251D4E600008233A /* Movie.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191E33E0251D4E600008233A /* Movie.swift */; };
 		191E33EE251D4E600008233A /* Genre.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191E33E1251D4E600008233A /* Genre.swift */; };
 		191E33EF251D4E600008233A /* EntityIndexValueTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191E33E2251D4E600008233A /* EntityIndexValueTypes.swift */; };
-		191F913324BFA80E0050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F904224BFA7F40050C7C6 /* ReactiveKit.framework */; };
-		191F913924BFA83B0050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F904224BFA7F40050C7C6 /* ReactiveKit.framework */; };
-		191F913A24BFA85B0050C7C6 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F904224BFA7F40050C7C6 /* ReactiveKit.framework */; };
 		1922E27F25C345AB0038DD8F /* ManagedEntitySpy+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1922E27B25C345AB0038DD8F /* ManagedEntitySpy+CoreDataClass.swift */; };
 		1922E28025C345AB0038DD8F /* ManagedEntitySpy+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1922E27C25C345AB0038DD8F /* ManagedEntitySpy+CoreDataProperties.swift */; };
 		1922E28125C345AB0038DD8F /* ManagedEntityRelationshipSpy+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1922E27D25C345AB0038DD8F /* ManagedEntityRelationshipSpy+CoreDataClass.swift */; };
@@ -151,7 +148,6 @@
 		19830121249BDE4400DFC685 /* RequestConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19830120249BDE4400DFC685 /* RequestConfig.swift */; };
 		19830123249C1CAA00DFC685 /* ImageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19830122249C1CAA00DFC685 /* ImageManager.swift */; };
 		19830134249D417100DFC685 /* MovieDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19830133249D417000DFC685 /* MovieDetail.swift */; };
-		1987F981255361BF0057F1CC /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F912B24BFA7F50050C7C6 /* ReactiveKit.framework */; };
 		1987F9C12554A3470057F1CC /* Lucid.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 190ADC082458D71000D22F6D /* Lucid.framework */; };
 		1987F9C22554A34C0057F1CC /* LucidTestKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 190ADCB32458D99600D22F6D /* LucidTestKit.framework */; };
 		1987F9D92554A4120057F1CC /* BackgroundTaskManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 191F919324C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift */; };
@@ -180,11 +176,17 @@
 		198A9B6625560DD1008E3C5E /* Combine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1987FA452554A7210057F1CC /* Combine.swift */; };
 		198CC31424C663D600E2F951 /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
 		19ED00972481C3D10033B7BD /* AsyncOperationQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */; };
+		DEA5C24726AA1C2B002FEADD /* ReactiveKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DEA5C24826AA1C7F002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
+		DEA5C24926AA1CDF002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
+		DEA5C24C26AA1D56002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
+		DEA5C24F26AA1D69002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
+		DEA5C25226AA1D77002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
+		DEA5C25526AA20D3002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
 		F41D210724EF041E009444A2 /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
 		F45FA8FB24EC8D3C00368CCB /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
 		F47E5EFB24AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = F47E5EF924AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld */; };
 		F487D3982684702A00AB701B /* BackgroundTaskManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBE2458D9A500D22F6D /* BackgroundTaskManagerSpy.swift */; };
-		F48C80112655955A00581182 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F912D24BFA7F50050C7C6 /* ReactiveKit.framework */; };
 		F48C80142655958500581182 /* Color.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC3B2458D89C00D22F6D /* Color.swift */; };
 		F48C80152655958500581182 /* Entity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2B2458D89C00D22F6D /* Entity.swift */; };
 		F48C80162655958500581182 /* RelationshipController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC352458D89C00D22F6D /* RelationshipController.swift */; };
@@ -231,7 +233,6 @@
 		F48C803F2655958E00581182 /* Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4D2458D89C00D22F6D /* Timestamp.swift */; };
 		F48C80402655958E00581182 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
 		F48C80412655958E00581182 /* CancellationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC512458D89C00D22F6D /* CancellationToken.swift */; };
-		F48C8072265596F100581182 /* ReactiveKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 191F912924BFA7F50050C7C6 /* ReactiveKit.framework */; };
 		F48C80882655972700581182 /* Context.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC342458D89C00D22F6D /* Context.swift */; };
 		F48C80892655972700581182 /* CoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC292458D89C00D22F6D /* CoreManager.swift */; };
 		F48C808A2655972700581182 /* Entity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2B2458D89C00D22F6D /* Entity.swift */; };
@@ -339,6 +340,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
+				DEA5C24726AA1C2B002FEADD /* ReactiveKit.xcframework in Embed Frameworks */,
 				1910671E2494128E00E65BA7 /* Lucid.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
@@ -737,6 +739,8 @@
 		19ED00942481C3960033B7BD /* DataStructuresTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataStructuresTests.swift; sourceTree = "<group>"; };
 		19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AsyncOperationQueueTests.swift; sourceTree = "<group>"; };
 		DE8294BA24BFB2FA0011A915 /* DataTypeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataTypeTests.swift; sourceTree = "<group>"; };
+		DEA5C24426AA1BF3002FEADD /* ReactiveKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = ReactiveKit.xcframework; path = Carthage/Build/ReactiveKit.xcframework; sourceTree = "<group>"; };
+		DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = ReactiveKit.xcframework; path = Carthage/Build/ReactiveKit.xcframework; sourceTree = "<group>"; };
 		F405C35024A41844004E1BB3 /* APIClientQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueTests.swift; sourceTree = "<group>"; };
 		F405C35124A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueDefaultSchedulerTests.swift; sourceTree = "<group>"; };
 		F405C35224A41844004E1BB3 /* APIClientQueueProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueProcessorTests.swift; sourceTree = "<group>"; };
@@ -753,7 +757,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				191F913324BFA80E0050C7C6 /* ReactiveKit.framework in Frameworks */,
+				DEA5C24926AA1CDF002FEADD /* ReactiveKit.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -763,7 +767,7 @@
 			files = (
 				1987F9C22554A34C0057F1CC /* LucidTestKit.framework in Frameworks */,
 				1987F9C12554A3470057F1CC /* Lucid.framework in Frameworks */,
-				191F913924BFA83B0050C7C6 /* ReactiveKit.framework in Frameworks */,
+				DEA5C25526AA20D3002FEADD /* ReactiveKit.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -778,7 +782,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1987F981255361BF0057F1CC /* ReactiveKit.framework in Frameworks */,
+				DEA5C25226AA1D77002FEADD /* ReactiveKit.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -786,8 +790,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				191F913A24BFA85B0050C7C6 /* ReactiveKit.framework in Frameworks */,
 				1910671D2494128E00E65BA7 /* Lucid.framework in Frameworks */,
+				DEA5C24826AA1C7F002FEADD /* ReactiveKit.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -795,7 +799,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F48C80112655955A00581182 /* ReactiveKit.framework in Frameworks */,
+				DEA5C24C26AA1D56002FEADD /* ReactiveKit.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -803,7 +807,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F48C8072265596F100581182 /* ReactiveKit.framework in Frameworks */,
+				DEA5C24F26AA1D69002FEADD /* ReactiveKit.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -813,6 +817,7 @@
 		190ADBFE2458D71000D22F6D = {
 			isa = PBXGroup;
 			children = (
+				DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */,
 				190ADC0A2458D71000D22F6D /* Lucid */,
 				190ADC852458D8DC00D22F6D /* LucidTests */,
 				190ADCB42458D99600D22F6D /* LucidTestKit */,
@@ -1014,6 +1019,7 @@
 		190ADD1C2458DB8C00D22F6D /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				DEA5C24426AA1BF3002FEADD /* ReactiveKit.xcframework */,
 				191F8FE124BFA7F40050C7C6 /* Lucid */,
 				191F8FD424BFA79F0050C7C6 /* ReactiveKit.framework */,
 				191F8FD024BFA7890050C7C6 /* ReactiveKit.framework */,
@@ -1869,7 +1875,6 @@
 				190ADC802458D8DC00D22F6D /* Sources */,
 				190ADC812458D8DC00D22F6D /* Frameworks */,
 				190ADC822458D8DC00D22F6D /* Resources */,
-				191F914A24BFA9C20050C7C6 /* Carthage */,
 			);
 			buildRules = (
 			);
@@ -1926,7 +1931,6 @@
 				1965B2912493E4690007B6CE /* Frameworks */,
 				1965B2922493E4690007B6CE /* Resources */,
 				1910671F2494128E00E65BA7 /* Embed Frameworks */,
-				191F914B24BFA9FD0050C7C6 /* Carthage */,
 			);
 			buildRules = (
 			);
@@ -2133,46 +2137,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		191F914A24BFA9C20050C7C6 /* Carthage */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/Carthage/Build/iOS/ReactiveKit.framework",
-			);
-			name = Carthage;
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/ReactiveKit.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "/usr/local/bin/carthage copy-frameworks\n";
-		};
-		191F914B24BFA9FD0050C7C6 /* Carthage */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/Carthage/Build/iOS/ReactiveKit.framework",
-			);
-			name = Carthage;
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/ReactiveKit.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "/usr/local/bin/carthage copy-frameworks\n";
-		};
 		1965B2B22493F01D0007B6CE /* Weaver */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -2607,7 +2571,10 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/Carthage/Build/iOS";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Carthage/Build",
+				);
 				INFOPLIST_FILE = Lucid/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -2631,7 +2598,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/Carthage/Build/iOS",
+					"$(PROJECT_DIR)/Carthage/Build",
 				);
 				INFOPLIST_FILE = LucidTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -2657,9 +2624,10 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
 					"$(PLATFORM_DIR)/Developer/Library/Frameworks",
 					"$(DEVELOPER_FRAMEWORKS_DIR)",
-					"$(PROJECT_DIR)/Carthage/Build/iOS",
+					"$(PROJECT_DIR)/Carthage/Build",
 				);
 				INFOPLIST_FILE = LucidTestKit/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
@@ -2689,7 +2657,10 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/Carthage/Build/watchOS";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Carthage/Build",
+				);
 				INFOPLIST_FILE = Lucid/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -2715,7 +2686,10 @@
 				DEVELOPMENT_ASSET_PATHS = "\"Sample/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
-				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/Carthage/Build/iOS";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Carthage/Build",
+				);
 				INFOPLIST_FILE = Sample/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -2771,7 +2745,10 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/Carthage/Build/iOS";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Carthage/Build",
+				);
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -2867,7 +2844,10 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/Carthage/Build/iOS";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Carthage/Build",
+				);
 				INFOPLIST_FILE = Lucid/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -2893,7 +2873,10 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/Carthage/Build/watchOS";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Carthage/Build",
+				);
 				INFOPLIST_FILE = Lucid/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -2917,7 +2900,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/Carthage/Build/iOS",
+					"$(PROJECT_DIR)/Carthage/Build",
 				);
 				INFOPLIST_FILE = LucidTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -2943,9 +2926,10 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
 					"$(PLATFORM_DIR)/Developer/Library/Frameworks",
 					"$(DEVELOPER_FRAMEWORKS_DIR)",
-					"$(PROJECT_DIR)/Carthage/Build/iOS",
+					"$(PROJECT_DIR)/Carthage/Build",
 				);
 				INFOPLIST_FILE = LucidTestKit/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";

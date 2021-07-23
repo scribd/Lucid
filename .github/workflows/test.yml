@@ -20,7 +20,7 @@ jobs:
   lucid_tests:
     name: Lucid-iOS Tests
     runs-on: macos-latest
-    env: 
+    env:
       FASTLANE_LOGS: fastlane/test_output
       FASTLANE_FRAGILE_LOGS: fastlane/fragile_test_output
       DEVELOPER_DIR: /Applications/Xcode_12.app/Contents/Developer
@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Bootstrap
-        run: XCODE_XCCONFIG_FILE="../../Patches/lucid.xcconfig" carthage bootstrap --platform iOS,watchOS --log-path $CARTHAGE_BOOTSTRAP_OUTPUT
+        run: XCODE_XCCONFIG_FILE="../../Patches/lucid.xcconfig" carthage bootstrap --platform iOS,watchOS --log-path $CARTHAGE_BOOTSTRAP_OUTPUT --use-xcframeworks
 
       - name: Run Lucid-iOS Tests
         run: |

@@ -156,6 +156,15 @@ public struct APIRequestConfig: Codable, Hashable {
         }
     }
 
+    public enum CachePolicy: Int, Codable, Hashable {
+        case standard
+        case serverOnly
+        case remoteCacheOrServer
+        case cacheOrServer
+        case validatedCacheOrServer
+        case cacheOnly
+    }
+
     private struct Core: Codable, Hashable {
         let method: HTTPMethod
         let host: String?
@@ -165,6 +174,7 @@ public struct APIRequestConfig: Codable, Hashable {
         var body: Body?
         var timeoutInterval: TimeInterval?
         var queueingStrategy: QueueingStrategy?
+        var cachePolicy: CachePolicy
         var background: Bool?
         var userInfo: [String: String]?
     }
@@ -201,6 +211,10 @@ public struct APIRequestConfig: Codable, Hashable {
         get { return core.queueingStrategy ?? core.method.defaultQueueingStrategy }
         set { core.queueingStrategy = newValue }
     }
+    public var cachePolicy: CachePolicy {
+        get { return core.cachePolicy }
+        set { core.cachePolicy = newValue }
+    }
     public var background: Bool {
         get { return core.background ?? core.method.defaultBackground }
         set { core.background = newValue }
@@ -223,6 +237,7 @@ public struct APIRequestConfig: Codable, Hashable {
                 deduplicate: Bool? = nil,
                 tag: String? = nil,
                 queueingStrategy: QueueingStrategy? = nil,
+                cachePolicy: CachePolicy = .standard,
                 background: Bool? = nil,
                 userInfo: [String: String]? = nil) {
 
@@ -234,6 +249,7 @@ public struct APIRequestConfig: Codable, Hashable {
                          body: body,
                          timeoutInterval: timeoutInterval,
                          queueingStrategy: queueingStrategy,
+                         cachePolicy: cachePolicy,
                          background: background,
                          userInfo: userInfo)
         self.deduplicate = {
@@ -1135,7 +1151,7 @@ extension APIRequestConfig {
         guard let url = URL(string: host + "/" + path.description + queryString) else {
             return nil
         }
-        var urlRequest = URLRequest(url: url)
+        var urlRequest = URLRequest(url: url, cachePolicy: urlCachePolicy)
         for (key, value) in headers.orderedKeyValues {
             urlRequest.setValue("\(value)", forHTTPHeaderField: key)
         }
@@ -1164,6 +1180,28 @@ extension HTTPURLResponse {
             return true
         default:
             return false
+        }
+    }
+}
+
+// MARK: - Cache Policy
+
+extension APIRequestConfig {
+
+    var urlCachePolicy: NSURLRequest.CachePolicy {
+        switch cachePolicy {
+        case .standard:
+            return .useProtocolCachePolicy
+        case .serverOnly:
+            return .reloadIgnoringLocalAndRemoteCacheData
+        case .remoteCacheOrServer:
+            return .reloadIgnoringLocalCacheData
+        case .cacheOrServer:
+            return .returnCacheDataElseLoad
+        case .validatedCacheOrServer:
+            return .reloadRevalidatingCacheData
+        case .cacheOnly:
+            return .returnCacheDataDontLoad
         }
     }
 }

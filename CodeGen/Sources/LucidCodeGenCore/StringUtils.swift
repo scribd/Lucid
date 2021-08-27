@@ -92,18 +92,38 @@ public extension String {
     var isArray: Bool {
         return hasPrefix("[") && hasSuffix("]")
     }
-    
+
+    var isDictionary: Bool {
+        return hasPrefix("{") && hasSuffix("}") && contains(":")
+    }
+
     func arrayElementType() -> String {
         guard isArray else { return self }
         var string = self
         string.removeLast()
         string.removeFirst()
-        guard string.isArray == false else {
+        guard string.isArray == false, string.isDictionary == false else {
             fatalError(CodeGenError.unsupportedType(self).description)
         }
         return string
     }
-    
+
+    func dictionaryElementTypes() -> (key: String, value: String)? {
+        guard isDictionary else { return nil }
+        var string = self
+        string.removeLast()
+        string.removeFirst()
+        let items = string.split(separator: ":").map { String($0) }
+        guard items.count == 2 else {
+            fatalError(CodeGenError.unsupportedType(self).description)
+        }
+        guard items[0].isArray == false, items[0].isDictionary == false,
+              items[1].isArray == false, items[1].isDictionary == false else {
+            fatalError(CodeGenError.unsupportedType(self).description)
+        }
+        return (key: items[0], value: items[1])
+    }
+
     var reference: Reference {
         return .named(variableCased())
     }

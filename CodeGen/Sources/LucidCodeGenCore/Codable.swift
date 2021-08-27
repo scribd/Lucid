@@ -872,23 +872,40 @@ extension Subtype.Property.PropertyType: Codable {
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        
-        let value = try container.decode(String.self)
-        if let scalarType = PropertyScalarType(value) {
-            self = .scalar(scalarType)
+
+        let propertyType: (String) -> Subtype.Property.PropertyType = { string in
+            if let scalarType = PropertyScalarType(string) {
+                return .scalar(scalarType)
+            } else {
+                return .custom(string)
+            }
+        }
+
+        let typeString = try container.decode(String.self)
+        if let (key, value) = typeString.dictionaryElementTypes() {
+            self = .dictionary(key: propertyType(key), value: propertyType(value))
+        } else if typeString.isArray {
+            self = .array(propertyType(typeString.arrayElementType()))
         } else {
-            self = .custom(value)
+            self = propertyType(typeString)
         }
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
+        try container.encode(stringValue)
+    }
 
+    private var stringValue: String {
         switch self {
         case .scalar(let value):
-            try container.encode(value.stringValue)
+            return value.stringValue
         case .custom(let value):
-            try container.encode(value)
+            return value
+        case .dictionary(let key, let value):
+            return "{\(key.stringValue):\(value.stringValue)}"
+        case .array(let type):
+            return "[\(type.stringValue)]"
         }
     }
 }

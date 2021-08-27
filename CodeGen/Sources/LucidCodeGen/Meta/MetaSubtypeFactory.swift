@@ -69,17 +69,39 @@ struct MetaSubtypeFactory {
                     .adding(member: Function(kind: .`init`)
                         .with(accessLevel: .public)
                         .adding(parameter: FunctionParameter(alias: "_", name: "identifier", type: .int).with(defaultValue: Value.int(0)))
-                        .adding(members: properties.map { property in
-                            
+                        .adding(members: try properties.map { property in
+
+                            let parsePrimitiveType: (Subtype.Property.PropertyType) throws -> VariableValue = { propertyType in
+                                switch propertyType {
+                                case .custom(let _value),
+                                     .array(.custom(let _value)):
+                                    return .named(_value.camelCased().suffixedName()) + .named("factoryDefaultValue")
+                                case .scalar(let _value):
+                                    return _value.defaultValue(
+                                        propertyName: property.name.camelCased().variableCased(ignoreLexicon: true),
+                                        identifier: .named("identifier")
+                                    )
+                                case .array,
+                                     .dictionary:
+//                                    return .named(_value.camelCased().suffixedName()) + .named("factoryDefaultValue")
+                                    throw CodeGenError.subtypeDoesntSupportNestedArraysOrDictionaries(property.name)
+                                }
+                            }
+
                             let value: VariableValue
                             switch property.propertyType {
-                            case .custom(let _value):
-                                value = .named(_value.camelCased().suffixedName()) + .named("factoryDefaultValue")
-                            case .scalar(let _value):
-                                value = _value.defaultValue(
-                                    propertyName: property.name.camelCased().variableCased(ignoreLexicon: true),
-                                    identifier: .named("identifier")
-                                )
+                            case .custom,
+                                 .scalar,
+                                 .array(.custom):
+                                value = try parsePrimitiveType(property.propertyType)
+                            case .array(let propertyType):
+                                let primitive = try parsePrimitiveType(propertyType)
+                                value = Reference.array(with: [primitive], ofType: propertyType.typeID(objc: property.objc))
+                            case .dictionary(let key, let dictValue):
+                                let keyPrimitive = try parsePrimitiveType(key)
+                                let valuePrimitive = try parsePrimitiveType(dictValue)
+                                value = Reference.dictionary(key: keyPrimitive, ofKeyType: key.typeID(objc: property.objc),
+                                                             value: valuePrimitive, ofValueType: dictValue.typeID(objc: property.objc))
                             }
                             
                             return Assignment(

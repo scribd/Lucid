@@ -70,7 +70,6 @@ struct MetaSubtypeFactory {
                         .with(accessLevel: .public)
                         .adding(parameter: FunctionParameter(alias: "_", name: "identifier", type: .int).with(defaultValue: Value.int(0)))
                         .adding(members: properties.map { property in
-                            
                             let value: VariableValue
                             switch property.propertyType {
                             case .custom(let _value):
@@ -80,8 +79,17 @@ struct MetaSubtypeFactory {
                                     propertyName: property.name.camelCased().variableCased(ignoreLexicon: true),
                                     identifier: .named("identifier")
                                 )
+                            case .array(.scalar(let _value)):
+                                let itemValue: VariableValue = _value.defaultValue(
+                                    propertyName: property.name.camelCased().variableCased(ignoreLexicon: true),
+                                    identifier: .named("identifier")
+                                )
+                                value = Reference.named("[\(itemValue.swiftString)]")
+                            case .array,
+                                 .dictionary:
+                                value = .type(property.propertyType.typeID(objc: property.objc)) + .named("factoryDefaultValue")
                             }
-                            
+
                             return Assignment(
                                 variable: Reference.named(property.name.camelCased().variableCased(ignoreLexicon: true)),
                                 value: value

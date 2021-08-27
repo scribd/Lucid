@@ -25,6 +25,7 @@ public enum CodeGenError: Error, CustomStringConvertible {
     case unsupportedNestedKeys
     case couldNotFindTargetEntity
     case subtypeDoesNotHaveAnyCase(String)
+    case subtypeDoesntSupportNestedArraysOrDictionaries(String)
     case cannotPersistIdentifier(String)
     case incompatiblePropertyKey(String)
     case unsupportedCaseConversion
@@ -72,6 +73,8 @@ public extension CodeGenError {
             return "At least one entity should have the property 'isTarget' set to true."
         case .subtypeDoesNotHaveAnyCase(let name):
             return "Subtype named '\(name)' does not have any case."
+        case .subtypeDoesntSupportNestedArraysOrDictionaries(let name):
+            return "Subtype named '\(name)' does not support arrays or dictionaries with nested arrays or dictionaries."
         case .cannotPersistIdentifier(let name):
             return "Cannot persist identifier in entity: '\(name)'."
         case .incompatiblePropertyKey(let key):

@@ -576,7 +576,26 @@ public extension Reference {
             .adding(parameter: TupleParameter(value: value))
         )
     }
-    
+
+    static func dictionary(key: VariableValue,
+                           ofKeyType keyTypeID: TypeIdentifier? = nil,
+                           value: VariableValue,
+                           ofValueType valueTypeID: TypeIdentifier? = nil) -> Reference {
+        let dictTypeID: TypeIdentifier
+        if let keyTypeID = keyTypeID, let valueTypeID = valueTypeID {
+            dictTypeID = .dictionary(key: keyTypeID, value: valueTypeID)
+        } else {
+            dictTypeID = TypeIdentifier(name: .dictionary)
+        }
+        return dictTypeID.reference | .call(Tuple()
+            .adding(parameter: TupleParameter(name: "dictionaryLiteral", value: Tuple()
+                .adding(parameters: [
+                    TupleParameter(value: key),
+                    TupleParameter(value: value)
+                ])
+            )))
+    }
+
     func container(keyedBy keyType: TypeIdentifier) -> Reference {
         return .try | self + .named("container") | .call(Tuple()
             .adding(parameter: TupleParameter(name: "keyedBy", value: keyType.reference + .named(.`self`)))
@@ -1096,6 +1115,10 @@ public extension Subtype.Property.PropertyType {
         case .custom(let name):
             let name = name.camelCased().suffixedName()
             return TypeIdentifier(name: objc ? "SC\(name)Objc" : name)
+        case .array(let propertyType):
+            return .array(element: propertyType.typeID(objc: objc))
+        case .dictionary(let key, let value):
+            return .dictionary(key: key.typeID(objc: objc), value: value.typeID(objc: objc))
         }
     }
 }

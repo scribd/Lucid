@@ -289,7 +289,7 @@ public struct EndpointPayloadEntityVariation: Equatable {
 
 // MARK: - PropertyScalarType
 
-public enum PropertyScalarType: String, Equatable {
+public enum PropertyScalarType: String, Hashable {
     case string = "String"
     case int = "Int"
     case date = "Date"
@@ -614,9 +614,11 @@ public struct Subtype: Equatable {
     
     public struct Property: Equatable {
         
-        public enum PropertyType: Equatable {
+        public enum PropertyType: Hashable {
             case scalar(PropertyScalarType)
             case custom(String)
+            indirect case array(PropertyType)
+            indirect case dictionary(key: PropertyType, value: PropertyType)
         }
         
         public let name: String

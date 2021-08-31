@@ -7,6 +7,9 @@
 //
 
 import XCTest
+#if canImport(UIKit)
+import UIKit
+#endif
 
 @testable import Lucid
 @testable import LucidTestKit
@@ -41,7 +44,7 @@ final class DataTypeTests: XCTestCase {
         }
     }
 
-    // MARK - APIRequestConfig.CachePolicy
+    // MARK: APIRequestConfig.CachePolicy
 
     func _testCachePolicyMapping(_ cachePolicy: APIRequestConfig.CachePolicy, _ urlCachePolicy: NSURLRequest.CachePolicy) {
         let config = APIRequestConfig(method: .get,
@@ -81,4 +84,100 @@ final class DataTypeTests: XCTestCase {
     func test_request_config_with_cache_only_cache_policy_is_translated_to_return_cache_data_dont_load() {
         _testCachePolicyMapping(.cacheOnly, .returnCacheDataDontLoad)
     }
+
+    #if canImport(UIKit)
+
+    // MARK: Color
+
+    func test_red_hex_pair() {
+        let color = Color(hex: "FF0000")
+
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        color.colorValue.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+
+        XCTAssertEqual(red, 1.0)
+        XCTAssertEqual(green, 0.0)
+        XCTAssertEqual(blue, 0.0)
+        XCTAssertEqual(alpha, 1.0)
+    }
+
+    func test_green_hex_pair() {
+        let color = Color(hex: "00FF00")
+
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        color.colorValue.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+
+        XCTAssertEqual(red, 0.0)
+        XCTAssertEqual(green, 1.0)
+        XCTAssertEqual(blue, 0.0)
+        XCTAssertEqual(alpha, 1.0)
+    }
+
+    func test_blue_hex_pair() {
+        let color = Color(hex: "0000FF")
+
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        color.colorValue.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+
+        XCTAssertEqual(red, 0.0)
+        XCTAssertEqual(green, 0.0)
+        XCTAssertEqual(blue, 1.0)
+        XCTAssertEqual(alpha, 1.0)
+    }
+
+    func test_red_short_hex() {
+        let color = Color(hex: "F00")
+
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        color.colorValue.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+
+        XCTAssertEqual(red, 1.0)
+        XCTAssertEqual(green, 0.0)
+        XCTAssertEqual(blue, 0.0)
+        XCTAssertEqual(alpha, 1.0)
+    }
+
+    func test_green_short_hex() {
+        let color = Color(hex: "0F0")
+
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        color.colorValue.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+
+        XCTAssertEqual(red, 0.0)
+        XCTAssertEqual(green, 1.0)
+        XCTAssertEqual(blue, 0.0)
+        XCTAssertEqual(alpha, 1.0)
+    }
+
+    func test_blue_short_hex() {
+        let color = Color(hex: "00F")
+
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        color.colorValue.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+
+        XCTAssertEqual(red, 0.0)
+        XCTAssertEqual(green, 0.0)
+        XCTAssertEqual(blue, 1.0)
+        XCTAssertEqual(alpha, 1.0)
+    }
+
+    #endif
 }

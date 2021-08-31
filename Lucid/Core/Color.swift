@@ -22,8 +22,8 @@ private extension UIColor {
         let trimmedHex = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         let hexValue = trimmedHex.replacingOccurrences(of: "#", with: "")
 
-        var rgb: Int = 0
-
+        var rgb: UInt64 = 0
+        
         var r: CGFloat = 0.0
         var g: CGFloat = 0.0
         var b: CGFloat = 0.0
@@ -33,7 +33,7 @@ private extension UIColor {
             return
         }
 
-        guard Scanner(string: hexValue).scanInt(&rgb) else {
+        guard Scanner(string: hexValue).scanHexInt64(&rgb) else {
             self.init(white: 0, alpha: 1)
             return
         }
@@ -44,9 +44,9 @@ private extension UIColor {
             g = CGFloat((rgb & 0x00FF00) >> 8) / 255.0
             b = CGFloat(rgb & 0x0000FF) / 255.0
         case .shortHex:
-            r = CGFloat((rgb & 0xF00) >> 8) / 255.0
-            g = CGFloat((rgb & 0x0F0) >> 4) / 255.0
-            b = CGFloat(rgb & 0x00F) / 255.0
+            r = CGFloat((rgb & 0xF00) >> 8) / 15.0
+            g = CGFloat((rgb & 0x0F0) >> 4) / 15.0
+            b = CGFloat(rgb & 0x00F) / 15.0
         }
 
         self.init(red: r, green: g, blue: b, alpha: 1)
@@ -55,7 +55,8 @@ private extension UIColor {
 #endif
 
 public struct Color: Equatable, Hashable {
-    let hex: String
+
+    public let hex: String
 
     public init(hex: String) {
         self.hex = hex

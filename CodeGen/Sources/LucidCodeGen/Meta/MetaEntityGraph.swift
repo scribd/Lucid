@@ -197,6 +197,10 @@ struct MetaEntityGraph {
             .adding(member: EmptyLine())
             .adding(member: initFunction())
             .adding(member: EmptyLine())
+            .adding(member: initWithContextFunction())
+            .adding(member: EmptyLine())
+            .adding(member: privateInitFunction())
+            .adding(member: EmptyLine())
             .adding(member: setRootFunction())
             .adding(member: EmptyLine())
             .adding(member: insertFunction())
@@ -210,6 +214,10 @@ struct MetaEntityGraph {
     
     private func entityGraphProperties() -> [TypeBodyMember] {
         return [
+            Property(variable: Variable(name: "isDataRemote")
+                .with(type: .bool)
+                .with(immutable: true)),
+            EmptyLine(),
             Property(variable: Variable(name: "rootEntities")
                 .with(type: .array(element: .appAnyEntity))
                 .with(immutable: false))
@@ -234,13 +242,36 @@ struct MetaEntityGraph {
     }
     
     private func initFunction() -> Function {
+        return Function(kind: .`init`(convenience: true, optional: false))
+            .adding(member: Reference.named(.`self`) + .named(.`init`) | .call(Tuple()
+                .adding(parameter: TupleParameter(name: "isDataRemote", value: Value.bool(false)))
+            ))
+    }
+
+    private func initWithContextFunction() -> Function {
+        return Function(kind: .`init`(convenience: true, optional: false))
+            .adding(genericParameter: GenericParameter(name: "P"))
+            .adding(parameter: FunctionParameter(name: "context", type: TypeIdentifier(name: "_ReadContext<P>")))
+            .adding(constraint: .value(Reference.named("P: ResultPayloadConvertible")))
+            .adding(member: Reference.named(.`self`) + .named(.`init`) | .call(Tuple()
+                .adding(parameter: TupleParameter(name: "isDataRemote", value: Reference.named("context.responseHeader != nil")))
+            ))
+    }
+
+    private func privateInitFunction() -> Function {
         return Function(kind: .`init`(convenience: false, optional: false))
+            .adding(parameter: FunctionParameter(name: "isDataRemote", type: .bool))
+            .with(accessLevel: .private)
+            .adding(member: Assignment(
+                variable: .named(.`self`) + .named("isDataRemote"),
+                value: Reference.named("isDataRemote")
+            ))
             .adding(member: Assignment(
                 variable: .named(.`self`) + .named("rootEntities"),
                 value: Value.array([])
             ))
     }
-    
+
     private func insertFunction() -> Function {
         return Function(kind: .named("insert"))
             .adding(genericParameter: GenericParameter(name: "S"))

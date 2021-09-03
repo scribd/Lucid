@@ -12,6 +12,8 @@ import Lucid
 
 public final class GraphStub: MutableGraph {
 
+    let isDataRemote: Bool
+
     public typealias AnyEntity = AnyEntitySpy
 
     public typealias AnyRelationshipPath = AnyRelationshipSpyPath
@@ -22,8 +24,17 @@ public final class GraphStub: MutableGraph {
 
     public private(set) var entityRelationshipSpies = DualHashDictionary<EntityRelationshipSpyIdentifier, EntityRelationshipSpy>()
 
-    public init() {
-        rootEntities = []
+    public convenience init() {
+        self.init(isDataRemote: false)
+    }
+
+    public convenience init<P>(context: _ReadContext<P>) where P : ResultPayloadConvertible {
+        self.init(isDataRemote: context.responseHeader != nil)
+    }
+
+    private init(isDataRemote: Bool) {
+        self.isDataRemote = isDataRemote
+        self.rootEntities = []
     }
 
     public func insert<S>(_ entities: S) where S: Sequence, AnyEntitySpy == S.Element {

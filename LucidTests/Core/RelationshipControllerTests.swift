@@ -735,6 +735,68 @@ final class RelationshipControllerTests: XCTestCase {
 
         waitForExpectations(timeout: 1)
     }
+
+    // MARK: Identifying Local vs Remote Data
+
+    func _testRelationshipControllerShouldIdentifyDataSource(asRemote: Bool, responseSource: RemoteResponseSource?) {
+
+        let entitySpy = EntitySpy(idValue: .remote(1, nil),
+                                  remoteSynchronizationState: .synced,
+                                  title: "test",
+                                  oneRelationshipIdValue: .remote(1, nil),
+                                  manyRelationshipsIdValues: [])
+
+        coreManager.getByIDsStubs = [Future(just: [
+            .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
+        ])].map { $0.eraseToAnyPublisher() }
+
+        let expectation = self.expectation(description: "graph")
+        expectation.expectedFulfillmentCount = 2
+
+        let context = RelationshipController<RelationshipCoreManagerSpy, GraphStub>.ReadContext(dataSource: .local)
+        let requestConfig = APIRequestConfig(method: .get, path: .path("fake_entity") / "42")
+
+        let payloadResult = EntityEndpointResultPayloadSpy(stubEntities: [entitySpy],
+                                                           stubEntityMetadata: nil,
+                                                           stubEndpointMetadata: nil)
+
+        context.set(payloadResult: .success(payloadResult),
+                    source: responseSource,
+                    for: requestConfig)
+
+        entity(entitySpy)
+            .relationships(from: coreManager, in: context)
+            .includingAllRelationships(recursive: .full)
+            .perform(GraphStub.self)
+            .once
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
+                }
+            }, receiveValue: { graph in
+                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 1)
+                XCTAssertEqual(graph.isDataRemote, asRemote)
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_relationship_controller_should_create_graph_and_identify_local_data_from_context() {
+        _testRelationshipControllerShouldIdentifyDataSource(asRemote: false, responseSource: nil)
+    }
+
+    func test_relationship_controller_should_create_graph_and_identify_remote_data_from_context_with_server_response() {
+        _testRelationshipControllerShouldIdentifyDataSource(asRemote: true, responseSource: .server(.empty))
+    }
+
+    func test_relationship_controller_should_create_graph_and_identify_remote_data_from_context_with_url_cache_response() {
+        _testRelationshipControllerShouldIdentifyDataSource(asRemote: true, responseSource: .urlCache(.empty))
+    }
 }
 
 // MARK: - Utils

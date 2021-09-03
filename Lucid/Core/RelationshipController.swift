@@ -33,6 +33,10 @@ public protocol MutableGraph: AnyObject {
     /// Initialize an empty graph
     init()
 
+    /// Initialize an empty graph from a context
+    /// - Parameter context: The read context use to build the request. The header response will be tested to see if the data is remote or not.
+    init<P>(context: _ReadContext<P>) where P: ResultPayloadConvertible
+
     /// Set root entities
     /// - Parameter entities: entities to set
     func setRoot<S>(_ entities: S) where S: Sequence, S.Element == AnyEntity
@@ -97,6 +101,10 @@ public final class ThreadSafeGraph<Graph>: MutableGraph where Graph: MutableGrap
 
     public init() {
         _value = Graph()
+    }
+
+    public init<P>(context: _ReadContext<P>) where P: ResultPayloadConvertible {
+        _value = Graph(context: context)
     }
 
     public func setRoot<S>(_ entities: S) where S: Sequence, Graph.AnyEntity == S.Element {
@@ -230,7 +238,7 @@ public final class RelationshipController<RelationshipManager, Graph>
         let createdAt = Date()
         Logger.log(.debug, "\(RelationshipController.self): Creating graph for \(relationshipContext).")
 
-        let graph = ThreadSafeGraph<Graph>()
+        let graph = ThreadSafeGraph<Graph>(context: self.relationshipContext)
         return self._fill(graph, nestedContext: self.relationshipContext).flatMapLatest { _ -> Signal<Graph, ManagerError> in
             let processingInterval = Date().timeIntervalSince(createdAt)
 

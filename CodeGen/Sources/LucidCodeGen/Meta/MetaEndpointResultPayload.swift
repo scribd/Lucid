@@ -125,6 +125,8 @@ struct MetaEndpointResultPayload {
                         \({ () -> String in
                             if entity.hasVoidIdentifier {
                                 return "    \(entity.payloadEntityAccessorVariable.name).append(value)"
+                            } else if entity.hasLazyProperties {
+                                return "    \(entity.payloadEntityAccessorVariable.name)[value.identifier] = \(entity.payloadEntityAccessorVariable.name)[value.identifier].flatMap { $0.merging(value) } ?? value"
                             } else {
                                 return "    \(entity.payloadEntityAccessorVariable.name)[value.identifier] = value"
                             }

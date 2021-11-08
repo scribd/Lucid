@@ -308,7 +308,11 @@ struct MetaEntityGraph {
         case .property,
              .relationships,
              .scalarType:
-            return "\(entity.name.camelCased().variableCased().pluralName)[entity.identifier] = entity"
+            if entity.hasLazyProperties {
+                return "\(entity.name.camelCased().variableCased().pluralName)[entity.identifier] = \(entity.name.camelCased().variableCased().pluralName)[entity.identifier].flatMap { $0.merging(entity) } ?? entity"
+            } else {
+                return "\(entity.name.camelCased().variableCased().pluralName)[entity.identifier] = entity"
+            }
         }
     }
     

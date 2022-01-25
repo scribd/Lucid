@@ -327,6 +327,43 @@ final class DualHashDictionaryTests: XCTestCase {
         otherDictionary[.remote(0, nil)] = 1
         XCTAssertNotEqual(dictionary, otherDictionary)
     }
+
+    // MARK: Subtracting Keys
+
+    func test_subtracting_keys_results_in_correct_data_set() {
+        dictionary[.remote(0, "0")] = 0
+        dictionary[.remote(1, "1")] = 1
+        dictionary[.remote(2, "2")] = 2
+        dictionary[.remote(3, "3")] = 3
+        dictionary[.remote(4, "4")] = 4
+        var other = DualHashDictionary<IdentifierValueType<String, Int>, Int>()
+        other[.remote(1, "1")] = 1
+        other[.remote(2, "2")] = 2
+        other[.remote(3, "3")] = 3
+        let subtracting = dictionary.subtractingKeys(other.keys)
+        XCTAssertTrue(subtracting.contains(.remote(0, "0")))
+        XCTAssertTrue(subtracting.contains(.remote(4, "4")))
+        XCTAssertEqual(subtracting.count, 2)
+    }
+
+    // MARK: - Intersecting Keys
+
+    func test_intersecting_keys_results_in_correct_data_set() {
+        dictionary[.remote(0, "0")] = 0
+        dictionary[.remote(1, "1")] = 1
+        dictionary[.remote(2, "2")] = 2
+        dictionary[.remote(3, "3")] = 3
+        dictionary[.remote(4, "4")] = 4
+        var other = DualHashDictionary<IdentifierValueType<String, Int>, Int>()
+        other[.remote(1, "1")] = 1
+        other[.remote(2, "2")] = 2
+        other[.remote(3, "3")] = 3
+        let intersecting = dictionary.intersectingKeys(other.keys)
+        XCTAssertTrue(intersecting.contains(.remote(1, "1")))
+        XCTAssertTrue(intersecting.contains(.remote(2, "2")))
+        XCTAssertTrue(intersecting.contains(.remote(3, "3")))
+        XCTAssertEqual(intersecting.count, 3)
+    }
 }
 
 // MARK: - Ordered Dictionaries
@@ -689,4 +726,73 @@ final class DualHashSetTests: XCTestCase {
         XCTAssertEqual(set.count, 1)
     }
 
+    // MARK: Subtract
+
+    func test_mutating_subtract_results_in_correct_data_set() {
+        set.insert(.remote(0, "0"))
+        set.insert(.remote(1, "1"))
+        set.insert(.remote(2, "2"))
+        set.insert(.remote(3, "3"))
+        set.insert(.remote(4, "4"))
+        var other = DualHashSet<IdentifierValueType<String, Int>>()
+        other.insert(.remote(1, "1"))
+        other.insert(.remote(2, "2"))
+        other.insert(.remote(3, "3"))
+        set.subtract(other)
+        XCTAssertTrue(set.contains(.remote(0, "0")))
+        XCTAssertTrue(set.contains(.remote(4, "4")))
+        XCTAssertEqual(set.count, 2)
+    }
+
+    func test_subtracting_results_in_correct_data_set() {
+        set.insert(.remote(0, "0"))
+        set.insert(.remote(1, "1"))
+        set.insert(.remote(2, "2"))
+        set.insert(.remote(3, "3"))
+        set.insert(.remote(4, "4"))
+        var other = DualHashSet<IdentifierValueType<String, Int>>()
+        other.insert(.remote(1, "1"))
+        other.insert(.remote(2, "2"))
+        other.insert(.remote(3, "3"))
+        let subtracting = set.subtracting(other)
+        XCTAssertTrue(subtracting.contains(.remote(0, "0")))
+        XCTAssertTrue(subtracting.contains(.remote(4, "4")))
+        XCTAssertEqual(subtracting.count, 2)
+    }
+
+    // MARK: Intersection
+
+    func test_mutating_intersect_results_in_correct_data_set() {
+        set.insert(.remote(0, "0"))
+        set.insert(.remote(1, "1"))
+        set.insert(.remote(2, "2"))
+        set.insert(.remote(3, "3"))
+        set.insert(.remote(4, "4"))
+        var other = DualHashSet<IdentifierValueType<String, Int>>()
+        other.insert(.remote(1, "1"))
+        other.insert(.remote(2, "2"))
+        other.insert(.remote(3, "3"))
+        set.intersection(other)
+        XCTAssertTrue(set.contains(.remote(1, "1")))
+        XCTAssertTrue(set.contains(.remote(2, "2")))
+        XCTAssertTrue(set.contains(.remote(3, "3")))
+        XCTAssertEqual(set.count, 3)
+    }
+
+    func test_intersecting_results_in_correct_data_set() {
+        set.insert(.remote(0, "0"))
+        set.insert(.remote(1, "1"))
+        set.insert(.remote(2, "2"))
+        set.insert(.remote(3, "3"))
+        set.insert(.remote(4, "4"))
+        var other = DualHashSet<IdentifierValueType<String, Int>>()
+        other.insert(.remote(1, "1"))
+        other.insert(.remote(2, "2"))
+        other.insert(.remote(3, "3"))
+        let intersecting = set.intersecting(other)
+        XCTAssertTrue(intersecting.contains(.remote(1, "1")))
+        XCTAssertTrue(intersecting.contains(.remote(2, "2")))
+        XCTAssertTrue(intersecting.contains(.remote(3, "3")))
+        XCTAssertEqual(intersecting.count, 3)
+    }
 }

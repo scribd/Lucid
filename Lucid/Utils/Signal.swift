@@ -9,6 +9,8 @@
 import ReactiveKit
 import Foundation
 
+// MARK: - Error Substitutions
+
 public extension Signal where Error == ManagerError {
 
     func substituteValueForNonCriticalFailure(_ value: Element) -> ReactiveKit.Signal<Element, ManagerError> {
@@ -38,13 +40,26 @@ public extension Signal where Error == ManagerError {
     }
 }
 
+// MARK: - Mutation Filtering
+
+public struct EntityMutationRule: OptionSet {
+    public let rawValue: Int
+    public init(rawValue: Int) { self.rawValue = rawValue }
+
+    public static let insertions = EntityMutationRule(rawValue: 1 << 0)
+    public static let deletions = EntityMutationRule(rawValue: 1 << 1)
+
+    public static let dataChangesOnly: EntityMutationRule = []
+    public static let all: EntityMutationRule = [.insertions, .deletions]
+}
+
 public extension Signal where Element: Sequence, Element.Element: Entity, Error == Never {
 
-    var whenUpdatingAnything: SafeSignal<[(old: Element.Element?, new: Element.Element)]> {
-        return when(updatingOneOf: nil)
+    var whenUpdatingAnything: SafeSignal<[(old: Element.Element?, new: Element.Element?)]> {
+        return when(updatingOneOf: nil, entityRules: .all)
     }
 
-    func when(updatingOneOf indices: [Element.Element.IndexName]?) -> SafeSignal<[(old: Element.Element?, new: Element.Element)]> {
+    func when(updatingOneOf indices: [Element.Element.IndexName]?, entityRules: EntityMutationRule = .dataChangesOnly) -> SafeSignal<[(old: Element.Element?, new: Element.Element?)]> {
         var _lastElements: DualHashDictionary<Element.Element.Identifier, Element.Element>?
         let dispatchQueue = DispatchQueue(label: "\(Self.self):updates")
 
@@ -52,9 +67,13 @@ public extension Signal where Element: Sequence, Element.Element: Entity, Error 
             defer { _lastElements = DualHashDictionary(elements.lazy.map { ($0.identifier, $0) }) }
             guard let lastElements = _lastElements else { return nil }
 
-            let update: [(old: Element.Element?, new: Element.Element)] = elements.compactMap { element in
+            var update: [(old: Element.Element?, new: Element.Element?)] = elements.compactMap { element in
                 guard let lastElement = lastElements[element.identifier] else {
-                    return (nil, element)
+                    if entityRules.contains(.insertions) {
+                        return (nil, element)
+                    } else {
+                        return nil
+                    }
                 }
 
                 let shouldUpdate = indices?.contains { index in
@@ -64,6 +83,11 @@ public extension Signal where Element: Sequence, Element.Element: Entity, Error 
                 return shouldUpdate ? (lastElement, element) : nil
             }
 
+            if entityRules.contains(.deletions) {
+                let deletedIndices = lastElements.subtractingKeys(elements.lazy.map { $0.identifier }.compactMap { $0})
+                update.append(contentsOf: deletedIndices.map { (old: lastElements[$0], new: nil) })
+            }
+
             return update.isEmpty ? nil : update
         }
     }
@@ -71,25 +95,27 @@ public extension Signal where Element: Sequence, Element.Element: Entity, Error 
 
 public extension Signal where Element: Entity, Error == Never {
 
-    var whenUpdatingAnything: SafeSignal<(old: Element?, new: Element)> {
-        return when(updatingOneOf: nil)
+    var whenUpdatingAnything: SafeSignal<(old: Element?, new: Element?)> {
+        return when(updatingOneOf: nil, entityRules: .all)
     }
 
-    func when(updatingOneOf indices: [Element.IndexName]?) -> SafeSignal<(old: Element?, new: Element)> {
-        return map { [$0] }.when(updatingOneOf: indices).compactMap { $0.first }
+    func when(updatingOneOf indices: [Element.IndexName]?, entityRules: EntityMutationRule = .dataChangesOnly) -> SafeSignal<(old: Element?, new: Element?)> {
+        return map { [$0] }.when(updatingOneOf: indices, entityRules: entityRules).compactMap { $0.first }
     }
 }
 
 public extension Signal where Element: OptionalProtocol, Element.Wrapped: Entity, Error == Never {
 
-    var whenUpdatingAnything: SafeSignal<(old: Element.Wrapped?, new: Element.Wrapped)> {
-        return when(updatingOneOf: nil)
+    var whenUpdatingAnything: SafeSignal<(old: Element.Wrapped?, new: Element.Wrapped?)> {
+        return when(updatingOneOf: nil, entityRules: .all)
     }
 
-    func when(updatingOneOf indices: [Element.Wrapped.IndexName]?) -> SafeSignal<(old: Element.Wrapped?, new: Element.Wrapped)> {
-        return compactMap { $0._unbox }.when(updatingOneOf: indices)
+    func when(updatingOneOf indices: [Element.Wrapped.IndexName]?, entityRules: EntityMutationRule = .dataChangesOnly) -> SafeSignal<(old: Element.Wrapped?, new: Element.Wrapped?)> {
+        return map { $0._unbox.flatMap { [$0] } ?? [] }.when(updatingOneOf: indices, entityRules: entityRules).compactMap { $0.first }
     }
 }
+
+// MARK: - Error Helpers
 
 public extension ManagerError {
 

@@ -1074,7 +1074,7 @@ private extension CoreManager {
                                 localStoresCompletion: { result in
                                     guard result?.error == nil else { return }
                                     self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
-                            },
+                                },
                                 allStoresCompletion: { result in
                                     switch result {
                                     case .success, .none:
@@ -1085,7 +1085,7 @@ private extension CoreManager {
                                         Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities for identifiers: \(error)")
                                         guardedPromise(.failure(.store(error)))
                                     }
-                            }
+                                }
                             )
                         }
 

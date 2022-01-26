@@ -311,6 +311,22 @@ public struct DualHashDictionary<Key, Value>: Sequence where Key: DualHashable {
         }
         return values
     }
+
+    public func subtractingKeys<S>(_ otherKeys: S) -> DualHashSet<Key> where S: Sequence, S.Element == Key {
+        return subtractingKeys(DualHashSet<Key>(otherKeys))
+    }
+
+    public func subtractingKeys(_ otherKeys: DualHashSet<Key>) -> DualHashSet<Key> {
+        return DualHashSet<Key>(keys).subtracting(otherKeys)
+    }
+
+    public func intersectingKeys<S>(_ otherKeys: S) -> DualHashSet<Key> where S: Sequence, S.Element == Key {
+        return intersectingKeys(DualHashSet<Key>(otherKeys))
+    }
+
+    public func intersectingKeys(_ otherKeys: DualHashSet<Key>) -> DualHashSet<Key> {
+        return DualHashSet<Key>(keys).intersecting(otherKeys)
+    }
 }
 
 // MARK: - Set
@@ -366,6 +382,22 @@ public struct DualHashSet<Element>: Sequence where Element: DualHashable {
         for (key, _) in _values {
             _values[key] = other._values[key]
         }
+    }
+
+    public func subtracting(_ other: DualHashSet<Element>) -> DualHashSet<Element> {
+        var newSet = DualHashSet<Element>()
+        for (key, _) in _values where other._values[key] == nil {
+            newSet._values[key] = _values[key]
+        }
+        return newSet
+    }
+
+    public func intersecting(_ other: DualHashSet<Element>) -> DualHashSet<Element> {
+        var newSet = DualHashSet<Element>()
+        for (key, _) in _values {
+            newSet._values[key] = other._values[key]
+        }
+        return newSet
     }
 
     public func contains(_ element: Element) -> Bool {

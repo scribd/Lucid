@@ -771,22 +771,31 @@ private extension APIClientQueueProcessor {
     }
 
     private func _handleAPIError(_ apiError: APIError, request: APIClientQueueRequest, responseHandlers: [APIClientQueueProcessorResponseHandler]) {
+
+        let removeRequestsMatching: (@escaping (APIClientQueueRequest) -> Bool) -> Void = { criteria in
+            /// Any requests in the queue that expect to fail and not retry on .networkConnectionFailure should be sent the failure right away.
+            if let requestsToCancel = self.delegate?.removeRequests(matching: criteria) {
+                Logger.log(.info, "\(APIClientQueueProcessor.self): Removing \(requestsToCancel.count) from the queue on network or timeout error.")
+                for requestToCancel in requestsToCancel {
+                    self.forwardDidReceiveResponseToHandlers(.apiError(apiError, requestToCancel), handlers: responseHandlers)
+                }
+            }
+        }
+
         switch apiError {
         case .network(.networkConnectionFailure(.networkConnectionLost)),
              .network(.networkConnectionFailure(.notConnectedToInternet)):
             Logger.log(.info, "\(APIClientQueueProcessor.self): Not connected to network. Will reschedule request and cancel non-retrying \requests in the queue.")
-            /// Any requests in the queue that expect to fail and not retry on .networkConnectionFailure should be sent the failure right away.
-            if let requestsToCancel = delegate?.removeRequests(matching: { $0.retryOnNetworkInterrupt == false }) {
-                for requestToCancel in requestsToCancel {
-                    forwardDidReceiveResponseToHandlers(.apiError(apiError, requestToCancel), handlers: responseHandlers)
-                }
-            }
+            removeRequestsMatching({ $0.retryOnNetworkInterrupt == false })
             if request.retryOnNetworkInterrupt {
                 delegate?.prepend(request)
             } else {
                 Logger.log(.error, "\(APIClientQueueProcessor.self): Request: \(client.description(for: request.wrapped.config)) failed and won't be retried: \(apiError)")
             }
         case .network(.networkConnectionFailure(.requestTimedOut)) where request.retryOnRequestTimeout:
+            if request.isBarrier {
+                removeRequestsMatching({ $0.retryOnRequestTimeout == false })
+            }
             delegate?.prepend(request)
         case .api,
              .deserialization,

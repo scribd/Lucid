@@ -814,18 +814,20 @@ final class APIClientQueueProcessorTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_calls_all_response_handlers_for_requests_in_queue_after_process_is_complete_with_internet_connection_failure_for_requests_with_retry_set_to_false() {
+    // MARK: - Removing items from queue on network error
+
+    func test_processor_calls_all_response_handlers_for_requests_in_queue_after_internet_connection_failure_for_requests_with_retry_set_to_false() {
         let queueingStrategy1 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onNetworkInterrupt])
-        let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy1))
+        let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_1"), queueingStrategy: queueingStrategy1))
 
         let queueingStrategy2 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
-        let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy2))
+        let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_2"), queueingStrategy: queueingStrategy2))
 
         let queueingStrategy3 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onNetworkInterrupt])
-        let request3 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy3))
+        let request3 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_3"), queueingStrategy: queueingStrategy3))
 
         let queueingStrategy4 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onRequestTimeout])
-        let request4 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy4))
+        let request4 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_4"), queueingStrategy: queueingStrategy4))
 
         let requestQueue = [request2, request3, request4]
 
@@ -859,4 +861,86 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         wait(for: [expectation], timeout: 1)
     }
+
+    func test_processor_calls_all_response_handlers_for_requests_in_queue_for_barrier_request_complete_with_timeout_failure_for_requests_with_retry_set_to_false() {
+        let queueingStrategy1 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onRequestTimeout])
+        let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_1"), queueingStrategy: queueingStrategy1))
+
+        let queueingStrategy2 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
+        let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_2"), queueingStrategy: queueingStrategy2))
+
+        let queueingStrategy3 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onNetworkInterrupt])
+        let request3 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_3"), queueingStrategy: queueingStrategy3))
+
+        let queueingStrategy4 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onRequestTimeout])
+        let request4 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_4"), queueingStrategy: queueingStrategy4))
+
+        let requestQueue = [request2, request3, request4]
+
+        processDelegateSpy.requestStub = request1
+        processDelegateSpy.removeRequestsStub = [request2, request3]
+        processor.delegate = processDelegateSpy
+
+        clientSpy.resultStubs = [
+            request1.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.requestTimedOut)))
+        ]
+
+        XCTAssertTrue(self.responseHandlerSpy.resultRecords.isEmpty)
+
+        processor.processNext()
+
+        let expectation = self.expectation(description: "processor")
+        waitForAsyncQueues {
+            XCTAssertEqual(self.processDelegateSpy.removeRequestsInvocations.count, 1)
+            if let matchingFilter = self.processDelegateSpy.removeRequestsInvocations.first {
+                let calculatedResults = requestQueue.filter(matchingFilter)
+                XCTAssertEqual(calculatedResults, self.processDelegateSpy.removeRequestsStub)
+            } else {
+                XCTFail("Couldn't get expected filter.")
+            }
+
+            XCTAssertEqual(self.responseHandlerSpy.requestRecords.count, 2)
+            XCTAssertEqual(self.responseHandlerSpy.requestRecords.first, request2)
+            XCTAssertEqual(self.responseHandlerSpy.requestRecords.last, request3)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
+
+    func test_processor_does_not_call_all_response_handlers_for_requests_in_queue_for_concurrent_request_complete_with_timeout_failure_for_requests_with_retry_set_to_false() {
+        let queueingStrategy1 = APIRequestConfig.QueueingStrategy(synchronization: .concurrent, retryPolicy: [.onRequestTimeout])
+        let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_1"), queueingStrategy: queueingStrategy1))
+
+        let queueingStrategy2 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
+        let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_2"), queueingStrategy: queueingStrategy2))
+
+        let queueingStrategy3 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onNetworkInterrupt])
+        let request3 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_3"), queueingStrategy: queueingStrategy3))
+
+        let queueingStrategy4 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onRequestTimeout])
+        let request4 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_4"), queueingStrategy: queueingStrategy4))
+
+        processDelegateSpy.requestStub = request1
+        processDelegateSpy.removeRequestsStub = [request2, request3, request4]
+        processor.delegate = processDelegateSpy
+
+        clientSpy.resultStubs = [
+            request1.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.requestTimedOut)))
+        ]
+
+        XCTAssertTrue(self.responseHandlerSpy.resultRecords.isEmpty)
+
+        processor.processNext()
+
+        let expectation = self.expectation(description: "processor")
+        waitForAsyncQueues {
+            XCTAssertEqual(self.processDelegateSpy.removeRequestsInvocations.count, 0)
+            XCTAssertEqual(self.responseHandlerSpy.requestRecords.count, 0)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
+
 }

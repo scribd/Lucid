@@ -11,7 +11,7 @@ let package = Package(
         .library(name: "LucidTestKit", targets: ["LucidTestKit"])
     ],
     dependencies: [
-        .package(url: "https://github.com/DeclarativeHub/ReactiveKit.git", .exact("3.17.3"))
+        .package(url: "https://github.com/DeclarativeHub/ReactiveKit.git", .exact("3.18.2"))
     ],
     targets: [
         .target(

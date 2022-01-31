@@ -317,4 +317,141 @@ final class PublisherTests: XCTestCase {
 
         waitForExpectations(timeout: 0.2, handler: nil)
     }
+
+    // MARK: - Flat Map Errors
+
+    func test_flat_map_error_can_convert_error_to_alternate_error_type() {
+
+        let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let failureExpectation = self.expectation(description: "failure")
+
+        subject
+            .flatMapError { error -> Result<[EntitySpy], SecondErrorType> in
+                switch error {
+                case .one: return .failure(.user)
+                case .two: return .failure(.network)
+                }
+            }
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    XCTAssertEqual(error, SecondErrorType.user)
+                    failureExpectation.fulfill()
+                case .finished:
+                    XCTFail("Unexpected finished event")
+                }
+            }, receiveValue: { update in
+                XCTFail("Unexpected value event")
+            })
+            .store(in: &cancellables)
+
+        subject.send(completion: .failure(.one))
+
+        waitForExpectations(timeout: 0.2, handler: nil)
+    }
+
+    func test_flat_map_error_can_convert_error_to_output_value() {
+
+        let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let outputExpectation = self.expectation(description: "output")
+
+        subject
+            .flatMapError { error -> Result<[EntitySpy], SecondErrorType> in
+                switch error {
+                case .one: return .failure(.user)
+                case .two: return .success([EntitySpy(idValue: .remote(2, nil), title: "name", subtitle: "name")])
+                }
+            }
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure:
+                    XCTFail("Unexpected failure event")
+                case .finished:
+                    XCTFail("Unexpected finished event")
+                }
+            }, receiveValue: { update in
+                XCTAssertEqual(update.count, 1)
+                XCTAssertEqual(update.first, EntitySpy(idValue: .remote(2, nil), title: "name", subtitle: "name"))
+                outputExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject.send(completion: .failure(.two))
+
+        waitForExpectations(timeout: 0.2, handler: nil)
+    }
+
+    func test_flat_map_error_can_convert_error_to_same_error_type() {
+
+        let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let failureExpectation = self.expectation(description: "failure")
+
+        subject
+            .flatMapError { error -> FirstErrorType in
+                switch error {
+                case .one: return .two
+                case .two: return .one
+                }
+            }
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    XCTAssertEqual(error, FirstErrorType.two)
+                    failureExpectation.fulfill()
+                case .finished:
+                    XCTFail("Unexpected finished event")
+                }
+            }, receiveValue: { update in
+                XCTFail("Unexpected value event")
+            })
+            .store(in: &cancellables)
+
+        subject.send(completion: .failure(.one))
+
+        waitForExpectations(timeout: 0.2, handler: nil)
+    }
+
+    func test_flat_map_error_can_convert_error_only_output_values() {
+
+        let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let outputExpectation = self.expectation(description: "output")
+
+        subject
+            .flatMapError { error -> [EntitySpy] in
+                switch error {
+                case .one: return [EntitySpy(idValue: .remote(1, nil), title: "name1", subtitle: "name1")]
+                case .two: return [EntitySpy(idValue: .remote(1, nil), title: "name1", subtitle: "name1"), EntitySpy(idValue: .remote(2, nil), title: "name2", subtitle: "name2")]
+                }
+            }
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure:
+                    XCTFail("Unexpected failure event")
+                case .finished:
+                    XCTFail("Unexpected finished event")
+                }
+            }, receiveValue: { update in
+                XCTAssertEqual(update.count, 2)
+                XCTAssertEqual(update.first, EntitySpy(idValue: .remote(1, nil), title: "name1", subtitle: "name1"))
+                XCTAssertEqual(update.last, EntitySpy(idValue: .remote(2, nil), title: "name2", subtitle: "name2"))
+                outputExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject.send(completion: .failure(.two))
+
+        waitForExpectations(timeout: 0.2, handler: nil)
+    }
+}
+
+// MARK: - Error Types
+
+private enum FirstErrorType: Error {
+    case one
+    case two
+}
+
+private enum SecondErrorType: Error {
+    case user
+    case network
 }

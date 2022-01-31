@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import ReactiveKit
 
 #if canImport(UIKit) && os(iOS)
 import UIKit

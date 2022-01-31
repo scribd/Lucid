@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import ReactiveKit
 
 #if canImport(UIKit)
 import UIKit
@@ -487,7 +486,6 @@ final class APIClientQueueProcessor {
 
     #if canImport(UIKit) && os(iOS)
     private let _backgroundTaskManager: BackgroundTaskManaging
-    private let backgroundTaskID = Property<UIBackgroundTaskIdentifier>(.invalid)
     #endif
 
     weak var delegate: APIClientQueueProcessorDelegate? {

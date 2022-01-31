@@ -52,7 +52,7 @@
 		190ADC7B2458D89C00D22F6D /* BackgroundTaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */; };
 		190ADC7C2458D89C00D22F6D /* ScheduledTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC502458D89C00D22F6D /* ScheduledTimer.swift */; };
 		190ADC7D2458D89C00D22F6D /* CancellationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC512458D89C00D22F6D /* CancellationToken.swift */; };
-		190ADC7E2458D89C00D22F6D /* Signal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal.swift */; };
+		190ADC7E2458D89C00D22F6D /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal+Extensions.swift */; };
 		190ADC7F2458D89C00D22F6D /* AnyEquatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC532458D89C00D22F6D /* AnyEquatable.swift */; };
 		190ADCB72458D99600D22F6D /* LucidTestKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 190ADCB52458D99600D22F6D /* LucidTestKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		190ADCD12458D9A500D22F6D /* RelationshipCoreManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBC2458D9A500D22F6D /* RelationshipCoreManagerSpy.swift */; };
@@ -99,7 +99,7 @@
 		190ADD012458DA9B00D22F6D /* Query.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC272458D89C00D22F6D /* Query.swift */; };
 		190ADD022458DA9B00D22F6D /* RemoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC422458D89C00D22F6D /* RemoteStore.swift */; };
 		190ADD032458DA9B00D22F6D /* Metadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC282458D89C00D22F6D /* Metadata.swift */; };
-		190ADD042458DA9B00D22F6D /* Signal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal.swift */; };
+		190ADD042458DA9B00D22F6D /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal+Extensions.swift */; };
 		190ADD052458DA9B00D22F6D /* CacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC402458D89C00D22F6D /* CacheStore.swift */; };
 		190ADD062458DA9B00D22F6D /* Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4D2458D89C00D22F6D /* Timestamp.swift */; };
 		190ADD072458DA9B00D22F6D /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC362458D89C00D22F6D /* Store.swift */; };
@@ -154,7 +154,7 @@
 		1987F9F02554A4C00057F1CC /* DataStructuresTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ED00942481C3960033B7BD /* DataStructuresTests.swift */; };
 		1987F9F62554A4D70057F1CC /* DiskCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC9F2458D8FE00D22F6D /* DiskCacheTests.swift */; };
 		1987F9FC2554A4E50057F1CC /* DiskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC9D2458D8FE00D22F6D /* DiskQueueTests.swift */; };
-		1987FA022554A4F50057F1CC /* SignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC9E2458D8FE00D22F6D /* SignalTests.swift */; };
+		1987FA022554A4F50057F1CC /* PublisherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC9E2458D8FE00D22F6D /* PublisherTests.swift */; };
 		1987FA082554A50F0057F1CC /* BaseStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC962458D8FE00D22F6D /* BaseStoreTests.swift */; };
 		1987FA0E2554A5150057F1CC /* CacheStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC922458D8FE00D22F6D /* CacheStoreTests.swift */; };
 		1987FA142554A5230057F1CC /* CoreDataStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC942458D8FE00D22F6D /* CoreDataStoreTests.swift */; };
@@ -184,6 +184,10 @@
 		DEA5C25226AA1D77002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
 		DEA5C25526AA20D3002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
 		F41D210724EF041E009444A2 /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
+		F440173827A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
+		F440173927A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
+		F440173A27A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
+		F440173B27A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
 		F45FA8FB24EC8D3C00368CCB /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
 		F47E5EFB24AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = F47E5EF924AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld */; };
 		F487D3982684702A00AB701B /* BackgroundTaskManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBE2458D9A500D22F6D /* BackgroundTaskManagerSpy.swift */; };
@@ -229,7 +233,7 @@
 		F48C803B2655958E00581182 /* AnyEquatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC532458D89C00D22F6D /* AnyEquatable.swift */; };
 		F48C803C2655958E00581182 /* DiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4E2458D89C00D22F6D /* DiskCache.swift */; };
 		F48C803D2655958E00581182 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC472458D89C00D22F6D /* Logger.swift */; };
-		F48C803E2655958E00581182 /* Signal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal.swift */; };
+		F48C803E2655958E00581182 /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal+Extensions.swift */; };
 		F48C803F2655958E00581182 /* Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4D2458D89C00D22F6D /* Timestamp.swift */; };
 		F48C80402655958E00581182 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
 		F48C80412655958E00581182 /* CancellationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC512458D89C00D22F6D /* CancellationToken.swift */; };
@@ -274,7 +278,7 @@
 		F48C80BA2655973000581182 /* DiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4E2458D89C00D22F6D /* DiskCache.swift */; };
 		F48C80BB2655973000581182 /* Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4D2458D89C00D22F6D /* Timestamp.swift */; };
 		F48C80BC2655973000581182 /* BackgroundTaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */; };
-		F48C80BD2655973000581182 /* Signal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal.swift */; };
+		F48C80BD2655973000581182 /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal+Extensions.swift */; };
 		F48C80BE2655973000581182 /* ReactiveKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4A2458D89C00D22F6D /* ReactiveKit.swift */; };
 		F48C80BF2655973000581182 /* AnyEquatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC532458D89C00D22F6D /* AnyEquatable.swift */; };
 		F48C80C02655973000581182 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
@@ -395,7 +399,7 @@
 		190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BackgroundTaskManager.swift; sourceTree = "<group>"; };
 		190ADC502458D89C00D22F6D /* ScheduledTimer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScheduledTimer.swift; sourceTree = "<group>"; };
 		190ADC512458D89C00D22F6D /* CancellationToken.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CancellationToken.swift; sourceTree = "<group>"; };
-		190ADC522458D89C00D22F6D /* Signal.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Signal.swift; sourceTree = "<group>"; };
+		190ADC522458D89C00D22F6D /* Signal+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Signal+Extensions.swift"; sourceTree = "<group>"; };
 		190ADC532458D89C00D22F6D /* AnyEquatable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnyEquatable.swift; sourceTree = "<group>"; };
 		190ADC842458D8DC00D22F6D /* LucidTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LucidTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		190ADC882458D8DC00D22F6D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -411,7 +415,7 @@
 		190ADC9A2458D8FE00D22F6D /* StoreStackTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StoreStackTests.swift; sourceTree = "<group>"; };
 		190ADC9B2458D8FE00D22F6D /* CoreManagerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreManagerTests.swift; sourceTree = "<group>"; };
 		190ADC9D2458D8FE00D22F6D /* DiskQueueTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DiskQueueTests.swift; sourceTree = "<group>"; };
-		190ADC9E2458D8FE00D22F6D /* SignalTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SignalTests.swift; sourceTree = "<group>"; };
+		190ADC9E2458D8FE00D22F6D /* PublisherTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PublisherTests.swift; sourceTree = "<group>"; };
 		190ADC9F2458D8FE00D22F6D /* DiskCacheTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DiskCacheTests.swift; sourceTree = "<group>"; };
 		190ADCB32458D99600D22F6D /* LucidTestKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LucidTestKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		190ADCB52458D99600D22F6D /* LucidTestKit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LucidTestKit.h; sourceTree = "<group>"; };
@@ -744,6 +748,7 @@
 		F405C35024A41844004E1BB3 /* APIClientQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueTests.swift; sourceTree = "<group>"; };
 		F405C35124A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueDefaultSchedulerTests.swift; sourceTree = "<group>"; };
 		F405C35224A41844004E1BB3 /* APIClientQueueProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueProcessorTests.swift; sourceTree = "<group>"; };
+		F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Publisher+Extensions.swift"; sourceTree = "<group>"; };
 		F45FA8FA24EC8D3C00368CCB /* Contract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Contract.swift; sourceTree = "<group>"; };
 		F47E5EFA24AA57BC007DCC4A /* StubCoreDataModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = StubCoreDataModel.xcdatamodel; sourceTree = "<group>"; };
 		F48C717624896F5400099980 /* CoreManagerContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreManagerContractTests.swift; sourceTree = "<group>"; };
@@ -911,10 +916,11 @@
 				190ADC4C2458D89C00D22F6D /* DiskQueue.swift */,
 				190ADC472458D89C00D22F6D /* Logger.swift */,
 				190ADC482458D89C00D22F6D /* PropertyBox.swift */,
+				F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */,
 				190ADC4A2458D89C00D22F6D /* ReactiveKit.swift */,
 				190ADC492458D89C00D22F6D /* Result.swift */,
 				190ADC502458D89C00D22F6D /* ScheduledTimer.swift */,
-				190ADC522458D89C00D22F6D /* Signal.swift */,
+				190ADC522458D89C00D22F6D /* Signal+Extensions.swift */,
 				190ADC4D2458D89C00D22F6D /* Timestamp.swift */,
 			);
 			path = Utils;
@@ -971,7 +977,7 @@
 				19ED00942481C3960033B7BD /* DataStructuresTests.swift */,
 				190ADC9F2458D8FE00D22F6D /* DiskCacheTests.swift */,
 				190ADC9D2458D8FE00D22F6D /* DiskQueueTests.swift */,
-				190ADC9E2458D8FE00D22F6D /* SignalTests.swift */,
+				190ADC9E2458D8FE00D22F6D /* PublisherTests.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -2182,6 +2188,7 @@
 				190ADC762458D89C00D22F6D /* ReactiveKit.swift in Sources */,
 				190ADC752458D89C00D22F6D /* Result.swift in Sources */,
 				190ADC5B2458D89C00D22F6D /* APIClient.swift in Sources */,
+				F440173927A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */,
 				190ADC592458D89C00D22F6D /* Entity.swift in Sources */,
 				F45FA8FB24EC8D3C00368CCB /* Contract.swift in Sources */,
 				1907AD8424A682D300727F82 /* Configuration.swift in Sources */,
@@ -2191,7 +2198,7 @@
 				190ADC552458D89C00D22F6D /* Query.swift in Sources */,
 				190ADC6F2458D89C00D22F6D /* RemoteStore.swift in Sources */,
 				190ADC562458D89C00D22F6D /* Metadata.swift in Sources */,
-				190ADC7E2458D89C00D22F6D /* Signal.swift in Sources */,
+				190ADC7E2458D89C00D22F6D /* Signal+Extensions.swift in Sources */,
 				190ADC6D2458D89C00D22F6D /* CacheStore.swift in Sources */,
 				190ADC792458D89C00D22F6D /* Timestamp.swift in Sources */,
 				190ADC642458D89C00D22F6D /* Store.swift in Sources */,
@@ -2238,7 +2245,7 @@
 				1987FA642555DD410057F1CC /* APIClientQueueTests.swift in Sources */,
 				1987FA142554A5230057F1CC /* CoreDataStoreTests.swift in Sources */,
 				1987FA382554A5740057F1CC /* StoreStackTests.swift in Sources */,
-				1987FA022554A4F50057F1CC /* SignalTests.swift in Sources */,
+				1987FA022554A4F50057F1CC /* PublisherTests.swift in Sources */,
 				1987FA3E2554A5810057F1CC /* RelationshipControllerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2297,6 +2304,7 @@
 				190ADCFA2458DA9B00D22F6D /* ReactiveKit.swift in Sources */,
 				190ADCFB2458DA9B00D22F6D /* Result.swift in Sources */,
 				190ADCFC2458DA9B00D22F6D /* APIClient.swift in Sources */,
+				F440173B27A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */,
 				190ADCFD2458DA9B00D22F6D /* Entity.swift in Sources */,
 				F41D210724EF041E009444A2 /* Contract.swift in Sources */,
 				1907AD8624A682DB00727F82 /* Configuration.swift in Sources */,
@@ -2306,7 +2314,7 @@
 				190ADD012458DA9B00D22F6D /* Query.swift in Sources */,
 				190ADD022458DA9B00D22F6D /* RemoteStore.swift in Sources */,
 				190ADD032458DA9B00D22F6D /* Metadata.swift in Sources */,
-				190ADD042458DA9B00D22F6D /* Signal.swift in Sources */,
+				190ADD042458DA9B00D22F6D /* Signal+Extensions.swift in Sources */,
 				190ADD052458DA9B00D22F6D /* CacheStore.swift in Sources */,
 				190ADD062458DA9B00D22F6D /* Timestamp.swift in Sources */,
 				190ADD072458DA9B00D22F6D /* Store.swift in Sources */,
@@ -2379,6 +2387,7 @@
 				F48C801E2655958500581182 /* Query.swift in Sources */,
 				F48C80262655958500581182 /* EntityIndexValue.swift in Sources */,
 				F48C802F2655958A00581182 /* RemoteStore.swift in Sources */,
+				F440173827A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */,
 				F48C80242655958500581182 /* APIClientQueueScheduling.swift in Sources */,
 				F48C80192655958500581182 /* Entity+Query.swift in Sources */,
 				F48C80382655958E00581182 /* AsyncOperationQueue.swift in Sources */,
@@ -2386,7 +2395,7 @@
 				F48C80142655958500581182 /* Color.swift in Sources */,
 				F48C80362655958E00581182 /* PropertyBox.swift in Sources */,
 				F48C803D2655958E00581182 /* Logger.swift in Sources */,
-				F48C803E2655958E00581182 /* Signal.swift in Sources */,
+				F48C803E2655958E00581182 /* Signal+Extensions.swift in Sources */,
 				F48C80272655958500581182 /* HTTPTypes.swift in Sources */,
 				F48C801C2655958500581182 /* Context.swift in Sources */,
 				F48C80292655958500581182 /* Payload.swift in Sources */,
@@ -2413,7 +2422,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F48C808E2655972700581182 /* APIClientQueueScheduling.swift in Sources */,
-				F48C80BD2655973000581182 /* Signal.swift in Sources */,
+				F48C80BD2655973000581182 /* Signal+Extensions.swift in Sources */,
 				F48C80952655972700581182 /* APIClient.swift in Sources */,
 				F48C80922655972700581182 /* RelationshipController.swift in Sources */,
 				F48C80B62655973000581182 /* AsyncOperationQueue.swift in Sources */,
@@ -2432,6 +2441,7 @@
 				F48C80B42655973000581182 /* PropertyBox.swift in Sources */,
 				F48C80972655972700581182 /* Time.swift in Sources */,
 				F48C80902655972700581182 /* APIRequestDeduplicator.swift in Sources */,
+				F440173A27A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */,
 				F48C80B82655973000581182 /* DiskQueue.swift in Sources */,
 				F48C80A82655972B00581182 /* RemoteStore.swift in Sources */,
 				F48C80B32655973000581182 /* AnySequence.swift in Sources */,
@@ -2606,7 +2616,6 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				LUCID_REACTIVE_KIT = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.LucidTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -2908,7 +2917,6 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				LUCID_REACTIVE_KIT = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.LucidTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;

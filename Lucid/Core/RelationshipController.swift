@@ -520,7 +520,6 @@ public extension RelationshipController {
                     },
                 rootEntities
                     .continuous
-                    .mapError { _ in ManagerError.notSupported }
                     .receive(on: dispatchQueue)
                     .flatMapLatest { entities -> Signal<Graph, ManagerError> in
                         defer { eventCount += 1 }

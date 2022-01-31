@@ -447,7 +447,7 @@ public enum RemotePath<E>: Equatable where E: RemoteEntity {
     case remove(E.Identifier)
     case removeAll(Query<E>)
 
-    public func identifier<ID>() -> ID? where ID: RemoteIdentifier, ID == E.Identifier {
+    public func identifier<ID>() -> ID? where ID == E.Identifier {
         switch self {
         case .get(let identifier),
              .remove(let identifier):

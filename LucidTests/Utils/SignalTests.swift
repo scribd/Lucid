@@ -6,6 +6,7 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
+#if LUCID_REACTIVE_KIT
 @testable import Lucid
 @testable import LucidTestKit
 import XCTest
@@ -329,3 +330,4 @@ final class SignalTests: XCTestCase {
         waitForExpectations(timeout: 0.2, handler: nil)
     }
 }
+#endif

@@ -1,11 +1,12 @@
 //
-//  Signal.swift
+//  Signal+Extensions.swift
 //  Lucid
 //
 //  Created by Théophane Rupin on 8/19/19.
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
+#if LUCID_REACTIVE_KIT
 import ReactiveKit
 import Foundation
 
@@ -223,3 +224,4 @@ public extension APIError {
 }
 
 extension Array: Error where Element: Error {}
+#endif

@@ -52,7 +52,7 @@
 		190ADC7B2458D89C00D22F6D /* BackgroundTaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */; };
 		190ADC7C2458D89C00D22F6D /* ScheduledTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC502458D89C00D22F6D /* ScheduledTimer.swift */; };
 		190ADC7D2458D89C00D22F6D /* CancellationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC512458D89C00D22F6D /* CancellationToken.swift */; };
-		190ADC7E2458D89C00D22F6D /* Signal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal.swift */; };
+		190ADC7E2458D89C00D22F6D /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal+Extensions.swift */; };
 		190ADC7F2458D89C00D22F6D /* AnyEquatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC532458D89C00D22F6D /* AnyEquatable.swift */; };
 		190ADCB72458D99600D22F6D /* LucidTestKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 190ADCB52458D99600D22F6D /* LucidTestKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		190ADCD12458D9A500D22F6D /* RelationshipCoreManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBC2458D9A500D22F6D /* RelationshipCoreManagerSpy.swift */; };
@@ -99,7 +99,7 @@
 		190ADD012458DA9B00D22F6D /* Query.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC272458D89C00D22F6D /* Query.swift */; };
 		190ADD022458DA9B00D22F6D /* RemoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC422458D89C00D22F6D /* RemoteStore.swift */; };
 		190ADD032458DA9B00D22F6D /* Metadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC282458D89C00D22F6D /* Metadata.swift */; };
-		190ADD042458DA9B00D22F6D /* Signal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal.swift */; };
+		190ADD042458DA9B00D22F6D /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal+Extensions.swift */; };
 		190ADD052458DA9B00D22F6D /* CacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC402458D89C00D22F6D /* CacheStore.swift */; };
 		190ADD062458DA9B00D22F6D /* Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4D2458D89C00D22F6D /* Timestamp.swift */; };
 		190ADD072458DA9B00D22F6D /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC362458D89C00D22F6D /* Store.swift */; };
@@ -229,7 +229,7 @@
 		F48C803B2655958E00581182 /* AnyEquatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC532458D89C00D22F6D /* AnyEquatable.swift */; };
 		F48C803C2655958E00581182 /* DiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4E2458D89C00D22F6D /* DiskCache.swift */; };
 		F48C803D2655958E00581182 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC472458D89C00D22F6D /* Logger.swift */; };
-		F48C803E2655958E00581182 /* Signal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal.swift */; };
+		F48C803E2655958E00581182 /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal+Extensions.swift */; };
 		F48C803F2655958E00581182 /* Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4D2458D89C00D22F6D /* Timestamp.swift */; };
 		F48C80402655958E00581182 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
 		F48C80412655958E00581182 /* CancellationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC512458D89C00D22F6D /* CancellationToken.swift */; };
@@ -274,7 +274,7 @@
 		F48C80BA2655973000581182 /* DiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4E2458D89C00D22F6D /* DiskCache.swift */; };
 		F48C80BB2655973000581182 /* Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4D2458D89C00D22F6D /* Timestamp.swift */; };
 		F48C80BC2655973000581182 /* BackgroundTaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */; };
-		F48C80BD2655973000581182 /* Signal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal.swift */; };
+		F48C80BD2655973000581182 /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal+Extensions.swift */; };
 		F48C80BE2655973000581182 /* ReactiveKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4A2458D89C00D22F6D /* ReactiveKit.swift */; };
 		F48C80BF2655973000581182 /* AnyEquatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC532458D89C00D22F6D /* AnyEquatable.swift */; };
 		F48C80C02655973000581182 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
@@ -395,7 +395,7 @@
 		190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BackgroundTaskManager.swift; sourceTree = "<group>"; };
 		190ADC502458D89C00D22F6D /* ScheduledTimer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScheduledTimer.swift; sourceTree = "<group>"; };
 		190ADC512458D89C00D22F6D /* CancellationToken.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CancellationToken.swift; sourceTree = "<group>"; };
-		190ADC522458D89C00D22F6D /* Signal.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Signal.swift; sourceTree = "<group>"; };
+		190ADC522458D89C00D22F6D /* Signal+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Signal+Extensions.swift"; sourceTree = "<group>"; };
 		190ADC532458D89C00D22F6D /* AnyEquatable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnyEquatable.swift; sourceTree = "<group>"; };
 		190ADC842458D8DC00D22F6D /* LucidTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LucidTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		190ADC882458D8DC00D22F6D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -914,7 +914,7 @@
 				190ADC4A2458D89C00D22F6D /* ReactiveKit.swift */,
 				190ADC492458D89C00D22F6D /* Result.swift */,
 				190ADC502458D89C00D22F6D /* ScheduledTimer.swift */,
-				190ADC522458D89C00D22F6D /* Signal.swift */,
+				190ADC522458D89C00D22F6D /* Signal+Extensions.swift */,
 				190ADC4D2458D89C00D22F6D /* Timestamp.swift */,
 			);
 			path = Utils;
@@ -2191,7 +2191,7 @@
 				190ADC552458D89C00D22F6D /* Query.swift in Sources */,
 				190ADC6F2458D89C00D22F6D /* RemoteStore.swift in Sources */,
 				190ADC562458D89C00D22F6D /* Metadata.swift in Sources */,
-				190ADC7E2458D89C00D22F6D /* Signal.swift in Sources */,
+				190ADC7E2458D89C00D22F6D /* Signal+Extensions.swift in Sources */,
 				190ADC6D2458D89C00D22F6D /* CacheStore.swift in Sources */,
 				190ADC792458D89C00D22F6D /* Timestamp.swift in Sources */,
 				190ADC642458D89C00D22F6D /* Store.swift in Sources */,
@@ -2306,7 +2306,7 @@
 				190ADD012458DA9B00D22F6D /* Query.swift in Sources */,
 				190ADD022458DA9B00D22F6D /* RemoteStore.swift in Sources */,
 				190ADD032458DA9B00D22F6D /* Metadata.swift in Sources */,
-				190ADD042458DA9B00D22F6D /* Signal.swift in Sources */,
+				190ADD042458DA9B00D22F6D /* Signal+Extensions.swift in Sources */,
 				190ADD052458DA9B00D22F6D /* CacheStore.swift in Sources */,
 				190ADD062458DA9B00D22F6D /* Timestamp.swift in Sources */,
 				190ADD072458DA9B00D22F6D /* Store.swift in Sources */,
@@ -2386,7 +2386,7 @@
 				F48C80142655958500581182 /* Color.swift in Sources */,
 				F48C80362655958E00581182 /* PropertyBox.swift in Sources */,
 				F48C803D2655958E00581182 /* Logger.swift in Sources */,
-				F48C803E2655958E00581182 /* Signal.swift in Sources */,
+				F48C803E2655958E00581182 /* Signal+Extensions.swift in Sources */,
 				F48C80272655958500581182 /* HTTPTypes.swift in Sources */,
 				F48C801C2655958500581182 /* Context.swift in Sources */,
 				F48C80292655958500581182 /* Payload.swift in Sources */,
@@ -2413,7 +2413,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F48C808E2655972700581182 /* APIClientQueueScheduling.swift in Sources */,
-				F48C80BD2655973000581182 /* Signal.swift in Sources */,
+				F48C80BD2655973000581182 /* Signal+Extensions.swift in Sources */,
 				F48C80952655972700581182 /* APIClient.swift in Sources */,
 				F48C80922655972700581182 /* RelationshipController.swift in Sources */,
 				F48C80B62655973000581182 /* AsyncOperationQueue.swift in Sources */,

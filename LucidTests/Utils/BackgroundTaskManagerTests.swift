@@ -10,7 +10,6 @@
 import LucidTestKit
 
 import XCTest
-import ReactiveKit
 
 final class BackgroundTaskManagerTests: XCTestCase {
 

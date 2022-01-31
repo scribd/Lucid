@@ -154,7 +154,7 @@
 		1987F9F02554A4C00057F1CC /* DataStructuresTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ED00942481C3960033B7BD /* DataStructuresTests.swift */; };
 		1987F9F62554A4D70057F1CC /* DiskCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC9F2458D8FE00D22F6D /* DiskCacheTests.swift */; };
 		1987F9FC2554A4E50057F1CC /* DiskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC9D2458D8FE00D22F6D /* DiskQueueTests.swift */; };
-		1987FA022554A4F50057F1CC /* SignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC9E2458D8FE00D22F6D /* SignalTests.swift */; };
+		1987FA022554A4F50057F1CC /* PublisherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC9E2458D8FE00D22F6D /* PublisherTests.swift */; };
 		1987FA082554A50F0057F1CC /* BaseStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC962458D8FE00D22F6D /* BaseStoreTests.swift */; };
 		1987FA0E2554A5150057F1CC /* CacheStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC922458D8FE00D22F6D /* CacheStoreTests.swift */; };
 		1987FA142554A5230057F1CC /* CoreDataStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC942458D8FE00D22F6D /* CoreDataStoreTests.swift */; };
@@ -415,7 +415,7 @@
 		190ADC9A2458D8FE00D22F6D /* StoreStackTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StoreStackTests.swift; sourceTree = "<group>"; };
 		190ADC9B2458D8FE00D22F6D /* CoreManagerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreManagerTests.swift; sourceTree = "<group>"; };
 		190ADC9D2458D8FE00D22F6D /* DiskQueueTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DiskQueueTests.swift; sourceTree = "<group>"; };
-		190ADC9E2458D8FE00D22F6D /* SignalTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SignalTests.swift; sourceTree = "<group>"; };
+		190ADC9E2458D8FE00D22F6D /* PublisherTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PublisherTests.swift; sourceTree = "<group>"; };
 		190ADC9F2458D8FE00D22F6D /* DiskCacheTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DiskCacheTests.swift; sourceTree = "<group>"; };
 		190ADCB32458D99600D22F6D /* LucidTestKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LucidTestKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		190ADCB52458D99600D22F6D /* LucidTestKit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LucidTestKit.h; sourceTree = "<group>"; };
@@ -977,7 +977,7 @@
 				19ED00942481C3960033B7BD /* DataStructuresTests.swift */,
 				190ADC9F2458D8FE00D22F6D /* DiskCacheTests.swift */,
 				190ADC9D2458D8FE00D22F6D /* DiskQueueTests.swift */,
-				190ADC9E2458D8FE00D22F6D /* SignalTests.swift */,
+				190ADC9E2458D8FE00D22F6D /* PublisherTests.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -2245,7 +2245,7 @@
 				1987FA642555DD410057F1CC /* APIClientQueueTests.swift in Sources */,
 				1987FA142554A5230057F1CC /* CoreDataStoreTests.swift in Sources */,
 				1987FA382554A5740057F1CC /* StoreStackTests.swift in Sources */,
-				1987FA022554A4F50057F1CC /* SignalTests.swift in Sources */,
+				1987FA022554A4F50057F1CC /* PublisherTests.swift in Sources */,
 				1987FA3E2554A5810057F1CC /* RelationshipControllerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -2616,7 +2616,6 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				LUCID_REACTIVE_KIT = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.LucidTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -2918,7 +2917,6 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				LUCID_REACTIVE_KIT = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.scribd.iscribd.LucidTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;

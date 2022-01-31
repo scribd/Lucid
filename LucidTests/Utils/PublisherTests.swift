@@ -1,18 +1,29 @@
 //
-//  Signal.swift
+//  PublisherTests.swift
 //  LucidTests
 //
 //  Created by Théophane Rupin on 4/7/20.
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
-#if LUCID_REACTIVE_KIT
 @testable import Lucid
 @testable import LucidTestKit
 import XCTest
-import ReactiveKit
+import Combine
 
-final class SignalTests: XCTestCase {
+final class PublisherTests: XCTestCase {
+
+    private var cancellables: Set<AnyCancellable>!
+
+    override func setUp() {
+        super.setUp()
+        cancellables = Set()
+    }
+
+    override func tearDown() {
+        defer { super.tearDown() }
+        cancellables = nil
+    }
 
     func test_when_should_filter_entity_updates_on_index() {
         let initialEntities = (0...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "initial_\($0)") }
@@ -24,23 +35,20 @@ final class SignalTests: XCTestCase {
         let expectation = self.expectation(description: "update")
 
         subject
-            .toSignal()
             .when(updatingOneOf: [.title])
-            .observe { event in
-                switch event {
-                case .next(let update):
-                    XCTAssertEqual(update.compactMap { $0.old?.title }, ["initial_0", "initial_1", "initial_2", "initial_3", "initial_4"])
-                    XCTAssertEqual(update.map { $0.new?.title }, ["new_0", "new_1", "new_2", "new_3", "new_4"])
-                    expectation.fulfill()
-
-                case .completed:
-                    XCTFail("Unexpected completed event")
-
-                case .failed:
-                    XCTFail("Unexpected failed event")
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure:
+                    XCTFail("Unexpected failure event")
+                case .finished:
+                    XCTFail("Unexpected finished event")
                 }
-            }
-            .dispose(in: bag)
+            }, receiveValue: { update in
+                XCTAssertEqual(update.compactMap { $0.old?.title }, ["initial_0", "initial_1", "initial_2", "initial_3", "initial_4"])
+                XCTAssertEqual(update.map { $0.new?.title }, ["new_0", "new_1", "new_2", "new_3", "new_4"])
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         subject.send(initialEntities)
         subject.send(newEntities)
@@ -61,23 +69,20 @@ final class SignalTests: XCTestCase {
         invertedExpectation.isInverted = true
 
         subject
-            .toSignal()
             .when(updatingOneOf: [.title, .subtitle])
-            .observe { event in
-                switch event {
-                case .next(let update):
-                    XCTAssertEqual(update.compactMap { $0.old?.title }, ["initial_0", "initial_1", "initial_2", "initial_3", "initial_4", "initial_8", "initial_9", "initial_10"])
-                    XCTAssertEqual(update.map { $0.new?.title }, ["new_0", "new_1", "new_2", "new_3", "new_4", "initial_8", "initial_9", "initial_10"])
-                    expectation.fulfill()
-
-                case .completed:
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure:
                     invertedExpectation.fulfill()
-
-                case .failed:
+                case .finished:
                     invertedExpectation.fulfill()
                 }
-            }
-            .dispose(in: bag)
+            }, receiveValue: { update in
+                XCTAssertEqual(update.compactMap { $0.old?.title }, ["initial_0", "initial_1", "initial_2", "initial_3", "initial_4", "initial_8", "initial_9", "initial_10"])
+                XCTAssertEqual(update.map { $0.new?.title }, ["new_0", "new_1", "new_2", "new_3", "new_4", "initial_8", "initial_9", "initial_10"])
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         subject.send(initialEntities)
         subject.send(newEntities)
@@ -98,23 +103,20 @@ final class SignalTests: XCTestCase {
         invertedExpectation.isInverted = true
 
         subject
-            .toSignal()
             .whenUpdatingAnything
-            .observe { event in
-                switch event {
-                case .next(let update):
-                    XCTAssertEqual(update.compactMap { $0.old }, initialEntities)
-                    XCTAssertEqual(update.map { $0.new }, newEntities)
-                    expectation.fulfill()
-
-                case .completed:
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure:
                     invertedExpectation.fulfill()
-
-                case .failed:
+                case .finished:
                     invertedExpectation.fulfill()
                 }
-            }
-            .dispose(in: bag)
+            }, receiveValue: { update in
+                XCTAssertEqual(update.compactMap { $0.old }, initialEntities)
+                XCTAssertEqual(update.map { $0.new }, newEntities)
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         subject.send(initialEntities)
         subject.send(newEntities)
@@ -131,12 +133,13 @@ final class SignalTests: XCTestCase {
         expectation.isInverted = true
 
         subject
-            .toSignal()
             .when(updatingOneOf: [.title])
-            .observe { _ in
+            .sink(receiveCompletion: { completion in
                 expectation.fulfill()
-            }
-            .dispose(in: bag)
+            }, receiveValue: { update in
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         subject.send(initialEntities)
         subject.send(newEntities)
@@ -156,24 +159,21 @@ final class SignalTests: XCTestCase {
         let expectation = self.expectation(description: "update")
 
         subject
-            .toSignal()
             .when(updatingOneOf: [.title], entityRules: [.insertions])
-            .observe { event in
-                switch event {
-                case .next(let update):
-                    // only the second send event triggers a response
-                    XCTAssertEqual(update.compactMap { $0.old?.title }, ["initial_0", "initial_1", "initial_2", "initial_3", "initial_4"])
-                    XCTAssertEqual(update.map { $0.new?.title }, ["new_0", "new_1", "new_2", "new_3", "new_4"])
-                    expectation.fulfill()
-
-                case .completed:
-                    XCTFail("Unexpected completed event")
-
-                case .failed:
-                    XCTFail("Unexpected failed event")
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure:
+                    XCTFail("Unexpected failure event")
+                case .finished:
+                    XCTFail("Unexpected finished event")
                 }
-            }
-            .dispose(in: bag)
+            }, receiveValue: { update in
+                // only the second send event triggers a response
+                XCTAssertEqual(update.compactMap { $0.old?.title }, ["initial_0", "initial_1", "initial_2", "initial_3", "initial_4"])
+                XCTAssertEqual(update.map { $0.new?.title }, ["new_0", "new_1", "new_2", "new_3", "new_4"])
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         subject.send(initialEntities)
         subject.send(newEntities)
@@ -191,23 +191,20 @@ final class SignalTests: XCTestCase {
         let expectation = self.expectation(description: "insert")
 
         subject
-            .toSignal()
             .when(updatingOneOf: [.title], entityRules: [])
-            .observe { event in
-                switch event {
-                case .next(let update):
-                    XCTAssertEqual(update.compactMap { $0.old?.title }, ["initial_0"])
-                    XCTAssertEqual(update.map { $0.new?.title }, ["renamed_0"])
-                    expectation.fulfill()
-    
-                case .completed:
-                    XCTFail("Unexpected completed event")
-
-                case .failed:
-                    XCTFail("Unexpected failed event")
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure:
+                    XCTFail("Unexpected failure event")
+                case .finished:
+                    XCTFail("Unexpected finished event")
                 }
-            }
-            .dispose(in: bag)
+            }, receiveValue: { update in
+                XCTAssertEqual(update.compactMap { $0.old?.title }, ["initial_0"])
+                XCTAssertEqual(update.map { $0.new?.title }, ["renamed_0"])
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         subject.send(initialEntities)
         subject.send(secondEntities)
@@ -228,23 +225,20 @@ final class SignalTests: XCTestCase {
         let expectation = self.expectation(description: "update")
 
         subject
-            .toSignal()
             .when(updatingOneOf: [.title], entityRules: [])
-            .observe { event in
-                switch event {
-                case .next(let update):
-                    XCTAssertEqual(update.compactMap { $0.old?.title }, ["initial_0", "initial_1", "initial_2", "initial_3", "initial_4"])
-                    XCTAssertEqual(update.map { $0.new?.title }, ["new_0", "new_1", "new_2", "new_3", "new_4"])
-                    expectation.fulfill()
-
-                case .completed:
-                    XCTFail("Unexpected completed event")
-
-                case .failed:
-                    XCTFail("Unexpected failed event")
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure:
+                    XCTFail("Unexpected failure event")
+                case .finished:
+                    XCTFail("Unexpected finished event")
                 }
-            }
-            .dispose(in: bag)
+            }, receiveValue: { update in
+                XCTAssertEqual(update.compactMap { $0.old?.title }, ["initial_0", "initial_1", "initial_2", "initial_3", "initial_4"])
+                XCTAssertEqual(update.map { $0.new?.title }, ["new_0", "new_1", "new_2", "new_3", "new_4"])
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         subject.send(initialEntities)
         subject.send(newEntities)
@@ -262,29 +256,26 @@ final class SignalTests: XCTestCase {
         let expectation = self.expectation(description: "update")
 
         subject
-            .toSignal()
             .when(updatingOneOf: [.title], entityRules: [.deletions])
-            .observe { event in
-                switch event {
-                case .next(let update):
-                    let oldItems = update.compactMap { $0.old?.title }
-                    // matching items will always be in order at the front of the list, but
-                    // deleted items have no guarantee of ordering
-                    XCTAssertEqual(oldItems.prefix(5), ["initial_0", "initial_1", "initial_2", "initial_3", "initial_4"])
-                    XCTAssertTrue(oldItems.contains("initial_9"))
-                    XCTAssertTrue(oldItems.contains("initial_10"))
-                    XCTAssertEqual(oldItems.count, 7)
-                    XCTAssertEqual(update.map { $0.new?.title }, ["new_0", "new_1", "new_2", "new_3", "new_4", nil, nil])
-                    expectation.fulfill()
-
-                case .completed:
-                    XCTFail("Unexpected completed event")
-
-                case .failed:
-                    XCTFail("Unexpected failed event")
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure:
+                    XCTFail("Unexpected failure event")
+                case .finished:
+                    XCTFail("Unexpected finished event")
                 }
-            }
-            .dispose(in: bag)
+            }, receiveValue: { update in
+                let oldItems = update.compactMap { $0.old?.title }
+                // matching items will always be in order at the front of the list, but
+                // deleted items have no guarantee of ordering
+                XCTAssertEqual(oldItems.prefix(5), ["initial_0", "initial_1", "initial_2", "initial_3", "initial_4"])
+                XCTAssertTrue(oldItems.contains("initial_9"))
+                XCTAssertTrue(oldItems.contains("initial_10"))
+                XCTAssertEqual(oldItems.count, 7)
+                XCTAssertEqual(update.map { $0.new?.title }, ["new_0", "new_1", "new_2", "new_3", "new_4", nil, nil])
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         subject.send(initialEntities)
         subject.send(newEntities)
@@ -299,30 +290,27 @@ final class SignalTests: XCTestCase {
         let expectation = self.expectation(description: "update")
 
         subject
-            .toSignal()
             .when(updatingOneOf: [.title], entityRules: [.deletions])
-            .observe { event in
-                switch event {
-                case .next(let update):
-                    let oldItems = update.compactMap { $0.old?.title }
-                    // deleted items have no guarantee of ordering
-                    XCTAssertTrue(oldItems.contains("initial_0"))
-                    XCTAssertTrue(oldItems.contains("initial_1"))
-                    XCTAssertTrue(oldItems.contains("initial_2"))
-                    XCTAssertTrue(oldItems.contains("initial_3"))
-                    XCTAssertTrue(oldItems.contains("initial_4"))
-                    XCTAssertEqual(oldItems.count, 5)
-                    XCTAssertEqual(update.map { $0.new?.title }, [nil, nil, nil, nil, nil])
-                    expectation.fulfill()
-
-                case .completed:
-                    XCTFail("Unexpected completed event")
-
-                case .failed:
-                    XCTFail("Unexpected failed event")
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure:
+                    XCTFail("Unexpected failure event")
+                case .finished:
+                    XCTFail("Unexpected finished event")
                 }
-            }
-            .dispose(in: bag)
+            }, receiveValue: { update in
+                let oldItems = update.compactMap { $0.old?.title }
+                // deleted items have no guarantee of ordering
+                XCTAssertTrue(oldItems.contains("initial_0"))
+                XCTAssertTrue(oldItems.contains("initial_1"))
+                XCTAssertTrue(oldItems.contains("initial_2"))
+                XCTAssertTrue(oldItems.contains("initial_3"))
+                XCTAssertTrue(oldItems.contains("initial_4"))
+                XCTAssertEqual(oldItems.count, 5)
+                XCTAssertEqual(update.map { $0.new?.title }, [nil, nil, nil, nil, nil])
+                expectation.fulfill()
+            })
+            .store(in: &cancellables)
 
         subject.send(initialEntities)
         subject.send([])
@@ -330,4 +318,3 @@ final class SignalTests: XCTestCase {
         waitForExpectations(timeout: 0.2, handler: nil)
     }
 }
-#endif

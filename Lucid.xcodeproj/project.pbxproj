@@ -184,6 +184,10 @@
 		DEA5C25226AA1D77002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
 		DEA5C25526AA20D3002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
 		F41D210724EF041E009444A2 /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
+		F440173827A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
+		F440173927A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
+		F440173A27A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
+		F440173B27A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
 		F45FA8FB24EC8D3C00368CCB /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
 		F47E5EFB24AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = F47E5EF924AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld */; };
 		F487D3982684702A00AB701B /* BackgroundTaskManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBE2458D9A500D22F6D /* BackgroundTaskManagerSpy.swift */; };
@@ -744,6 +748,7 @@
 		F405C35024A41844004E1BB3 /* APIClientQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueTests.swift; sourceTree = "<group>"; };
 		F405C35124A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueDefaultSchedulerTests.swift; sourceTree = "<group>"; };
 		F405C35224A41844004E1BB3 /* APIClientQueueProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueProcessorTests.swift; sourceTree = "<group>"; };
+		F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Publisher+Extensions.swift"; sourceTree = "<group>"; };
 		F45FA8FA24EC8D3C00368CCB /* Contract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Contract.swift; sourceTree = "<group>"; };
 		F47E5EFA24AA57BC007DCC4A /* StubCoreDataModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = StubCoreDataModel.xcdatamodel; sourceTree = "<group>"; };
 		F48C717624896F5400099980 /* CoreManagerContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreManagerContractTests.swift; sourceTree = "<group>"; };
@@ -911,6 +916,7 @@
 				190ADC4C2458D89C00D22F6D /* DiskQueue.swift */,
 				190ADC472458D89C00D22F6D /* Logger.swift */,
 				190ADC482458D89C00D22F6D /* PropertyBox.swift */,
+				F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */,
 				190ADC4A2458D89C00D22F6D /* ReactiveKit.swift */,
 				190ADC492458D89C00D22F6D /* Result.swift */,
 				190ADC502458D89C00D22F6D /* ScheduledTimer.swift */,
@@ -2182,6 +2188,7 @@
 				190ADC762458D89C00D22F6D /* ReactiveKit.swift in Sources */,
 				190ADC752458D89C00D22F6D /* Result.swift in Sources */,
 				190ADC5B2458D89C00D22F6D /* APIClient.swift in Sources */,
+				F440173927A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */,
 				190ADC592458D89C00D22F6D /* Entity.swift in Sources */,
 				F45FA8FB24EC8D3C00368CCB /* Contract.swift in Sources */,
 				1907AD8424A682D300727F82 /* Configuration.swift in Sources */,
@@ -2297,6 +2304,7 @@
 				190ADCFA2458DA9B00D22F6D /* ReactiveKit.swift in Sources */,
 				190ADCFB2458DA9B00D22F6D /* Result.swift in Sources */,
 				190ADCFC2458DA9B00D22F6D /* APIClient.swift in Sources */,
+				F440173B27A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */,
 				190ADCFD2458DA9B00D22F6D /* Entity.swift in Sources */,
 				F41D210724EF041E009444A2 /* Contract.swift in Sources */,
 				1907AD8624A682DB00727F82 /* Configuration.swift in Sources */,
@@ -2379,6 +2387,7 @@
 				F48C801E2655958500581182 /* Query.swift in Sources */,
 				F48C80262655958500581182 /* EntityIndexValue.swift in Sources */,
 				F48C802F2655958A00581182 /* RemoteStore.swift in Sources */,
+				F440173827A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */,
 				F48C80242655958500581182 /* APIClientQueueScheduling.swift in Sources */,
 				F48C80192655958500581182 /* Entity+Query.swift in Sources */,
 				F48C80382655958E00581182 /* AsyncOperationQueue.swift in Sources */,
@@ -2432,6 +2441,7 @@
 				F48C80B42655973000581182 /* PropertyBox.swift in Sources */,
 				F48C80972655972700581182 /* Time.swift in Sources */,
 				F48C80902655972700581182 /* APIRequestDeduplicator.swift in Sources */,
+				F440173A27A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */,
 				F48C80B82655973000581182 /* DiskQueue.swift in Sources */,
 				F48C80A82655972B00581182 /* RemoteStore.swift in Sources */,
 				F48C80B32655973000581182 /* AnySequence.swift in Sources */,

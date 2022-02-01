@@ -8,6 +8,7 @@
 
 #if !LUCID_REACTIVE_KIT
 import Combine
+import Foundation
 
 // MARK: - Typealiases
 

@@ -442,6 +442,69 @@ final class PublisherTests: XCTestCase {
 
         waitForExpectations(timeout: 0.2, handler: nil)
     }
+
+    // MARK: - Map To Result
+
+    func test_that_map_to_result_successfully_maps_output() {
+
+        let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let outputExpectation = self.expectation(description: "output")
+
+        subject
+            .mapToResult()
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure:
+                    XCTFail("Unexpected failure event")
+                case .finished:
+                    XCTFail("Unexpected finished event")
+                }
+            }, receiveValue: { result in
+                switch result {
+                case .success(let update):
+                    XCTAssertEqual(update.count, 1)
+                    XCTAssertEqual(update.first, EntitySpy(idValue: .remote(1, nil), title: "name1", subtitle: "name1"))
+                    outputExpectation.fulfill()
+                case .failure:
+                    XCTFail("Unexpected failure result")
+                }
+            })
+            .store(in: &cancellables)
+
+        subject.send([EntitySpy(idValue: .remote(1, nil), title: "name1", subtitle: "name1")])
+
+        waitForExpectations(timeout: 0.2, handler: nil)
+    }
+
+    func test_that_map_to_result_successfully_maps_failure() {
+
+        let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let outputExpectation = self.expectation(description: "output")
+
+        subject
+            .mapToResult()
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure:
+                    XCTFail("Unexpected failure event")
+                case .finished:
+                    XCTFail("Unexpected finished event")
+                }
+            }, receiveValue: { result in
+                switch result {
+                case .success:
+                    XCTFail("Unexpected success result")
+                case .failure(let error):
+                    XCTAssertEqual(error, FirstErrorType.two)
+                    outputExpectation.fulfill()
+                }
+            })
+            .store(in: &cancellables)
+
+        subject.send(completion: .failure(.two))
+
+        waitForExpectations(timeout: 0.2, handler: nil)
+    }
 }
 
 // MARK: - Error Types

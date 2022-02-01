@@ -41,6 +41,21 @@ public extension Publisher {
     }
 }
 
+// MARK: - Map To Result
+
+public extension Publisher {
+
+    func mapToResult() -> AnySafePublisher<Result<Output, Failure>> {
+        return map { output -> Result<Output, Failure> in
+            return .success(output)
+        }
+        .flatMapError { error -> Result<Result<Output, Failure>, Never> in
+            return .success(.failure(error))
+        }
+        .eraseToAnyPublisher()
+    }
+}
+
 // MARK: - Error Substitutions
 
 public extension AnyPublisher where Failure == ManagerError {

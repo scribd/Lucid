@@ -12,7 +12,7 @@ import Foundation
 
 // MARK: - Typealiases
 
-public typealias SafePublisher<Output> = AnyPublisher<Output, Never>
+public typealias AnySafePublisher<Output> = AnyPublisher<Output, Never>
 
 // MARK: - Flat Map Errors
 
@@ -88,11 +88,11 @@ public struct EntityMutationRule: OptionSet {
 
 public extension Publisher where Output: Sequence, Output.Element: Entity, Failure == Never {
 
-    var whenUpdatingAnything: SafePublisher<[(old: Output.Element?, new: Output.Element?)]> {
+    var whenUpdatingAnything: AnySafePublisher<[(old: Output.Element?, new: Output.Element?)]> {
         return when(updatingOneOf: nil, entityRules: .all)
     }
 
-    func when(updatingOneOf indices: [Output.Element.IndexName]?, entityRules: EntityMutationRule = .dataChangesOnly) -> SafePublisher<[(old: Output.Element?, new: Output.Element?)]> {
+    func when(updatingOneOf indices: [Output.Element.IndexName]?, entityRules: EntityMutationRule = .dataChangesOnly) -> AnySafePublisher<[(old: Output.Element?, new: Output.Element?)]> {
         var _lastElements: DualHashDictionary<Output.Element.Identifier, Output.Element>?
         let dispatchQueue = DispatchQueue(label: "\(Self.self):updates")
 
@@ -128,22 +128,22 @@ public extension Publisher where Output: Sequence, Output.Element: Entity, Failu
 
 public extension Publisher where Output: Entity, Failure == Never {
 
-    var whenUpdatingAnything: SafePublisher<(old: Output?, new: Output?)> {
+    var whenUpdatingAnything: AnySafePublisher<(old: Output?, new: Output?)> {
         return when(updatingOneOf: nil, entityRules: .all)
     }
 
-    func when(updatingOneOf indices: [Output.IndexName]?, entityRules: EntityMutationRule = .dataChangesOnly) -> SafePublisher<(old: Output?, new: Output?)> {
+    func when(updatingOneOf indices: [Output.IndexName]?, entityRules: EntityMutationRule = .dataChangesOnly) -> AnySafePublisher<(old: Output?, new: Output?)> {
         return map { [$0] }.when(updatingOneOf: indices, entityRules: entityRules).compactMap { $0.first }.eraseToAnyPublisher()
     }
 }
 
 public extension Publisher where Output: OptionalProtocol, Output.Wrapped: Entity, Failure == Never {
 
-    var whenUpdatingAnything: SafePublisher<(old: Output.Wrapped?, new: Output.Wrapped?)> {
+    var whenUpdatingAnything: AnySafePublisher<(old: Output.Wrapped?, new: Output.Wrapped?)> {
         return when(updatingOneOf: nil, entityRules: .all)
     }
 
-    func when(updatingOneOf indices: [Output.Wrapped.IndexName]?, entityRules: EntityMutationRule = .dataChangesOnly) -> SafePublisher<(old: Output.Wrapped?, new: Output.Wrapped?)> {
+    func when(updatingOneOf indices: [Output.Wrapped.IndexName]?, entityRules: EntityMutationRule = .dataChangesOnly) -> AnySafePublisher<(old: Output.Wrapped?, new: Output.Wrapped?)> {
         return map { $0._unbox.flatMap { [$0] } ?? [] }.when(updatingOneOf: indices, entityRules: entityRules).compactMap { $0.first }.eraseToAnyPublisher()
     }
 }

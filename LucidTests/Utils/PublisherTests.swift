@@ -15,6 +15,10 @@ final class PublisherTests: XCTestCase {
 
     private var cancellables: Set<AnyCancellable>!
 
+    private var optionalTest: Int?
+
+    private var arrayTest: [Int]!
+
     override func setUp() {
         super.setUp()
         cancellables = Set()
@@ -23,6 +27,8 @@ final class PublisherTests: XCTestCase {
     override func tearDown() {
         defer { super.tearDown() }
         cancellables = nil
+        optionalTest = nil
+        arrayTest = nil
     }
 
     func test_when_should_filter_entity_updates_on_index() {
@@ -504,6 +510,68 @@ final class PublisherTests: XCTestCase {
         subject.send(completion: .failure(.two))
 
         waitForExpectations(timeout: 0.2, handler: nil)
+    }
+
+    // MARK: - Assign Output
+
+    func test_assigning_optional_value_captures_success() {
+
+        optionalTest = 55
+
+        let subject = PassthroughSubject<Int?, FirstErrorType>()
+
+        subject
+            .assignOutput(to: \.optionalTest, on: self)
+            .store(in: &cancellables)
+
+        subject.send(10)
+
+        XCTAssertEqual(optionalTest, 10)
+    }
+
+    func test_assigning_optional_value_captures_failure_as_nil() {
+
+        optionalTest = 55
+
+        let subject = PassthroughSubject<Int?, FirstErrorType>()
+
+        subject
+            .assignOutput(to: \.optionalTest, on: self)
+            .store(in: &cancellables)
+
+        subject.send(completion: .failure(.one))
+
+        XCTAssertNil(optionalTest)
+    }
+
+    func test_assigning_array_value_captures_success() {
+
+        arrayTest = [55]
+
+        let subject = PassthroughSubject<[Int], FirstErrorType>()
+
+        subject
+            .assignOutput(to: \.arrayTest, on: self)
+            .store(in: &cancellables)
+
+        subject.send([1,2,3])
+
+        XCTAssertEqual(arrayTest, [1,2,3])
+    }
+
+    func test_assigning_array_value_captures_failure_as_empty_array() {
+
+        arrayTest = [55]
+
+        let subject = PassthroughSubject<[Int], FirstErrorType>()
+
+        subject
+            .assignOutput(to: \.arrayTest, on: self)
+            .store(in: &cancellables)
+
+        subject.send(completion: .failure(.one))
+
+        XCTAssertEqual(arrayTest, [])
     }
 }
 

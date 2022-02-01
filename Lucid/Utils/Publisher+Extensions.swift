@@ -56,6 +56,31 @@ public extension Publisher {
     }
 }
 
+// MARK: - Assign Output
+
+extension Publisher where Output: Sequence {
+
+    public func assignOutput<Root>(to keyPath: ReferenceWritableKeyPath<Root, [Output.Element]>, on object: Root) -> AnyCancellable {
+        return map { value -> [Output.Element] in
+            return Array(value)
+        }
+        .flatMapError { error -> Result<[Output.Element], Never> in
+            return .success([])
+        }
+        .assign(to: keyPath, on: object)
+    }
+}
+
+extension Publisher where Output: OptionalProtocol {
+
+    public func assignOutput<Root>(to keyPath: ReferenceWritableKeyPath<Root, Output>, on object: Root) -> AnyCancellable {
+        return flatMapError { error -> Result<Output, Never> in
+            return .success(.none)
+        }
+        .assign(to: keyPath, on: object)
+    }
+}
+
 // MARK: - Error Substitutions
 
 public extension AnyPublisher where Failure == ManagerError {
@@ -166,10 +191,16 @@ public extension Publisher where Output: OptionalProtocol, Output.Wrapped: Entit
 // MARK: - OptionalProtocol
 
 public protocol OptionalProtocol {
+
     associatedtype Wrapped
+
     var _unbox: Optional<Wrapped> { get }
+
     init(nilLiteral: ())
+
     init(_ some: Wrapped)
+
+    static var none: Self { get }
 }
 
 extension Optional: OptionalProtocol {

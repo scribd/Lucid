@@ -83,7 +83,7 @@ extension Publisher where Output: OptionalProtocol {
 
 // MARK: - Error Substitutions
 
-public extension AnyPublisher where Failure == ManagerError {
+public extension Publisher where Failure == ManagerError {
 
     func substituteValueForNonCriticalFailure(_ value: Output) -> AnyPublisher<Output, ManagerError> {
         return self

@@ -283,6 +283,7 @@
 		F48C80BF2655973000581182 /* AnyEquatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC532458D89C00D22F6D /* AnyEquatable.swift */; };
 		F48C80C02655973000581182 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
 		F48C80C12655973000581182 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC472458D89C00D22F6D /* Logger.swift */; };
+		F4EF380727ADCCF000964191 /* PayloadPersistenceManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4EF380627ADCCF000964191 /* PayloadPersistenceManagerSpy.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -755,6 +756,7 @@
 		F48C7FFA2655948200581182 /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F48C8058265596D700581182 /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F4A40EBF2513B8700025E48C /* CodingPathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodingPathTests.swift; sourceTree = "<group>"; };
+		F4EF380627ADCCF000964191 /* PayloadPersistenceManagerSpy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayloadPersistenceManagerSpy.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1014,6 +1016,7 @@
 				190ADCCA2458D9A500D22F6D /* FakeStore.swift */,
 				190ADCC12458D9A500D22F6D /* GraphStub.swift */,
 				190ADCC42458D9A500D22F6D /* LoggerMock.swift */,
+				F4EF380627ADCCF000964191 /* PayloadPersistenceManagerSpy.swift */,
 				190ADCBC2458D9A500D22F6D /* RelationshipCoreManagerSpy.swift */,
 				190ADCC32458D9A500D22F6D /* StoreSpy.swift */,
 				190ADCBD2458D9A500D22F6D /* StubCoreDataManagerFactory.swift */,
@@ -2257,6 +2260,7 @@
 				190ADCD22458D9A500D22F6D /* StubCoreDataManagerFactory.swift in Sources */,
 				190ADCD42458D9A500D22F6D /* EntityRelationshipSpy.swift in Sources */,
 				190ADCE12458D9A500D22F6D /* DiskCacheSpy.swift in Sources */,
+				F4EF380727ADCCF000964191 /* PayloadPersistenceManagerSpy.swift in Sources */,
 				190ADCDB2458D9A500D22F6D /* CoreManagerSpy.swift in Sources */,
 				190ADCDD2458D9A500D22F6D /* UserAccessValidatorSpy.swift in Sources */,
 				190ADCD92458D9A500D22F6D /* LoggerMock.swift in Sources */,

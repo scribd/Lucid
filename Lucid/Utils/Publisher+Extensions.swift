@@ -113,6 +113,13 @@ public extension Publisher where Failure == ManagerError {
     }
 }
 
+public extension Publisher {
+
+    func suppressError() -> AnySafePublisher<Output> {
+        return ErrorTransformSubject<Output, Failure, Never>(observing: eraseToAnyPublisher(), transform: nil).eraseToAnyPublisher()
+    }
+}
+
 // MARK: - Mutation Filtering
 
 public struct EntityMutationRule: OptionSet {
@@ -327,18 +334,22 @@ private final class ErrorTransformSubject<Output, OriginalFailure, Failure>: Pub
 
     private var transform: ((OriginalFailure) -> Result<Output, Failure>)?
 
-    public init(observing publisher: AnyPublisher<Output, OriginalFailure>, transform: @escaping (OriginalFailure) -> Result<Output, Failure>) {
+    public init(observing publisher: AnyPublisher<Output, OriginalFailure>, transform: ((OriginalFailure) -> Result<Output, Failure>)?) {
         self.publisher = publisher
         self.transform = transform
     }
 
     func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
-        guard let publisher = publisher, let transform = transform else { return }
+        guard let publisher = publisher else { return }
 
         let cancellable = publisher
             .sink(receiveCompletion: { error in
                 switch error {
                 case .failure(let originalError):
+                    guard let transform = self.transform else {
+                        subscriber.receive(completion: .finished)
+                        return
+                    }
                     let transformedError = transform(originalError)
                     switch transformedError {
                     case .success(let value):
@@ -349,15 +360,14 @@ private final class ErrorTransformSubject<Output, OriginalFailure, Failure>: Pub
                 case .finished:
                     subscriber.receive(completion: .finished)
                 }
+                self.publisher = nil
+                self.transform = nil
             }, receiveValue: { value in
-                  _ = subscriber.receive(value)
+                _ = subscriber.receive(value)
             })
 
         let subscription = ErrorTransformSubject(subscriber, cancellable)
         subscriber.receive(subscription: subscription)
-
-        self.publisher = nil
-        self.transform = nil
     }
 }
 

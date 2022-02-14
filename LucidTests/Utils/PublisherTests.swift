@@ -449,6 +449,58 @@ final class PublisherTests: XCTestCase {
         waitForExpectations(timeout: 0.2, handler: nil)
     }
 
+    // MARK: - Suppress Error
+
+    func test_that_suppress_error_returns_error_as_finished() {
+        let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let outputExpectation = self.expectation(description: "output")
+
+        subject
+            .suppressError()
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure:
+                    XCTFail("Unexpected failure event")
+                case .finished:
+                    outputExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTFail("Unexpected value: \(value)")
+            })
+            .store(in: &cancellables)
+
+        subject.send(completion: .failure(.two))
+
+        waitForExpectations(timeout: 0.2, handler: nil)
+    }
+
+    func test_that_suppress_error_returns_value_and_finished_untouched() {
+        let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let outputExpectation = self.expectation(description: "output")
+        outputExpectation.expectedFulfillmentCount = 2
+
+        subject
+            .suppressError()
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure:
+                    XCTFail("Unexpected failure event")
+                case .finished:
+                    outputExpectation.fulfill()
+                }
+            }, receiveValue: { update in
+                XCTAssertEqual(update.count, 1)
+                XCTAssertEqual(update.first, EntitySpy(idValue: .remote(1, nil), title: "name1", subtitle: "name1"))
+                outputExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject.send([EntitySpy(idValue: .remote(1, nil), title: "name1", subtitle: "name1")])
+        subject.send(completion: .finished)
+
+        waitForExpectations(timeout: 0.2, handler: nil)
+    }
+
     // MARK: - Map To Result
 
     func test_that_map_to_result_successfully_maps_output() {

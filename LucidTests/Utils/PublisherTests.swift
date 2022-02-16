@@ -326,6 +326,75 @@ final class PublisherTests: XCTestCase {
 
     // MARK: - Flat Map Errors
 
+    func test_flat_map_error_can_convert_error_to_alternate_publisher_type() {
+
+        let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let alternatePublisher1 = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let alternatePublisher2 = PassthroughSubject<[EntitySpy], FirstErrorType>()
+
+        let outputExpectation = self.expectation(description: "output")
+
+        subject
+            .flatMapError { error -> AnyPublisher<[EntitySpy], FirstErrorType> in
+                switch error {
+                case .one: return alternatePublisher1.eraseToAnyPublisher()
+                case .two: return alternatePublisher2.eraseToAnyPublisher()
+                }
+            }
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    XCTFail("Unexpected failure: \(error)")
+                case .finished:
+                    XCTFail("Unexpected finished event")
+                }
+            }, receiveValue: { entities in
+                XCTAssertEqual(entities, [EntitySpy(idValue: .remote(1, nil), title: "name", subtitle: "name")])
+                outputExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject.send(completion: .failure(.one))
+        alternatePublisher1.send([EntitySpy(idValue: .remote(1, nil), title: "name", subtitle: "name")])
+        alternatePublisher2.send([EntitySpy(idValue: .remote(2, nil), title: "name", subtitle: "name")])
+
+        waitForExpectations(timeout: 0.2, handler: nil)
+    }
+
+    func test_flat_map_error_passes_through_value_when_mapping_to_alternate_publisher_type() {
+
+        let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let alternatePublisher1 = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let alternatePublisher2 = PassthroughSubject<[EntitySpy], FirstErrorType>()
+
+        let outputExpectation = self.expectation(description: "output")
+
+        subject
+            .flatMapError { error -> AnyPublisher<[EntitySpy], FirstErrorType> in
+                switch error {
+                case .one: return alternatePublisher1.eraseToAnyPublisher()
+                case .two: return alternatePublisher2.eraseToAnyPublisher()
+                }
+            }
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    XCTFail("Unexpected failure: \(error)")
+                case .finished:
+                    XCTFail("Unexpected finished event")
+                }
+            }, receiveValue: { entities in
+                XCTAssertEqual(entities, [EntitySpy(idValue: .remote(9, nil), title: "value", subtitle: "value")])
+                outputExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject.send([EntitySpy(idValue: .remote(9, nil), title: "value", subtitle: "value")])
+        alternatePublisher1.send([EntitySpy(idValue: .remote(1, nil), title: "name", subtitle: "name")])
+
+        waitForExpectations(timeout: 0.2, handler: nil)
+    }
+
     func test_flat_map_error_can_convert_error_to_alternate_error_type() {
 
         let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
@@ -352,6 +421,36 @@ final class PublisherTests: XCTestCase {
             .store(in: &cancellables)
 
         subject.send(completion: .failure(.one))
+
+        waitForExpectations(timeout: 0.2, handler: nil)
+    }
+
+    func test_flat_map_error_passes_through_value_when_converting_error_to_alternate_error_type() {
+
+        let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let outputExpectation = self.expectation(description: "output")
+
+        subject
+            .flatMapError { error -> Result<[EntitySpy], SecondErrorType> in
+                switch error {
+                case .one: return .failure(.user)
+                case .two: return .failure(.network)
+                }
+            }
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    XCTFail("Unexpected failure: \(error)")
+                case .finished:
+                    XCTFail("Unexpected finished event")
+                }
+            }, receiveValue: { entities in
+                XCTAssertEqual(entities, [EntitySpy(idValue: .remote(9, nil), title: "value", subtitle: "value")])
+                outputExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject.send([EntitySpy(idValue: .remote(9, nil), title: "value", subtitle: "value")])
 
         waitForExpectations(timeout: 0.2, handler: nil)
     }
@@ -387,6 +486,36 @@ final class PublisherTests: XCTestCase {
         waitForExpectations(timeout: 0.2, handler: nil)
     }
 
+    func test_flat_map_error_passes_through_value_when_converting_error_to_output_value() {
+
+        let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let outputExpectation = self.expectation(description: "output")
+
+        subject
+            .flatMapError { error -> Result<[EntitySpy], SecondErrorType> in
+                switch error {
+                case .one: return .failure(.user)
+                case .two: return .success([EntitySpy(idValue: .remote(2, nil), title: "name", subtitle: "name")])
+                }
+            }
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    XCTFail("Unexpected failure: \(error)")
+                case .finished:
+                    XCTFail("Unexpected finished event")
+                }
+            }, receiveValue: { entities in
+                XCTAssertEqual(entities, [EntitySpy(idValue: .remote(9, nil), title: "value", subtitle: "value")])
+                outputExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject.send([EntitySpy(idValue: .remote(9, nil), title: "value", subtitle: "value")])
+
+        waitForExpectations(timeout: 0.2, handler: nil)
+    }
+
     func test_flat_map_error_can_convert_error_to_same_error_type() {
 
         let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
@@ -413,6 +542,36 @@ final class PublisherTests: XCTestCase {
             .store(in: &cancellables)
 
         subject.send(completion: .failure(.one))
+
+        waitForExpectations(timeout: 0.2, handler: nil)
+    }
+
+    func test_flat_map_error_passes_through_value_when_converting_error_to_same_error_type() {
+
+        let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let outputExpectation = self.expectation(description: "output")
+
+        subject
+            .flatMapError { error -> FirstErrorType in
+                switch error {
+                case .one: return .two
+                case .two: return .one
+                }
+            }
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    XCTFail("Unexpected failure: \(error)")
+                case .finished:
+                    XCTFail("Unexpected finished event")
+                }
+            }, receiveValue: { entities in
+                XCTAssertEqual(entities, [EntitySpy(idValue: .remote(9, nil), title: "value", subtitle: "value")])
+                outputExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject.send([EntitySpy(idValue: .remote(9, nil), title: "value", subtitle: "value")])
 
         waitForExpectations(timeout: 0.2, handler: nil)
     }
@@ -445,6 +604,36 @@ final class PublisherTests: XCTestCase {
             .store(in: &cancellables)
 
         subject.send(completion: .failure(.two))
+
+        waitForExpectations(timeout: 0.2, handler: nil)
+    }
+
+    func test_flat_map_error_passes_through_value_when_converting_error_only_output_values() {
+
+        let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
+        let outputExpectation = self.expectation(description: "output")
+
+        subject
+            .flatMapError { error -> [EntitySpy] in
+                switch error {
+                case .one: return [EntitySpy(idValue: .remote(1, nil), title: "name1", subtitle: "name1")]
+                case .two: return [EntitySpy(idValue: .remote(1, nil), title: "name1", subtitle: "name1"), EntitySpy(idValue: .remote(2, nil), title: "name2", subtitle: "name2")]
+                }
+            }
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    XCTFail("Unexpected failure: \(error)")
+                case .finished:
+                    XCTFail("Unexpected finished event")
+                }
+            }, receiveValue: { entities in
+                XCTAssertEqual(entities, [EntitySpy(idValue: .remote(9, nil), title: "value", subtitle: "value")])
+                outputExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject.send([EntitySpy(idValue: .remote(9, nil), title: "value", subtitle: "value")])
 
         waitForExpectations(timeout: 0.2, handler: nil)
     }

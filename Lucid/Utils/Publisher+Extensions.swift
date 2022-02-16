@@ -18,6 +18,21 @@ public typealias AnySafePublisher<Output> = AnyPublisher<Output, Never>
 
 public extension Publisher {
 
+    /// Transform an error into a new publisher with the same error type. This allows the call-site to transform an error into successful output, or into a new error value of the same type.
+    func flatMapError(_ transform: @escaping (Failure) -> AnyPublisher<Output, Failure>) -> AnyPublisher<Output, Failure> {
+        return mapToResult()
+            .setFailureType(to: Failure.self)
+            .flatMap { result -> AnyPublisher<Output, Failure> in
+                switch result {
+                case .success(let value):
+                    return Just(value).setFailureType(to: Failure.self).eraseToAnyPublisher()
+                case .failure(let error):
+                    return transform(error)
+                }
+            }
+            .eraseToAnyPublisher()
+    }
+
     /// Transform an error into a result with a new error type. This allows the call-site to transform an error into successful output, or into a new error value.
     /// - Note: The original Publisher will still be completed, so this can only be used on 'once' signals.
     func flatMapError<F>(_ transform: @escaping (Failure) -> Result<Output, F>) -> AnyPublisher<Output, F> where F: Error {

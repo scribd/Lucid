@@ -255,7 +255,7 @@ private enum Defaults {
     static let configPath = Path(".lucid.yaml")
     static let organizationName = "MyOrganization"
     static let currentVersion = "1.0.0"
-    static let cachePath = Path("/usr/local/share/lucid/cache")
+    static let cachePath = Path("~/Library/Caches/Lucid").absolute()
     static let gitRemote: String? = nil
     static let forceBuildNewDBModel = true
     static let forceBuildNewDBModelForVersions = Set<String>()

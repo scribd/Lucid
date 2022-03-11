@@ -284,6 +284,10 @@
 		F48C80C02655973000581182 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
 		F48C80C12655973000581182 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC472458D89C00D22F6D /* Logger.swift */; };
 		F4EF380727ADCCF000964191 /* PayloadPersistenceManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4EF380627ADCCF000964191 /* PayloadPersistenceManagerSpy.swift */; };
+		F4FEEF9A27D9A1BA00812A6E /* Publishers+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FEEF9927D9A1BA00812A6E /* Publishers+Extensions.swift */; };
+		F4FEEF9B27D9A1BA00812A6E /* Publishers+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FEEF9927D9A1BA00812A6E /* Publishers+Extensions.swift */; };
+		F4FEEF9C27D9A1BA00812A6E /* Publishers+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FEEF9927D9A1BA00812A6E /* Publishers+Extensions.swift */; };
+		F4FEEF9D27D9A1BA00812A6E /* Publishers+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FEEF9927D9A1BA00812A6E /* Publishers+Extensions.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -757,6 +761,7 @@
 		F48C8058265596D700581182 /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F4A40EBF2513B8700025E48C /* CodingPathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodingPathTests.swift; sourceTree = "<group>"; };
 		F4EF380627ADCCF000964191 /* PayloadPersistenceManagerSpy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayloadPersistenceManagerSpy.swift; sourceTree = "<group>"; };
+		F4FEEF9927D9A1BA00812A6E /* Publishers+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Publishers+Extensions.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -919,6 +924,7 @@
 				190ADC472458D89C00D22F6D /* Logger.swift */,
 				190ADC482458D89C00D22F6D /* PropertyBox.swift */,
 				F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */,
+				F4FEEF9927D9A1BA00812A6E /* Publishers+Extensions.swift */,
 				190ADC4A2458D89C00D22F6D /* ReactiveKit.swift */,
 				190ADC492458D89C00D22F6D /* Result.swift */,
 				190ADC502458D89C00D22F6D /* ScheduledTimer.swift */,
@@ -2173,6 +2179,7 @@
 			files = (
 				190ADC6C2458D89C00D22F6D /* LRUStore.swift in Sources */,
 				190ADC5F2458D89C00D22F6D /* ManagerResult.swift in Sources */,
+				F4FEEF9B27D9A1BA00812A6E /* Publishers+Extensions.swift in Sources */,
 				190ADC702458D89C00D22F6D /* InMemoryStore.swift in Sources */,
 				190ADC662458D89C00D22F6D /* Payload.swift in Sources */,
 				190ADC6A2458D89C00D22F6D /* EntityIndexValue.swift in Sources */,
@@ -2290,6 +2297,7 @@
 			files = (
 				190ADCE92458DA9B00D22F6D /* LRUStore.swift in Sources */,
 				190ADCEA2458DA9B00D22F6D /* ManagerResult.swift in Sources */,
+				F4FEEF9D27D9A1BA00812A6E /* Publishers+Extensions.swift in Sources */,
 				190ADCEB2458DA9B00D22F6D /* InMemoryStore.swift in Sources */,
 				190ADCEC2458DA9B00D22F6D /* Payload.swift in Sources */,
 				190ADCED2458DA9B00D22F6D /* EntityIndexValue.swift in Sources */,
@@ -2373,6 +2381,7 @@
 			files = (
 				F48C80322655958A00581182 /* CacheStore.swift in Sources */,
 				F48C801F2655958500581182 /* CoreManager.swift in Sources */,
+				F4FEEF9A27D9A1BA00812A6E /* Publishers+Extensions.swift in Sources */,
 				F48C80152655958500581182 /* Entity.swift in Sources */,
 				F48C80372655958E00581182 /* ReactiveKit.swift in Sources */,
 				F48C80302655958A00581182 /* InMemoryStore.swift in Sources */,
@@ -2427,6 +2436,7 @@
 			files = (
 				F48C808E2655972700581182 /* APIClientQueueScheduling.swift in Sources */,
 				F48C80BD2655973000581182 /* Signal+Extensions.swift in Sources */,
+				F4FEEF9C27D9A1BA00812A6E /* Publishers+Extensions.swift in Sources */,
 				F48C80952655972700581182 /* APIClient.swift in Sources */,
 				F48C80922655972700581182 /* RelationshipController.swift in Sources */,
 				F48C80B62655973000581182 /* AsyncOperationQueue.swift in Sources */,

@@ -817,6 +817,353 @@ final class PublisherTests: XCTestCase {
 
         XCTAssertEqual(arrayTest, [])
     }
+
+     // MARK: - AMB
+
+    func test_amb_chooses_first_publisher_with_successful_value() {
+
+        let subject1 = PassthroughSubject<Int, FirstErrorType>()
+        let subject2 = PassthroughSubject<Int, FirstErrorType>()
+        let subject3 = PassthroughSubject<Int, FirstErrorType>()
+
+        let amb1Expectation = self.expectation(description: "amb_1_expectation")
+        amb1Expectation.expectedFulfillmentCount = 2
+
+        Publishers.AMB([subject1, subject2, subject3])
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    amb1Expectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 10)
+                amb1Expectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject1.send(10)
+        subject2.send(20)
+        subject3.send(30)
+
+        wait(for: [amb1Expectation], timeout: 1)
+
+        let subject4 = PassthroughSubject<Int, FirstErrorType>()
+        let subject5 = PassthroughSubject<Int, FirstErrorType>()
+        let subject6 = PassthroughSubject<Int, FirstErrorType>()
+
+        let amb2Expectation = self.expectation(description: "amb_2_expectation")
+        amb2Expectation.expectedFulfillmentCount = 2
+
+        Publishers.AMB([subject4, subject5, subject6])
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    amb2Expectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 20)
+                amb2Expectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject5.send(20)
+        subject4.send(10)
+        subject6.send(30)
+
+        wait(for: [amb2Expectation], timeout: 1)
+
+        let subject7 = PassthroughSubject<Int, FirstErrorType>()
+        let subject8 = PassthroughSubject<Int, FirstErrorType>()
+        let subject9 = PassthroughSubject<Int, FirstErrorType>()
+
+        let amb3Expectation = self.expectation(description: "amb_3_expectation")
+        amb3Expectation.expectedFulfillmentCount = 2
+
+        Publishers.AMB([subject7, subject8, subject9])
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    amb3Expectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 30)
+                amb3Expectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject9.send(30)
+        subject8.send(20)
+        subject7.send(10)
+
+        wait(for: [amb3Expectation], timeout: 1)
+    }
+
+    func test_amb_chooses_first_publisher_with_failure() {
+
+        let subject1 = PassthroughSubject<Int, FirstErrorType>()
+        let subject2 = PassthroughSubject<Int, FirstErrorType>()
+        let subject3 = PassthroughSubject<Int, FirstErrorType>()
+
+        let amb1Expectation = self.expectation(description: "amb_1_expectation")
+        amb1Expectation.expectedFulfillmentCount = 1
+
+        Publishers.AMB([subject1, subject2, subject3])
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTAssertEqual(error, .one)
+                    amb1Expectation.fulfill()
+                case .finished:
+                    XCTFail("unexpected finished")
+                }
+            }, receiveValue: { value in
+                XCTFail("Unexpected value: \(value)")
+            })
+            .store(in: &cancellables)
+
+        subject1.send(completion: .failure(.one))
+        subject2.send(completion: .failure(.two))
+        subject3.send(completion: .failure(.two))
+
+        wait(for: [amb1Expectation], timeout: 1)
+
+        let subject4 = PassthroughSubject<Int, FirstErrorType>()
+        let subject5 = PassthroughSubject<Int, FirstErrorType>()
+        let subject6 = PassthroughSubject<Int, FirstErrorType>()
+
+        let amb2Expectation = self.expectation(description: "amb_2_expectation")
+        amb2Expectation.expectedFulfillmentCount = 1
+
+        Publishers.AMB([subject4, subject5, subject6])
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTAssertEqual(error, .two)
+                    amb2Expectation.fulfill()
+                case .finished:
+                    XCTFail("unexpected finished")
+                }
+            }, receiveValue: { value in
+                XCTFail("Unexpected value: \(value)")
+            })
+            .store(in: &cancellables)
+
+        subject5.send(completion: .failure(.two))
+        subject4.send(completion: .failure(.one))
+        subject6.send(completion: .failure(.one))
+
+        wait(for: [amb2Expectation], timeout: 1)
+
+        let amb3Expectation = self.expectation(description: "amb_3_expectation")
+        amb3Expectation.expectedFulfillmentCount = 1
+
+        let subject7 = PassthroughSubject<Int, FirstErrorType>()
+        let subject8 = PassthroughSubject<Int, FirstErrorType>()
+        let subject9 = PassthroughSubject<Int, FirstErrorType>()
+
+        Publishers.AMB([subject7, subject8, subject9])
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTAssertEqual(error, .two)
+                    amb3Expectation.fulfill()
+                case .finished:
+                    XCTFail("unexpected finished")
+                }
+            }, receiveValue: { value in
+                XCTFail("Unexpected value: \(value)")
+            })
+            .store(in: &cancellables)
+
+        subject9.send(completion: .failure(.two))
+        subject8.send(completion: .failure(.one))
+        subject7.send(completion: .failure(.one))
+
+        wait(for: [amb3Expectation], timeout: 1)
+    }
+
+    func test_amb_allows_all_publishers_to_finish() {
+
+        let subject1 = PassthroughSubject<Int, FirstErrorType>()
+        let subject2 = PassthroughSubject<Int, FirstErrorType>()
+        let subject3 = PassthroughSubject<Int, FirstErrorType>()
+
+        let amb1Expectation = self.expectation(description: "amb_1_expectation")
+        amb1Expectation.expectedFulfillmentCount = 5
+
+        Publishers.AMB([subject1, subject2, subject3])
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    amb1Expectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 10)
+                amb1Expectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject1
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    XCTFail("unexpected finished")
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 10)
+                amb1Expectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject2
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    XCTFail("unexpected finished")
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 20)
+                amb1Expectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject3
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    XCTFail("unexpected finished")
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 30)
+                amb1Expectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject1.send(10)
+        subject2.send(20)
+        subject3.send(30)
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_amb_doesnt_allow_all_publishers_to_finish() {
+
+        let subject1 = PassthroughSubject<Int, FirstErrorType>()
+        let subject2 = PassthroughSubject<Int, FirstErrorType>()
+        let subject3 = PassthroughSubject<Int, FirstErrorType>()
+
+        let errorSubject2 = subject2
+            .map { value -> Int in
+                XCTFail("unexpected processing on subject 2")
+                return value
+            }
+        let errorSubject3 = subject3
+            .map { value -> Int in
+                XCTFail("unexpected processing on subject 3")
+                return value
+            }
+
+        let amb1Expectation = self.expectation(description: "amb_1_expectation")
+        amb1Expectation.expectedFulfillmentCount = 3
+
+        let testQueue = DispatchQueue(label: "test_queue")
+
+        Publishers.AMB([subject1.eraseToAnyPublisher(), errorSubject2.eraseToAnyPublisher(), errorSubject3.eraseToAnyPublisher()], allowAllToFinish: false, queue: testQueue)
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    amb1Expectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 10)
+                amb1Expectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject1
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    XCTFail("unexpected finished")
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 10)
+                amb1Expectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        subject1.send(10)
+        testQueue.sync { }
+        subject2.send(20)
+        subject3.send(30)
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_cancelling_amb_cancels_publishers() {
+
+        let subject1 = PassthroughSubject<Int, FirstErrorType>()
+        let subject2 = PassthroughSubject<Int, FirstErrorType>()
+        let subject3 = PassthroughSubject<Int, FirstErrorType>()
+
+        let errorSubject1 = subject1
+            .map { value -> Int in
+                XCTFail("unexpected processing on subject 1")
+                return value
+            }
+        let errorSubject2 = subject2
+            .map { value -> Int in
+                XCTFail("unexpected processing on subject 2")
+                return value
+            }
+        let errorSubject3 = subject3
+            .map { value -> Int in
+                XCTFail("unexpected processing on subject 3")
+                return value
+            }
+
+        let testQueue = DispatchQueue(label: "test_queue")
+
+        var testCancellables = Set<AnyCancellable>()
+
+        Publishers.AMB([errorSubject1, errorSubject2, errorSubject3], allowAllToFinish: true, queue: testQueue)
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    XCTFail("unexpected finished")
+                }
+            }, receiveValue: { value in
+                XCTFail("Unexpected value: \(value)")
+            })
+            .store(in: &testCancellables)
+
+        testCancellables.forEach { $0.cancel() }
+
+        subject1.send(10)
+        subject2.send(20)
+        subject3.send(30)
+        testQueue.sync { }
+    }
 }
 
 // MARK: - Error Types

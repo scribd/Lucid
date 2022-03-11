@@ -459,6 +459,7 @@ final class PublisherTests: XCTestCase {
 
         let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
         let outputExpectation = self.expectation(description: "output")
+        outputExpectation.expectedFulfillmentCount = 2
 
         subject
             .flatMapError { error -> Result<[EntitySpy], SecondErrorType> in
@@ -472,7 +473,7 @@ final class PublisherTests: XCTestCase {
                 case .failure:
                     XCTFail("Unexpected failure event")
                 case .finished:
-                    XCTFail("Unexpected finished event")
+                    outputExpectation.fulfill()
                 }
             }, receiveValue: { update in
                 XCTAssertEqual(update.count, 1)
@@ -580,6 +581,7 @@ final class PublisherTests: XCTestCase {
 
         let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
         let outputExpectation = self.expectation(description: "output")
+        outputExpectation.expectedFulfillmentCount = 2
 
         subject
             .flatMapError { error -> [EntitySpy] in
@@ -593,7 +595,7 @@ final class PublisherTests: XCTestCase {
                 case .failure:
                     XCTFail("Unexpected failure event")
                 case .finished:
-                    XCTFail("Unexpected finished event")
+                    outputExpectation.fulfill()
                 }
             }, receiveValue: { update in
                 XCTAssertEqual(update.count, 2)
@@ -727,6 +729,7 @@ final class PublisherTests: XCTestCase {
 
         let subject = PassthroughSubject<[EntitySpy], FirstErrorType>()
         let outputExpectation = self.expectation(description: "output")
+        outputExpectation.expectedFulfillmentCount = 2
 
         subject
             .mapToResult()
@@ -735,7 +738,7 @@ final class PublisherTests: XCTestCase {
                 case .failure:
                     XCTFail("Unexpected failure event")
                 case .finished:
-                    XCTFail("Unexpected finished event")
+                    outputExpectation.fulfill()
                 }
             }, receiveValue: { result in
                 switch result {

@@ -369,6 +369,7 @@ private final class ErrorTransformSubject<Output, OriginalFailure, Failure>: Pub
                     switch transformedError {
                     case .success(let value):
                         _ = subscriber.receive(value)
+                        subscriber.receive(completion: .finished)
                     case .failure(let errorValue):
                         subscriber.receive(completion: .failure(errorValue))
                     }
@@ -381,7 +382,7 @@ private final class ErrorTransformSubject<Output, OriginalFailure, Failure>: Pub
                 _ = subscriber.receive(value)
             })
 
-        let subscription = ErrorTransformSubject(subscriber, cancellable)
+        let subscription = ErrorTransformSubscription(self, subscriber, cancellable)
         subscriber.receive(subscription: subscription)
     }
 }
@@ -390,18 +391,22 @@ private final class ErrorTransformSubject<Output, OriginalFailure, Failure>: Pub
 
 private extension ErrorTransformSubject {
 
-    final class ErrorTransformSubject<S: Subscriber>: Subscription where S.Input == Output, S.Failure == Failure {
+    final class ErrorTransformSubscription<S: Subscriber>: Subscription where S.Input == Output, S.Failure == Failure {
+
+        private var reference: Any?
 
         private var subscriber: S?
 
         private var cancellable: Cancellable?
 
-        init(_ subscriber: S, _ cancellable: Cancellable) {
+        init(_ reference: Any?, _ subscriber: S, _ cancellable: Cancellable) {
+            self.reference = reference
             self.subscriber = subscriber
             self.cancellable = cancellable
         }
 
         func cancel() {
+            reference = nil
             cancellable = nil
             subscriber = nil
         }

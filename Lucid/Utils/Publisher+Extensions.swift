@@ -18,6 +18,21 @@ public typealias AnySafePublisher<Output> = AnyPublisher<Output, Never>
 
 public extension Publisher {
 
+    /// Transform an error into a new publisher with the same error type. This allows the call-site to transform an error into successful output, or into a new error value of the same type.
+    func flatMapError(_ transform: @escaping (Failure) -> AnyPublisher<Output, Failure>) -> AnyPublisher<Output, Failure> {
+        return mapToResult()
+            .setFailureType(to: Failure.self)
+            .flatMap { result -> AnyPublisher<Output, Failure> in
+                switch result {
+                case .success(let value):
+                    return Just(value).setFailureType(to: Failure.self).eraseToAnyPublisher()
+                case .failure(let error):
+                    return transform(error)
+                }
+            }
+            .eraseToAnyPublisher()
+    }
+
     /// Transform an error into a result with a new error type. This allows the call-site to transform an error into successful output, or into a new error value.
     /// - Note: The original Publisher will still be completed, so this can only be used on 'once' signals.
     func flatMapError<F>(_ transform: @escaping (Failure) -> Result<Output, F>) -> AnyPublisher<Output, F> where F: Error {
@@ -41,9 +56,49 @@ public extension Publisher {
     }
 }
 
+// MARK: - Map To Result
+
+public extension Publisher {
+
+    func mapToResult() -> AnySafePublisher<Result<Output, Failure>> {
+        return map { output -> Result<Output, Failure> in
+            return .success(output)
+        }
+        .flatMapError { error -> Result<Result<Output, Failure>, Never> in
+            return .success(.failure(error))
+        }
+        .eraseToAnyPublisher()
+    }
+}
+
+// MARK: - Assign Output
+
+extension Publisher where Output: Sequence {
+
+    public func assignOutput<Root>(to keyPath: ReferenceWritableKeyPath<Root, [Output.Element]>, on object: Root) -> AnyCancellable {
+        return map { value -> [Output.Element] in
+            return Array(value)
+        }
+        .flatMapError { error -> Result<[Output.Element], Never> in
+            return .success([])
+        }
+        .assign(to: keyPath, on: object)
+    }
+}
+
+extension Publisher where Output: OptionalProtocol {
+
+    public func assignOutput<Root>(to keyPath: ReferenceWritableKeyPath<Root, Output>, on object: Root) -> AnyCancellable {
+        return flatMapError { error -> Result<Output, Never> in
+            return .success(.none)
+        }
+        .assign(to: keyPath, on: object)
+    }
+}
+
 // MARK: - Error Substitutions
 
-public extension AnyPublisher where Failure == ManagerError {
+public extension Publisher where Failure == ManagerError {
 
     func substituteValueForNonCriticalFailure(_ value: Output) -> AnyPublisher<Output, ManagerError> {
         return self
@@ -70,6 +125,13 @@ public extension AnyPublisher where Failure == ManagerError {
                 return .failure(managerError)
             }
         }
+    }
+}
+
+public extension Publisher {
+
+    func suppressError() -> AnySafePublisher<Output> {
+        return ErrorTransformSubject<Output, Failure, Never>(observing: eraseToAnyPublisher(), transform: nil).eraseToAnyPublisher()
     }
 }
 
@@ -151,10 +213,16 @@ public extension Publisher where Output: OptionalProtocol, Output.Wrapped: Entit
 // MARK: - OptionalProtocol
 
 public protocol OptionalProtocol {
+
     associatedtype Wrapped
+
     var _unbox: Optional<Wrapped> { get }
+
     init(nilLiteral: ())
+
     init(_ some: Wrapped)
+
+    static var none: Self { get }
 }
 
 extension Optional: OptionalProtocol {
@@ -281,37 +349,41 @@ private final class ErrorTransformSubject<Output, OriginalFailure, Failure>: Pub
 
     private var transform: ((OriginalFailure) -> Result<Output, Failure>)?
 
-    public init(observing publisher: AnyPublisher<Output, OriginalFailure>, transform: @escaping (OriginalFailure) -> Result<Output, Failure>) {
+    public init(observing publisher: AnyPublisher<Output, OriginalFailure>, transform: ((OriginalFailure) -> Result<Output, Failure>)?) {
         self.publisher = publisher
         self.transform = transform
     }
 
     func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
-        guard let publisher = publisher, let transform = transform else { return }
+        guard let publisher = publisher else { return }
 
         let cancellable = publisher
             .sink(receiveCompletion: { error in
                 switch error {
                 case .failure(let originalError):
+                    guard let transform = self.transform else {
+                        subscriber.receive(completion: .finished)
+                        return
+                    }
                     let transformedError = transform(originalError)
                     switch transformedError {
                     case .success(let value):
                         _ = subscriber.receive(value)
+                        subscriber.receive(completion: .finished)
                     case .failure(let errorValue):
                         subscriber.receive(completion: .failure(errorValue))
                     }
                 case .finished:
                     subscriber.receive(completion: .finished)
                 }
+                self.publisher = nil
+                self.transform = nil
             }, receiveValue: { value in
-                  _ = subscriber.receive(value)
+                _ = subscriber.receive(value)
             })
 
-        let subscription = ErrorTransformSubject(subscriber, cancellable)
+        let subscription = ErrorTransformSubscription(self, subscriber, cancellable)
         subscriber.receive(subscription: subscription)
-
-        self.publisher = nil
-        self.transform = nil
     }
 }
 
@@ -319,18 +391,22 @@ private final class ErrorTransformSubject<Output, OriginalFailure, Failure>: Pub
 
 private extension ErrorTransformSubject {
 
-    final class ErrorTransformSubject<S: Subscriber>: Subscription where S.Input == Output, S.Failure == Failure {
+    final class ErrorTransformSubscription<S: Subscriber>: Subscription where S.Input == Output, S.Failure == Failure {
+
+        private var reference: Any?
 
         private var subscriber: S?
 
         private var cancellable: Cancellable?
 
-        init(_ subscriber: S, _ cancellable: Cancellable) {
+        init(_ reference: Any?, _ subscriber: S, _ cancellable: Cancellable) {
+            self.reference = reference
             self.subscriber = subscriber
             self.cancellable = cancellable
         }
 
         func cancel() {
+            reference = nil
             cancellable = nil
             subscriber = nil
         }

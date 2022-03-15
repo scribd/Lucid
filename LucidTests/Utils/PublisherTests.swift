@@ -1066,12 +1066,16 @@ final class PublisherTests: XCTestCase {
         let subject2 = PassthroughSubject<Int, FirstErrorType>()
         let subject3 = PassthroughSubject<Int, FirstErrorType>()
 
+        let testQueue = DispatchQueue(label: "test_queue")
+
         let errorSubject2 = subject2
+            .receive(on: testQueue)
             .map { value -> Int in
                 XCTFail("unexpected processing on subject 2")
                 return value
             }
         let errorSubject3 = subject3
+            .receive(on: testQueue)
             .map { value -> Int in
                 XCTFail("unexpected processing on subject 3")
                 return value
@@ -1079,8 +1083,6 @@ final class PublisherTests: XCTestCase {
 
         let amb1Expectation = self.expectation(description: "amb_1_expectation")
         amb1Expectation.expectedFulfillmentCount = 3
-
-        let testQueue = DispatchQueue(label: "test_queue")
 
         Publishers.AMB([subject1.eraseToAnyPublisher(), errorSubject2.eraseToAnyPublisher(), errorSubject3.eraseToAnyPublisher()], allowAllToFinish: false, queue: testQueue)
             .sink(receiveCompletion: { terminal in
@@ -1111,7 +1113,6 @@ final class PublisherTests: XCTestCase {
             .store(in: &cancellables)
 
         subject1.send(10)
-        testQueue.sync { }
         subject2.send(20)
         subject3.send(30)
 
@@ -1162,7 +1163,6 @@ final class PublisherTests: XCTestCase {
         subject1.send(10)
         subject2.send(20)
         subject3.send(30)
-        testQueue.sync { }
     }
 }
 

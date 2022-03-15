@@ -24,7 +24,7 @@ public extension Publishers {
 
         private let queue: DispatchQueue
 
-        init<P>(_ publishers: [P], allowAllToFinish: Bool = true, queue: DispatchQueue = DispatchQueue(label: "amb_queue")) where P: Publisher, P.Output == Output, P.Failure == Failure {
+        public init<P>(_ publishers: [P], allowAllToFinish: Bool = true, queue: DispatchQueue = DispatchQueue(label: "amb_queue")) where P: Publisher, P.Output == Output, P.Failure == Failure {
             self.publishers = publishers.map { ($0 as? AnyPublisher<Output, Failure>) ?? $0.eraseToAnyPublisher() }
             self.allowAllToFinish = allowAllToFinish
             self.queue = queue
@@ -32,14 +32,14 @@ public extension Publishers {
 
         public func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
 
-            let subscription = AMBSubscription(self, subscriber, count: publishers.count)
+            self.queue.sync {
+                let subscription = AMBSubscription(self, subscriber, count: publishers.count)
 
-            let cancellable = Future<Output, Failure> { promise in
+                let cancellable = Future<Output, Failure> { promise in
 
-                var hasBeenChosen: Bool = false
+                    var hasBeenChosen: Bool = false
 
-                let attemptChoice: (Result<Output, Failure>, @escaping () -> Void) -> Void = { result, completion in
-                    self.queue.async(flags: .barrier) {
+                    let attemptChoice: (Result<Output, Failure>, @escaping () -> Void) -> Void = { result, completion in
                         defer { completion() }
                         if hasBeenChosen {
                             return
@@ -47,9 +47,6 @@ public extension Publishers {
                         hasBeenChosen = true
                         promise(result)
                     }
-                }
-
-                self.queue.sync {
 
                     self.publishers.enumerated().forEach { index, publisher in
 
@@ -62,6 +59,7 @@ public extension Publishers {
                         }
 
                         publisher
+                            .receive(on: self.queue)
                             .sink(receiveCompletion: { terminal in
                                 switch terminal {
                                 case .failure(let error):
@@ -75,15 +73,15 @@ public extension Publishers {
                             .store(in: &subscription.cancellableSets[index])
                     }
                 }
-            }
-            .sink(receiveCompletion: { terminal in
-                subscriber.receive(completion: terminal)
-            }, receiveValue: { value in
-                _ = subscriber.receive(value)
-            })
+                .sink(receiveCompletion: { terminal in
+                    subscriber.receive(completion: terminal)
+                }, receiveValue: { value in
+                    _ = subscriber.receive(value)
+                })
 
-            subscription.cancellable = cancellable
-            subscriber.receive(subscription: subscription)
+                subscription.cancellable = cancellable
+                subscriber.receive(subscription: subscription)
+            }
         }
     }
 }

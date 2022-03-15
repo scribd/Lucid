@@ -24,7 +24,7 @@ public extension Publishers {
 
         private let queue: DispatchQueue
 
-        init<P>(_ publishers: [P], allowAllToFinish: Bool = true, queue: DispatchQueue = DispatchQueue(label: "amb_queue")) where P: Publisher, P.Output == Output, P.Failure == Failure {
+        public init<P>(_ publishers: [P], allowAllToFinish: Bool = true, queue: DispatchQueue = DispatchQueue(label: "amb_queue")) where P: Publisher, P.Output == Output, P.Failure == Failure {
             self.publishers = publishers.map { ($0 as? AnyPublisher<Output, Failure>) ?? $0.eraseToAnyPublisher() }
             self.allowAllToFinish = allowAllToFinish
             self.queue = queue

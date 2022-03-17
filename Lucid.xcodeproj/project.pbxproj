@@ -176,13 +176,10 @@
 		198A9B6625560DD1008E3C5E /* Combine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1987FA452554A7210057F1CC /* Combine.swift */; };
 		198CC31424C663D600E2F951 /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
 		19ED00972481C3D10033B7BD /* AsyncOperationQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */; };
-		DEA5C24726AA1C2B002FEADD /* ReactiveKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		DEA5C24826AA1C7F002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
-		DEA5C24926AA1CDF002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
-		DEA5C24C26AA1D56002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
-		DEA5C24F26AA1D69002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
-		DEA5C25226AA1D77002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
-		DEA5C25526AA20D3002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
+		DE796EF427E3EFBD00321311 /* ReactiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = DE796EF327E3EFBD00321311 /* ReactiveKit */; };
+		DE796EF627E3EFF500321311 /* ReactiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = DE796EF527E3EFF500321311 /* ReactiveKit */; };
+		DE796EF827E3EFFE00321311 /* ReactiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = DE796EF727E3EFFE00321311 /* ReactiveKit */; };
+		DE796EFA27E3F00700321311 /* ReactiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = DE796EF927E3F00700321311 /* ReactiveKit */; };
 		F41D210724EF041E009444A2 /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
 		F440173827A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
 		F440173927A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
@@ -291,41 +288,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		191F912624BFA7F50050C7C6 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 191F903224BFA7F40050C7C6 /* ReactiveKit.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = ECBCCDD01BEB6B9A00723476;
-			remoteInfo = "ReactiveKit-iOS";
-		};
-		191F912824BFA7F50050C7C6 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 191F903224BFA7F40050C7C6 /* ReactiveKit.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 16C33AF91BEFB72500A0DBE0;
-			remoteInfo = "ReactiveKit-tvOS";
-		};
-		191F912A24BFA7F50050C7C6 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 191F903224BFA7F40050C7C6 /* ReactiveKit.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 16C33B161BEFB9CB00A0DBE0;
-			remoteInfo = "ReactiveKit-watchOS";
-		};
-		191F912C24BFA7F50050C7C6 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 191F903224BFA7F40050C7C6 /* ReactiveKit.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 16C33B241BEFBA0100A0DBE0;
-			remoteInfo = "ReactiveKit-macOS";
-		};
-		191F912E24BFA7F50050C7C6 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 191F903224BFA7F40050C7C6 /* ReactiveKit.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = ECBCCDDA1BEB6B9B00723476;
-			remoteInfo = "ReactiveKit-Tests";
-		};
 		1965B2D82493F58E0007B6CE /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 190ADBFF2458D71000D22F6D /* Project object */;
@@ -349,7 +311,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				DEA5C24726AA1C2B002FEADD /* ReactiveKit.xcframework in Embed Frameworks */,
 				1910671E2494128E00E65BA7 /* Lucid.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
@@ -458,88 +419,7 @@
 		191E33E0251D4E600008233A /* Movie.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Movie.swift; sourceTree = "<group>"; };
 		191E33E1251D4E600008233A /* Genre.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Genre.swift; sourceTree = "<group>"; };
 		191E33E2251D4E600008233A /* EntityIndexValueTypes.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EntityIndexValueTypes.swift; sourceTree = "<group>"; };
-		191F8FD024BFA7890050C7C6 /* ReactiveKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ReactiveKit.framework; path = Carthage/Build/iOS/ReactiveKit.framework; sourceTree = "<group>"; };
-		191F8FD424BFA79F0050C7C6 /* ReactiveKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ReactiveKit.framework; path = Carthage/Build/watchOS/ReactiveKit.framework; sourceTree = "<group>"; };
-		191F8FE224BFA7F40050C7C6 /* Cartfile.resolved */ = {isa = PBXFileReference; lastKnownFileType = text; path = Cartfile.resolved; sourceTree = "<group>"; };
-		191F8FE324BFA7F40050C7C6 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
-		191F8FE424BFA7F40050C7C6 /* Cartfile */ = {isa = PBXFileReference; lastKnownFileType = text; path = Cartfile; sourceTree = "<group>"; };
 		191F8FE524BFA7F40050C7C6 /* Lucid.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = Lucid.xcodeproj; sourceTree = "<group>"; };
-		191F8FEB24BFA7F40050C7C6 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
-		191F8FEC24BFA7F40050C7C6 /* ReactiveKit.podspec */ = {isa = PBXFileReference; lastKnownFileType = text; path = ReactiveKit.podspec; sourceTree = "<group>"; };
-		191F8FEE24BFA7F40050C7C6 /* LinuxMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinuxMain.swift; sourceTree = "<group>"; };
-		191F8FF024BFA7F40050C7C6 /* Stress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stress.swift; sourceTree = "<group>"; };
-		191F8FF124BFA7F40050C7C6 /* PropertyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PropertyTests.swift; sourceTree = "<group>"; };
-		191F8FF224BFA7F40050C7C6 /* SubjectTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjectTests.swift; sourceTree = "<group>"; };
-		191F8FF324BFA7F40050C7C6 /* CombineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombineTests.swift; sourceTree = "<group>"; };
-		191F8FF424BFA7F40050C7C6 /* SignalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalTests.swift; sourceTree = "<group>"; };
-		191F8FF524BFA7F40050C7C6 /* Scheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scheduler.swift; sourceTree = "<group>"; };
-		191F8FF624BFA7F40050C7C6 /* PublishedTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublishedTests.swift; sourceTree = "<group>"; };
-		191F8FF724BFA7F40050C7C6 /* .gitmodules */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitmodules; sourceTree = "<group>"; };
-		191F8FF824BFA7F40050C7C6 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		191F8FF924BFA7F40050C7C6 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
-		191F8FFB24BFA7F40050C7C6 /* TestsInfo.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = TestsInfo.plist; sourceTree = "<group>"; };
-		191F8FFC24BFA7F40050C7C6 /* ReactiveKit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ReactiveKit.h; sourceTree = "<group>"; };
-		191F8FFD24BFA7F40050C7C6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		191F8FFE24BFA7F40050C7C6 /* ReactiveKit.xcworkspace */ = {isa = PBXFileReference; lastKnownFileType = wrapper.workspace; path = ReactiveKit.xcworkspace; sourceTree = "<group>"; };
-		191F900124BFA7F40050C7C6 /* swift.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = swift.yml; sourceTree = "<group>"; };
-		191F900224BFA7F40050C7C6 /* Package.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Package.swift; sourceTree = "<group>"; };
-		191F900424BFA7F40050C7C6 /* SignalProtocol+Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalProtocol+Utilities.swift"; sourceTree = "<group>"; };
-		191F900524BFA7F40050C7C6 /* Observer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Observer.swift; sourceTree = "<group>"; };
-		191F900624BFA7F40050C7C6 /* SignalProtocol+Monad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalProtocol+Monad.swift"; sourceTree = "<group>"; };
-		191F900724BFA7F40050C7C6 /* Subscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subscriber.swift; sourceTree = "<group>"; };
-		191F900824BFA7F40050C7C6 /* SignalProtocol+Combining.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalProtocol+Combining.swift"; sourceTree = "<group>"; };
-		191F900924BFA7F40050C7C6 /* Property.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Property.swift; sourceTree = "<group>"; };
-		191F900A24BFA7F40050C7C6 /* LoadingProperty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingProperty.swift; sourceTree = "<group>"; };
-		191F900B24BFA7F40050C7C6 /* ObservableObject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservableObject.swift; sourceTree = "<group>"; };
-		191F900C24BFA7F40050C7C6 /* SignalProtocol+Threading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalProtocol+Threading.swift"; sourceTree = "<group>"; };
-		191F900D24BFA7F40050C7C6 /* SignalProtocol+Optional.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalProtocol+Optional.swift"; sourceTree = "<group>"; };
-		191F900E24BFA7F40050C7C6 /* Deprecations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Deprecations.swift; sourceTree = "<group>"; };
-		191F900F24BFA7F40050C7C6 /* SignalProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalProtocol.swift; sourceTree = "<group>"; };
-		191F901024BFA7F40050C7C6 /* Lock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Lock.swift; sourceTree = "<group>"; };
-		191F901124BFA7F40050C7C6 /* SignalProtocol+ErrorHandling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalProtocol+ErrorHandling.swift"; sourceTree = "<group>"; };
-		191F901224BFA7F40050C7C6 /* Disposable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Disposable.swift; sourceTree = "<group>"; };
-		191F901324BFA7F40050C7C6 /* Bindable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bindable.swift; sourceTree = "<group>"; };
-		191F901424BFA7F40050C7C6 /* TimelaneCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelaneCore.swift; sourceTree = "<group>"; };
-		191F901524BFA7F40050C7C6 /* ExecutionContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionContext.swift; sourceTree = "<group>"; };
-		191F901624BFA7F40050C7C6 /* Subjects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subjects.swift; sourceTree = "<group>"; };
-		191F901724BFA7F40050C7C6 /* Connectable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Connectable.swift; sourceTree = "<group>"; };
-		191F901824BFA7F40050C7C6 /* Reactive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reactive.swift; sourceTree = "<group>"; };
-		191F901924BFA7F40050C7C6 /* Subscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subscription.swift; sourceTree = "<group>"; };
-		191F901A24BFA7F40050C7C6 /* Cancellable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cancellable.swift; sourceTree = "<group>"; };
-		191F901B24BFA7F40050C7C6 /* LoadingSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingSignal.swift; sourceTree = "<group>"; };
-		191F901C24BFA7F40050C7C6 /* Deallocatable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Deallocatable.swift; sourceTree = "<group>"; };
-		191F901D24BFA7F40050C7C6 /* SignalProtocol+Filtering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalProtocol+Filtering.swift"; sourceTree = "<group>"; };
-		191F901E24BFA7F40050C7C6 /* Published.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Published.swift; sourceTree = "<group>"; };
-		191F901F24BFA7F40050C7C6 /* SignalProtocol+Transforming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalProtocol+Transforming.swift"; sourceTree = "<group>"; };
-		191F902024BFA7F40050C7C6 /* Atomic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Atomic.swift; sourceTree = "<group>"; };
-		191F902124BFA7F40050C7C6 /* Signal.Event.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signal.Event.swift; sourceTree = "<group>"; };
-		191F902224BFA7F40050C7C6 /* SignalProtocol+Result.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalProtocol+Result.swift"; sourceTree = "<group>"; };
-		191F902424BFA7F40050C7C6 /* Deferred.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Deferred.swift; sourceTree = "<group>"; };
-		191F902524BFA7F40050C7C6 /* Empty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Empty.swift; sourceTree = "<group>"; };
-		191F902624BFA7F40050C7C6 /* SignalProtocol+Timelane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalProtocol+Timelane.swift"; sourceTree = "<group>"; };
-		191F902724BFA7F40050C7C6 /* Scheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scheduler.swift; sourceTree = "<group>"; };
-		191F902824BFA7F40050C7C6 /* SignalProtocol+Arities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalProtocol+Arities.swift"; sourceTree = "<group>"; };
-		191F902924BFA7F40050C7C6 /* Combine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Combine.swift; sourceTree = "<group>"; };
-		191F902A24BFA7F40050C7C6 /* SignalProtocol+Sequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalProtocol+Sequence.swift"; sourceTree = "<group>"; };
-		191F902C24BFA7F40050C7C6 /* Accumulator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Accumulator.swift; sourceTree = "<group>"; };
-		191F902D24BFA7F40050C7C6 /* Sink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sink.swift; sourceTree = "<group>"; };
-		191F902E24BFA7F40050C7C6 /* Demand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Demand.swift; sourceTree = "<group>"; };
-		191F902F24BFA7F40050C7C6 /* Completion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Completion.swift; sourceTree = "<group>"; };
-		191F903024BFA7F40050C7C6 /* Signal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Signal.swift; sourceTree = "<group>"; };
-		191F903124BFA7F40050C7C6 /* SignalProtocol+Event.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignalProtocol+Event.swift"; sourceTree = "<group>"; };
-		191F903224BFA7F40050C7C6 /* ReactiveKit.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = ReactiveKit.xcodeproj; sourceTree = "<group>"; };
-		191F903624BFA7F40050C7C6 /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
-		191F903724BFA7F40050C7C6 /* .travis.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .travis.yml; sourceTree = "<group>"; };
-		191F903824BFA7F40050C7C6 /* Playground.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = Playground.playground; sourceTree = "<group>"; };
-		191F903B24BFA7F40050C7C6 /* 20AAE605-24A8-3185-8428-3D6664E83CAA.bcsymbolmap */ = {isa = PBXFileReference; lastKnownFileType = text; path = "20AAE605-24A8-3185-8428-3D6664E83CAA.bcsymbolmap"; sourceTree = "<group>"; };
-		191F903C24BFA7F40050C7C6 /* ReactiveKit.framework.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; path = ReactiveKit.framework.dSYM; sourceTree = "<group>"; };
-		191F903D24BFA7F40050C7C6 /* 3676B979-5B62-3921-8302-5288F960BD48.bcsymbolmap */ = {isa = PBXFileReference; lastKnownFileType = text; path = "3676B979-5B62-3921-8302-5288F960BD48.bcsymbolmap"; sourceTree = "<group>"; };
-		191F903E24BFA7F40050C7C6 /* ReactiveKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = ReactiveKit.framework; sourceTree = "<group>"; };
-		191F904024BFA7F40050C7C6 /* ReactiveKit.framework.dSYM */ = {isa = PBXFileReference; lastKnownFileType = wrapper.dsym; path = ReactiveKit.framework.dSYM; sourceTree = "<group>"; };
-		191F904124BFA7F40050C7C6 /* 2E714B37-1629-34C7-99FF-47F4505F39E1.bcsymbolmap */ = {isa = PBXFileReference; lastKnownFileType = text; path = "2E714B37-1629-34C7-99FF-47F4505F39E1.bcsymbolmap"; sourceTree = "<group>"; };
-		191F904224BFA7F40050C7C6 /* ReactiveKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = ReactiveKit.framework; sourceTree = "<group>"; };
-		191F904324BFA7F40050C7C6 /* DF2B53DA-6FEF-3EA4-AA9C-13479AAA6386.bcsymbolmap */ = {isa = PBXFileReference; lastKnownFileType = text; path = "DF2B53DA-6FEF-3EA4-AA9C-13479AAA6386.bcsymbolmap"; sourceTree = "<group>"; };
-		191F904424BFA7F40050C7C6 /* .ReactiveKit.version */ = {isa = PBXFileReference; lastKnownFileType = text; path = .ReactiveKit.version; sourceTree = "<group>"; };
 		191F904724BFA7F40050C7C6 /* RelationshipCoreManagerSpy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelationshipCoreManagerSpy.swift; sourceTree = "<group>"; };
 		191F904824BFA7F40050C7C6 /* StubCoreDataManagerFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StubCoreDataManagerFactory.swift; sourceTree = "<group>"; };
 		191F904924BFA7F40050C7C6 /* BackgroundTaskManagerSpy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskManagerSpy.swift; sourceTree = "<group>"; };
@@ -619,8 +499,6 @@
 		191F909E24BFA7F40050C7C6 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		191F909F24BFA7F40050C7C6 /* DescriptionsVersionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DescriptionsVersionManager.swift; sourceTree = "<group>"; };
 		191F90A024BFA7F40050C7C6 /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
-		191F90A124BFA7F40050C7C6 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		191F90A224BFA7F40050C7C6 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		191F90A524BFA7F40050C7C6 /* APIRequestDeduplicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIRequestDeduplicator.swift; sourceTree = "<group>"; };
 		191F90A624BFA7F40050C7C6 /* Query.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Query.swift; sourceTree = "<group>"; };
 		191F90A724BFA7F40050C7C6 /* Metadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Metadata.swift; sourceTree = "<group>"; };
@@ -748,8 +626,6 @@
 		19ED00942481C3960033B7BD /* DataStructuresTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataStructuresTests.swift; sourceTree = "<group>"; };
 		19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AsyncOperationQueueTests.swift; sourceTree = "<group>"; };
 		DE8294BA24BFB2FA0011A915 /* DataTypeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataTypeTests.swift; sourceTree = "<group>"; };
-		DEA5C24426AA1BF3002FEADD /* ReactiveKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = ReactiveKit.xcframework; path = Carthage/Build/ReactiveKit.xcframework; sourceTree = "<group>"; };
-		DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = ReactiveKit.xcframework; path = Carthage/Build/ReactiveKit.xcframework; sourceTree = "<group>"; };
 		F405C35024A41844004E1BB3 /* APIClientQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueTests.swift; sourceTree = "<group>"; };
 		F405C35124A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueDefaultSchedulerTests.swift; sourceTree = "<group>"; };
 		F405C35224A41844004E1BB3 /* APIClientQueueProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueProcessorTests.swift; sourceTree = "<group>"; };
@@ -769,7 +645,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DEA5C24926AA1CDF002FEADD /* ReactiveKit.xcframework in Frameworks */,
+				DE796EF627E3EFF500321311 /* ReactiveKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -779,7 +655,6 @@
 			files = (
 				1987F9C22554A34C0057F1CC /* LucidTestKit.framework in Frameworks */,
 				1987F9C12554A3470057F1CC /* Lucid.framework in Frameworks */,
-				DEA5C25526AA20D3002FEADD /* ReactiveKit.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -794,7 +669,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DEA5C25226AA1D77002FEADD /* ReactiveKit.xcframework in Frameworks */,
+				DE796EFA27E3F00700321311 /* ReactiveKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -803,7 +678,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				1910671D2494128E00E65BA7 /* Lucid.framework in Frameworks */,
-				DEA5C24826AA1C7F002FEADD /* ReactiveKit.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -811,7 +685,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DEA5C24C26AA1D56002FEADD /* ReactiveKit.xcframework in Frameworks */,
+				DE796EF427E3EFBD00321311 /* ReactiveKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -819,7 +693,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DEA5C24F26AA1D69002FEADD /* ReactiveKit.xcframework in Frameworks */,
+				DE796EF827E3EFFE00321311 /* ReactiveKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -829,7 +703,6 @@
 		190ADBFE2458D71000D22F6D = {
 			isa = PBXGroup;
 			children = (
-				DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */,
 				190ADC0A2458D71000D22F6D /* Lucid */,
 				190ADC852458D8DC00D22F6D /* LucidTests */,
 				190ADCB42458D99600D22F6D /* LucidTestKit */,
@@ -1034,10 +907,7 @@
 		190ADD1C2458DB8C00D22F6D /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				DEA5C24426AA1BF3002FEADD /* ReactiveKit.xcframework */,
 				191F8FE124BFA7F40050C7C6 /* Lucid */,
-				191F8FD424BFA79F0050C7C6 /* ReactiveKit.framework */,
-				191F8FD024BFA7890050C7C6 /* ReactiveKit.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -1089,15 +959,9 @@
 		191F8FE124BFA7F40050C7C6 /* Lucid */ = {
 			isa = PBXGroup;
 			children = (
-				191F8FE224BFA7F40050C7C6 /* Cartfile.resolved */,
-				191F8FE324BFA7F40050C7C6 /* LICENSE */,
-				191F8FE424BFA7F40050C7C6 /* Cartfile */,
 				191F8FE524BFA7F40050C7C6 /* Lucid.xcodeproj */,
-				191F8FE824BFA7F40050C7C6 /* Carthage */,
 				191F904524BFA7F40050C7C6 /* LucidTestKit */,
 				191F905E24BFA7F40050C7C6 /* CodeGen */,
-				191F90A124BFA7F40050C7C6 /* README.md */,
-				191F90A224BFA7F40050C7C6 /* .gitignore */,
 				191F90A324BFA7F40050C7C6 /* Lucid */,
 				191F90D624BFA7F40050C7C6 /* LucidTests */,
 				191F90F024BFA7F40050C7C6 /* Sample */,
@@ -1108,213 +972,6 @@
 		191F8FE624BFA7F40050C7C6 /* Products */ = {
 			isa = PBXGroup;
 			name = Products;
-			sourceTree = "<group>";
-		};
-		191F8FE824BFA7F40050C7C6 /* Carthage */ = {
-			isa = PBXGroup;
-			children = (
-				191F8FE924BFA7F40050C7C6 /* Checkouts */,
-				191F903924BFA7F40050C7C6 /* Build */,
-			);
-			path = Carthage;
-			sourceTree = "<group>";
-		};
-		191F8FE924BFA7F40050C7C6 /* Checkouts */ = {
-			isa = PBXGroup;
-			children = (
-				191F8FEA24BFA7F40050C7C6 /* ReactiveKit */,
-			);
-			path = Checkouts;
-			sourceTree = "<group>";
-		};
-		191F8FEA24BFA7F40050C7C6 /* ReactiveKit */ = {
-			isa = PBXGroup;
-			children = (
-				191F8FEB24BFA7F40050C7C6 /* LICENSE */,
-				191F8FEC24BFA7F40050C7C6 /* ReactiveKit.podspec */,
-				191F8FED24BFA7F40050C7C6 /* Tests */,
-				191F8FF724BFA7F40050C7C6 /* .gitmodules */,
-				191F8FF824BFA7F40050C7C6 /* README.md */,
-				191F8FF924BFA7F40050C7C6 /* .gitignore */,
-				191F8FFA24BFA7F40050C7C6 /* Supporting Files */,
-				191F8FFE24BFA7F40050C7C6 /* ReactiveKit.xcworkspace */,
-				191F8FFF24BFA7F40050C7C6 /* .github */,
-				191F900224BFA7F40050C7C6 /* Package.swift */,
-				191F900324BFA7F40050C7C6 /* Sources */,
-				191F903224BFA7F40050C7C6 /* ReactiveKit.xcodeproj */,
-				191F903524BFA7F40050C7C6 /* Assets */,
-				191F903724BFA7F40050C7C6 /* .travis.yml */,
-				191F903824BFA7F40050C7C6 /* Playground.playground */,
-			);
-			path = ReactiveKit;
-			sourceTree = "<group>";
-		};
-		191F8FED24BFA7F40050C7C6 /* Tests */ = {
-			isa = PBXGroup;
-			children = (
-				191F8FEE24BFA7F40050C7C6 /* LinuxMain.swift */,
-				191F8FEF24BFA7F40050C7C6 /* ReactiveKitTests */,
-			);
-			path = Tests;
-			sourceTree = "<group>";
-		};
-		191F8FEF24BFA7F40050C7C6 /* ReactiveKitTests */ = {
-			isa = PBXGroup;
-			children = (
-				191F8FF024BFA7F40050C7C6 /* Stress.swift */,
-				191F8FF124BFA7F40050C7C6 /* PropertyTests.swift */,
-				191F8FF224BFA7F40050C7C6 /* SubjectTests.swift */,
-				191F8FF324BFA7F40050C7C6 /* CombineTests.swift */,
-				191F8FF424BFA7F40050C7C6 /* SignalTests.swift */,
-				191F8FF524BFA7F40050C7C6 /* Scheduler.swift */,
-				191F8FF624BFA7F40050C7C6 /* PublishedTests.swift */,
-			);
-			path = ReactiveKitTests;
-			sourceTree = "<group>";
-		};
-		191F8FFA24BFA7F40050C7C6 /* Supporting Files */ = {
-			isa = PBXGroup;
-			children = (
-				191F8FFB24BFA7F40050C7C6 /* TestsInfo.plist */,
-				191F8FFC24BFA7F40050C7C6 /* ReactiveKit.h */,
-				191F8FFD24BFA7F40050C7C6 /* Info.plist */,
-			);
-			path = "Supporting Files";
-			sourceTree = "<group>";
-		};
-		191F8FFF24BFA7F40050C7C6 /* .github */ = {
-			isa = PBXGroup;
-			children = (
-				191F900024BFA7F40050C7C6 /* workflows */,
-			);
-			path = .github;
-			sourceTree = "<group>";
-		};
-		191F900024BFA7F40050C7C6 /* workflows */ = {
-			isa = PBXGroup;
-			children = (
-				191F900124BFA7F40050C7C6 /* swift.yml */,
-			);
-			path = workflows;
-			sourceTree = "<group>";
-		};
-		191F900324BFA7F40050C7C6 /* Sources */ = {
-			isa = PBXGroup;
-			children = (
-				191F900424BFA7F40050C7C6 /* SignalProtocol+Utilities.swift */,
-				191F900524BFA7F40050C7C6 /* Observer.swift */,
-				191F900624BFA7F40050C7C6 /* SignalProtocol+Monad.swift */,
-				191F900724BFA7F40050C7C6 /* Subscriber.swift */,
-				191F900824BFA7F40050C7C6 /* SignalProtocol+Combining.swift */,
-				191F900924BFA7F40050C7C6 /* Property.swift */,
-				191F900A24BFA7F40050C7C6 /* LoadingProperty.swift */,
-				191F900B24BFA7F40050C7C6 /* ObservableObject.swift */,
-				191F900C24BFA7F40050C7C6 /* SignalProtocol+Threading.swift */,
-				191F900D24BFA7F40050C7C6 /* SignalProtocol+Optional.swift */,
-				191F900E24BFA7F40050C7C6 /* Deprecations.swift */,
-				191F900F24BFA7F40050C7C6 /* SignalProtocol.swift */,
-				191F901024BFA7F40050C7C6 /* Lock.swift */,
-				191F901124BFA7F40050C7C6 /* SignalProtocol+ErrorHandling.swift */,
-				191F901224BFA7F40050C7C6 /* Disposable.swift */,
-				191F901324BFA7F40050C7C6 /* Bindable.swift */,
-				191F901424BFA7F40050C7C6 /* TimelaneCore.swift */,
-				191F901524BFA7F40050C7C6 /* ExecutionContext.swift */,
-				191F901624BFA7F40050C7C6 /* Subjects.swift */,
-				191F901724BFA7F40050C7C6 /* Connectable.swift */,
-				191F901824BFA7F40050C7C6 /* Reactive.swift */,
-				191F901924BFA7F40050C7C6 /* Subscription.swift */,
-				191F901A24BFA7F40050C7C6 /* Cancellable.swift */,
-				191F901B24BFA7F40050C7C6 /* LoadingSignal.swift */,
-				191F901C24BFA7F40050C7C6 /* Deallocatable.swift */,
-				191F901D24BFA7F40050C7C6 /* SignalProtocol+Filtering.swift */,
-				191F901E24BFA7F40050C7C6 /* Published.swift */,
-				191F901F24BFA7F40050C7C6 /* SignalProtocol+Transforming.swift */,
-				191F902024BFA7F40050C7C6 /* Atomic.swift */,
-				191F902124BFA7F40050C7C6 /* Signal.Event.swift */,
-				191F902224BFA7F40050C7C6 /* SignalProtocol+Result.swift */,
-				191F902324BFA7F40050C7C6 /* Publishers */,
-				191F902624BFA7F40050C7C6 /* SignalProtocol+Timelane.swift */,
-				191F902724BFA7F40050C7C6 /* Scheduler.swift */,
-				191F902824BFA7F40050C7C6 /* SignalProtocol+Arities.swift */,
-				191F902924BFA7F40050C7C6 /* Combine.swift */,
-				191F902A24BFA7F40050C7C6 /* SignalProtocol+Sequence.swift */,
-				191F902B24BFA7F40050C7C6 /* Subscribers */,
-				191F903024BFA7F40050C7C6 /* Signal.swift */,
-				191F903124BFA7F40050C7C6 /* SignalProtocol+Event.swift */,
-			);
-			path = Sources;
-			sourceTree = "<group>";
-		};
-		191F902324BFA7F40050C7C6 /* Publishers */ = {
-			isa = PBXGroup;
-			children = (
-				191F902424BFA7F40050C7C6 /* Deferred.swift */,
-				191F902524BFA7F40050C7C6 /* Empty.swift */,
-			);
-			path = Publishers;
-			sourceTree = "<group>";
-		};
-		191F902B24BFA7F40050C7C6 /* Subscribers */ = {
-			isa = PBXGroup;
-			children = (
-				191F902C24BFA7F40050C7C6 /* Accumulator.swift */,
-				191F902D24BFA7F40050C7C6 /* Sink.swift */,
-				191F902E24BFA7F40050C7C6 /* Demand.swift */,
-				191F902F24BFA7F40050C7C6 /* Completion.swift */,
-			);
-			path = Subscribers;
-			sourceTree = "<group>";
-		};
-		191F903324BFA7F40050C7C6 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				191F912724BFA7F50050C7C6 /* ReactiveKit.framework */,
-				191F912924BFA7F50050C7C6 /* ReactiveKit.framework */,
-				191F912B24BFA7F50050C7C6 /* ReactiveKit.framework */,
-				191F912D24BFA7F50050C7C6 /* ReactiveKit.framework */,
-				191F912F24BFA7F50050C7C6 /* ReactiveKit-Tests.xctest */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		191F903524BFA7F40050C7C6 /* Assets */ = {
-			isa = PBXGroup;
-			children = (
-				191F903624BFA7F40050C7C6 /* logo.png */,
-			);
-			path = Assets;
-			sourceTree = "<group>";
-		};
-		191F903924BFA7F40050C7C6 /* Build */ = {
-			isa = PBXGroup;
-			children = (
-				191F903A24BFA7F40050C7C6 /* watchOS */,
-				191F903F24BFA7F40050C7C6 /* iOS */,
-				191F904424BFA7F40050C7C6 /* .ReactiveKit.version */,
-			);
-			path = Build;
-			sourceTree = "<group>";
-		};
-		191F903A24BFA7F40050C7C6 /* watchOS */ = {
-			isa = PBXGroup;
-			children = (
-				191F903B24BFA7F40050C7C6 /* 20AAE605-24A8-3185-8428-3D6664E83CAA.bcsymbolmap */,
-				191F903C24BFA7F40050C7C6 /* ReactiveKit.framework.dSYM */,
-				191F903D24BFA7F40050C7C6 /* 3676B979-5B62-3921-8302-5288F960BD48.bcsymbolmap */,
-				191F903E24BFA7F40050C7C6 /* ReactiveKit.framework */,
-			);
-			path = watchOS;
-			sourceTree = "<group>";
-		};
-		191F903F24BFA7F40050C7C6 /* iOS */ = {
-			isa = PBXGroup;
-			children = (
-				191F904024BFA7F40050C7C6 /* ReactiveKit.framework.dSYM */,
-				191F904124BFA7F40050C7C6 /* 2E714B37-1629-34C7-99FF-47F4505F39E1.bcsymbolmap */,
-				191F904224BFA7F40050C7C6 /* ReactiveKit.framework */,
-				191F904324BFA7F40050C7C6 /* DF2B53DA-6FEF-3EA4-AA9C-13479AAA6386.bcsymbolmap */,
-			);
-			path = iOS;
 			sourceTree = "<group>";
 		};
 		191F904524BFA7F40050C7C6 /* LucidTestKit */ = {
@@ -1879,6 +1536,9 @@
 			dependencies = (
 			);
 			name = "Lucid-iOS";
+			packageProductDependencies = (
+				DE796EF527E3EFF500321311 /* ReactiveKit */,
+			);
 			productName = Lucid;
 			productReference = 190ADC082458D71000D22F6D /* Lucid.framework */;
 			productType = "com.apple.product-type.framework";
@@ -1933,6 +1593,9 @@
 			dependencies = (
 			);
 			name = "Lucid-watchOS";
+			packageProductDependencies = (
+				DE796EF927E3F00700321311 /* ReactiveKit */,
+			);
 			productName = Lucid;
 			productReference = 190ADD1A2458DA9B00D22F6D /* Lucid.framework */;
 			productType = "com.apple.product-type.framework";
@@ -1971,6 +1634,9 @@
 			dependencies = (
 			);
 			name = "Lucid-macOS";
+			packageProductDependencies = (
+				DE796EF327E3EFBD00321311 /* ReactiveKit */,
+			);
 			productName = Lucid;
 			productReference = F48C7FFA2655948200581182 /* Lucid.framework */;
 			productType = "com.apple.product-type.framework";
@@ -1989,6 +1655,9 @@
 			dependencies = (
 			);
 			name = "Lucid-tvOS";
+			packageProductDependencies = (
+				DE796EF727E3EFFE00321311 /* ReactiveKit */,
+			);
 			productName = Lucid;
 			productReference = F48C8058265596D700581182 /* Lucid.framework */;
 			productType = "com.apple.product-type.framework";
@@ -2032,16 +1701,15 @@
 				Base,
 			);
 			mainGroup = 190ADBFE2458D71000D22F6D;
+			packageReferences = (
+				DE796EF227E3EFBD00321311 /* XCRemoteSwiftPackageReference "ReactiveKit" */,
+			);
 			productRefGroup = 190ADC092458D71000D22F6D /* Products */;
 			projectDirPath = "";
 			projectReferences = (
 				{
 					ProductGroup = 191F8FE624BFA7F40050C7C6 /* Products */;
 					ProjectRef = 191F8FE524BFA7F40050C7C6 /* Lucid.xcodeproj */;
-				},
-				{
-					ProductGroup = 191F903324BFA7F40050C7C6 /* Products */;
-					ProjectRef = 191F903224BFA7F40050C7C6 /* ReactiveKit.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -2056,44 +1724,6 @@
 			);
 		};
 /* End PBXProject section */
-
-/* Begin PBXReferenceProxy section */
-		191F912724BFA7F50050C7C6 /* ReactiveKit.framework */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.framework;
-			path = ReactiveKit.framework;
-			remoteRef = 191F912624BFA7F50050C7C6 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		191F912924BFA7F50050C7C6 /* ReactiveKit.framework */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.framework;
-			path = ReactiveKit.framework;
-			remoteRef = 191F912824BFA7F50050C7C6 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		191F912B24BFA7F50050C7C6 /* ReactiveKit.framework */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.framework;
-			path = ReactiveKit.framework;
-			remoteRef = 191F912A24BFA7F50050C7C6 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		191F912D24BFA7F50050C7C6 /* ReactiveKit.framework */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.framework;
-			path = ReactiveKit.framework;
-			remoteRef = 191F912C24BFA7F50050C7C6 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		191F912F24BFA7F50050C7C6 /* ReactiveKit-Tests.xctest */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.cfbundle;
-			path = "ReactiveKit-Tests.xctest";
-			remoteRef = 191F912E24BFA7F50050C7C6 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-/* End PBXReferenceProxy section */
 
 /* Begin PBXResourcesBuildPhase section */
 		190ADC062458D71000D22F6D /* Resources */ = {
@@ -3152,6 +2782,40 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		DE796EF227E3EFBD00321311 /* XCRemoteSwiftPackageReference "ReactiveKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/DeclarativeHub/ReactiveKit.git";
+			requirement = {
+				kind = exactVersion;
+				version = 3.18.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DE796EF327E3EFBD00321311 /* ReactiveKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DE796EF227E3EFBD00321311 /* XCRemoteSwiftPackageReference "ReactiveKit" */;
+			productName = ReactiveKit;
+		};
+		DE796EF527E3EFF500321311 /* ReactiveKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DE796EF227E3EFBD00321311 /* XCRemoteSwiftPackageReference "ReactiveKit" */;
+			productName = ReactiveKit;
+		};
+		DE796EF727E3EFFE00321311 /* ReactiveKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DE796EF227E3EFBD00321311 /* XCRemoteSwiftPackageReference "ReactiveKit" */;
+			productName = ReactiveKit;
+		};
+		DE796EF927E3F00700321311 /* ReactiveKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DE796EF227E3EFBD00321311 /* XCRemoteSwiftPackageReference "ReactiveKit" */;
+			productName = ReactiveKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCVersionGroup section */
 		191E33DC251D4E600008233A /* Sample.xcdatamodeld */ = {

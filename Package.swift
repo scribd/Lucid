@@ -1,10 +1,10 @@
-// swift-tools-version:5.1
+// swift-tools-version:5.5
 import PackageDescription
 
 let package = Package(
     name: "Lucid",
     platforms: [
-        .macOS(.v10_15), .iOS(.v13), .watchOS(.v6)
+        .iOS(.v13), .watchOS(.v7)
     ],
     products: [
         .library(name: "Lucid", targets: ["Lucid"]),
@@ -23,11 +23,6 @@ let package = Package(
             name: "LucidTestKit",
             dependencies: ["Lucid"],
             path: "LucidTestKit"
-        ),
-        .testTarget(
-            name: "LucidTests",
-            dependencies: ["Lucid", "LucidTestKit"],
-            path: "LucidTests"
         )
     ]
 )

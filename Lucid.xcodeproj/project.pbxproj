@@ -184,6 +184,10 @@
 		DEA5C25226AA1D77002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
 		DEA5C25526AA20D3002FEADD /* ReactiveKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DEA5C24626AA1C2B002FEADD /* ReactiveKit.xcframework */; };
 		F41D210724EF041E009444A2 /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
+		F438470F27E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */; };
+		F438471027E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */; };
+		F438471127E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */; };
+		F438471227E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */; };
 		F440173827A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
 		F440173927A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
 		F440173A27A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
@@ -753,6 +757,7 @@
 		F405C35024A41844004E1BB3 /* APIClientQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueTests.swift; sourceTree = "<group>"; };
 		F405C35124A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueDefaultSchedulerTests.swift; sourceTree = "<group>"; };
 		F405C35224A41844004E1BB3 /* APIClientQueueProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueProcessorTests.swift; sourceTree = "<group>"; };
+		F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreManagerProperty.swift; sourceTree = "<group>"; };
 		F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Publisher+Extensions.swift"; sourceTree = "<group>"; };
 		F45FA8FA24EC8D3C00368CCB /* Contract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Contract.swift; sourceTree = "<group>"; };
 		F47E5EFA24AA57BC007DCC4A /* StubCoreDataModel.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = StubCoreDataModel.xcdatamodel; sourceTree = "<group>"; };
@@ -918,6 +923,7 @@
 				190ADC4B2458D89C00D22F6D /* AsyncOperationQueue.swift */,
 				190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */,
 				190ADC512458D89C00D22F6D /* CancellationToken.swift */,
+				F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */,
 				190ADC452458D89C00D22F6D /* DataStructures.swift */,
 				190ADC4E2458D89C00D22F6D /* DiskCache.swift */,
 				190ADC4C2458D89C00D22F6D /* DiskQueue.swift */,
@@ -2218,6 +2224,7 @@
 				190ADC6E2458D89C00D22F6D /* CoreDataStore.swift in Sources */,
 				190ADC712458D89C00D22F6D /* DataStructures.swift in Sources */,
 				190ADC6B2458D89C00D22F6D /* RecoverableStore.swift in Sources */,
+				F438471027E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */,
 				190ADC5C2458D89C00D22F6D /* HTTPTypes.swift in Sources */,
 				190ADC652458D89C00D22F6D /* APIClientQueueScheduling.swift in Sources */,
 				190ADC542458D89C00D22F6D /* APIRequestDeduplicator.swift in Sources */,
@@ -2336,6 +2343,7 @@
 				190ADD0B2458DA9B00D22F6D /* CoreDataStore.swift in Sources */,
 				190ADD0C2458DA9B00D22F6D /* DataStructures.swift in Sources */,
 				190ADD0D2458DA9B00D22F6D /* RecoverableStore.swift in Sources */,
+				F438471227E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */,
 				190ADD0E2458DA9B00D22F6D /* HTTPTypes.swift in Sources */,
 				190ADD0F2458DA9B00D22F6D /* APIClientQueueScheduling.swift in Sources */,
 				190ADD102458DA9B00D22F6D /* APIRequestDeduplicator.swift in Sources */,
@@ -2420,6 +2428,7 @@
 				F48C80342655958E00581182 /* DiskQueue.swift in Sources */,
 				F48C80402655958E00581182 /* Result.swift in Sources */,
 				F48C802E2655958A00581182 /* RecoverableStore.swift in Sources */,
+				F438470F27E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */,
 				F48C803B2655958E00581182 /* AnyEquatable.swift in Sources */,
 				F48C80352655958E00581182 /* ScheduledTimer.swift in Sources */,
 				F48C80392655958E00581182 /* AnySequence.swift in Sources */,
@@ -2475,6 +2484,7 @@
 				F48C80942655972700581182 /* Codable.swift in Sources */,
 				F48C80C02655973000581182 /* Result.swift in Sources */,
 				F48C808F2655972700581182 /* Version.swift in Sources */,
+				F438471127E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */,
 				F48C80B52655973000581182 /* CancellationToken.swift in Sources */,
 				F48C80BE2655973000581182 /* ReactiveKit.swift in Sources */,
 				F48C80A72655972B00581182 /* LRUStore.swift in Sources */,

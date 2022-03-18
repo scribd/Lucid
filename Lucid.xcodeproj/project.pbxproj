@@ -44,7 +44,6 @@
 		190ADC732458D89C00D22F6D /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC472458D89C00D22F6D /* Logger.swift */; };
 		190ADC742458D89C00D22F6D /* PropertyBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC482458D89C00D22F6D /* PropertyBox.swift */; };
 		190ADC752458D89C00D22F6D /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
-		190ADC762458D89C00D22F6D /* ReactiveKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4A2458D89C00D22F6D /* ReactiveKit.swift */; };
 		190ADC772458D89C00D22F6D /* AsyncOperationQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4B2458D89C00D22F6D /* AsyncOperationQueue.swift */; };
 		190ADC782458D89C00D22F6D /* DiskQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4C2458D89C00D22F6D /* DiskQueue.swift */; };
 		190ADC792458D89C00D22F6D /* Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4D2458D89C00D22F6D /* Timestamp.swift */; };
@@ -52,7 +51,6 @@
 		190ADC7B2458D89C00D22F6D /* BackgroundTaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */; };
 		190ADC7C2458D89C00D22F6D /* ScheduledTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC502458D89C00D22F6D /* ScheduledTimer.swift */; };
 		190ADC7D2458D89C00D22F6D /* CancellationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC512458D89C00D22F6D /* CancellationToken.swift */; };
-		190ADC7E2458D89C00D22F6D /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal+Extensions.swift */; };
 		190ADC7F2458D89C00D22F6D /* AnyEquatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC532458D89C00D22F6D /* AnyEquatable.swift */; };
 		190ADCB72458D99600D22F6D /* LucidTestKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 190ADCB52458D99600D22F6D /* LucidTestKit.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		190ADCD12458D9A500D22F6D /* RelationshipCoreManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBC2458D9A500D22F6D /* RelationshipCoreManagerSpy.swift */; };
@@ -89,7 +87,6 @@
 		190ADCF72458DA9B00D22F6D /* Time.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2C2458D89C00D22F6D /* Time.swift */; };
 		190ADCF82458DA9B00D22F6D /* Codable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC332458D89C00D22F6D /* Codable.swift */; };
 		190ADCF92458DA9B00D22F6D /* DiskQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4C2458D89C00D22F6D /* DiskQueue.swift */; };
-		190ADCFA2458DA9B00D22F6D /* ReactiveKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4A2458D89C00D22F6D /* ReactiveKit.swift */; };
 		190ADCFB2458DA9B00D22F6D /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
 		190ADCFC2458DA9B00D22F6D /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2D2458D89C00D22F6D /* APIClient.swift */; };
 		190ADCFD2458DA9B00D22F6D /* Entity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC2B2458D89C00D22F6D /* Entity.swift */; };
@@ -99,7 +96,6 @@
 		190ADD012458DA9B00D22F6D /* Query.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC272458D89C00D22F6D /* Query.swift */; };
 		190ADD022458DA9B00D22F6D /* RemoteStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC422458D89C00D22F6D /* RemoteStore.swift */; };
 		190ADD032458DA9B00D22F6D /* Metadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC282458D89C00D22F6D /* Metadata.swift */; };
-		190ADD042458DA9B00D22F6D /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal+Extensions.swift */; };
 		190ADD052458DA9B00D22F6D /* CacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC402458D89C00D22F6D /* CacheStore.swift */; };
 		190ADD062458DA9B00D22F6D /* Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4D2458D89C00D22F6D /* Timestamp.swift */; };
 		190ADD072458DA9B00D22F6D /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC362458D89C00D22F6D /* Store.swift */; };
@@ -230,14 +226,12 @@
 		F48C80342655958E00581182 /* DiskQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4C2458D89C00D22F6D /* DiskQueue.swift */; };
 		F48C80352655958E00581182 /* ScheduledTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC502458D89C00D22F6D /* ScheduledTimer.swift */; };
 		F48C80362655958E00581182 /* PropertyBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC482458D89C00D22F6D /* PropertyBox.swift */; };
-		F48C80372655958E00581182 /* ReactiveKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4A2458D89C00D22F6D /* ReactiveKit.swift */; };
 		F48C80382655958E00581182 /* AsyncOperationQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4B2458D89C00D22F6D /* AsyncOperationQueue.swift */; };
 		F48C80392655958E00581182 /* AnySequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC462458D89C00D22F6D /* AnySequence.swift */; };
 		F48C803A2655958E00581182 /* DataStructures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC452458D89C00D22F6D /* DataStructures.swift */; };
 		F48C803B2655958E00581182 /* AnyEquatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC532458D89C00D22F6D /* AnyEquatable.swift */; };
 		F48C803C2655958E00581182 /* DiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4E2458D89C00D22F6D /* DiskCache.swift */; };
 		F48C803D2655958E00581182 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC472458D89C00D22F6D /* Logger.swift */; };
-		F48C803E2655958E00581182 /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal+Extensions.swift */; };
 		F48C803F2655958E00581182 /* Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4D2458D89C00D22F6D /* Timestamp.swift */; };
 		F48C80402655958E00581182 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
 		F48C80412655958E00581182 /* CancellationToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC512458D89C00D22F6D /* CancellationToken.swift */; };
@@ -282,8 +276,6 @@
 		F48C80BA2655973000581182 /* DiskCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4E2458D89C00D22F6D /* DiskCache.swift */; };
 		F48C80BB2655973000581182 /* Timestamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4D2458D89C00D22F6D /* Timestamp.swift */; };
 		F48C80BC2655973000581182 /* BackgroundTaskManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */; };
-		F48C80BD2655973000581182 /* Signal+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC522458D89C00D22F6D /* Signal+Extensions.swift */; };
-		F48C80BE2655973000581182 /* ReactiveKit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC4A2458D89C00D22F6D /* ReactiveKit.swift */; };
 		F48C80BF2655973000581182 /* AnyEquatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC532458D89C00D22F6D /* AnyEquatable.swift */; };
 		F48C80C02655973000581182 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
 		F48C80C12655973000581182 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC472458D89C00D22F6D /* Logger.swift */; };
@@ -400,7 +392,6 @@
 		190ADC472458D89C00D22F6D /* Logger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		190ADC482458D89C00D22F6D /* PropertyBox.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PropertyBox.swift; sourceTree = "<group>"; };
 		190ADC492458D89C00D22F6D /* Result.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Result.swift; sourceTree = "<group>"; };
-		190ADC4A2458D89C00D22F6D /* ReactiveKit.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ReactiveKit.swift; sourceTree = "<group>"; };
 		190ADC4B2458D89C00D22F6D /* AsyncOperationQueue.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AsyncOperationQueue.swift; sourceTree = "<group>"; };
 		190ADC4C2458D89C00D22F6D /* DiskQueue.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DiskQueue.swift; sourceTree = "<group>"; };
 		190ADC4D2458D89C00D22F6D /* Timestamp.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Timestamp.swift; sourceTree = "<group>"; };
@@ -408,7 +399,6 @@
 		190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BackgroundTaskManager.swift; sourceTree = "<group>"; };
 		190ADC502458D89C00D22F6D /* ScheduledTimer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScheduledTimer.swift; sourceTree = "<group>"; };
 		190ADC512458D89C00D22F6D /* CancellationToken.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CancellationToken.swift; sourceTree = "<group>"; };
-		190ADC522458D89C00D22F6D /* Signal+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "Signal+Extensions.swift"; sourceTree = "<group>"; };
 		190ADC532458D89C00D22F6D /* AnyEquatable.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnyEquatable.swift; sourceTree = "<group>"; };
 		190ADC842458D8DC00D22F6D /* LucidTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LucidTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		190ADC882458D8DC00D22F6D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -931,10 +921,8 @@
 				190ADC482458D89C00D22F6D /* PropertyBox.swift */,
 				F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */,
 				F4FEEF9927D9A1BA00812A6E /* Publishers+Extensions.swift */,
-				190ADC4A2458D89C00D22F6D /* ReactiveKit.swift */,
 				190ADC492458D89C00D22F6D /* Result.swift */,
 				190ADC502458D89C00D22F6D /* ScheduledTimer.swift */,
-				190ADC522458D89C00D22F6D /* Signal+Extensions.swift */,
 				190ADC4D2458D89C00D22F6D /* Timestamp.swift */,
 			);
 			path = Utils;
@@ -2201,7 +2189,6 @@
 				190ADC5A2458D89C00D22F6D /* Time.swift in Sources */,
 				190ADC612458D89C00D22F6D /* Codable.swift in Sources */,
 				190ADC782458D89C00D22F6D /* DiskQueue.swift in Sources */,
-				190ADC762458D89C00D22F6D /* ReactiveKit.swift in Sources */,
 				190ADC752458D89C00D22F6D /* Result.swift in Sources */,
 				190ADC5B2458D89C00D22F6D /* APIClient.swift in Sources */,
 				F440173927A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */,
@@ -2214,7 +2201,6 @@
 				190ADC552458D89C00D22F6D /* Query.swift in Sources */,
 				190ADC6F2458D89C00D22F6D /* RemoteStore.swift in Sources */,
 				190ADC562458D89C00D22F6D /* Metadata.swift in Sources */,
-				190ADC7E2458D89C00D22F6D /* Signal+Extensions.swift in Sources */,
 				190ADC6D2458D89C00D22F6D /* CacheStore.swift in Sources */,
 				190ADC792458D89C00D22F6D /* Timestamp.swift in Sources */,
 				190ADC642458D89C00D22F6D /* Store.swift in Sources */,
@@ -2320,7 +2306,6 @@
 				190ADCF72458DA9B00D22F6D /* Time.swift in Sources */,
 				190ADCF82458DA9B00D22F6D /* Codable.swift in Sources */,
 				190ADCF92458DA9B00D22F6D /* DiskQueue.swift in Sources */,
-				190ADCFA2458DA9B00D22F6D /* ReactiveKit.swift in Sources */,
 				190ADCFB2458DA9B00D22F6D /* Result.swift in Sources */,
 				190ADCFC2458DA9B00D22F6D /* APIClient.swift in Sources */,
 				F440173B27A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */,
@@ -2333,7 +2318,6 @@
 				190ADD012458DA9B00D22F6D /* Query.swift in Sources */,
 				190ADD022458DA9B00D22F6D /* RemoteStore.swift in Sources */,
 				190ADD032458DA9B00D22F6D /* Metadata.swift in Sources */,
-				190ADD042458DA9B00D22F6D /* Signal+Extensions.swift in Sources */,
 				190ADD052458DA9B00D22F6D /* CacheStore.swift in Sources */,
 				190ADD062458DA9B00D22F6D /* Timestamp.swift in Sources */,
 				190ADD072458DA9B00D22F6D /* Store.swift in Sources */,
@@ -2391,7 +2375,6 @@
 				F48C801F2655958500581182 /* CoreManager.swift in Sources */,
 				F4FEEF9A27D9A1BA00812A6E /* Publishers+Extensions.swift in Sources */,
 				F48C80152655958500581182 /* Entity.swift in Sources */,
-				F48C80372655958E00581182 /* ReactiveKit.swift in Sources */,
 				F48C80302655958A00581182 /* InMemoryStore.swift in Sources */,
 				F48C80332655958E00581182 /* BackgroundTaskManager.swift in Sources */,
 				F48C802B2655958500581182 /* Codable.swift in Sources */,
@@ -2416,7 +2399,6 @@
 				F48C80142655958500581182 /* Color.swift in Sources */,
 				F48C80362655958E00581182 /* PropertyBox.swift in Sources */,
 				F48C803D2655958E00581182 /* Logger.swift in Sources */,
-				F48C803E2655958E00581182 /* Signal+Extensions.swift in Sources */,
 				F48C80272655958500581182 /* HTTPTypes.swift in Sources */,
 				F48C801C2655958500581182 /* Context.swift in Sources */,
 				F48C80292655958500581182 /* Payload.swift in Sources */,
@@ -2444,7 +2426,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				F48C808E2655972700581182 /* APIClientQueueScheduling.swift in Sources */,
-				F48C80BD2655973000581182 /* Signal+Extensions.swift in Sources */,
 				F4FEEF9C27D9A1BA00812A6E /* Publishers+Extensions.swift in Sources */,
 				F48C80952655972700581182 /* APIClient.swift in Sources */,
 				F48C80922655972700581182 /* RelationshipController.swift in Sources */,
@@ -2486,7 +2467,6 @@
 				F48C808F2655972700581182 /* Version.swift in Sources */,
 				F438471127E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */,
 				F48C80B52655973000581182 /* CancellationToken.swift in Sources */,
-				F48C80BE2655973000581182 /* ReactiveKit.swift in Sources */,
 				F48C80A72655972B00581182 /* LRUStore.swift in Sources */,
 				F48C80932655972700581182 /* Metadata.swift in Sources */,
 				F48C809B2655972700581182 /* Payload.swift in Sources */,
@@ -2707,6 +2687,7 @@
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 7.0;
 			};
 			name = Debug;
 		};
@@ -2923,6 +2904,7 @@
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 7.0;
 			};
 			name = Release;
 		};

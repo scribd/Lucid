@@ -6,10 +6,8 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
-import Foundation
-
-#if !LUCID_REACTIVE_KIT
 import Combine
+import Foundation
 
 public extension Future {
 
@@ -25,4 +23,3 @@ public extension Future {
         }
     }
 }
-#endif

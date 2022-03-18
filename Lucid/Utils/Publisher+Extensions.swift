@@ -6,7 +6,6 @@
 //  Copyright © 2022 Scribd. All rights reserved.
 //
 
-#if !LUCID_REACTIVE_KIT
 import Combine
 import Foundation
 
@@ -414,4 +413,3 @@ private extension ErrorTransformSubject {
         func request(_ demand: Subscribers.Demand) { }
     }
 }
-#endif

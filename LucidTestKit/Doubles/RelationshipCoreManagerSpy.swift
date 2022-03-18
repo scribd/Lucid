@@ -6,15 +6,10 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
-import Foundation
-import XCTest
-import Lucid
-
-#if LUCID_REACTIVE_KIT
-import ReactiveKit
-#else
 import Combine
-#endif
+import Foundation
+import Lucid
+import XCTest
 
 public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
 
@@ -28,24 +23,6 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
         context: _ReadContext<EntityEndpointResultPayloadSpy>
     )]()
 
-    #if LUCID_REACTIVE_KIT
-    public var getByIDsStubs: [Signal<[AnyEntitySpy], ManagerError>] = [Signal(just: [])]
-
-    public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
-                    entityType: String,
-                    in context: _ReadContext<EntityEndpointResultPayloadSpy>) -> Signal<AnySequence<AnyEntitySpy>, ManagerError> {
-
-        getByIDsInvocations.append((identifiers.array, entityType, context))
-
-        guard getByIDsStubs.count >= getByIDsInvocations.count else {
-            XCTFail("Expected stub for call number \(getByIDsInvocations.count - 1)")
-            return Signal(just: [].any)
-        }
-
-        return getByIDsStubs[getByIDsInvocations.count - 1].map { $0.any }
-    }
-
-    #else
     public var getByIDsStubs: [AnyPublisher<[AnyEntitySpy], ManagerError>] = [Future(just: []).eraseToAnyPublisher()]
 
     public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
@@ -63,5 +40,4 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
 
         return getByIDsStubs[getByIDsInvocations.count - 1].map { $0.any }.eraseToAnyPublisher()
     }
-    #endif
 }

@@ -6,15 +6,10 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
-import Foundation
-import XCTest
-import Lucid
-
-#if LUCID_REACTIVE_KIT
-import ReactiveKit
-#else
 import Combine
-#endif
+import Foundation
+import Lucid
+import XCTest
 
 public final class CoreManagerSpy<E: Entity> {
 
@@ -22,35 +17,6 @@ public final class CoreManagerSpy<E: Entity> {
 
     // MARK: Stubs
 
-    #if LUCID_REACTIVE_KIT
-    public var getEntityStub: Signal<QueryResult<E>, ManagerError> = .failed(.notSupported)
-    public var getEntityStubs: [Signal<QueryResult<E>, ManagerError>]?
-
-    public var setEntityStub: Signal<E, ManagerError> = .failed(.notSupported)
-    public var setEntityStubs: [Signal<E, ManagerError>]?
-
-    public var setEntitiesStub: Signal<AnySequence<E>, ManagerError> = .failed(.notSupported)
-    public var setEntitiesStubs: [Signal<AnySequence<E>, ManagerError>]?
-
-    public var removeAllStub: Signal<AnySequence<E.Identifier>, ManagerError> = .failed(.notSupported)
-    public var removeAllStubs: [Signal<AnySequence<E.Identifier>, ManagerError>]?
-
-    public var removeEntityStub: Signal<Void, ManagerError> = .failed(.notSupported)
-    public var removeEntityStubs: [Signal<Void, ManagerError>]?
-
-    public var removeEntitiesStub: Signal<Void, ManagerError> = .failed(.notSupported)
-    public var removeEntitiesStubs: [Signal<Void, ManagerError>]?
-
-    public var searchStub: (
-        once: Signal<QueryResult<E>, ManagerError>,
-        continuous: SafeSignal<QueryResult<E>>
-    ) = (once: .failed(.notSupported), continuous: .completed())
-
-    public var searchStubs: [(
-        once: Signal<QueryResult<E>, ManagerError>,
-        continuous: SafeSignal<QueryResult<E>>
-    )]?
-    #else
     public var getEntityStub: AnyPublisher<QueryResult<E>, ManagerError> = Fail(error: .notSupported).eraseToAnyPublisher()
     public var getEntityStubs: [AnyPublisher<QueryResult<E>, ManagerError>]?
 
@@ -81,7 +47,6 @@ public final class CoreManagerSpy<E: Entity> {
         once: AnyPublisher<QueryResult<E>, ManagerError>,
         continuous: AnyPublisher<QueryResult<E>, Never>
     )]?
-    #endif
 
     // MARK: Records
 
@@ -105,49 +70,6 @@ public final class CoreManagerSpy<E: Entity> {
         // no-op
     }
 
-    #if LUCID_REACTIVE_KIT
-    public func get(withQuery query: Query<E>,
-                    in context: ReadContext<E>) -> Signal<QueryResult<E>, ManagerError> {
-        getEntityRecords.append(GetRecord(query: query, context: context))
-        return getEntityStubs?.getOrFail(at: getEntityRecords.count - 1) ?? getEntityStub
-    }
-
-    public func search(withQuery query: Query<E>,
-                       in context: ReadContext<E>) -> (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>) {
-        searchRecords.append(SearchRecord(query: query, context: context))
-        return searchStubs?.getOrFail(at: searchRecords.count - 1) ?? searchStub
-    }
-
-    public func set(_ entity: E,
-                    in context: WriteContext<E>) -> Signal<E, ManagerError> {
-        setEntityRecords.append(SetRecord(entity: [entity], context: context))
-        return setEntityStubs?.getOrFail(at: setEntityRecords.count - 1) ?? setEntityStub
-    }
-
-    public func set<S>(_ entities: S,
-                       in context: WriteContext<E>) -> Signal<AnySequence<E>, ManagerError> where S: Sequence, S.Element == E {
-        setEntitiesRecords.append(SetRecord(entity: entities.array, context: context))
-        return setEntitiesStubs?.getOrFail(at: setEntitiesRecords.count - 1) ?? setEntitiesStub
-    }
-
-    public func removeAll(withQuery query: Query<E>,
-                          in context: WriteContext<E>) -> Signal<AnySequence<E.Identifier>, ManagerError> {
-        removeAllRecords.append(RemoveAllRecord(query: query, context: context))
-        return removeAllStubs?.getOrFail(at: removeAllRecords.count - 1) ?? removeAllStub
-    }
-
-    public func remove(atID identifier: E.Identifier,
-                       in context: WriteContext<E>) -> Signal<Void, ManagerError> {
-        removeEntityRecords.append(RemoveRecord(identifier: [identifier], context: context))
-        return removeEntityStubs?.getOrFail(at: removeEntityRecords.count - 1) ?? removeEntityStub
-    }
-
-    public func remove<S>(_ identifiers: S,
-                          in context: WriteContext<E>) -> Signal<Void, ManagerError> where S: Sequence, S.Element == E.Identifier {
-        removeEntityRecords.append(RemoveRecord(identifier: identifiers.array, context: context))
-        return removeEntitiesStubs?.getOrFail(at: removeEntityRecords.count - 1) ?? removeEntitiesStub
-    }
-    #else
     public func get(withQuery query: Query<E>,
                     in context: ReadContext<E>) -> AnyPublisher<QueryResult<E>, ManagerError> {
         getEntityRecords.append(GetRecord(query: query, context: context))
@@ -189,7 +111,6 @@ public final class CoreManagerSpy<E: Entity> {
         removeEntityRecords.append(RemoveRecord(identifier: identifiers.array, context: context))
         return removeEntitiesStubs?.getOrFail(at: removeEntityRecords.count - 1) ?? removeEntitiesStub
     }
-    #endif
 }
 
 private extension Array {

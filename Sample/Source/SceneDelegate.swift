@@ -8,7 +8,6 @@
 
 import UIKit
 import SwiftUI
-import ReactiveKit
 
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 

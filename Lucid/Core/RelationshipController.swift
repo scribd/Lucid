@@ -6,12 +6,8 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
-import Foundation
-import ReactiveKit
-
-#if !LUCID_REACTIVE_KIT
 import Combine
-#endif
+import Foundation
 
 private enum Constants {
     static let isDebugModeOn = ProcessInfo.processInfo.environment["RELATIONSHIP_CONTROLLER_DEBUG"] == "1"
@@ -65,15 +61,9 @@ public protocol RelationshipCoreManaging: AnyObject {
     ///   - context: context used for fetching
     /// - Returns: A signal of any entities
     /// - Warning: Does not ensure ordering the result data set.
-    #if LUCID_REACTIVE_KIT
-    func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
-             entityType: String,
-             in context: _ReadContext<ResultPayload>) -> Signal<AnySequence<AnyEntity>, ManagerError>
-    #else
     func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
              entityType: String,
              in context: _ReadContext<ResultPayload>) -> AnyPublisher<AnySequence<AnyEntity>, ManagerError>
-    #endif
 }
 
 extension RelationshipCoreManaging {
@@ -184,7 +174,7 @@ public final class RelationshipController<RelationshipManager, Graph>
 
     public typealias ReadContext = RelationshipManager.ReadContext
 
-    private let rootEntities: Signal<AnySequence<Graph.AnyEntity>, ManagerError>
+    private let rootEntities: AnyPublisher<AnySequence<Graph.AnyEntity>, ManagerError>
 
     private let relationshipContext: ReadContext
 
@@ -192,7 +182,7 @@ public final class RelationshipController<RelationshipManager, Graph>
 
     private let relationshipFetcher: RelationshipFetcher
 
-    public init(rootEntities: Signal<AnySequence<Graph.AnyEntity>, ManagerError>,
+    public init(rootEntities: AnyPublisher<AnySequence<Graph.AnyEntity>, ManagerError>,
                 relationshipContext: ReadContext,
                 relationshipManager: RelationshipManager?,
                 relationshipFetcher: RelationshipFetcher = .none) {
@@ -207,39 +197,25 @@ public final class RelationshipController<RelationshipManager, Graph>
         }
     }
 
-    #if LUCID_REACTIVE_KIT
-    public convenience init<E>(rootEntities: Signal<AnySequence<E>, ManagerError>,
-                               relationshipContext: ReadContext,
-                               relationshipManager: RelationshipManager,
-                               relationshipFetcher: RelationshipFetcher = .none)
-        where E: Entity, E.ResultPayload == RelationshipManager.ResultPayload {
-
-            self.init(rootEntities: rootEntities.map { $0.lazy.compactMap { Graph.AnyEntity($0) }.any },
-                      relationshipContext: relationshipContext,
-                      relationshipManager: relationshipManager,
-                      relationshipFetcher: relationshipFetcher)
-    }
-    #else
     public convenience init<E>(rootEntities: AnyPublisher<AnySequence<E>, ManagerError>,
                                relationshipContext: ReadContext,
                                relationshipManager: RelationshipManager,
                                relationshipFetcher: RelationshipFetcher = .none)
         where E: Entity, E.ResultPayload == RelationshipManager.ResultPayload {
 
-            self.init(rootEntities: rootEntities.map { $0.lazy.compactMap { Graph.AnyEntity($0) }.any }.toSignal(),
+            self.init(rootEntities: rootEntities.map { $0.lazy.compactMap { Graph.AnyEntity($0) }.any }.eraseToAnyPublisher(),
                       relationshipContext: relationshipContext,
                       relationshipManager: relationshipManager,
                       relationshipFetcher: relationshipFetcher)
     }
-    #endif
 
-    private func _buildGraph() -> Signal<Graph, ManagerError> {
+    private func _buildGraph() -> AnyPublisher<Graph, ManagerError> {
 
         let createdAt = Date()
         Logger.log(.debug, "\(RelationshipController.self): Creating graph for \(relationshipContext).")
 
         let graph = ThreadSafeGraph<Graph>(context: self.relationshipContext)
-        return self._fill(graph, nestedContext: self.relationshipContext).flatMapLatest { _ -> Signal<Graph, ManagerError> in
+        return self.fill(graph, nestedContext: self.relationshipContext).flatMap { _ -> AnyPublisher<Graph, ManagerError> in
             let processingInterval = Date().timeIntervalSince(createdAt)
 
             Logger.log(.debug, "\(RelationshipController.self): Took \(processingInterval)s to build graph for \(self.relationshipContext.debugDescription).")
@@ -247,23 +223,18 @@ public final class RelationshipController<RelationshipManager, Graph>
                 graph.logPerformanceAnomaly(prefix: "\(RelationshipController.self)")
             }
 
-            return Signal(just: graph.value)
+            return Just<Graph>(graph.value).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
         }
+        .eraseToAnyPublisher()
     }
 
-    #if LUCID_REACTIVE_KIT
-    public func buildGraph() -> Signal<Graph, ManagerError> {
-        return _buildGraph()
-    }
-    #else
     public func buildGraph() -> AnyPublisher<Graph, ManagerError> {
-        return _buildGraph().toPublisher().eraseToAnyPublisher()
+        return _buildGraph().eraseToAnyPublisher()
     }
-    #endif
 
-    private func _fill(_ graph: ThreadSafeGraph<Graph>, nestedContext: ReadContext, path: [Graph.AnyEntity.IndexName] = []) -> Signal<(), ManagerError> {
+    public func fill(_ graph: ThreadSafeGraph<Graph>, nestedContext: ReadContext, path: [Graph.AnyEntity.IndexName] = []) -> AnyPublisher<Void, ManagerError> {
 
-        return rootEntities.flatMapLatest { (entities: AnySequence<Graph.AnyEntity>) -> Signal<(), ManagerError>  in
+        return rootEntities.flatMap { (entities: AnySequence<Graph.AnyEntity>) -> AnyPublisher<Void, ManagerError>  in
             let entities = entities.array
 
             if path.isEmpty {
@@ -280,14 +251,14 @@ public final class RelationshipController<RelationshipManager, Graph>
             }
 
             guard relationshipIdentifiersByIndex.isEmpty == false else {
-                return Signal(just: ())
+                return Just<Void>(()).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
             }
 
             let graphAtCurrentDepth = graph.value
 
-            return Signal(
-                combiningLatest: relationshipIdentifiersByIndex.keys.sorted { "\($0)" < "\($1)" }
-                    .compactMap { indexName -> Signal<(), ManagerError>? in
+            return Publishers.MergeMany(
+                relationshipIdentifiersByIndex.keys.sorted { "\($0)" < "\($1)" }
+                    .compactMap { indexName -> AnyPublisher<Void, ManagerError>? in
                         guard let _identifiers = relationshipIdentifiersByIndex[indexName] else { return nil }
                         let identifiers = graph.filterOutContainedIDs(of: _identifiers)
 
@@ -298,11 +269,11 @@ public final class RelationshipController<RelationshipManager, Graph>
                             identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
                             recursiveMethod: RelationshipFetcher.RecursiveMethod,
                             context: ReadContext
-                        ) -> Signal<(), ManagerError> in
+                        ) -> AnyPublisher<Void, ManagerError> in
 
                             // Identifiers should all have the same type at this point
                             guard let entityTypeUID = identifiers.first?.entityTypeUID else {
-                                return Signal(just: ())
+                                return Just<Void>(()).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
                             }
 
                             let updatedContext = context.updateForRelationshipController(at: pathAtCurrentDepth, graph: graphAtCurrentDepth, deltaStrategy: .retainExtraLocalData)
@@ -311,7 +282,7 @@ public final class RelationshipController<RelationshipManager, Graph>
                                 byIDs: identifiers,
                                 entityType: entityTypeUID,
                                 in: updatedContext
-                            ).toSignal() ?? Signal(just: [].any)
+                            ) ?? Just([].any).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
 
                             let recurse = {
                                 return RelationshipController(
@@ -319,7 +290,7 @@ public final class RelationshipController<RelationshipManager, Graph>
                                     relationshipContext: context,
                                     relationshipManager: self.relationshipManager,
                                     relationshipFetcher: self.relationshipFetcher
-                                )._fill(graph, nestedContext: updatedContext, path: pathAtCurrentDepth)
+                                ).fill(graph, nestedContext: updatedContext, path: pathAtCurrentDepth)
                             }
 
                             let globalDepthLimit = LucidConfiguration.relationshipControllerMaxRecursionDepth
@@ -340,33 +311,28 @@ public final class RelationshipController<RelationshipManager, Graph>
                                 return entities.map { entities in
                                     graph.insert(entities)
                                 }
+                                .eraseToAnyPublisher()
                             }
                         }
 
                         switch self.relationshipFetcher.fetch(pathAtCurrentDepth, identifiers.any, graph) {
-                        case .custom(let signal):
-                            return signal.toSignal()
+                        case .custom(let publisher):
+                            return publisher
                         case .all(let recursive, let context):
                             return automaticallyFetchRelationships(identifiers.any, recursive, context ?? nestedContext)
                         case .filtered(let identifiers, let recursive, let context):
                             return automaticallyFetchRelationships(identifiers.any, recursive, context ?? nestedContext)
                         case .none:
-                            return Signal(just: ())
+                            return Just<Void>(()).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
                         }
                 }
-            ) { _ in () }
+            )
+            .collect()
+            .map { _ in () }
+            .eraseToAnyPublisher()
         }
+        .eraseToAnyPublisher()
     }
-
-    #if LUCID_REACTIVE_KIT
-    public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [Graph.AnyEntity.IndexName] = []) -> Signal<(), ManagerError> {
-        return _fill(graph, nestedContext: context, path: path)
-    }
-    #else
-    public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [Graph.AnyEntity.IndexName] = []) -> AnyPublisher<(), ManagerError> {
-        return _fill(graph, nestedContext: context, path: path).toPublisher().eraseToAnyPublisher()
-    }
-    #endif
 }
 
 // MARK: - RelationshipFetcher
@@ -384,11 +350,7 @@ public extension RelationshipController {
         public enum RelationshipFetchingMethod {
             case all(recursive: RecursiveMethod, context: ReadContext?)
             case filtered(AnySequence<AnyRelationshipIdentifierConvertible>, recursive: RecursiveMethod, context: ReadContext?)
-            #if LUCID_REACTIVE_KIT
-            case custom(Signal<(), ManagerError>)
-            #else
-            case custom(AnyPublisher<(), ManagerError>)
-            #endif
+            case custom(AnyPublisher<Void, ManagerError>)
             case none
         }
 
@@ -443,47 +405,29 @@ public extension RelationshipController {
         private var mainContext: ReadContext
 
         private let rootEntities: (
-            once: Signal<AnySequence<Graph.AnyEntity>, ManagerError>,
-            continuous: SafeSignal<AnySequence<Graph.AnyEntity>>
+            once: AnyPublisher<AnySequence<Graph.AnyEntity>, ManagerError>,
+            continuous: AnySafePublisher<AnySequence<Graph.AnyEntity>>
         )
 
         private let relationshipManager: RelationshipManager?
 
-        private init(_ rootEntities: (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>),
-                     in mainContext: ReadContext,
-                     relationshipManager: RelationshipManager?) {
+        public init(rootEntities: (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnySafePublisher<QueryResult<E>>),
+                                in mainContext: ReadContext,
+                                relationshipManager: RelationshipManager?) {
 
                 self.rootEntities = (
-                    rootEntities.once.map { $0.lazy.compactMap { Graph.AnyEntity($0) }.any },
+                    rootEntities.once.map { $0.lazy.compactMap { Graph.AnyEntity($0) }.any }.eraseToAnyPublisher(),
                     rootEntities.continuous.map {
                         $0.lazy.compactMap { Graph.AnyEntity($0) }.any
-                    }
+                    }.eraseToAnyPublisher()
                 )
                 self.mainContext = mainContext
                 self.relationshipManager = relationshipManager
         }
 
-        #if LUCID_REACTIVE_KIT
-        public convenience init(rootEntities: (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>),
-                                in mainContext: ReadContext,
-                                relationshipManager: RelationshipManager?) {
-
-            self.init(rootEntities, in: mainContext, relationshipManager: relationshipManager)
-        }
-        #else
-        public convenience init(rootEntities: (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>),
-                                in mainContext: ReadContext,
-                                relationshipManager: RelationshipManager?) {
-
-                self.init((rootEntities.once.toSignal(), rootEntities.continuous.toSignal()),
-                          in: mainContext,
-                          relationshipManager: relationshipManager)
-        }
-        #endif
-
         private func controller(for rootEntities: AnySequence<Graph.AnyEntity>, context: ReadContext) -> RelationshipController<RelationshipManager, Graph> {
             return RelationshipController(
-                rootEntities: Signal(just: rootEntities),
+                rootEntities: Just(rootEntities).setFailureType(to: ManagerError.self).eraseToAnyPublisher(),
                 relationshipContext: context,
                 relationshipManager: self.relationshipManager,
                 relationshipFetcher: .fetcher { path, identifiers, graph in
@@ -499,29 +443,31 @@ public extension RelationshipController {
             )
         }
 
-        private func _perform(_: Graph.Type) -> (once: Signal<Graph, ManagerError>, continuous: Signal<Graph, ManagerError>) {
+        public func perform(_ graphType: Graph.Type) -> (once: AnyPublisher<Graph, ManagerError>, continuous: AnyPublisher<Graph, ManagerError>) {
 
             let dispatchQueue = DispatchQueue(label: "\(RelationshipQuery.self):first_graph")
             var eventCount = 0
-            var firstGraph: Signal<Graph, ManagerError>?
+            var firstGraph: AnyPublisher<Graph, ManagerError>?
 
             return (
                 rootEntities
                     .once
                     .receive(on: dispatchQueue)
-                    .flatMapLatest { entities -> Signal<Graph, ManagerError> in
+                    .flatMap { entities -> AnyPublisher<Graph, ManagerError> in
                         if let graph = firstGraph {
                             return graph
                         } else {
-                            let graph = self.controller(for: entities, context: self.mainContext).buildGraph().toSignal()
+                            let graph = self.controller(for: entities, context: self.mainContext).buildGraph()
                             firstGraph = graph
                             return graph
                         }
-                    },
+                    }
+                    .eraseToAnyPublisher(),
                 rootEntities
                     .continuous
                     .receive(on: dispatchQueue)
-                    .flatMapLatest { entities -> Signal<Graph, ManagerError> in
+                    .setFailureType(to: ManagerError.self)
+                    .flatMap { entities -> AnyPublisher<Graph, ManagerError> in
                         defer { eventCount += 1 }
                         if let graph = firstGraph, eventCount == 0 {
                             return graph
@@ -529,43 +475,21 @@ public extension RelationshipController {
                             let graph = self.controller(
                                 for: entities,
                                 context: eventCount == 0 ? self.mainContext : self.mainContext.discardingRemoteStoreCache.transformedForRelationshipFetching
-                            ).buildGraph().toSignal()
+                            ).buildGraph()
                             firstGraph = graph
                             return graph
                         }
                     }
+                    .eraseToAnyPublisher()
             )
         }
 
-        #if LUCID_REACTIVE_KIT
-        public func perform(_ graphType: Graph.Type) -> (once: Signal<Graph, ManagerError>, continuous: Signal<Graph, ManagerError>) {
-            return _perform(graphType)
-        }
-        #else
-        public func perform(_ graphType: Graph.Type) -> (once: AnyPublisher<Graph, ManagerError>, continuous: AnyPublisher<Graph, ManagerError>) {
-            let signals = _perform(graphType)
-            return (
-                signals.once.toPublisher().eraseToAnyPublisher(),
-                signals.continuous.toPublisher().eraseToAnyPublisher()
-            )
-        }
-        #endif
-
-        private func _fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [Graph.AnyEntity.IndexName] = []) -> Signal<(), ManagerError> {
-            return rootEntities.once.flatMapLatest { entities -> Signal<(), ManagerError> in
-                self.controller(for: entities, context: self.mainContext).fill(graph, context: context, path: path).toSignal()
+        public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [Graph.AnyEntity.IndexName] = []) -> AnyPublisher<Void, ManagerError> {
+            return rootEntities.once.flatMap { entities -> AnyPublisher<Void, ManagerError> in
+                self.controller(for: entities, context: self.mainContext).fill(graph, nestedContext: context, path: path)
             }
+            .eraseToAnyPublisher()
         }
-
-        #if LUCID_REACTIVE_KIT
-        public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [Graph.AnyEntity.IndexName] = []) -> Signal<(), ManagerError> {
-            return _fill(graph, context: context, path: path)
-        }
-        #else
-        public func fill(_ graph: ThreadSafeGraph<Graph>, context: ReadContext, path: [Graph.AnyEntity.IndexName] = []) -> AnyPublisher<(), ManagerError> {
-            return _fill(graph, context: context, path: path).toPublisher().eraseToAnyPublisher()
-        }
-        #endif
 
         // MARK: - Fetcher
 
@@ -636,25 +560,6 @@ public extension RelationshipController {
     }
 }
 
-#if LUCID_REACTIVE_KIT
-extension Signal where Element: QueryResultInterface, Error == ManagerError {
-
-    func relationships<Manager, Graph>(from relationshipManager: Manager?,
-                                       in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery<Element.E>
-        where Manager: RelationshipCoreManaging, Graph: MutableGraph, Graph.AnyEntity == Manager.AnyEntity, Manager.ResultPayload == Element.E.ResultPayload {
-
-            return RelationshipController<Manager, Graph>.RelationshipQuery(rootEntities: (map { $0.materialized }, PassthroughSubject().toSignal()),
-                                                                            in: context ?? RelationshipController<Manager, Graph>.ReadContext(),
-                                                                            relationshipManager: relationshipManager)
-    }
-
-    public func relationships<Manager, Graph>(from relationshipManager: Manager, in context: RelationshipController<Manager, Graph>.ReadContext? = nil) -> RelationshipController<Manager, Graph>.RelationshipQuery<Element.E>
-        where Manager: RelationshipCoreManaging, Graph: MutableGraph, Graph.AnyEntity == Manager.AnyEntity, Manager.ResultPayload == Element.E.ResultPayload {
-
-            return relationships(from: .some(relationshipManager), in: context)
-    }
-}
-#else
 extension Publisher where Output: QueryResultInterface, Failure == ManagerError {
 
     func relationships<Manager, Graph>(from relationshipManager: Manager?,
@@ -677,7 +582,6 @@ extension Publisher where Output: QueryResultInterface, Failure == ManagerError 
             return relationships(from: .some(relationshipManager), in: context)
     }
 }
-#endif
 
 // MARK: - Context Utils
 

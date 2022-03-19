@@ -2,7 +2,6 @@ name: Tests
 on: push
 
 env:
-  CARTHAGE_BOOTSTRAP_OUTPUT: carthage_bootstrap_output.log
   ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
 jobs:
@@ -30,9 +29,6 @@ jobs:
       - name: Clone Project
         uses: actions/checkout@v2
 
-      - name: Bootstrap
-        run: XCODE_XCCONFIG_FILE="../../Patches/lucid.xcconfig" carthage bootstrap --platform iOS,watchOS --log-path $CARTHAGE_BOOTSTRAP_OUTPUT --use-xcframeworks
-
       - name: Run Lucid-iOS Tests
         run: |
           fastlane scan --scheme Lucid-iOS --skip_testing "$FRAGILE_TESTS" --device "iPhone 8" --output_directory $FASTLANE_LOGS --result_bundle true
@@ -45,7 +41,6 @@ jobs:
           fastlane scan --scheme Lucid-iOS --only_testing "$FRAGILE_TESTS" --device "iPhone 8" --output_directory $FASTLANE_FRAGILE_LOGS --result_bundle true
 
       - name: Bundle Log Files
-        if: ${{ always() && steps.carthage-bootstrap.outcome == 'success' }}
         run: |
           cd $FASTLANE_LOGS
           zip -rX build-artifacts.zip .
@@ -55,17 +50,9 @@ jobs:
           zip -rX build-artifacts.zip .
 
       - name: Upload Fastlane Log Files
-        if: ${{ always() && steps.carthage-bootstrap.outcome == 'success' }}
         uses: actions/upload-artifact@v2
         with:
           name: build-artifacts
           path: |
             ${{ env.FASTLANE_LOGS }}/build-artifacts.zip
             ${{ env.FASTLANE_FRAGILE_LOGS }}/build-artifacts.zip
-
-      - name: Upload Carthage Log Files
-        if: ${{ always() && steps.carthage-bootstrap.outcome == 'failure' }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: carthage-log
-          path: ${{ env.CARTHAGE_BOOTSTRAP_OUTPUT }}

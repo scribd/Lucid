@@ -30,13 +30,12 @@ public final class EntityGraphGenerator: Generator {
         
         let header = MetaHeader(filename: filename, organizationName: organizationName)
         let entityGraph = MetaEntityGraph(descriptions: parameters.currentDescriptions,
-                                          reactiveKit: parameters.reactiveKit,
                                           useCoreDataLegacyNaming: parameters.useCoreDataLegacyNaming)
         
         return Meta.File(name: filename)
             .with(header: header.meta)
             .adding(import: .lucid)
-            .adding(import: parameters.reactiveKit ? .reactiveKit : .combine)
+            .adding(import: .combine)
             .adding(members: entityGraph.meta())
             .swiftFile(in: directory)
     }

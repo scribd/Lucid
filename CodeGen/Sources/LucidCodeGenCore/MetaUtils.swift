@@ -85,10 +85,6 @@ public extension Import {
         return Import(name: descriptions.targets.appTestSupport.moduleName, testable: true)
     }
     
-    static var reactiveKit: Import {
-        return Import(name: "ReactiveKit")
-    }
-
     static var combine: Import {
         return Import(name: "Combine")
     }

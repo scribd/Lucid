@@ -6,6 +6,8 @@
 //  Copyright © 2019 Scribd. All rights reserved.
 //
 
+import Foundation
+
 public extension Result {
 
     var error: Failure? {
@@ -17,7 +19,7 @@ public extension Result {
         }
     }
 
-    var value: Value? {
+    var value: Success? {
         switch self {
         case .success(let value):
             return value
@@ -26,15 +28,15 @@ public extension Result {
         }
     }
 
-    init(value: Value) {
+    init(value: Success) {
         self = .success(value)
     }
 
-    init(error: Error) {
+    init(error: Failure) {
         self = .failure(error)
     }
 
-    func analysis<U>(_ ifSuccess: (Value) -> U, ifFailure: (Error) -> U) -> U {
+    func analysis<U>(_ ifSuccess: (Success) -> U, ifFailure: (Failure) -> U) -> U {
         switch self {
         case let .success(value):
             return ifSuccess(value)
@@ -72,5 +74,21 @@ public extension APIClientQueueResult {
 
     init(error: E) {
         self = .failure(error)
+    }
+}
+
+public extension NSLock {
+
+    convenience init(name: String) {
+        self.init()
+        self.name = name
+    }
+}
+
+public extension NSRecursiveLock {
+
+    convenience init(name: String) {
+        self.init()
+        self.name = name
     }
 }

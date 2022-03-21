@@ -23,9 +23,8 @@ let main = Group {
         Option<String>("cache-path", default: String(), description: "Cache files location."),
         Option<String>("force-build-new-db-model", default: String(), description: "Force to build a new Database Model regardless of changes."),
         VariadicOption<String>("force-build-new-db-model-for-versions", default: [], description: "Force to build a new Database Model regardless of changes for versions."),
-        Option<String>("reactive-kit", default: String(), description: "Weither to use ReactiveKit's API."),
         VariadicOption<String>("selected-targets", default: [], description: "List of targets to generate.")
-    ) { configPath, currentVersion, cachePath, forceBuildNewDBModel, forceBuildNewDBModelForVersions, reactiveKit, selectedTargets in
+    ) { configPath, currentVersion, cachePath, forceBuildNewDBModel, forceBuildNewDBModelForVersions, selectedTargets in
         
         let logger = Logger()
 
@@ -37,7 +36,6 @@ let main = Group {
             forceBuildNewDBModel: forceBuildNewDBModel == "true" ? true : forceBuildNewDBModel == "false" ? false : nil,
             forceBuildNewDBModelForVersions: forceBuildNewDBModelForVersions.isEmpty ? nil : Set(forceBuildNewDBModelForVersions),
             selectedTargets: Set(selectedTargets),
-            reactiveKit: reactiveKit == "true" ? true : reactiveKit == "false" ? false : nil,
             logger: logger
         )
 

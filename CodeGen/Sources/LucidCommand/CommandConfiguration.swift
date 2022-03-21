@@ -60,9 +60,6 @@ struct CommandConfiguration {
     ///            before using any `CoreManager`. Failing to do so could lead to unexpected behaviors.
     var useCoreDataLegacyNaming = Defaults.useCoreDataLegacyNaming
 
-    /// Weither to use ReactiveKit's API.
-    var reactiveKit = Defaults.reactiveKit
-
     /// List of words for which no transformation (capitalization) should be applied.
     var lexicon = Defaults.lexicon
 
@@ -75,7 +72,6 @@ struct CommandConfiguration {
                      forceBuildNewDBModel: Bool?,
                      forceBuildNewDBModelForVersions: Set<String>?,
                      selectedTargets: Set<String>,
-                     reactiveKit: Bool?,
                      logger: Logger) throws -> CommandConfiguration {
 
         let configPath = configPath.flatMap { Path($0) } ?? Defaults.configPath
@@ -88,7 +84,6 @@ struct CommandConfiguration {
                         forceBuildNewDBModel: forceBuildNewDBModel,
                         forceBuildNewDBModelForVersions: forceBuildNewDBModelForVersions,
                         selectedTargets: selectedTargets,
-                        reactiveKit: reactiveKit,
                         logger: logger)
     }
 
@@ -99,7 +94,6 @@ struct CommandConfiguration {
                              forceBuildNewDBModel: Bool?,
                              forceBuildNewDBModelForVersions: Set<String>?,
                              selectedTargets: Set<String>,
-                             reactiveKit: Bool?,
                              logger: Logger) throws -> CommandConfiguration {
 
         var configuration = configuration
@@ -120,7 +114,6 @@ struct CommandConfiguration {
         configuration._cachePath = cachePath.flatMap { Path($0) } ?? configuration._cachePath
         configuration.forceBuildNewDBModel = forceBuildNewDBModel ?? configuration.forceBuildNewDBModel
         configuration.forceBuildNewDBModelForVersions = forceBuildNewDBModelForVersions ?? configuration.forceBuildNewDBModelForVersions
-        configuration.reactiveKit = reactiveKit ?? configuration.reactiveKit
 
         String.Configuration.entitySuffix = configuration.entitySuffix
         String.Configuration.setLexicon(configuration.lexicon)
@@ -151,7 +144,6 @@ struct CommandConfiguration {
                 }
                 return Set(targets.map { $0.rawValue })
             }(),
-            reactiveKit: false,
             logger: logger
         )
 
@@ -261,7 +253,6 @@ private enum Defaults {
     static let forceBuildNewDBModelForVersions = Set<String>()
     static let lexicon = [String]()
     static let entitySuffix = ""
-    static let reactiveKit = false
     static let useCoreDataLegacyNaming = false
     static let targetOutputPath = Path("Generated")
 }
@@ -285,7 +276,6 @@ extension CommandConfiguration: Codable {
         case activeTargets = "active_targets"
         case coreDataMigrationsFunction = "core_data_migrations_function"
         case entitySuffix = "entity_suffix"
-        case reactiveKit = "reactive_kit"
         case useCoreDataLegacyNaming = "use_core_data_legacy_naming"
     }
     
@@ -307,7 +297,6 @@ extension CommandConfiguration: Codable {
         forceBuildNewDBModelForVersions = try container.decodeIfPresent(Set<String>.self, forKey: .forceBuildNewDBModelForVersions) ?? Defaults.forceBuildNewDBModelForVersions
         coreDataMigrationsFunction = try container.decodeIfPresent(String.self, forKey: .coreDataMigrationsFunction)
         useCoreDataLegacyNaming = try container.decodeIfPresent(Bool.self, forKey: .useCoreDataLegacyNaming) ?? Defaults.useCoreDataLegacyNaming
-        reactiveKit = try container.decodeIfPresent(Bool.self, forKey: .reactiveKit) ?? Defaults.reactiveKit
         lexicon = try container.decodeIfPresent([String].self, forKey: .lexicon) ?? Defaults.lexicon
         entitySuffix = try container.decodeIfPresent(String.self, forKey: .entitySuffix) ?? Defaults.entitySuffix
     }
@@ -337,7 +326,6 @@ extension CommandConfiguration: Codable {
         try container.encodeIfPresent(forceBuildNewDBModelForVersions.isEmpty ? nil : forceBuildNewDBModelForVersions.sorted(), forKey: .forceBuildNewDBModelForVersions)
         try container.encodeIfPresent(coreDataMigrationsFunction, forKey: .coreDataMigrationsFunction)
         try container.encodeIfPresent(useCoreDataLegacyNaming == Defaults.useCoreDataLegacyNaming ? nil : useCoreDataLegacyNaming, forKey: .useCoreDataLegacyNaming)
-        try container.encodeIfPresent(reactiveKit == Defaults.reactiveKit ? nil : reactiveKit, forKey: .reactiveKit)
         try container.encodeIfPresent(lexicon == Defaults.lexicon ? nil : lexicon.sorted(), forKey: .lexicon)
         try container.encodeIfPresent(entitySuffix == Defaults.entitySuffix ? nil : entitySuffix, forKey: .entitySuffix)
     }

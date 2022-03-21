@@ -6,7 +6,6 @@
 //  Copyright © 2022 Scribd. All rights reserved.
 //
 
-#if !LUCID_REACTIVE_KIT
 import Combine
 import Foundation
 
@@ -32,14 +31,14 @@ public extension Publishers {
 
         public func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
 
-            let subscription = AMBSubscription(self, subscriber, count: publishers.count)
+            self.queue.sync {
+                let subscription = AMBSubscription(self, subscriber, count: publishers.count)
 
-            let cancellable = Future<Output, Failure> { promise in
+                let cancellable = Future<Output, Failure> { promise in
 
-                var hasBeenChosen: Bool = false
+                    var hasBeenChosen: Bool = false
 
-                let attemptChoice: (Result<Output, Failure>, @escaping () -> Void) -> Void = { result, completion in
-                    self.queue.async(flags: .barrier) {
+                    let attemptChoice: (Result<Output, Failure>, @escaping () -> Void) -> Void = { result, completion in
                         defer { completion() }
                         if hasBeenChosen {
                             return
@@ -47,9 +46,6 @@ public extension Publishers {
                         hasBeenChosen = true
                         promise(result)
                     }
-                }
-
-                self.queue.sync {
 
                     self.publishers.enumerated().forEach { index, publisher in
 
@@ -62,6 +58,7 @@ public extension Publishers {
                         }
 
                         publisher
+                            .receive(on: self.queue)
                             .sink(receiveCompletion: { terminal in
                                 switch terminal {
                                 case .failure(let error):
@@ -75,15 +72,15 @@ public extension Publishers {
                             .store(in: &subscription.cancellableSets[index])
                     }
                 }
-            }
-            .sink(receiveCompletion: { terminal in
-                subscriber.receive(completion: terminal)
-            }, receiveValue: { value in
-                _ = subscriber.receive(value)
-            })
+                .sink(receiveCompletion: { terminal in
+                    subscriber.receive(completion: terminal)
+                }, receiveValue: { value in
+                    _ = subscriber.receive(value)
+                })
 
-            subscription.cancellable = cancellable
-            subscriber.receive(subscription: subscription)
+                subscription.cancellable = cancellable
+                subscriber.receive(subscription: subscription)
+            }
         }
     }
 }
@@ -117,5 +114,3 @@ private extension Publishers.AMB {
         func request(_ demand: Subscribers.Demand) { }
     }
 }
-
-#endif

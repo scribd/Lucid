@@ -29,8 +29,6 @@ public struct GeneratorParameters: Codable {
 
     public let platform: Platform?
 
-    public let reactiveKit: Bool
-
     public let shouldGenerateDataModel: Bool
 
     public let sqliteFile: Path
@@ -48,7 +46,6 @@ public struct GeneratorParameters: Codable {
                 targetModuleName: String,
                 oldestModelVersion: Version,
                 platform: Platform?,
-                reactiveKit: Bool,
                 shouldGenerateDataModel: Bool,
                 sqliteFile: Path,
                 sqliteFiles: [String],
@@ -63,7 +60,6 @@ public struct GeneratorParameters: Codable {
         self.targetModuleName = targetModuleName
         self.oldestModelVersion = oldestModelVersion
         self.platform = platform
-        self.reactiveKit = reactiveKit
         self.shouldGenerateDataModel = shouldGenerateDataModel
         self.sqliteFile = sqliteFile
         self.sqliteFiles = sqliteFiles

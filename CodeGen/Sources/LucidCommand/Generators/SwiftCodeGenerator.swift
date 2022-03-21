@@ -27,7 +27,6 @@ final class SwiftCodeGenerator {
          shouldGenerateDataModel: Bool,
          descriptionsHash: String,
          coreDataMigrationsFunction: String?,
-         reactiveKit: Bool,
          useCoreDataLegacyNaming: Bool,
          organizationName: String,
          extensionsPath: Path?,
@@ -77,7 +76,6 @@ final class SwiftCodeGenerator {
                 descriptionsHash: descriptionsHash,
                 platform: $0,
                 coreDataMigrationsFunction: coreDataMigrationsFunction,
-                reactiveKit: reactiveKit,
                 useCoreDataLegacyNaming: useCoreDataLegacyNaming,
                 organizationName: organizationName,
                 extensionsPath: extensionsPath,
@@ -139,7 +137,6 @@ private final class InternalSwiftCodeGenerator {
     private let descriptionsHash: String
     private let platform: Platform?
     private let coreDataMigrationsFunction: String?
-    private let reactiveKit: Bool
     private let useCoreDataLegacyNaming: Bool
     private let organizationName: String
     private let extensionsPath: Path?
@@ -172,7 +169,6 @@ private final class InternalSwiftCodeGenerator {
          descriptionsHash: String,
          platform: Platform?,
          coreDataMigrationsFunction: String?,
-         reactiveKit: Bool,
          useCoreDataLegacyNaming: Bool,
          organizationName: String,
          extensionsPath: Path?,
@@ -187,7 +183,6 @@ private final class InternalSwiftCodeGenerator {
         self.descriptionsHash = descriptionsHash
         self.platform = platform
         self.coreDataMigrationsFunction = coreDataMigrationsFunction
-        self.reactiveKit = reactiveKit
         self.useCoreDataLegacyNaming = useCoreDataLegacyNaming
         self.organizationName = organizationName
         self.extensionsPath = extensionsPath
@@ -208,7 +203,6 @@ private final class InternalSwiftCodeGenerator {
             targetModuleName: target.moduleName,
             oldestModelVersion: oldestModelVersion,
             platform: platform,
-            reactiveKit: reactiveKit,
             shouldGenerateDataModel: shouldGenerateDataModel,
             sqliteFile: sqliteFile,
             sqliteFiles: sqliteFiles,

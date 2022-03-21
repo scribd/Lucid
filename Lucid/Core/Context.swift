@@ -6,11 +6,8 @@
 //  Copyright © 2018 Scribd. All rights reserved.
 //
 
-import Foundation
-
-#if !LUCID_REACTIVE_KIT
 import Combine
-#endif
+import Foundation
 
 // MARK: - V3 Parameters
 

@@ -7,11 +7,7 @@
 //
 
 import Foundation
-import ReactiveKit
-
-#if !LUCID_REACTIVE_KIT
 import Combine
-#endif
 
 // MARK: - Error
 
@@ -50,89 +46,40 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
 
     // MARK: - Method Types
 
-    #if LUCID_REACTIVE_KIT
-    public typealias GetEntity = (
-        _ query: Query<E>,
-        _ context: ReadContext<E>
-    ) -> Signal<QueryResult<E>, ManagerError>
-    #else
     public typealias GetEntity = (
         _ query: Query<E>,
         _ context: ReadContext<E>
     ) -> AnyPublisher<QueryResult<E>, ManagerError>
-    #endif
 
-    #if LUCID_REACTIVE_KIT
-    public typealias SearchEntities = (
-        _ query: Query<E>,
-        _ context: ReadContext<E>
-    ) -> (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>)
-    #else
     public typealias SearchEntities = (
         _ query: Query<E>,
         _ context: ReadContext<E>
     ) -> (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>)
-    #endif
 
-    #if LUCID_REACTIVE_KIT
-    public typealias SetEntity = (
-        _ entity: E,
-        _ context: WriteContext<E>
-    ) -> Signal<E, ManagerError>
-    #else
     public typealias SetEntity = (
         _ entity: E,
         _ context: WriteContext<E>
     ) -> AnyPublisher<E, ManagerError>
-    #endif
 
-    #if LUCID_REACTIVE_KIT
-    public typealias SetEntities = (
-        _ entities: AnySequence<E>,
-        _ context: WriteContext<E>
-    ) -> Signal<AnySequence<E>, ManagerError>
-    #else
     public typealias SetEntities = (
         _ entities: AnySequence<E>,
         _ context: WriteContext<E>
     ) -> AnyPublisher<AnySequence<E>, ManagerError>
-    #endif
 
-    #if LUCID_REACTIVE_KIT
-    public typealias RemoveAllEntities = (
-        _ query: Query<E>,
-        _ context: WriteContext<E>
-    ) -> Signal<AnySequence<E.Identifier>, ManagerError>
-    #else
     public typealias RemoveAllEntities = (
         _ query: Query<E>,
         _ context: WriteContext<E>
     ) -> AnyPublisher<AnySequence<E.Identifier>, ManagerError>
-    #endif
 
-    #if LUCID_REACTIVE_KIT
-    public typealias RemoveEntity = (
-        _ identifier: E.Identifier,
-        _ context: WriteContext<E>
-    ) -> Signal<Void, ManagerError>
-    #else
     public typealias RemoveEntity = (
         _ identifier: E.Identifier,
         _ context: WriteContext<E>
     ) -> AnyPublisher<Void, ManagerError>
-    #endif
 
-    #if LUCID_REACTIVE_KIT
-    public typealias RemoveEntities = (
-        _ identifiers: AnySequence<E.Identifier>,
-        _ context: WriteContext<E>
-    ) -> Signal<Void, ManagerError>
-    #else
     public typealias RemoveEntities = (
         _ identifiers: AnySequence<E.Identifier>,
         _ context: WriteContext<E>
     ) -> AnyPublisher<Void, ManagerError>
-    #endif
 
     // MARK: - Methods
 
@@ -177,19 +124,11 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     ///
     /// - Note: If a new or updated `Entity` is retrieved, elected providers are notified.
     /// - Note: The signal response can be called from a different thread than main.
-    #if LUCID_REACTIVE_KIT
-    public func get(byID identifier: E.Identifier,
-                    in context: ReadContext<E> = ReadContext<E>()) -> Signal<QueryResult<E>, ManagerError> {
-        let query = Query<E>.identifier(identifier)
-        return getEntity(query, context)
-    }
-    #else
     public func get(byID identifier: E.Identifier,
                     in context: ReadContext<E> = ReadContext<E>()) -> AnyPublisher<QueryResult<E>, ManagerError> {
         let query = Query<E>.identifier(identifier)
         return getEntity(query, context)
     }
-    #endif
 
     /// Run a search query resulting with a filtered/ordered set of entities.
     ///
@@ -205,17 +144,10 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     ///
     /// - Note: For any new or updated retrieved `Entity`, elected providers are notified.
     /// - Note: The signal response can be called from a different thread than main.
-    #if LUCID_REACTIVE_KIT
-    public func search(withQuery query: Query<E>,
-                       in context: ReadContext<E> = ReadContext<E>()) -> (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>) {
-        return searchEntities(query, context)
-    }
-    #else
     public func search(withQuery query: Query<E>,
                        in context: ReadContext<E> = ReadContext<E>()) -> (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>) {
         return searchEntities(query, context)
     }
-    #endif
 
     /// Write an `Entity` to the `Store`.
     ///
@@ -228,19 +160,11 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     ///
     /// - Note: If the given entity is new or updated, elected providers are notified.
     /// - Note: The signal response can be called from a different thread than main.
-    #if LUCID_REACTIVE_KIT
-    @discardableResult
-    public func set(_ entity: E,
-                    in context: WriteContext<E>) -> Signal<E, ManagerError> {
-        return setEntity(entity, context)
-    }
-    #else
     @discardableResult
     public func set(_ entity: E,
                     in context: WriteContext<E>) -> AnyPublisher<E, ManagerError> {
         return setEntity(entity, context)
     }
-    #endif
 
     /// Bulk write an array of entities to the `Store`.
     ///
@@ -252,19 +176,11 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     ///     - A Signal to be observed. It will return a single response of either `[Entity]` or `ManagerError`.
     ///
     /// - Note: The signal response can be called from a different thread than main.
-    #if LUCID_REACTIVE_KIT
-    @discardableResult
-    public func set<S>(_ entities: S,
-                       in context: WriteContext<E>) -> Signal<AnySequence<E>, ManagerError> where S: Sequence, S.Element == E {
-        return setEntities(entities.any, context)
-    }
-    #else
     @discardableResult
     public func set<S>(_ entities: S,
                        in context: WriteContext<E>) -> AnyPublisher<AnySequence<E>, ManagerError> where S: Sequence, S.Element == E {
         return setEntities(entities.any, context)
     }
-    #endif
 
     /// Delete all `Entity` objects that match the query.
     ///
@@ -280,19 +196,11 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     ///
     /// - Warning: `removeAll` needs to perform additional operations in order to ensure the stores' integrity.
     ///            Using `remove(_:in:options:)` is usually preferable.
-    #if LUCID_REACTIVE_KIT
-    @discardableResult
-    public func removeAll(withQuery query: Query<E>,
-                          in context: WriteContext<E>) -> Signal<AnySequence<E.Identifier>, ManagerError> {
-        return removeAllEntities(query, context)
-    }
-    #else
     @discardableResult
     public func removeAll(withQuery query: Query<E>,
                           in context: WriteContext<E>) -> AnyPublisher<AnySequence<E.Identifier>, ManagerError> {
         return removeAllEntities(query, context)
     }
-    #endif
 
     /// Delete an `Entity` based on its identifier.
     ///
@@ -305,19 +213,11 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     ///
     /// - Note: When succeeding, elected providers are notified.
     /// - Note: The signal response can be called from a different thread than main.
-    #if LUCID_REACTIVE_KIT
-    @discardableResult
-    public func remove(atID identifier: E.Identifier,
-                       in context: WriteContext<E>) -> Signal<Void, ManagerError> {
-        return removeEntity(identifier, context)
-    }
-    #else
     @discardableResult
     public func remove(atID identifier: E.Identifier,
                        in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> {
         return removeEntity(identifier, context)
     }
-    #endif
 
     /// Bulk delete an `Entity` based on its identifier.
     ///
@@ -329,19 +229,11 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     ///     - A Signal to be observed. It will return a single response of either `Void` or `ManagerError`.
     ///
     /// - Note: The signal response can be called from a different thread than main.
-    #if LUCID_REACTIVE_KIT
-    @discardableResult
-    public func remove<S>(_ identifiers: S,
-                          in context: WriteContext<E>) -> Signal<Void, ManagerError> where S: Sequence, S.Element == E.Identifier {
-        return removeEntities(identifiers.any, context)
-    }
-    #else
     @discardableResult
     public func remove<S>(_ identifiers: S,
                           in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> where S: Sequence, S.Element == E.Identifier {
         return removeEntities(identifiers.any, context)
     }
-    #endif
 }
 
 public extension CoreManaging {
@@ -353,15 +245,9 @@ public extension CoreManaging {
     ///
     /// - Returns:
     ///     - A Signal to be observed. It will return a single response of either `[Entity]` or `ManagerError`.
-    #if LUCID_REACTIVE_KIT
-    func all(in context: ReadContext<E> = ReadContext<E>()) -> Signal<QueryResult<E>, ManagerError> {
-        return search(withQuery: .all, in: context).once
-    }
-    #else
     func all(in context: ReadContext<E> = ReadContext<E>()) -> AnyPublisher<QueryResult<E>, ManagerError> {
         return search(withQuery: .all, in: context).once
     }
-    #endif
 
     /// Retrieve the first entity found from the core manager based on a given query.
     ///
@@ -371,17 +257,10 @@ public extension CoreManaging {
     ///
     /// - Returns:
     ///     - A Signal to be observed. It will return a single response of either `Entity` or `ManagerError`.
-    #if LUCID_REACTIVE_KIT
-    func first(for query: Query<E> = .all,
-               in context: ReadContext<E> = ReadContext<E>()) -> Signal<E?, ManagerError> {
-        return search(withQuery: query, in: context).once.map { $0.first }
-    }
-    #else
     func first(for query: Query<E> = .all,
                in context: ReadContext<E> = ReadContext<E>()) -> AnyPublisher<E?, ManagerError> {
         return search(withQuery: query, in: context).once.map { $0.first }.eraseToAnyPublisher()
     }
-    #endif
 
     /// Retrieve entities that match one of the given identifiers.
     ///
@@ -394,16 +273,6 @@ public extension CoreManaging {
     ///     - `once` will return a single response of either `QueryResult<Entity>` or `ManagerError`.
     ///     - `continuous` will return a response of either `[Entity]` or `ManagerError` every time changes occur that
     ///        match the query. It will never be completed and will be retained until you release the dispose bag.
-    #if LUCID_REACTIVE_KIT
-    func get<S>(byIDs identifiers: S,
-                in context: ReadContext<E> = ReadContext<E>()) -> (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>)
-        where S: Sequence, S.Element == E.Identifier {
-
-            let query = Query<E>.filter(.identifier >> identifiers).order([.identifiers(identifiers.any)])
-
-            return search(withQuery: query, in: context)
-    }
-    #else
     func get<S>(byIDs identifiers: S,
                 in context: ReadContext<E> = ReadContext<E>()) -> (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>)
         where S: Sequence, S.Element == E.Identifier {
@@ -412,7 +281,6 @@ public extension CoreManaging {
 
             return search(withQuery: query, in: context)
     }
-    #endif
 }
 
 public extension CoreManaging where E: RemoteEntity {
@@ -425,17 +293,6 @@ public extension CoreManaging where E: RemoteEntity {
     ///
     /// - Returns:
     ///     - A Signal to be observed. It will return a single response of either `(Entity, Metadata)` or `ManagerError`.
-    #if LUCID_REACTIVE_KIT
-    func firstWithMetadata(for query: Query<E>? = .all,
-                           in context: ReadContext<E> = ReadContext<E>()) -> Signal<QueryResult<E>, ManagerError> {
-
-        let signals = search(withQuery: query ?? .all, in: context)
-        return signals.once.map { result -> QueryResult<E> in
-            guard let entity = result.entity, let metadata = result.metadata else { return .empty() }
-            return QueryResult<E>(from: entity, metadata: metadata)
-        }
-    }
-    #else
     func firstWithMetadata(for query: Query<E>? = .all,
                            in context: ReadContext<E> = ReadContext<E>()) -> AnyPublisher<QueryResult<E>, ManagerError> {
 
@@ -445,20 +302,13 @@ public extension CoreManaging where E: RemoteEntity {
             return QueryResult<E>(from: entity, metadata: metadata)
         }.eraseToAnyPublisher()
     }
-    #endif
 }
 
 public extension CoreManaging where E.Identifier == VoidEntityIdentifier {
 
-    #if LUCID_REACTIVE_KIT
-    func get(in context: ReadContext<E> = ReadContext<E>()) -> Signal<QueryResult<E>, ManagerError> {
-        return getEntity(Query.identifier(VoidEntityIdentifier()), context)
-    }
-    #else
     func get(in context: ReadContext<E> = ReadContext<E>()) -> AnyPublisher<QueryResult<E>, ManagerError> {
         return getEntity(Query.identifier(VoidEntityIdentifier()), context)
     }
-    #endif
 }
 
 // MARK: - CoreManager
@@ -481,7 +331,7 @@ public final class CoreManager<E> where E: Entity {
     private let updatesMetadataQueue = DispatchQueue(label: "\(CoreManager.self):updates_metadata", attributes: .concurrent)
     private var _updatesMetadata = DualHashDictionary<E.Identifier, UpdateTime>()
 
-    private let disposeBag = DisposeBag()
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Inits
 
@@ -491,31 +341,14 @@ public final class CoreManager<E> where E: Entity {
     }
 
     public func managing<AnyEntityType>(_ relationshipManager: CoreManaging<E, AnyEntityType>.RelationshipManager? = nil) -> CoreManaging<E, AnyEntityType> where AnyEntityType: EntityConvertible {
-        #if LUCID_REACTIVE_KIT
         return CoreManaging(getEntity: { self.get(withQuery: $0, in: $1) },
                             searchEntities: { self.search(withQuery: $0, in: $1) },
                             setEntity: { self.set($0, in: $1) },
                             setEntities: { self.set($0, in: $1) },
                             removeAllEntities: { self.removeAll(withQuery: $0, in: $1) },
-                            removeEntity: { self.remove(atID: $0, in: $1)},
+                            removeEntity: { self.remove(atID: $0, in: $1) },
                             removeEntities: { self.remove($0, in: $1) },
                             relationshipManager: relationshipManager)
-        #else
-        return CoreManaging(getEntity: { self.get(withQuery: $0, in: $1).toPublisher().eraseToAnyPublisher() },
-                            searchEntities: {
-                                let signals = self.search(withQuery: $0, in: $1)
-                                return (
-                                    signals.once.toPublisher().eraseToAnyPublisher(),
-                                    signals.continuous.toPublisher().eraseToAnyPublisher()
-                                )
-                            },
-                            setEntity: { self.set($0, in: $1).toPublisher().eraseToAnyPublisher() },
-                            setEntities: { self.set($0, in: $1).toPublisher().eraseToAnyPublisher() },
-                            removeAllEntities: { self.removeAll(withQuery: $0, in: $1).toPublisher().eraseToAnyPublisher() },
-                            removeEntity: { self.remove(atID: $0, in: $1).toPublisher().eraseToAnyPublisher() },
-                            removeEntities: { self.remove($0, in: $1).toPublisher().eraseToAnyPublisher() },
-                            relationshipManager: relationshipManager)
-        #endif
     }
 }
 
@@ -533,7 +366,7 @@ private extension CoreManager {
     /// - `local` -> Performs a local fetch only.
     ///
     func get(withQuery query: Query<E>,
-             in context: ReadContext<E>) -> Signal<QueryResult<E>, ManagerError> {
+             in context: ReadContext<E>) -> AnyPublisher<QueryResult<E>, ManagerError> {
 
         let queryIdentifiers = query.identifiers?.array ?? []
         if queryIdentifiers.count != 1 {
@@ -542,37 +375,38 @@ private extension CoreManager {
 
         guard let identifier = queryIdentifiers.first else {
             Logger.log(.error, "\(CoreManager.self) can not perform get without valid identifier", assert: true)
-            return Signal.failed(.notSupported)
+            return Fail<QueryResult<E>, ManagerError>(error: .notSupported).eraseToAnyPublisher()
         }
 
         if let remoteContext = context.remoteContextAfterMakingLocalRequest {
             let localContext = ReadContext<E>(dataSource: .local, contract: context.contract, accessValidator: context.accessValidator)
             return get(withQuery: query, in: localContext)
-                .flatMapError { _ -> Signal<QueryResult<E>, ManagerError> in
-                    return Signal(just: .empty())
+                .flatMapError { _ -> AnyPublisher<QueryResult<E>, ManagerError> in
+                    return Just<QueryResult<E>>(.empty()).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
                 }
-                .flatMapLatest { localResult -> Signal<QueryResult<E>, ManagerError> in
+                .flatMap { localResult -> AnyPublisher<QueryResult<E>, ManagerError> in
                     if localResult.entity != nil {
                         if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
-                            self.get(withQuery: query, in: remoteContext).observe { _ in }.dispose(in: self.disposeBag)
+                            self.get(withQuery: query, in: remoteContext).sink(receiveCompletion: { _ in }, receiveValue: { _ in }).store(in: &self.cancellables)
                         }
-                        return Signal(just: localResult)
+                        return Just<QueryResult<E>>(localResult).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
                     } else {
                         return self.get(withQuery: query, in: remoteContext)
-                            .flatMapError { error -> Signal<QueryResult<E>, ManagerError> in
+                            .flatMapError { error -> AnyPublisher<QueryResult<E>, ManagerError> in
                                 if error.shouldFallBackToLocalStore {
                                     // if we can't reach the remote store, return local results
-                                    return Signal(just: localResult)
+                                    return Just<QueryResult<E>>(localResult).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
                                 } else {
-                                    return .failed(error)
+                                    return Fail<QueryResult<E>, ManagerError>(error: error).eraseToAnyPublisher()
                                 }
                             }
                     }
                 }
+                .eraseToAnyPublisher()
 
         } else {
 
-            return FutureSubject { promise in
+            return Future { promise in
 
                 guard context.requestAllowedForAccessLevel else {
                     promise(.failure(.userAccessInvalid))
@@ -648,7 +482,8 @@ private extension CoreManager {
                         }
                     }
                 }
-            }.toSignal()
+            }
+            .eraseToAnyPublisher()
         }
     }
 
@@ -663,33 +498,32 @@ private extension CoreManager {
     /// (1) A result is considered unsatisfying if the query is only composed of identifiers and some of these identifiers aren't contained in the result.
     ///
     func search(withQuery query: Query<E>,
-                in context: ReadContext<E>) -> (once: Signal<QueryResult<E>, ManagerError>, continuous: SafeSignal<QueryResult<E>>) {
+                in context: ReadContext<E>) -> (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnySafePublisher<QueryResult<E>>) {
 
         if let remoteContext = context.remoteContextAfterMakingLocalRequest {
             let localContext = ReadContext<E>(dataSource: .local, contract: context.contract, accessValidator: context.accessValidator)
             let cacheSearches = search(withQuery: query, in: localContext)
 
             let dispatchQueue = DispatchQueue(label: "\(CoreManager.self)_search_prefer_cache_synchronization_queue")
-            var overwriteSignal: Signal<QueryResult<E>, ManagerError>?
+            var overwritePublisher: AnyPublisher<QueryResult<E>, ManagerError>?
 
-            let overwriteSearch: (QueryResult<E>?) -> Signal<QueryResult<E>, ManagerError> = { localResult in
-                let mapNetworkErrorToLocalResult: ((ManagerError) -> Signal<QueryResult<E>, ManagerError>) = { error in
+            let overwriteSearch: (QueryResult<E>?) -> AnyPublisher<QueryResult<E>, ManagerError> = { localResult in
+                let mapNetworkErrorToLocalResult: ((ManagerError) -> AnyPublisher<QueryResult<E>, ManagerError>) = { error in
                     if error.shouldFallBackToLocalStore, let localResult = localResult {
                         // if we can't reach the remote store, return local results
-                        return Signal(just: localResult)
+                        return Just<QueryResult<E>>(localResult).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
                     } else {
-                        return .failed(error)
+                        return Fail<QueryResult<E>, ManagerError>(error: error).eraseToAnyPublisher()
                     }
                 }
                 return dispatchQueue.sync {
-                    if let overwriteSignal = overwriteSignal {
+                    if let overwriteSignal = overwritePublisher {
                         return overwriteSignal
                             .flatMapError(mapNetworkErrorToLocalResult)
                     }
-                    let signal = self.search(withQuery: query, in: remoteContext)
-                        .once
-                    overwriteSignal = signal
-                    return signal
+                    let publisher = self.search(withQuery: query, in: remoteContext).once
+                    overwritePublisher = publisher
+                    return publisher
                         .flatMapError(mapNetworkErrorToLocalResult)
                 }
             }
@@ -697,16 +531,16 @@ private extension CoreManager {
             if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
                 operationQueue.run(title: "\(CoreManager.self):search:1") { operationCompletion in
                     defer { operationCompletion() }
-                    overwriteSearch(nil).observe { _ in }.dispose(in: self.disposeBag)
+                    overwriteSearch(nil).sink(receiveCompletion: { _ in }, receiveValue: { _ in }).store(in: &self.cancellables)
                 }
             }
 
             return (
                 once: cacheSearches.once
-                    .flatMapError { _ -> Signal<QueryResult<E>, ManagerError> in
-                        return Signal(just: QueryResult<E>(fromProcessedEntities: [], for: query))
+                    .flatMapError { _ -> AnyPublisher<QueryResult<E>, ManagerError> in
+                        return Just<QueryResult<E>>(QueryResult<E>(fromProcessedEntities: [], for: query)).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
                     }
-                    .flatMapLatest { localResult -> Signal<QueryResult<E>, ManagerError> in
+                    .flatMap { localResult -> AnyPublisher<QueryResult<E>, ManagerError> in
                         let searchIdentifierCount = query.filter?.extractOrIdentifiers?.map { $0 }.count ?? 0
                         let entityResultCount = localResult.count
 
@@ -714,17 +548,18 @@ private extension CoreManager {
                         let hasResultsForComplexSearch = searchIdentifierCount == 0 && entityResultCount > 0
 
                         if hasAllIdentifiersLocally || hasResultsForComplexSearch {
-                            return Signal(just: localResult)
+                            return Just<QueryResult<E>>(localResult).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
                         } else {
                             return overwriteSearch(localResult)
                         }
-                },
+                    }
+                    .eraseToAnyPublisher(),
                 continuous: cacheSearches.continuous)
         }
 
         let property = preparePropertiesForSearchUpdate(forQuery: query, context: context)
 
-        let future = FutureSubject<QueryResult<E>, ManagerError> { promise in
+        let future = Future<QueryResult<E>, ManagerError> { promise in
 
             guard context.requestAllowedForAccessLevel else {
                 promise(.failure(.userAccessInvalid))
@@ -844,15 +679,15 @@ private extension CoreManager {
         }
 
         return (
-            once: future.toSignal(),
-            continuous: property.compactMap { $0 }
+            once: future.eraseToAnyPublisher(),
+            continuous: property.eraseToAnyPublisher()
         )
     }
 
     func set(_ entity: E,
-             in context: WriteContext<E>) -> Signal<E, ManagerError> {
+             in context: WriteContext<E>) -> AnyPublisher<E, ManagerError> {
 
-        return FutureSubject { promise in
+        return Future { promise in
 
             guard context.requestAllowedForAccessLevel else {
                 promise(.failure(.userAccessInvalid))
@@ -916,15 +751,16 @@ private extension CoreManager {
                     }
                 )
             }
-        }.toSignal()
+        }
+        .eraseToAnyPublisher()
     }
 
     func set<S>(_ entities: S,
-                in context: WriteContext<E>) -> Signal<AnySequence<E>, ManagerError> where S: Sequence, S.Element == E {
+                in context: WriteContext<E>) -> AnyPublisher<AnySequence<E>, ManagerError> where S: Sequence, S.Element == E {
 
         let entities = Array(entities)
 
-        return FutureSubject { promise in
+        return Future { promise in
 
             guard context.requestAllowedForAccessLevel else {
                 promise(.failure(.userAccessInvalid))
@@ -1000,13 +836,14 @@ private extension CoreManager {
                     }
                 )
             }
-        }.toSignal()
+        }
+        .eraseToAnyPublisher()
     }
 
     func removeAll(withQuery query: Query<E>,
-                   in context: WriteContext<E>) -> Signal<AnySequence<E.Identifier>, ManagerError> {
+                   in context: WriteContext<E>) -> AnyPublisher<AnySequence<E.Identifier>, ManagerError> {
 
-        return FutureSubject { promise in
+        return Future { promise in
 
             guard context.requestAllowedForAccessLevel else {
                 promise(.failure(.userAccessInvalid))
@@ -1095,13 +932,14 @@ private extension CoreManager {
                     }
                 }
             }
-        }.toSignal()
+        }
+        .eraseToAnyPublisher()
     }
 
     func remove(atID identifier: E.Identifier,
-                in context: WriteContext<E>) -> Signal<Void, ManagerError> {
+                in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> {
 
-        return FutureSubject { promise in
+        return Future { promise in
 
             guard context.requestAllowedForAccessLevel else {
                 promise(.failure(.userAccessInvalid))
@@ -1150,13 +988,14 @@ private extension CoreManager {
                     }
                 )
             }
-        }.toSignal()
+        }
+        .eraseToAnyPublisher()
     }
 
     func remove<S>(_ identifiers: S,
-                   in context: WriteContext<E>) -> Signal<Void, ManagerError> where S: Sequence, S.Element == E.Identifier {
+                   in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> where S: Sequence, S.Element == E.Identifier {
 
-        return FutureSubject { promise in
+        return Future { promise in
 
             guard context.requestAllowedForAccessLevel else {
                 promise(.failure(.userAccessInvalid))
@@ -1206,7 +1045,8 @@ private extension CoreManager {
                     }
                 )
             }
-        }.toSignal()
+        }
+        .eraseToAnyPublisher()
     }
 }
 
@@ -1214,45 +1054,25 @@ private extension CoreManager {
 
 extension CoreManaging where E: MutableEntity {
 
-    private func _setAndUpdateIdentifierInLocalStores(_ entity: E, originTimestamp: UInt64) -> SafeSignal<Void> {
+    public func setAndUpdateIdentifierInLocalStores(_ entity: E, originTimestamp: UInt64) -> AnySafePublisher<Void> {
         let context = WriteContext<E>(dataTarget: .local, remoteSyncState: .createResponse(originTimestamp))
         return set(entity, in: context)
-            .toSignal()
-            .flatMapLatest { storedResult -> Signal<Void, ManagerError> in
+            .flatMap { storedResult -> AnyPublisher<Void, ManagerError> in
                 storedResult.merge(identifier: entity.identifier)
                 let context = WriteContext<E>(dataTarget: .local, remoteSyncState: .mergeIdentifier)
-                return self.set(storedResult, in: context).toSignal().map { _ in }
+                return self.set(storedResult, in: context).map { _ in }.eraseToAnyPublisher()
             }
             .replaceError(with: ())
+            .eraseToAnyPublisher()
     }
 
-    #if LUCID_REACTIVE_KIT
-    public func setAndUpdateIdentifierInLocalStores(_ entity: E, originTimestamp: UInt64) -> SafeSignal<Void> {
-        return _setAndUpdateIdentifierInLocalStores(entity, originTimestamp: originTimestamp)
-    }
-    #else
-    public func setAndUpdateIdentifierInLocalStores(_ entity: E, originTimestamp: UInt64) -> AnyPublisher<Void, Never> {
-        return _setAndUpdateIdentifierInLocalStores(entity, originTimestamp: originTimestamp).toPublisher().eraseToAnyPublisher()
-    }
-    #endif
-
-    private func _removeFromLocalStores(_ identifier: E.Identifier, originTimestamp: UInt64) -> SafeSignal<Void> {
+    public func removeFromLocalStores(_ identifier: E.Identifier, originTimestamp: UInt64) -> AnySafePublisher<Void> {
         let context = WriteContext<E>(dataTarget: .local, remoteSyncState: .createResponse(originTimestamp))
         return remove(atID: identifier, in: context)
-            .toSignal()
             .map { _ in }
             .replaceError(with: ())
+            .eraseToAnyPublisher()
     }
-
-    #if LUCID_REACTIVE_KIT
-    public func removeFromLocalStores(_ identifier: E.Identifier, originTimestamp: UInt64) -> SafeSignal<Void> {
-        return _removeFromLocalStores(identifier, originTimestamp: originTimestamp)
-    }
-    #else
-    public func removeFromLocalStores(_ identifier: E.Identifier, originTimestamp: UInt64) -> AnyPublisher<Void, Never> {
-        return _removeFromLocalStores(identifier, originTimestamp: originTimestamp).toPublisher().eraseToAnyPublisher()
-    }
-    #endif
 }
 
 // MARK: - Updates Synchronization
@@ -1337,15 +1157,15 @@ private extension CoreManager {
         private let accessValidator: UserAccessValidating?
 
         private let propertyDispatchQueue = DispatchQueue(label: "\(PropertyEntry.self):property")
-        private var _strongProperty: Property<QueryResult<E>?>?
-        private weak var _weakProperty: Property<QueryResult<E>?>?
+        private var _strongProperty: CoreManagerProperty<QueryResult<E>>?
+        private weak var _weakProperty: CoreManagerProperty<QueryResult<E>>?
 
-        var property: Property<QueryResult<E>?>? {
+        var property: CoreManagerProperty<QueryResult<E>>? {
             return propertyDispatchQueue.sync { _weakProperty ?? _strongProperty }
         }
 
         init(_ query: Query<E>,
-             property: Property<QueryResult<E>?>,
+             property: CoreManagerProperty<QueryResult<E>>,
              contract: EntityContract,
              accessValidator: UserAccessValidating?) {
             self.query = query
@@ -1355,15 +1175,14 @@ private extension CoreManager {
         }
 
         func strengthen() {
-            let property = self.property // makes sure to retain before dispatching.
+            let propertyReference = property // makes sure to retain before dispatching.
             propertyDispatchQueue.async {
-                self._strongProperty = property
+                self._strongProperty = propertyReference
             }
         }
 
-        func update(with value: QueryResult<E>) {
-            let value = value.validatingContract(contract, with: query).materialized
-            property?.update(with: value)
+        func update(with queryResult: QueryResult<E>) {
+            property?.update(with: queryResult.validatingContract(contract, with: query).materialized)
         }
 
         func shouldAllowUpdate() -> Bool {
@@ -1374,21 +1193,15 @@ private extension CoreManager {
             }
             return true
         }
-
-        func materialize() {
-            guard let value = self.property?.value?.materialized else { return }
-            property?.silentUpdate(value: value)
-        }
     }
 
-    func preparePropertiesForSearchUpdate(forQuery query: Query<E>, context: ReadContext<E>) -> Property<QueryResult<E>?> {
+    func preparePropertiesForSearchUpdate(forQuery query: Query<E>, context: ReadContext<E>) -> CoreManagerProperty<QueryResult<E>> {
 
         if let property = propertiesQueue.sync(execute: { (_properties + _pendingProperties).first { $0.query == query }?.property }) {
             return property
         }
 
-        let subject = CoreManagerSubject<QueryResult<E>?, Never>()
-        let property = Property<QueryResult<E>?>(nil, subject: subject)
+        let property = CoreManagerProperty<QueryResult<E>>()
 
         let entry = PropertyEntry(query, property: property, contract: context.contract, accessValidator: context.accessValidator)
         propertiesQueue.async(flags: .barrier) {
@@ -1399,7 +1212,7 @@ private extension CoreManager {
         // Because `willAddFirstObserver` is called synchronously when `property` gets observed,
         // `entry` can't get released before being retained by `strengthen`.
         // If nothing observes, it gets released immediately.
-        subject.willAddFirstObserver = { [weak self] in
+        property.willAddFirstObserver = { [weak self] in
             guard let strongSelf = self else { return }
             entry.strengthen()
             strongSelf.propertiesQueue.async(flags: .barrier) {
@@ -1410,8 +1223,8 @@ private extension CoreManager {
             }
         }
 
-        // As soon as the last observer is removed from `subject`, the `entry` gets released.
-        subject.willRemoveLastObserver = { [weak self] in
+        // As soon as the last observer is removed from `property`, the `entry` gets released.
+        property.willRemoveLastObserver = { [weak self] in
             guard let strongSelf = self else { return }
             strongSelf.propertiesQueue.async(flags: .barrier) {
                 if let index = strongSelf._properties.firstIndex(where: { $0 === entry }) {
@@ -1587,7 +1400,6 @@ private extension CoreManager {
         raiseEventsQueue.async {
             let properties = self.propertiesQueue.sync { self._properties + self._pendingProperties }
             for element in properties {
-                element.materialize()
                 if let propertyValue = element.property?.value {
                     let newEntities = propertyValue.filter { deletedIDs.contains($0.identifier) == false }
                     guard propertyValue.count != newEntities.count else { continue }
@@ -1595,15 +1407,6 @@ private extension CoreManager {
                     element.update(with: newValue)
                 }
             }
-        }
-    }
-}
-
-private extension Property where Element: Equatable {
-
-    func update(with value: Element) {
-        if value != self.value {
-            self.value = value
         }
     }
 }
@@ -1618,19 +1421,11 @@ public extension CoreManaging {
 
         public typealias AnyEntity = AnyEntityType
 
-        #if LUCID_REACTIVE_KIT
-        public typealias GetByIDs = (
-            _ identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
-            _ entityType: String,
-            _ context: _ReadContext<ResultPayload>
-        ) -> Signal<AnySequence<AnyEntity>, ManagerError>
-        #else
         public typealias GetByIDs = (
             _ identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
             _ entityType: String,
             _ context: _ReadContext<ResultPayload>
         ) -> AnyPublisher<AnySequence<AnyEntity>, ManagerError>
-        #endif
 
         private let getByIDs: GetByIDs
 
@@ -1642,15 +1437,9 @@ public extension CoreManaging {
             }
         }
 
-        #if LUCID_REACTIVE_KIT
-        public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>, entityType: String, in context: _ReadContext<ResultPayload>) -> Signal<AnySequence<AnyEntity>, ManagerError> {
-            return getByIDs(identifiers, entityType, context)
-        }
-        #else
         public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>, entityType: String, in context: _ReadContext<ResultPayload>) -> AnyPublisher<AnySequence<AnyEntity>, ManagerError> {
             return getByIDs(identifiers, entityType, context)
         }
-        #endif
     }
 
     func rootEntity<Graph>(byID identifier: E.Identifier,

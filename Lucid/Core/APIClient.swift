@@ -6,12 +6,8 @@
 //  Copyright © 2018 Scribd. All rights reserved.
 //
 
-import Foundation
-import ReactiveKit
-
-#if !LUCID_REACTIVE_KIT
 import Combine
-#endif
+import Foundation
 
 // MARK: - Error
 
@@ -703,55 +699,37 @@ public extension ResultPayloadConvertible {
     }
 }
 
-// MARK: - Reactive API
+// MARK: - Combine API
 
 public extension APIClient {
 
-    private func _send(request: APIRequest<Data>) -> Signal<APIClientResponse<Data>, APIError> {
-        return FutureSubject { fulfill in
-            self.send(request: request) { result in
-                switch result {
-                case .success(let response):
-                    fulfill(.success(response))
-                case .failure(let error):
-                    fulfill(.failure(error))
-                }
-            }
-        }.toSignal()
-    }
-
-    #if LUCID_REACTIVE_KIT
-    func send(request: APIRequest<Data>) -> Signal<APIClientResponse<Data>, APIError> {
-        return _send(request: request)
-    }
-    #else
     func send(request: APIRequest<Data>) -> AnyPublisher<APIClientResponse<Data>, APIError> {
-        return _send(request: request).toPublisher().eraseToAnyPublisher()
-    }
-    #endif
-
-    private func _send<Model>(request: APIRequest<Model>) -> Signal<APIClientResponse<Model>, APIError> where Model: Decodable {
-        return FutureSubject { fulfill in
+        return Future { promise in
             self.send(request: request) { result in
                 switch result {
                 case .success(let response):
-                    fulfill(.success(response))
+                    promise(.success(response))
                 case .failure(let error):
-                    fulfill(.failure(error))
+                    promise(.failure(error))
                 }
             }
-        }.toSignal()
+        }
+        .eraseToAnyPublisher()
     }
 
-    #if LUCID_REACTIVE_KIT
-    func send<Model>(request: APIRequest<Model>) -> Signal<APIClientResponse<Model>, APIError> where Model: Decodable {
-        return _send(request: request)
-    }
-    #else
     func send<Model>(request: APIRequest<Model>) -> AnyPublisher<APIClientResponse<Model>, APIError> where Model: Decodable {
-        return _send(request: request).toPublisher().eraseToAnyPublisher()
+        return Future { promise in
+            self.send(request: request) { result in
+                switch result {
+                case .success(let response):
+                    promise(.success(response))
+                case .failure(let error):
+                    promise(.failure(error))
+                }
+            }
+        }
+        .eraseToAnyPublisher()
     }
-    #endif
 }
 
 // MARK: - Identifier Placeholder
@@ -1111,8 +1089,8 @@ extension APIRequest {
 
 public extension APIClient {
 
-    private func _prepareURLRequest(_ requestConfig: APIRequestConfig) -> SafeSignal<URLRequest?> {
-        return FutureSubject { fulfill in
+    func prepareURLRequest(_ requestConfig: APIRequestConfig) -> AnyPublisher<URLRequest?, Never> {
+        return Future { fulfill in
             self.prepareRequest(requestConfig) { requestConfig in
                 let urlRequest = requestConfig.urlRequest(
                     host: requestConfig.host ?? self.host,
@@ -1121,18 +1099,9 @@ public extension APIClient {
                 )
                 fulfill(.success(urlRequest))
             }
-        }.toSignal()
+        }
+        .eraseToAnyPublisher()
     }
-
-    #if LUCID_REACTIVE_KIT
-    func prepareURLRequest(_ requestConfig: APIRequestConfig) -> SafeSignal<URLRequest?> {
-        return _prepareURLRequest(requestConfig)
-    }
-    #else
-    func prepareURLRequest(_ requestConfig: APIRequestConfig) -> AnyPublisher<URLRequest?, Never> {
-        return _prepareURLRequest(requestConfig).toPublisher().eraseToAnyPublisher()
-    }
-    #endif
 }
 
 extension APIRequestConfig {

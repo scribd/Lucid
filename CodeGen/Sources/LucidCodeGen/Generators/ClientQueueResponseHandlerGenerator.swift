@@ -32,8 +32,7 @@ public final class ClientQueueResponseHandlerGenerator: Generator {
 
         let header = MetaHeader(filename: filename, organizationName: organizationName)
 
-        guard let clientQueueResponseHandler = try MetaClientQueueResponseHandler(descriptions: parameters.currentDescriptions,
-                                                                                  reactiveKit: parameters.reactiveKit) else {
+        guard let clientQueueResponseHandler = try MetaClientQueueResponseHandler(descriptions: parameters.currentDescriptions) else {
             return nil
         }
 

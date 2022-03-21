@@ -95,7 +95,6 @@ final class SwiftCommand {
                                                    shouldGenerateDataModel: _shouldGenerateDataModel,
                                                    descriptionsHash: descriptionsHash,
                                                    coreDataMigrationsFunction: configuration.coreDataMigrationsFunction,
-                                                   reactiveKit: configuration.reactiveKit,
                                                    useCoreDataLegacyNaming: configuration.useCoreDataLegacyNaming,
                                                    organizationName: configuration.organizationName,
                                                    extensionsPath: configuration.extensionsPath,

@@ -12,8 +12,6 @@ struct MetaEntityGraph {
     
     let descriptions: Descriptions
 
-    let reactiveKit: Bool
-
     let useCoreDataLegacyNaming: Bool
     
     func meta() -> [FileBodyMember] {
@@ -69,16 +67,13 @@ struct MetaEntityGraph {
     }
     
     private func relationshipQueryUtils() -> PlainCode {
-        let streamType = reactiveKit ? "Signal" : "AnyPublisher"
-        let streamsName = reactiveKit ? "signals" : "publishers"
-        let eraseToAnyPublisher = reactiveKit ? "" : ".eraseToAnyPublisher()"
         return PlainCode(code: """
         extension RelationshipController.RelationshipQuery where Graph == EntityGraph {
-            func perform() -> (once: \(streamType)<EntityGraph, ManagerError>, continuous: \(streamType)<EntityGraph, ManagerError>) {
-                let \(streamsName) = perform(EntityGraph.self)
+            func perform() -> (once: AnyPublisher<EntityGraph, ManagerError>, continuous: AnyPublisher<EntityGraph, ManagerError>) {
+                let publishers = perform(EntityGraph.self)
                 return (
-                    \(streamsName).once.map { $0 as EntityGraph }\(eraseToAnyPublisher),
-                    \(streamsName).continuous.map { $0 as EntityGraph }\(eraseToAnyPublisher)
+                    publishers.once.map { $0 as EntityGraph }.eraseToAnyPublisher(),
+                    publishers.continuous.map { $0 as EntityGraph }.eraseToAnyPublisher()
                 )
             }
         }

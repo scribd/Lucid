@@ -14,8 +14,6 @@ struct MetaCoreManagerContainer {
     
     let coreDataMigrationsFunction: String?
 
-    let reactiveKit: Bool
-
     func meta() throws -> [FileBodyMember] {
         return [
             [
@@ -124,7 +122,7 @@ struct MetaCoreManagerContainer {
                 public let clientQueues: Set<APIClientQueue>
                 public let mainClientQueue: APIClientQueue
 
-                \(reactiveKit ? "private let disposeBag = DisposeBag()" : "private var cancellableStore = Set<AnyCancellable>()")
+                private var cancellableStore = Set<AnyCancellable>()
                 """)
             )
             .adding(members: descriptions.entities.flatMap { entity -> [TypeBodyMember] in
@@ -248,8 +246,7 @@ struct MetaCoreManagerContainer {
                     name: "context",
                     type: TypeIdentifier(name: "_ReadContext").adding(genericParameter: .endpointResultPayload)
                 ))
-                .with(resultType: reactiveKit ?
-                    .signal(of: .anySequence(element: .appAnyEntity), error: .managerError) :
+                .with(resultType:
                     .anyPublisher(of: .anySequence(element: .appAnyEntity), error: .managerError)
                 )
                 .adding(member: Switch(reference: .named("entityType"))
@@ -268,15 +265,10 @@ struct MetaCoreManagerContainer {
                                         .adding(parameter: TupleParameter(value: Reference.named("$0")))
                                     ))
                                 ) + .named("any"))
-                            ) | (reactiveKit == false ? +.named("eraseToAnyPublisher") | .call() : .none)))
+                            ) | +.named("eraseToAnyPublisher") | .call()))
                     })
                     .adding(case: SwitchCase(name: .default)
-                        .adding(member: reactiveKit ?
-                            Return(value: TypeIdentifier.signal().reference | .call(Tuple()
-                                .adding(parameter: TupleParameter(name: "result", value: +.named("failure") | .call(Tuple()
-                                    .adding(parameter: TupleParameter(value: +.named("notSupported")))
-                                ))
-                            ))) :
+                        .adding(member:
                             Return(value: TypeIdentifier(name: "Fail").reference | .call(Tuple()
                                 .adding(parameter: TupleParameter(name: "error", value: +.named("notSupported")))
                             ) + .named("eraseToAnyPublisher") | .call())
@@ -302,8 +294,8 @@ struct MetaCoreManagerContainer {
 
                         \(entity.coreManagerVariable.reference.swiftString)
                             .set(payload.allEntities(), in: WriteContext(dataTarget: .local, accessValidator: accessValidator))
-                            \(reactiveKit ? ".observeNext { _ in }" : ".sink(receiveCompletion: { _ in }, receiveValue: { _ in })")
-                            \(reactiveKit ? ".dispose(in: disposeBag)" : ".store(in: &cancellableStore)")
+                            .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
+                            .dispose(in: disposeBag)" : ".store(in: &cancellableStore)
                         """)
                     }
                 )

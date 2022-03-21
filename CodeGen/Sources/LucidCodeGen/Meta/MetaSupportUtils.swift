@@ -12,13 +12,9 @@ struct MetaSupportUtils {
     
     let descriptions: Descriptions
 
-    let reactiveKit: Bool
-
     let moduleName: String
     
     func meta() throws -> FileBodyMember {
-        let streamType = reactiveKit ? "Signal" : "AnyPublisher"
-
         return PlainCode(code: """
 
             // MARK: - Logger
@@ -55,7 +51,7 @@ struct MetaSupportUtils {
             }
 
             public protocol LocalStoreCleanupManaging {
-                func removeAllLocalData() -> \(streamType)<Void, [LocalStoreCleanupError]>
+                func removeAllLocalData() -> AnyPublisher<Void, [LocalStoreCleanupError]>
             }
 
             public final class LocalStoreCleanupManager: LocalStoreCleanupManaging {
@@ -74,26 +70,15 @@ struct MetaSupportUtils {
             
                 // MARK: API
 
-                public func removeAllLocalData() -> \(streamType)<Void, [LocalStoreCleanupError]> {
-                    return \(reactiveKit ? "Signal(combiningLatest: " : "")\(MetaCode(meta: Value.array(
+                public func removeAllLocalData() -> AnyPublisher<Void, [LocalStoreCleanupError]> {
+                    return \(MetaCode(meta: Value.array(
                         descriptions.entities.filter({ $0.persist }).map { entity in
                             return Value.reference(entity.typeID().reference + .named("eraseLocalStore") | .call(Tuple()
                                 .adding(parameter: TupleParameter(value: Reference.named("coreManagerProvider.\(entity.coreManagerVariable.name)")))
                             ))
                         })
-                ))\(reactiveKit ? "," : "")
-            \(reactiveKit ? """
-                        combine: { (signals) -> LocalStoreCleanupResult in return signals.reduce(.success) { $0.merged(with: $1) } })
-                        .tryMap { erasedResults -> Result<Void, [LocalStoreCleanupError]> in
-                            switch erasedResults {
-                            case .success:
-                                return .success(())
-                            case .failure(let cleanupErrors):
-                                return .failure(cleanupErrors)
-                            }
-                        }
-                        .first()
-            """ : """
+                ))
+            \("""
                         .publisher
                         .flatMap { $0 }
                         .collect()
@@ -133,25 +118,18 @@ struct MetaSupportUtils {
             extension LocalEntity {
 
                 /// Manually add the function:
-                /// `static func eraseLocalStore(_ manager: CoreManaging<Self, AppAnyEntity>) -> \(streamType)<LocalStoreCleanupResult, Never>`
+                /// `static func eraseLocalStore(_ manager: CoreManaging<Self, AppAnyEntity>) -> AnyPublisher<LocalStoreCleanupResult, Never>`
                 /// to an individual class adopting the Entity protocol to provide custom functionality
 
-                static func eraseLocalStore(_ manager: CoreManaging<Self, AppAnyEntity>) -> \(streamType)<LocalStoreCleanupResult, Never> {
+                static func eraseLocalStore(_ manager: CoreManaging<Self, AppAnyEntity>) -> AnyPublisher<LocalStoreCleanupResult, Never> {
                     return manager
                         .removeAll(withQuery: .all, in: WriteContext<Self>(dataTarget: .local))
                         .map { _ in LocalStoreCleanupResult.success }
-            \(reactiveKit ? """
-                        .flatMapError { managerError -> SafeSignal<LocalStoreCleanupResult> in
-                            let cleanupError = LocalStoreCleanupError.manager(name: "\\(manager.self)", error: managerError)
-                            return SafeSignal(just: .failure([cleanupError]))
-                        }
-            """ : """
                         .catch { managerError -> Just<LocalStoreCleanupResult> in
                             let cleanupError = LocalStoreCleanupError.manager(name: "\\(manager.self)", error: managerError)
                             return Just(.failure([cleanupError]))
                         }
                         .eraseToAnyPublisher()
-            """)
                 }
             }
             """

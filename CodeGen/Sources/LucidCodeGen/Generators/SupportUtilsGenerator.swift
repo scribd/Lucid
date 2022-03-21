@@ -32,14 +32,13 @@ public final class SupportUtilsGenerator: Generator {
 
         let localStoreCleanup = MetaSupportUtils(
             descriptions: parameters.currentDescriptions,
-            reactiveKit: parameters.reactiveKit,
             moduleName: parameters.currentDescriptions.targets.app.moduleName
         )
 
         return Meta.File(name: filename)
             .with(header: header.meta)
             .adding(import: .lucid)
-            .adding(import: parameters.reactiveKit ? .reactiveKit : .combine)
+            .adding(import: .combine)
             .with(body: [try localStoreCleanup.meta()])
             .swiftFile(in: directory)
     }

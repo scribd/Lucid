@@ -295,7 +295,7 @@ struct MetaCoreManagerContainer {
                         \(entity.coreManagerVariable.reference.swiftString)
                             .set(payload.allEntities(), in: WriteContext(dataTarget: .local, accessValidator: accessValidator))
                             .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
-                            .dispose(in: disposeBag)" : ".store(in: &cancellableStore)
+                            .store(in: &cancellableStore)
                         """)
                     }
                 )

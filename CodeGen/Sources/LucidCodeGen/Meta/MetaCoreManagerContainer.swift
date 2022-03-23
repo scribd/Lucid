@@ -122,7 +122,7 @@ struct MetaCoreManagerContainer {
                 public let clientQueues: Set<APIClientQueue>
                 public let mainClientQueue: APIClientQueue
 
-                private var cancellableStore = Set<AnyCancellable>()
+                private let cancellable = CancellableBox()
                 """)
             )
             .adding(members: descriptions.entities.flatMap { entity -> [TypeBodyMember] in
@@ -295,7 +295,7 @@ struct MetaCoreManagerContainer {
                         \(entity.coreManagerVariable.reference.swiftString)
                             .set(payload.allEntities(), in: WriteContext(dataTarget: .local, accessValidator: accessValidator))
                             .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
-                            .store(in: &cancellableStore)
+                            .store(in: cancellable)
                         """)
                     }
                 )

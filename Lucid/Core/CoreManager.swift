@@ -331,7 +331,7 @@ public final class CoreManager<E> where E: Entity {
     private let updatesMetadataQueue = DispatchQueue(label: "\(CoreManager.self):updates_metadata", attributes: .concurrent)
     private var _updatesMetadata = DualHashDictionary<E.Identifier, UpdateTime>()
 
-    private var cancellables = Set<AnyCancellable>()
+    private let cancellable = CancellableBox()
 
     // MARK: - Inits
 
@@ -387,7 +387,7 @@ private extension CoreManager {
                 .flatMap { localResult -> AnyPublisher<QueryResult<E>, ManagerError> in
                     if localResult.entity != nil {
                         if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
-                            self.get(withQuery: query, in: remoteContext).sink(receiveCompletion: { _ in }, receiveValue: { _ in }).store(in: &self.cancellables)
+                            self.get(withQuery: query, in: remoteContext).sink(receiveCompletion: { _ in }, receiveValue: { _ in }).store(in: self.cancellable)
                         }
                         return Just<QueryResult<E>>(localResult).setFailureType(to: ManagerError.self).eraseToAnyPublisher()
                     } else {
@@ -531,7 +531,7 @@ private extension CoreManager {
             if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
                 operationQueue.run(title: "\(CoreManager.self):search:1") { operationCompletion in
                     defer { operationCompletion() }
-                    overwriteSearch(nil).sink(receiveCompletion: { _ in }, receiveValue: { _ in }).store(in: &self.cancellables)
+                    overwriteSearch(nil).sink(receiveCompletion: { _ in }, receiveValue: { _ in }).store(in: self.cancellable)
                 }
             }
 

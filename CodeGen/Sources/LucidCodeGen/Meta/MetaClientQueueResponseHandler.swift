@@ -58,10 +58,10 @@ struct MetaClientQueueResponseHandler {
                     .with(immutable: false))
                     .with(accessLevel: .public),
                 EmptyLine(),
-                Property(variable: Variable(name: "cancellableStore").with(immutable: false))
+                Property(variable: Variable(name: "cancellable"))
                     .with(accessLevel: .private)
                     .with(value: Value.reference(
-                        Reference.named("Set<AnyCancellable>") | .call(Tuple())
+                        Reference.named("CancellableBox") | .call(Tuple())
                     )),
                 EmptyLine(),
                 Property(variable: Variable(name: "identifierDecoder")
@@ -122,7 +122,7 @@ struct MetaClientQueueResponseHandler {
                         break
                     }
                 }, receiveValue: { _ in })
-                .store(in: &cancellableStore)
+                .store(in: cancellable)
         }
         """)
     }

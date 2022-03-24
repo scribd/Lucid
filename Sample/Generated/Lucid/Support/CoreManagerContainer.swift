@@ -50,7 +50,7 @@ public final class CoreManagerContainer {
     public let clientQueues: Set<APIClientQueue>
     public let mainClientQueue: APIClientQueue
 
-    private var cancellableStore = Set<AnyCancellable>()
+    private let cancellable = CancellableBox()
 
     private let _genreManager: CoreManager<Genre>
     private lazy var _genreRelationshipManager = CoreManaging<Genre, AppAnyEntity>.RelationshipManager(self)
@@ -152,12 +152,12 @@ extension CoreManagerContainer: RemoteStoreCachePayloadPersistenceManaging {
         genreManager
             .set(payload.allEntities(), in: WriteContext(dataTarget: .local, accessValidator: accessValidator))
             .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
-            .store(in: &cancellableStore)
+            .store(in: cancellable)
 
         movieManager
             .set(payload.allEntities(), in: WriteContext(dataTarget: .local, accessValidator: accessValidator))
             .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
-            .store(in: &cancellableStore)
+            .store(in: cancellable)
     }
 }
 

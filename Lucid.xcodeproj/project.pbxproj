@@ -172,6 +172,11 @@
 		198A9B6625560DD1008E3C5E /* Combine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1987FA452554A7210057F1CC /* Combine.swift */; };
 		198CC31424C663D600E2F951 /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
 		19ED00972481C3D10033B7BD /* AsyncOperationQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */; };
+		F417CD3127EBD5660077210C /* Cancellable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F417CD3027EBD5660077210C /* Cancellable.swift */; };
+		F417CD3227EBD5660077210C /* Cancellable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F417CD3027EBD5660077210C /* Cancellable.swift */; };
+		F417CD3327EBD5660077210C /* Cancellable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F417CD3027EBD5660077210C /* Cancellable.swift */; };
+		F417CD3427EBD5660077210C /* Cancellable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F417CD3027EBD5660077210C /* Cancellable.swift */; };
+		F417CD3627EBD69F0077210C /* CombineHelperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F417CD3527EBD69F0077210C /* CombineHelperTests.swift */; };
 		F41D210724EF041E009444A2 /* Contract.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45FA8FA24EC8D3C00368CCB /* Contract.swift */; };
 		F438470F27E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */; };
 		F438471027E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */; };
@@ -622,6 +627,8 @@
 		F405C35024A41844004E1BB3 /* APIClientQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueTests.swift; sourceTree = "<group>"; };
 		F405C35124A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueDefaultSchedulerTests.swift; sourceTree = "<group>"; };
 		F405C35224A41844004E1BB3 /* APIClientQueueProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueProcessorTests.swift; sourceTree = "<group>"; };
+		F417CD3027EBD5660077210C /* Cancellable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cancellable.swift; sourceTree = "<group>"; };
+		F417CD3527EBD69F0077210C /* CombineHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombineHelperTests.swift; sourceTree = "<group>"; };
 		F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreManagerProperty.swift; sourceTree = "<group>"; };
 		F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Publisher+Extensions.swift"; sourceTree = "<group>"; };
 		F45FA8FA24EC8D3C00368CCB /* Contract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Contract.swift; sourceTree = "<group>"; };
@@ -780,6 +787,7 @@
 				190ADC462458D89C00D22F6D /* AnySequence.swift */,
 				190ADC4B2458D89C00D22F6D /* AsyncOperationQueue.swift */,
 				190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */,
+				F417CD3027EBD5660077210C /* Cancellable.swift */,
 				190ADC512458D89C00D22F6D /* CancellationToken.swift */,
 				F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */,
 				190ADC452458D89C00D22F6D /* DataStructures.swift */,
@@ -844,6 +852,7 @@
 			children = (
 				19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */,
 				191F919324C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift */,
+				F417CD3527EBD69F0077210C /* CombineHelperTests.swift */,
 				19ED00942481C3960033B7BD /* DataStructuresTests.swift */,
 				190ADC9F2458D8FE00D22F6D /* DiskCacheTests.swift */,
 				190ADC9D2458D8FE00D22F6D /* DiskQueueTests.swift */,
@@ -1802,6 +1811,7 @@
 				190ADC5A2458D89C00D22F6D /* Time.swift in Sources */,
 				190ADC612458D89C00D22F6D /* Codable.swift in Sources */,
 				190ADC782458D89C00D22F6D /* DiskQueue.swift in Sources */,
+				F417CD3227EBD5660077210C /* Cancellable.swift in Sources */,
 				190ADC752458D89C00D22F6D /* Result.swift in Sources */,
 				190ADC5B2458D89C00D22F6D /* APIClient.swift in Sources */,
 				F440173927A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */,
@@ -1861,6 +1871,7 @@
 				1987FA642555DD410057F1CC /* APIClientQueueTests.swift in Sources */,
 				1987FA142554A5230057F1CC /* CoreDataStoreTests.swift in Sources */,
 				1987FA382554A5740057F1CC /* StoreStackTests.swift in Sources */,
+				F417CD3627EBD69F0077210C /* CombineHelperTests.swift in Sources */,
 				1987FA022554A4F50057F1CC /* PublisherTests.swift in Sources */,
 				1987FA3E2554A5810057F1CC /* RelationshipControllerTests.swift in Sources */,
 			);
@@ -1919,6 +1930,7 @@
 				190ADCF72458DA9B00D22F6D /* Time.swift in Sources */,
 				190ADCF82458DA9B00D22F6D /* Codable.swift in Sources */,
 				190ADCF92458DA9B00D22F6D /* DiskQueue.swift in Sources */,
+				F417CD3427EBD5660077210C /* Cancellable.swift in Sources */,
 				190ADCFB2458DA9B00D22F6D /* Result.swift in Sources */,
 				190ADCFC2458DA9B00D22F6D /* APIClient.swift in Sources */,
 				F440173B27A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */,
@@ -2002,6 +2014,7 @@
 				F48C80222655958500581182 /* ManagerResult.swift in Sources */,
 				F48C803C2655958E00581182 /* DiskCache.swift in Sources */,
 				F48C801E2655958500581182 /* Query.swift in Sources */,
+				F417CD3127EBD5660077210C /* Cancellable.swift in Sources */,
 				F48C80262655958500581182 /* EntityIndexValue.swift in Sources */,
 				F48C802F2655958A00581182 /* RemoteStore.swift in Sources */,
 				F440173827A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */,
@@ -2056,6 +2069,7 @@
 				F48C80B92655973000581182 /* ScheduledTimer.swift in Sources */,
 				F48C80AC2655972B00581182 /* RecoverableStore.swift in Sources */,
 				F48C80B42655973000581182 /* PropertyBox.swift in Sources */,
+				F417CD3327EBD5660077210C /* Cancellable.swift in Sources */,
 				F48C80972655972700581182 /* Time.swift in Sources */,
 				F48C80902655972700581182 /* APIRequestDeduplicator.swift in Sources */,
 				F440173A27A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */,

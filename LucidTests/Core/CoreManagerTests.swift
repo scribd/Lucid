@@ -888,7 +888,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_get_entities_when_remote_store_fails_and_strategy_is_remote_only() {
+    func test_manager_should_get_entities_when_remote_store_fails_and_strategy_is_remote_only_with_do_not_persist() {
 
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(42, nil))]))
         memoryStoreSpy.searchResultStub = .failure(.notSupported)
@@ -2622,7 +2622,7 @@ final class CoreManagerTests: XCTestCase {
 
     // MARK: GET
 
-    func test_get_request_returns_request_token_and_metadata_for_remote_only_strategy() {
+    func test_get_request_returns_request_token_and_metadata_for_remote_only_strategy_with_do_no_persist() {
 
         let entity = EntitySpy(idValue: .remote(42, nil))
 

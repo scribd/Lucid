@@ -1182,7 +1182,7 @@ private extension CoreManager {
         }
 
         func update(with queryResult: QueryResult<E>) {
-            property?.update(with: queryResult.validatingContract(contract, with: query).materialized)
+            property?.update(with: queryResult.validatingContract(contract, with: query).result.materialized)
         }
 
         func shouldAllowUpdate() -> Bool {

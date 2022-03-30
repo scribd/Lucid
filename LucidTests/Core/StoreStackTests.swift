@@ -352,7 +352,7 @@ final class StoreStackTests: XCTestCase {
 
     // MARK: - search(withQuery:in:completion:)
 
-    func test_should_search_from_memory_store_only() {
+    func test_should_search_from_memory_store_only_when_at_least_one_local_entity_is_found() {
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil))]))
 
         let query = Query<EntitySpy>.filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil))))
@@ -375,8 +375,9 @@ final class StoreStackTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 
-    func test_should_search_from_memory_only_even_when_no_entity_is_found_in_memory() {
+    func test_should_search_from_memory_first_and_then_the_remote_store_when_no_entity_is_found_in_memory() {
         memoryStoreSpy.searchResultStub = .success(.entities([]))
+        remoteStoreSpy.searchResultStub = .success(.entities([]))
 
         let query = Query<EntitySpy>.filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil))))
 
@@ -387,7 +388,7 @@ final class StoreStackTests: XCTestCase {
                 XCTAssertEqual(entities.count, 0)
                 XCTAssertEqual(self.memoryStoreSpy.queryRecords.first, query)
                 XCTAssertEqual(self.memoryStoreSpy.queryRecords.count, 1)
-                XCTAssertEqual(self.remoteStoreSpy.queryRecords.count, 0)
+                XCTAssertEqual(self.remoteStoreSpy.queryRecords.count, 1)
             case .failure(let error):
                 XCTFail("Unexpected error: \(error)")
             }

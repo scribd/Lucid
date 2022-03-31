@@ -162,7 +162,7 @@ final class CoreManagerContractTests: XCTestCase {
 
     // MARK: - SEARCH
 
-    func test_core_manager_search_should_return_complete_results_when_no_contract_is_provided() {
+    func test_core_manager_search_should_return_complete_results_when_no_contract_is_provided_for_local_only() {
 
         buildManager(for: .local)
 
@@ -195,7 +195,7 @@ final class CoreManagerContractTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_should_return_complete_results_when_all_entities_meet_contract_requirements() {
+    func test_core_manager_search_should_return_complete_results_when_all_entities_meet_contract_requirements_for_local_only() {
 
         buildManager(for: .local)
 
@@ -234,7 +234,7 @@ final class CoreManagerContractTests: XCTestCase {
         waitForExpectations(timeout: 1, handler: nil)
     }
 
-    func test_core_manager_search_should_return_filtered_results_when_partial_entities_meet_contract_requirements() {
+    func test_core_manager_search_should_return_filtered_results_when_partial_entities_meet_contract_requirements_for_local_only() {
 
         buildManager(for: .local)
 
@@ -434,6 +434,62 @@ final class CoreManagerContractTests: XCTestCase {
             }, receiveValue: { result in
                 XCTAssertEqual(result.count, 1)
                 XCTAssertEqual(result.first?.lazy.value(), 9)
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        waitForExpectations(timeout: 1, handler: nil)
+    }
+
+    func test_core_manager_get_should_return_results_from_remote_if_any_entities_in_local_store_do_not_meet_contract_requirements_for_local_or_remote_data_source() {
+
+        buildManager(for: .remoteAndLocal)
+
+        remoteStoreSpy.getResultStub = .success(.entities([
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(10))
+        ]))
+        memoryStoreSpy.getResultStub = .success(.entities([
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .unrequested)
+        ]))
+        memoryStoreSpy.setResultStub = .success([
+            EntitySpy(idValue: .remote(1, nil), lazy: .requested(9)),
+            EntitySpy(idValue: .remote(2, nil), lazy: .requested(10))
+        ])
+
+        let onceExpectation = self.expectation(description: "once")
+
+        let contract = LazyPropertyContract()
+        let context = ReadContext<EntitySpy>(
+            dataSource: .localOr(
+                ._remote(
+                    endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
+                    persistenceStrategy: .persist(.retainExtraLocalData),
+                    orLocal: false,
+                    trustRemoteFiltering: true
+                )
+            ),
+            contract: contract
+        )
+
+        manager
+            .get(
+                byID: EntitySpyIdentifier(value: .remote(1, nil)),
+                in: context
+            )
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    return
+                }
+                onceExpectation.fulfill()
+            }, receiveValue: { result in
+                XCTAssertEqual(result.count, 2)
+                XCTAssertEqual(result.array.first?.lazy.value(), 9)
+                XCTAssertEqual(result.array.last?.lazy.value(), 10)
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)

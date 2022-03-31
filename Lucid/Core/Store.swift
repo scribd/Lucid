@@ -334,15 +334,16 @@ final class StoreStack<E: Entity> {
 
         store.get(withQuery: query, in: context) { result in
             switch result {
-            case .success(var queryResult):
+            case .success(let queryResult):
                 self.contractQueue.async {
-                    queryResult = queryResult.validatingContract(context.contract, with: query)
-                    if queryResult.entity != nil {
-                        self.readWriteQueue.async {
-                            completion(.success(queryResult))
-                        }
-                    } else {
+                    let (validatedResult, invalidCount) = queryResult.validatingContract(context.contract, with: query)
+                    let shouldRefetch = invalidCount > 0 || validatedResult.isEmpty
+                    if shouldRefetch {
                         self.get(withQuery: query, in: context, stores: stores, error: error, completion: completion)
+                    } else {
+                        self.readWriteQueue.async {
+                            completion(.success(validatedResult))
+                        }
                     }
                 }
             case .failure(let currentError):
@@ -400,11 +401,16 @@ final class StoreStack<E: Entity> {
 
         store.search(withQuery: query, in: context) { result in
             switch result {
-            case .success(var queryResult):
+            case .success(let queryResult):
                 self.contractQueue.async {
-                    queryResult = queryResult.validatingContract(context.contract, with: query)
-                    self.readWriteQueue.async {
-                        completion(.success(queryResult))
+                    let (validatedResult, invalidCount) = queryResult.validatingContract(context.contract, with: query)
+                    let shouldRefetch = (invalidCount > 0 || validatedResult.isEmpty) && stores.isEmpty == false && store.level.isLocal
+                    if shouldRefetch {
+                        self.search(withQuery: query, in: context, stores: stores, error: error, completion: completion)
+                    } else {
+                        self.readWriteQueue.async {
+                            completion(.success(validatedResult))
+                        }
                     }
                 }
 

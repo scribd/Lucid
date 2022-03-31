@@ -679,28 +679,36 @@ extension Query.Value {
 
 extension QueryResult {
 
-    func validatingContract(_ contract: EntityContract, with query: Query<E>) -> QueryResult {
+    func validatingContract(_ contract: EntityContract, with query: Query<E>) -> (result: QueryResult, invalidEntityCount: Int) {
 
-        guard contract.shouldValidate(E.self) else { return self }
+        guard contract.shouldValidate(E.self) else { return (self, 0) }
 
         var queryResult: QueryResult
+        var invalidCount: Int = 0
+
+        let isIncluded: (E) -> Bool = { entity in
+            let isValid = contract.isEntityValid(entity, for: query)
+            invalidCount += isValid ? 0 : 1
+            return isValid
+        }
 
         switch data {   
         case .groups(var dictionary):
             dictionary.forEach { index, entities in
-                dictionary[index] = entities.filter { contract.isEntityValid($0, for: query) }
+                dictionary[index] = entities.filter(isIncluded)
             }
             queryResult = QueryResult(data: .groups(dictionary))
 
         case .entitiesSequence(let sequence):
-            queryResult = QueryResult(data: .entitiesSequence(sequence.filter { contract.isEntityValid($0, for: query) }.any))
+            queryResult = QueryResult(data: .entitiesSequence(sequence.filter(isIncluded).any))
 
         case .entitiesArray(let entities):
-            queryResult = QueryResult(data: .entitiesArray(entities.filter { contract.isEntityValid($0, for: query) }))
+            queryResult = QueryResult(data: .entitiesArray(entities.filter(isIncluded)))
         }
 
         queryResult._metadata = _metadata
-        return queryResult
+
+        return (queryResult, invalidCount)
     }
 }
 

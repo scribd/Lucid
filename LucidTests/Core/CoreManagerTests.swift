@@ -50,7 +50,7 @@ final class CoreManagerTests: XCTestCase {
 
     // MARK: - get(byID:in:cacheStrategy:completion:)
 
-    func test_manager_should_get_entity_from_remote_store_then_cache_it_when_cache_strategy_is_prefer_remote() {
+    func test_manager_should_get_entity_from_remote_store_then_cache_it_when_cache_strategy_is_remote_only() {
 
         remoteStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil))))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
@@ -86,7 +86,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_fail_to_get_entity_from_remote_store_then_not_cache_it_and_fall_back_to_memory_store_when_cache_strategy_is_prefer_remote() {
+    func test_manager_should_fail_to_get_entity_from_remote_store_then_not_cache_it_and_fall_back_to_memory_store_when_cache_strategy_is_remote_or_local() {
 
         remoteStoreSpy.getResultStub = .failure(.api(.api(
             httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
@@ -124,7 +124,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_fail_to_get_entity_from_remote_store_then_not_cache_it_when_data_source_is_remote() {
+    func test_manager_should_fail_to_get_entity_from_remote_store_then_not_cache_it_when_data_source_is_remote_only() {
 
         remoteStoreSpy.getResultStub = .failure(.api(.api(
             httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
@@ -232,7 +232,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_get_entity_from_memory_store_only_when_strategy_is_cache_only() {
+    func test_manager_should_get_entity_from_memory_store_only_when_strategy_is_local_only() {
 
         memoryStoreSpy.getResultStub = .success(.empty())
 
@@ -263,7 +263,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_get_entity_from_memory_store_then_not_cache_it_when_strategy_is_cache_only() {
+    func test_manager_should_get_entity_from_memory_store_then_not_cache_it_when_strategy_is_local_only() {
 
         memoryStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil))))
 
@@ -294,7 +294,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_fail_to_get_entity_from_memory_store_then_not_cache_it_when_strategy_is_cache_only() {
+    func test_manager_should_fail_to_get_entity_from_memory_store_then_not_cache_it_when_strategy_is_local_only() {
 
         memoryStoreSpy.getResultStub = .failure(.api(.api(
             httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
@@ -327,7 +327,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_get_entity_from_memory_first_then_from_remote_store_when_strategy_is_prefer_cache() {
+    func test_manager_should_get_entity_from_memory_first_then_from_remote_store_when_strategy_is_local_then_remote() {
 
         memoryStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil))))
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
@@ -366,7 +366,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_not_get_entity_from_memory_first_but_still_reach_remote_store_when_strategy_is_prefer_cache() {
+    func test_manager_should_not_get_entity_from_memory_first_but_still_reach_remote_store_when_strategy_is_local_then_remote() {
 
         memoryStoreSpy.getResultStub = .success(.empty())
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
@@ -405,7 +405,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_not_return_nil_from_cache_but_should_return_nil_from_remote_store_when_strategy_is_prefer_cache() {
+    func test_manager_should_not_return_nil_from_cache_but_should_return_nil_from_remote_store_when_strategy_is_local_then_remote() {
 
         memoryStoreSpy.getResultStub = .success(.empty())
         memoryStoreSpy.removeResultStub = .success(())
@@ -442,7 +442,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_fail_to_get_entity_from_memory_first_but_ignore_error_and_reach_remote_store_when_strategy_is_prefer_cache() {
+    func test_manager_should_fail_to_get_entity_from_memory_first_but_ignore_error_and_reach_remote_store_when_strategy_is_local_then_remote() {
 
         memoryStoreSpy.getResultStub = .failure(.api(.api(
             httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
@@ -483,7 +483,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_fail_to_get_entity_from_memory_first_but_ignore_error_and_return_remote_store_error_when_strategy_is_prefer_cache() {
+    func test_manager_should_fail_to_get_entity_from_memory_first_but_ignore_error_and_return_remote_store_error_when_strategy_is_local_then_remote() {
 
         memoryStoreSpy.getResultStub = .failure(.api(.api(
             httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
@@ -525,7 +525,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_returns_local_values_if_local_result_count_matches_identifier_count_when_observing_once_signal_and_strategy_is_prefer_cache() {
+    func test_manager_returns_local_values_if_local_result_count_matches_identifier_count_when_observing_once_signal_and_strategy_is_local_then_remote() {
 
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(43, nil))]))
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(43, nil)), EntitySpy(idValue: .remote(44, nil))]))
@@ -565,7 +565,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_returns_remote_values_if_local_result_count_does_not_match_identifier_count_when_observing_once_signal_and_strategy_is_prefer_cache() {
+    func test_manager_returns_remote_values_if_local_result_count_does_not_match_identifier_count_when_observing_once_signal_and_strategy_is_local_then_remote() {
 
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil))]))
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(43, nil))]))
@@ -606,7 +606,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_returns_both_remote_results_and_local_results_when_observing_continuous_signal_and_strategy_is_prefer_cache() {
+    func test_manager_returns_both_remote_results_and_local_results_when_observing_continuous_signal_and_strategy_is_local_then_remote() {
 
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil))]))
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(43, nil))]))
@@ -699,7 +699,7 @@ final class CoreManagerTests: XCTestCase {
 
     // MARK: - search(withQuery:context:cacheStrategy:completion:)
 
-    func test_manager_should_get_entities_from_remote_store_then_cache_them_when_strategy_is_prefer_remote() {
+    func test_manager_should_get_entities_from_remote_store_then_cache_them_when_strategy_is_remote_only() {
 
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(42, nil))]))
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(42, nil))]))
@@ -740,7 +740,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_get_entities_when_remote_store_fails_and_strategy_is_prefer_remote() {
+    func test_manager_should_get_entities_when_remote_store_fails_and_strategy_is_remote_only() {
 
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(42, nil))]))
         memoryStoreSpy.searchResultStub = .failure(.notSupported)
@@ -781,7 +781,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_fail_to_get_entities_when_stores_fails_and_strategy_is_prefer_remote() {
+    func test_manager_should_fail_to_get_entities_when_stores_fails_and_strategy_is_remote_or_local() {
 
         remoteStoreSpy.searchResultStub = .failure(.api(.api(
             httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
@@ -816,7 +816,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_v3_manager_should_fail_to_get_entities_when_stores_fails_and_data_source_is_remote() {
+    func test_v3_manager_should_fail_to_get_entities_when_stores_fails_and_data_source_is_remote_only() {
 
         remoteStoreSpy.searchResultStub = .failure(.api(.api(
             httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
@@ -888,7 +888,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_get_entities_when_remote_store_fails_and_strategy_is_remote_only() {
+    func test_manager_should_get_entities_when_remote_store_fails_and_strategy_is_remote_only_with_do_not_persist() {
 
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(42, nil))]))
         memoryStoreSpy.searchResultStub = .failure(.notSupported)
@@ -962,7 +962,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_get_entities_from_memory_store_then_not_cache_them_when_strategy_is_cache() {
+    func test_manager_should_get_entities_from_memory_store_then_not_cache_them_when_strategy_is_local_only() {
 
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(42, nil))]))
 
@@ -996,7 +996,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_manager_should_get_entities_from_memory_then_remote_store_when_strategy_is_prefer_cache() {
+    func test_manager_should_get_entities_from_memory_then_remote_store_when_strategy_is_local_then_remote() {
 
         let entities = [EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(42, nil))]
         memoryStoreSpy.searchResultStub = .success(.entities(entities))
@@ -1040,7 +1040,7 @@ final class CoreManagerTests: XCTestCase {
 
     }
 
-    func test_manager_should_ignore_empty_entities_from_memory_then_get_entities_from_remote_store_when_strategy_is_prefer_cache() {
+    func test_manager_should_ignore_empty_entities_from_memory_then_get_entities_from_remote_store_when_strategy_is_local_then_remote() {
 
         let entities = [EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(42, nil))]
         memoryStoreSpy.searchResultStub = .success(.entities([]))
@@ -1085,7 +1085,7 @@ final class CoreManagerTests: XCTestCase {
 
     // MARK: - Providers
 
-    func test_manager_should_send_entity_update_to_provider_when_strategy_is_prefer_cache() {
+    func test_manager_should_send_entity_update_to_provider_when_strategy_is_local_then_remote() {
 
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "updated_fake_title")]))
@@ -2622,7 +2622,7 @@ final class CoreManagerTests: XCTestCase {
 
     // MARK: GET
 
-    func test_get_request_returns_request_token_and_metadata_for_remote_only_strategy() {
+    func test_get_request_returns_request_token_and_metadata_for_remote_only_strategy_with_do_no_persist() {
 
         let entity = EntitySpy(idValue: .remote(42, nil))
 
@@ -2646,7 +2646,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_get_request_returns_request_token_and_metadata_for_prefer_remote_strategy() {
+    func test_get_request_returns_request_token_and_metadata_for_remote_only_strategy() {
 
         let entity = EntitySpy(idValue: .remote(42, nil))
 
@@ -2672,7 +2672,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_get_request_returns_request_token_and_metadata_for_prefer_local_strategy_and_local_store_fails() {
+    func test_get_request_returns_request_token_and_metadata_for_local_then_remote_and_local_store_fails() {
 
         let entity = EntitySpy(idValue: .remote(42, nil))
 
@@ -2700,7 +2700,7 @@ final class CoreManagerTests: XCTestCase {
 
     // MARK: SEARCH
 
-    func test_search_request_returns_request_token_and_metadata_for_remote_only_strategy() {
+    func test_search_request_returns_request_token_and_metadata_for_remote_only_strategy_with_do_not_persist() {
 
         let entity = EntitySpy(idValue: .remote(42, nil))
 
@@ -2725,7 +2725,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_search_request_returns_request_token_and_metadata_for_prefer_remote_strategy() {
+    func test_search_request_returns_request_token_and_metadata_for_remote_only_strategy() {
 
         let entity = EntitySpy(idValue: .remote(42, nil))
 
@@ -2752,7 +2752,7 @@ final class CoreManagerTests: XCTestCase {
         wait(for: [onceExpectation], timeout: 1)
     }
 
-    func test_search_request_returns_request_token_and_metadata_for_prefer_local_strategy_and_local_store_fails() {
+    func test_search_request_returns_request_token_and_metadata_for_local_then_remote_strategy_and_local_store_fails() {
 
         let entity = EntitySpy(idValue: .remote(42, nil))
 

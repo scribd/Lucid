@@ -720,6 +720,13 @@ public extension Entity {
         return inheritenceType.isLocal
             && systemProperties.contains(where: { $0.requiresCustomShouldOverwriteFunction })
     }
+
+    var hasToManyRelationshipIdentifier: Bool {
+        if case .relationships(_, let ids) = self.identifier.identifierType {
+            return ids.count > 1
+        }
+        return false
+    }
 }
 
 public extension Entity {

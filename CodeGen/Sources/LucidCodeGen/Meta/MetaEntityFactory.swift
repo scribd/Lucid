@@ -48,10 +48,59 @@ struct MetaEntityFactory {
                         )))
                         .adding(parameter: TupleParameter(value: Value.nil))
                     )))
+                    .adding(parameter: entity.hasToManyRelationshipIdentifier == false ? nil :
+                        TupleParameter(name: "identifierTypeID", value: Reference.named("identifierRelationship") + .named("stringValue")))
                 )))
 
         if entity.hasVoidIdentifier {
             return [identifierProperty]
+        }
+
+        var identifierRelationshipEnum: TypeBodyMember? {
+            guard entity.hasToManyRelationshipIdentifier else { return nil }
+            guard case .relationships(_, let ids) = entity.identifier.identifierType else {
+                return nil
+            }
+            do {
+                let relationships: [Entity] = try ids
+                    .lazy
+                    .map { try descriptions.entity(for: $0.entityName) }
+                    .sorted { $0.name < $1.name }
+                guard relationships.isEmpty == false else {
+                    return nil
+                }
+
+                let stringValueProperty: TypeBodyMember =
+                    ComputedProperty(variable: Variable(name: "stringValue")
+                        .with(immutable: false)
+                        .with(type: .string))
+                        .with(accessLevel: .public)
+                        .adding(member: Switch(reference: .named(.`self`))
+                                    .adding(cases: relationships.compactMap {
+                                        return SwitchCase(name: $0.name.camelCased().variableCased()).adding(member: Return(value: $0.typeID().reference + .named("identifierTypeID")))
+                                    }))
+                return Type(identifier: TypeIdentifier(name: "IdentifierRelationship"))
+                        .with(kind: .enum(indirect: false))
+                        .with(accessLevel: .public)
+                        .adding(members: relationships.compactMap {
+                            return Case(name: $0.name.camelCased().variableCased())
+                        })
+                        .adding(member: EmptyLine())
+                        .adding(member: stringValueProperty)
+                        .adding(member: EmptyLine())
+            }
+            catch {
+                return nil
+            }
+        }
+
+        var identifierRelationshipProperty: TypeBodyMember? {
+            guard entity.hasToManyRelationshipIdentifier else { return nil }
+
+            return Property(variable: Variable(name: "identifierRelationship")
+                .with(immutable: true)
+                .with(type: TypeIdentifier(name: "IdentifierRelationship")))
+                .with(accessLevel: .private)
         }
 
         return [
@@ -73,11 +122,13 @@ struct MetaEntityFactory {
                 .with(static: true)
                 .adding(member: Assignment(variable: Reference.named("_identifier"), value: Value.int(0))),
             EmptyLine(),
+            identifierRelationshipEnum,
+            identifierRelationshipProperty,
             Property(variable: Variable(name: "_identifier")
                 .with(type: .int))
                 .with(accessLevel: .private),
             identifierProperty
-        ]
+        ].compactMap { $0 }
     }
 
     private func propertiesThenSystemProperties() throws -> [TypeBodyMember] {
@@ -133,13 +184,34 @@ struct MetaEntityFactory {
                 })
         }
 
-        return Function(kind: .`init`)
+        // Define the default contract
+        var initContract: Function = Function(kind: .`init`)
             .with(accessLevel: .public)
             .adding(parameter: FunctionParameter(alias: "_", name: "identifier", type: .optional(wrapped: .int)).with(defaultValue: Value.nil))
             .adding(member: Assignment(
                 variable: Reference.named("_identifier"),
                 value: .named("identifier") ?? entity.factoryTypeID.reference + .named("nextIdentifier")
             ))
+        // Change the init contract for relationship based identifiers
+        if entity.hasToManyRelationshipIdentifier,
+           case .relationships(_, let ids) = entity.identifier.identifierType,
+           let relationships: [Entity] = try? ids.lazy.map({ try descriptions.entity(for: $0.entityName) }).sorted(by: { $0.name < $1.name }),
+           let defaultRelationship: Entity = relationships.first {
+            initContract = Function(kind: .`init`)
+                .with(accessLevel: .public)
+                .adding(parameter: FunctionParameter(alias: "_", name: "identifier", type: .optional(wrapped: .int)).with(defaultValue: Value.nil))
+                .adding(parameter: FunctionParameter(alias: nil, name: "identifierRelationship", type: .named("IdentifierRelationship")).with(defaultValue: +Reference.named(defaultRelationship.name.camelCased().variableCased())))
+                .adding(member: Assignment(
+                    variable: Reference.named("_identifier"),
+                    value: .named("identifier") ?? entity.factoryTypeID.reference + .named("nextIdentifier")
+                ))
+                .adding(member: Assignment(
+                    variable: .named(.`self`) + Reference.named("identifierRelationship"),
+                    value: Reference.named("identifierRelationship")
+                ))
+        }
+
+        return initContract
             .adding(members: try entity.valuesThenRelationshipsThenSystemProperties.map { property in
 
                 let propertyValue: VariableValue = try {

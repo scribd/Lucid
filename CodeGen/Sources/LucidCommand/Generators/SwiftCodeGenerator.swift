@@ -54,15 +54,19 @@ final class SwiftCodeGenerator {
                 logger.moveToChild("Determine oldest data model version.")
             }
             let oldestModelVersion: Version
+            let newestModelVersion: Version
             do {
                 guard let currentDescriptions = descriptions[appVersion] else {
                     try logger.throwError("Could not find current descriptions.")
                 }
-                oldestModelVersion = try SwiftCodeGenerator.determineOldestXcdatamodelVersion(using: currentDescriptions, platform: $0, logger: logger) ?? appVersion
-                logger.info("Oldest model version is set at \(oldestModelVersion).")
+                let (oldest, newest) = try SwiftCodeGenerator.determineOldestAndNewestXcdatamodelVersion(using: currentDescriptions, platform: $0, logger: logger)
+                oldestModelVersion = oldest ?? appVersion
+                newestModelVersion = newest ?? appVersion
+                logger.info("Oldest model version is set at \(oldestModelVersion), newest model version is set at \(newestModelVersion).")
             } catch {
                 logger.warn("\(error) Defaulting to current version \(appVersion).")
                 oldestModelVersion = appVersion
+                newestModelVersion = appVersion
             }
             logger.moveToParent()
 
@@ -71,6 +75,7 @@ final class SwiftCodeGenerator {
                 descriptions: $1,
                 appVersion: appVersion,
                 oldestModelVersion: oldestModelVersion,
+                newestModelVersion: newestModelVersion,
                 historyVersions: historyVersions,
                 shouldGenerateDataModel: shouldGenerateDataModel,
                 descriptionsHash: descriptionsHash,
@@ -90,9 +95,9 @@ final class SwiftCodeGenerator {
         }
     }
 
-    private static func determineOldestXcdatamodelVersion(using descriptions: Descriptions,
-                                                          platform: Platform?,
-                                                          logger: Logger) throws -> Version? {
+    private static func determineOldestAndNewestXcdatamodelVersion(using descriptions: Descriptions,
+                                                                   platform: Platform?,
+                                                                   logger: Logger) throws -> (oldest: Version?, newest: Version?) {
         let target = descriptions.targets.app
         let appModuleName = target.moduleName
         let prefix = appModuleName
@@ -122,7 +127,8 @@ final class SwiftCodeGenerator {
             }
         }
 
-        return allVersions.sorted().first
+        let sortedVersions = allVersions.sorted()
+        return (sortedVersions.first, sortedVersions.last)
     }
 }
 
@@ -132,6 +138,7 @@ private final class InternalSwiftCodeGenerator {
     private let descriptions: [Version: Descriptions]
     private let appVersion: Version
     private let oldestModelVersion: Version
+    private let newestModelVersion: Version
     private let historyVersions: [Version]
     private let shouldGenerateDataModel: Bool
     private let descriptionsHash: String
@@ -164,6 +171,7 @@ private final class InternalSwiftCodeGenerator {
          descriptions: [Version: Descriptions],
          appVersion: Version,
          oldestModelVersion: Version,
+         newestModelVersion: Version,
          historyVersions: [Version],
          shouldGenerateDataModel: Bool,
          descriptionsHash: String,
@@ -178,6 +186,7 @@ private final class InternalSwiftCodeGenerator {
         self.descriptions = descriptions
         self.appVersion = appVersion
         self.oldestModelVersion = oldestModelVersion
+        self.newestModelVersion = newestModelVersion
         self.historyVersions = historyVersions
         self.shouldGenerateDataModel = shouldGenerateDataModel
         self.descriptionsHash = descriptionsHash
@@ -202,6 +211,7 @@ private final class InternalSwiftCodeGenerator {
             historyVersions: historyVersions,
             targetModuleName: target.moduleName,
             oldestModelVersion: oldestModelVersion,
+            newestModelVersion: newestModelVersion,
             platform: platform,
             shouldGenerateDataModel: shouldGenerateDataModel,
             sqliteFile: sqliteFile,

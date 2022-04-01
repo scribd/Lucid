@@ -27,6 +27,8 @@ public struct GeneratorParameters: Codable {
 
     public let oldestModelVersion: Version
 
+    public let newestModelVersion: Version
+
     public let platform: Platform?
 
     public let shouldGenerateDataModel: Bool
@@ -45,6 +47,7 @@ public struct GeneratorParameters: Codable {
                 historyVersions: [Version],
                 targetModuleName: String,
                 oldestModelVersion: Version,
+                newestModelVersion: Version,
                 platform: Platform?,
                 shouldGenerateDataModel: Bool,
                 sqliteFile: Path,
@@ -59,6 +62,7 @@ public struct GeneratorParameters: Codable {
         self.historyVersions = historyVersions
         self.targetModuleName = targetModuleName
         self.oldestModelVersion = oldestModelVersion
+        self.newestModelVersion = newestModelVersion
         self.platform = platform
         self.shouldGenerateDataModel = shouldGenerateDataModel
         self.sqliteFile = sqliteFile

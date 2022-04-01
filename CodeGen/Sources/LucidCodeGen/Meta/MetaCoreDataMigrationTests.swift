@@ -19,7 +19,17 @@ struct MetaCoreDataMigrationTests {
 
     let oldestModelVersion: Version
 
+    let newestModelVersion: Version
+
     let platform: Platform?
+
+    var filteredVersions: [Version] {
+        if appVersion == newestModelVersion {
+            return sqliteVersions.filter { $0 < newestModelVersion }
+        } else {
+            return sqliteVersions
+        }
+    }
 
     func imports() -> [Import] {
         return [
@@ -92,7 +102,7 @@ struct MetaCoreDataMigrationTests {
                     return
                 }
 
-                var hasExpectations = false
+                var expectations: [XCTestExpectation] = []
 
                 let sourceURL = URL(fileURLWithPath: "\(appTestsOutputPath)/SQLite/\\(sqliteFile)")
                 let destinationURL = URL(fileURLWithPath: "\\(appSupportDirectory)/\\(sqliteFile)")
@@ -121,7 +131,8 @@ struct MetaCoreDataMigrationTests {
                 let testCode = PlainCode(code: """
                 
                 let \(entity.transformedName.variableCased())Expectation = self.expectation(description: "\(entity.transformedName)")
-                hasExpectations = true
+                expectations.append(\(entity.transformedName.variableCased())Expectation)
+
                 let \(entity.transformedName.variableCased())CoreDataStore = \(MetaCode(meta: TypeIdentifier.coreDataStore(of: entity.typeID())))(coreDataManager: coreDataManager)
                 \(entity.transformedName.variableCased())CoreDataStore.search(withQuery: .all, in: _ReadContext<EndpointResultPayload>()) { result in
                     defer { \(entity.transformedName.variableCased())Expectation.fulfill() }
@@ -189,7 +200,7 @@ struct MetaCoreDataMigrationTests {
                 }
             }))
 
-                guard hasExpectations else { return }
+                guard expectations.isEmpty == false else { return }
 
                 waitForExpectations(timeout: 10) { (_: Error?) in
                     if self.fileManager.fileExists(atPath: destinationURL.path) {
@@ -203,7 +214,7 @@ struct MetaCoreDataMigrationTests {
                 }
             }
 
-            private func test_app_versions() {\((try sqliteVersions.map { sqliteVersion -> String in
+            func test_app_versions() {\((try filteredVersions.map { sqliteVersion -> String in
                     try variableFormatForFileVersion(sqliteVersion.versionString)
                 } + [variableFormatForVersion(appVersion)]).map { version in
                     "\n    XCTAssertNotNil(AppVersions.version\(version))"
@@ -211,7 +222,7 @@ struct MetaCoreDataMigrationTests {
             }
 
             """))
-            .adding(members: try sqliteVersions.map { sqliteVersion in
+            .adding(members: try filteredVersions.map { sqliteVersion in
                 let fileVersion = try variableFormatForFileVersion(sqliteVersion.versionString)
                 return Function(kind: .named("test_migration_from_\(fileVersion)_to_\(appVersion.sqlDescription)_should_succeed"))
                     .with(throws: true)
@@ -226,7 +237,7 @@ struct MetaCoreDataMigrationTests {
 
         return Type(identifier: TypeIdentifier(name: "AppVersions"))
             .adding(member: PlainCode(code: """
-            \((try sqliteVersions.map { sqliteVersion -> String in
+            \((try filteredVersions.map { sqliteVersion -> String in
                 try variableFormatForFileVersion(sqliteVersion.versionString)
             } + [variableFormatForVersion(appVersion)]).map { version in
                 "static let version\(version): Version! = try? Version(\"\(valueFormatForVersion(version))\")\n"

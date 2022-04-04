@@ -50,6 +50,8 @@ struct MetaEntityFactory {
                     )))
                     .adding(parameter: entity.hasToManyRelationshipIdentifier == false ? nil :
                         TupleParameter(name: "identifierTypeID", value: Reference.named("identifierRelationship") + .named("stringValue")))
+                    .adding(parameter: entity.hasToOneRelationshipIdentifier == false ? nil :
+                        TupleParameter(name: "identifierTypeID", value: try identifierRelationshipEntity().typeID().reference + .named("identifierTypeID")))
                 )))
 
         if entity.hasVoidIdentifier {
@@ -193,14 +195,11 @@ struct MetaEntityFactory {
                 value: .named("identifier") ?? entity.factoryTypeID.reference + .named("nextIdentifier")
             ))
         // Change the init contract for relationship based identifiers
-        if entity.hasToManyRelationshipIdentifier,
-           case .relationships(_, let ids) = entity.identifier.identifierType,
-           let relationships: [Entity] = try? ids.lazy.map({ try descriptions.entity(for: $0.entityName) }).sorted(by: { $0.name < $1.name }),
-           let defaultRelationship: Entity = relationships.first {
+        if entity.hasToManyRelationshipIdentifier {
             initContract = Function(kind: .`init`)
                 .with(accessLevel: .public)
                 .adding(parameter: FunctionParameter(alias: "_", name: "identifier", type: .optional(wrapped: .int)).with(defaultValue: Value.nil))
-                .adding(parameter: FunctionParameter(alias: nil, name: "identifierRelationship", type: .named("IdentifierRelationship")).with(defaultValue: +Reference.named(defaultRelationship.name.camelCased().variableCased())))
+                .adding(parameter: FunctionParameter(alias: nil, name: "identifierRelationship", type: .named("IdentifierRelationship")).with(defaultValue: +Reference.named(try identifierRelationshipEntity().name.camelCased().variableCased())))
                 .adding(member: Assignment(
                     variable: Reference.named("_identifier"),
                     value: .named("identifier") ?? entity.factoryTypeID.reference + .named("nextIdentifier")
@@ -219,13 +218,14 @@ struct MetaEntityFactory {
                         return Value.reference(Reference.named(".requested") | .call(Tuple()
                             .adding(parameter:
                                 TupleParameter(value: try property.defaultValue(
+                                    from: entity,
                                     identifier: .named("_identifier"),
                                     descriptions: descriptions
                                 ))
                             )
                         ))
                     } else {
-                        return try property.defaultValue(identifier: .named("_identifier"), descriptions: descriptions)
+                        return try property.defaultValue(from: entity, identifier: .named("_identifier"), descriptions: descriptions)
                     }
                 }()
 
@@ -264,5 +264,29 @@ struct MetaEntityFactory {
                     return TupleParameter(name: property.transformedName(ignoreLexicon: true), value: value)
                 })
             )))
+    }
+
+    private enum MetaEntityFactoryError: Error {
+        case noEntityFound
+
+        var description: String {
+            switch self {
+            case .noEntityFound:
+                return "No entity found"
+            }
+        }
+    }
+
+    private func identifierRelationshipEntity() throws -> Entity {
+        let entity = try descriptions.entity(for: entityName)
+
+        if entity.identifier.isRelationship,
+           case .relationships(_, let ids) = entity.identifier.identifierType,
+           let relationships: [Entity] = try? ids.lazy.map({ try descriptions.entity(for: $0.entityName) }).sorted(by: { $0.name < $1.name }),
+           let defaultRelationship: Entity = relationships.first {
+            return defaultRelationship
+        }
+
+        throw MetaEntityFactoryError.noEntityFound
     }
 }

@@ -721,6 +721,13 @@ public extension Entity {
             && systemProperties.contains(where: { $0.requiresCustomShouldOverwriteFunction })
     }
 
+    var hasToOneRelationshipIdentifier: Bool {
+        if case .relationships(_, let ids) = self.identifier.identifierType {
+            return ids.count == 1
+        }
+        return false
+    }
+
     var hasToManyRelationshipIdentifier: Bool {
         if case .relationships(_, let ids) = self.identifier.identifierType {
             return ids.count > 1
@@ -1643,11 +1650,30 @@ public extension EntityProperty {
         }
         return defaultValue
     }
+
+    func defaultValue(from entity: Entity,
+                      property: EntityProperty? = nil,
+                      identifier: Reference,
+                      useIdentifierRawType: Bool = false,
+                      descriptions: Descriptions) throws -> VariableValue {
+
+        var defaultValue = try propertyType.defaultValue(from: entity,
+                                                         property: property ?? self,
+                                                         identifier: identifier,
+                                                         useIdentifierRawType: useIdentifierRawType,
+                                                         descriptions: descriptions)
+
+        if propertyType.isArray {
+            defaultValue = Reference.array(with: [defaultValue]) + .named("any")
+        }
+        return defaultValue
+    }
 }
 
 public extension EntityProperty.PropertyType {
     
-    fileprivate func defaultValue(property: EntityProperty,
+    fileprivate func defaultValue(from entity: Entity? = nil,
+                                  property: EntityProperty,
                                   identifier: Reference,
                                   useIdentifierRawType: Bool,
                                   descriptions: Descriptions) throws -> VariableValue {
@@ -1677,6 +1703,16 @@ public extension EntityProperty.PropertyType {
                                                                                                  identifier: identifier,
                                                                                                  descriptions: descriptions) else {
                     return relationshipEntity.identifierTypeID().reference | .call(Tuple())
+                }
+
+                if let entity = entity, relationshipEntity.identifier.isRelationship {
+                    return relationshipEntity.identifierTypeID().reference | .call(Tuple()
+                        .adding(parameter: TupleParameter(name: "value", value: +.named("remote") | .call(Tuple()
+                            .adding(parameter: TupleParameter(value: identifierDefaultValue))
+                            .adding(parameter: TupleParameter(value: Value.nil))
+                        )))
+                        .adding(parameter: TupleParameter(name: "identifierTypeID", value: entity.typeID().reference + .named("identifierTypeID")))
+                    )
                 }
                 return relationshipEntity.identifierTypeID().reference | .call(Tuple()
                     .adding(parameter: TupleParameter(name: "value", value: +.named("remote") | .call(Tuple()

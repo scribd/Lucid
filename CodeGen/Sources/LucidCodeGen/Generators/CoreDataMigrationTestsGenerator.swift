@@ -26,7 +26,14 @@ public final class CoreDataMigrationTestsGenerator: Generator {
     }
 
     public func generate(for element: Description, in directory: Path, organizationName: String) throws -> SwiftFile? {
-        guard parameters.shouldGenerateDataModel else { return nil }
+        // If shouldGenerateDataModel == false, then we will rebuild the migration tests using the previous version number.
+        // This allows the migration tests to be regenerated when old data models have been trimmed.
+        let appVersion: Version
+        if parameters.shouldGenerateDataModel {
+            appVersion = parameters.appVersion
+        } else {
+            appVersion = parameters.newestModelVersion
+        }
         guard element == .all else { return nil }
 
         let header = MetaHeader(filename: filename, organizationName: organizationName)
@@ -39,8 +46,9 @@ public final class CoreDataMigrationTestsGenerator: Generator {
 
         let coreDataMigrationTests = MetaCoreDataMigrationTests(descriptions: parameters.currentDescriptions,
                                                                 sqliteVersions: sqliteVersions,
-                                                                appVersion: parameters.appVersion,
+                                                                appVersion: appVersion,
                                                                 oldestModelVersion: parameters.oldestModelVersion,
+                                                                newestModelVersion: parameters.newestModelVersion,
                                                                 platform: parameters.platform)
         
         return Meta.File(name: filename)

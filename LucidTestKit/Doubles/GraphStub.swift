@@ -63,11 +63,11 @@ public final class GraphStub: MutableGraph {
     }
 
     public func setEndpointResultMetadata(_ metadata: EndpointResultMetadata) {
-        self._metadata = metadata
+        _metadata = metadata
     }
 
     public func metadata<E>() -> Metadata<E>? where E : Entity {
-        return self._metadata.map { Metadata<E>($0) }
+        return _metadata.map { Metadata<E>($0) }
     }
 
     public var entities: [AnyEntitySpy] {

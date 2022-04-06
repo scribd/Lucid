@@ -139,9 +139,7 @@ public final class ThreadSafeGraph<Graph>: MutableGraph where Graph: MutableGrap
     }
 
     public func metadata<E>() -> Metadata<E>? where E : Entity {
-        dispatchQueue.sync {
-            return self._value.metadata()
-        }
+        dispatchQueue.sync { _value.metadata() }
     }
 
     fileprivate func filterOutContainedIDs(of identifiers: [AnyRelationshipIdentifierConvertible]) -> [AnyRelationshipIdentifierConvertible] {

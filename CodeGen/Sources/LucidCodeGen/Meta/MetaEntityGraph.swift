@@ -202,7 +202,7 @@ struct MetaEntityGraph {
             .adding(member: EmptyLine())
             .adding(member: containsFunction())
             .adding(member: EmptyLine())
-            .adding(member: setEndpointResultPayloadFunction())
+            .adding(member: setEndpointResultMetadataFunction())
             .adding(member: EmptyLine())
             .adding(member: getMetadataFunction())
             .adding(member: EmptyLine())
@@ -345,7 +345,7 @@ struct MetaEntityGraph {
             )
     }
 
-    private func setEndpointResultPayloadFunction() -> Function {
+    private func setEndpointResultMetadataFunction() -> Function {
         return Function(kind: .named("setEndpointResultMetadata"))
             .adding(parameter: FunctionParameter(alias: "_", name: "metadata", type: TypeIdentifier(name: "EndpointResultMetadata")))
             .adding(member: Assignment(

@@ -274,6 +274,10 @@ struct MetaEntityGraph {
                 variable: .named(.`self`) + .named("rootEntities"),
                 value: Value.array([])
             ))
+            .adding(member: Assignment(
+                variable: .named(.`self`) + .named("_metadata"),
+                value: Value.nil
+            ))
     }
 
     private func insertFunction() -> Function {

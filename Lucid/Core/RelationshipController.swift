@@ -44,6 +44,14 @@ public protocol MutableGraph: AnyObject {
     /// Indicates if the given entity identifier is contained in the graph or not.
     /// - Parameter entity: entity identifier to check on.
     func contains(_ identifier: AnyRelationshipIdentifierConvertible) -> Bool
+
+    /// Set the metadata related to the Entity object
+    /// - Parameter metadata: the `EndpointResultMetadata` object
+    func setEndpointResultMetadata(_ metadata: EndpointResultMetadata)
+
+    /// Returns the metadata if available
+    /// - Returns (optional) the requested `Metadata<E>` if available
+    func metadata<E>() -> Metadata<E>? where E: Entity
 }
 
 /// Core manager able to retrieve relationship entities out of any relationship identifiers
@@ -122,6 +130,18 @@ public final class ThreadSafeGraph<Graph>: MutableGraph where Graph: MutableGrap
 
     public func contains(_ identifier: AnyRelationshipIdentifierConvertible) -> Bool {
         return dispatchQueue.sync { _value.contains(identifier) }
+    }
+
+    public func setEndpointResultMetadata(_ metadata: EndpointResultMetadata) {
+        dispatchQueue.async {
+            self._value.setEndpointResultMetadata(metadata)
+        }
+    }
+
+    public func metadata<E>() -> Metadata<E>? where E : Entity {
+        dispatchQueue.sync {
+            return self._value.metadata()
+        }
     }
 
     fileprivate func filterOutContainedIDs(of identifiers: [AnyRelationshipIdentifierConvertible]) -> [AnyRelationshipIdentifierConvertible] {
@@ -239,6 +259,9 @@ public final class RelationshipController<RelationshipManager, Graph>
 
             if path.isEmpty {
                 graph.setRoot(entities)
+                if let endpointResultMetadata = nestedContext.endpointResultMetadata {
+                    graph.setEndpointResultMetadata(endpointResultMetadata)
+                }
             }
             graph.insert(entities)
 

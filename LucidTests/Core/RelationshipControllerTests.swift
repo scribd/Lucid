@@ -797,6 +797,44 @@ final class RelationshipControllerTests: XCTestCase {
     func test_relationship_controller_should_create_graph_and_identify_remote_data_from_context_with_url_cache_response() {
         _testRelationshipControllerShouldIdentifyDataSource(asRemote: true, responseSource: .urlCache(.empty))
     }
+
+    // MARK: - Metadata Handling -
+
+    func test_relationship_controller_should_add_metadata_to_graph() {
+        let expectation = self.expectation(description: "graph")
+        expectation.expectedFulfillmentCount = 2
+
+        let entitySpy = EntitySpy()
+
+        let contract = RootControllerContract(isValid: false)
+        let context = RelationshipController<RelationshipCoreManagerSpy, GraphStub>.ReadContext(dataSource: .local, contract: contract)
+        let requestConfig = APIRequestConfig(method: .get, path: .path("fake_entity") / "42")
+        let stubEntityMetadata = EntitySpyMetadata(remoteID: 42)
+        let stubEndpointMetadata = VoidMetadata()
+        let resultPayload = EntityEndpointResultPayloadSpy(stubEntities: [entitySpy],
+                                                           stubEntityMetadata: [stubEntityMetadata],
+                                                           stubEndpointMetadata: stubEndpointMetadata)
+        context.set(payloadResult: .success(resultPayload), source: nil, for: requestConfig)
+
+        entity(entitySpy)
+            .relationships(from: coreManager, in: context)
+            .perform(GraphStub.self)
+            .once
+            .sink { completion in
+                switch completion {
+                case .failure(let error):
+                    XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    expectation.fulfill()
+                }
+            } receiveValue: { graph in
+                XCTAssertTrue(graph._metadata != nil)
+                expectation.fulfill()
+            }
+            .store(in: &cancellables)
+
+        waitForExpectations(timeout: 1)
+    }
 }
 
 // MARK: - Utils

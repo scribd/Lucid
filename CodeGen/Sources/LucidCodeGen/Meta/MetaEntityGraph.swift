@@ -202,6 +202,10 @@ struct MetaEntityGraph {
             .adding(member: EmptyLine())
             .adding(member: containsFunction())
             .adding(member: EmptyLine())
+            .adding(member: setEndpointResultMetadataFunction())
+            .adding(member: EmptyLine())
+            .adding(member: getMetadataFunction())
+            .adding(member: EmptyLine())
             .adding(member: entitiesComputedProperty())
             .adding(member: EmptyLine())
             .adding(member: appendFunction())
@@ -215,6 +219,11 @@ struct MetaEntityGraph {
             EmptyLine(),
             Property(variable: Variable(name: "rootEntities")
                 .with(type: .array(element: .appAnyEntity))
+                .with(immutable: false))
+                .with(accessLevel: .privateSet),
+            EmptyLine(),
+            Property(variable: Variable(name: "_metadata")
+                .with(type: .optional(wrapped: TypeIdentifier.named("EndpointResultMetadata")))
                 .with(immutable: false))
                 .with(accessLevel: .privateSet)
         ] + descriptions.entities.map { entity in
@@ -334,6 +343,23 @@ struct MetaEntityGraph {
                     .adding(member: Return(value: Value.bool(false)))
                 )
             )
+    }
+
+    private func setEndpointResultMetadataFunction() -> Function {
+        return Function(kind: .named("setEndpointResultMetadata"))
+            .adding(parameter: FunctionParameter(alias: "_", name: "metadata", type: TypeIdentifier(name: "EndpointResultMetadata")))
+            .adding(member: Assignment(
+                variable: Reference.named("_metadata"),
+                value: Reference.named("metadata"))
+            )
+    }
+
+    private func getMetadataFunction() -> Function {
+        return Function(kind: .named("metadata"))
+            .adding(genericParameter: GenericParameter(name: "E"))
+            .with(resultType: .optional(wrapped: .named("Metadata").adding(genericParameter: .named("E"))))
+            .adding(constraint: .value(Reference.named("E : Entity")))
+            .adding(member: Return(value: .named("_metadata") + .named(.map) | .block(FunctionBody().adding(member: Reference.named("Metadata<E>") | .call(Tuple().adding(parameter: TupleParameter(value: Reference.named("$0"))))))))
     }
 
     private func entitiesComputedProperty() -> ComputedProperty {

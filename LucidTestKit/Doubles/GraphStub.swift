@@ -24,6 +24,8 @@ public final class GraphStub: MutableGraph {
 
     public private(set) var entityRelationshipSpies = DualHashDictionary<EntityRelationshipSpyIdentifier, EntityRelationshipSpy>()
 
+    public private(set) var _metadata: EndpointResultMetadata?
+
     public convenience init() {
         self.init(isDataRemote: false)
     }
@@ -58,6 +60,14 @@ public final class GraphStub: MutableGraph {
             return false
         }
         return entityRelationshipSpies[identifier] != nil
+    }
+
+    public func setEndpointResultMetadata(_ metadata: EndpointResultMetadata) {
+        _metadata = metadata
+    }
+
+    public func metadata<E>() -> Metadata<E>? where E : Entity {
+        return _metadata.map { Metadata<E>($0) }
     }
 
     public var entities: [AnyEntitySpy] {

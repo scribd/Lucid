@@ -42,6 +42,14 @@ public final class CoreManagerContainer {
         }
     }
 
+    public struct CacheSize {
+        let small: Int
+        let medium: Int
+        let large: Int
+
+        public static var `default`: CacheSize { return CacheSize(small: 100, medium: 500, large: 2000) }
+    }
+
     private let _responseHandler: CoreManagerContainerClientQueueResponseHandler?
     public var responseHandler: APIClientQueueResponseHandler? {
         return _responseHandler
@@ -64,7 +72,7 @@ public final class CoreManagerContainer {
         return _movieManager.managing(_movieRelationshipManager)
     }
 
-    public init(cacheLimit: Int,
+    public init(cacheSize: CacheSize = .default,
                 client: APIClient,
                 diskStoreConfig: DiskStoreConfig = .coreData,
                 responseHandler: Optional<CoreManagerContainerClientQueueResponseHandler> = nil) {
@@ -84,7 +92,7 @@ public final class CoreManagerContainer {
             stores: Genre.stores(
                 with: client,
                 clientQueue: &clientQueue,
-                cacheLimit: cacheLimit,
+                cacheLimit: cacheSize.medium,
                 diskStoreConfig: diskStoreConfig
             )
         )
@@ -95,7 +103,7 @@ public final class CoreManagerContainer {
             stores: Movie.stores(
                 with: client,
                 clientQueue: &clientQueue,
-                cacheLimit: cacheLimit,
+                cacheLimit: cacheSize.medium,
                 diskStoreConfig: diskStoreConfig
             )
         )
@@ -128,12 +136,12 @@ extension CoreManagerContainer: RelationshipCoreManaging {
         switch entityType {
         case GenreIdentifier.entityTypeUID:
             return genreManager.get(
-                byIDs: DualHashSet(identifiers.lazy.compactMap { $0.toRelationshipID() }),
+                byIDs: identifiers.lazy.compactMap { $0.toRelationshipID() }.uniquified(),
                 in: context
             ).once.map { $0.lazy.map { .genre($0) }.any }.eraseToAnyPublisher()
         case MovieIdentifier.entityTypeUID:
             return movieManager.get(
-                byIDs: DualHashSet(identifiers.lazy.compactMap { $0.toRelationshipID() }),
+                byIDs: identifiers.lazy.compactMap { $0.toRelationshipID() }.uniquified(),
                 in: context
             ).once.map { $0.lazy.map { .movie($0) }.any }.eraseToAnyPublisher()
         default:

@@ -328,7 +328,7 @@ struct MetaEntityGraph {
         return Function(kind: .named("contains"))
             .adding(parameter: FunctionParameter(alias: "_", name: "identifier", type: .anyRelationshipIdentifierConvertible))
             .with(resultType: .bool)
-            .adding(member: Switch(reference: .named("identifier") | .named(" as? ") | TypeIdentifier.entityRelationshipIdentifier.reference)
+            .adding(member: Switch(reference: .named("identifier") | .as(.optional(TypeIdentifier.entityRelationshipIdentifier)))
                 .adding(cases: descriptions.entities.map { entity in
                     switch entity.identifier.identifierType {
                     case .void:

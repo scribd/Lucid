@@ -79,11 +79,23 @@ final class EntityGraph: MutableGraph {
 
     typealias AnyEntity = AppAnyEntity
 
+    let isDataRemote: Bool
+
     private(set) var rootEntities: Array<AppAnyEntity>
+
+    private(set) var _metadata: Optional<EndpointResultMetadata>
     private(set) var genres = OrderedDualHashDictionary<GenreIdentifier, Genre>()
     private(set) var movies = OrderedDualHashDictionary<MovieIdentifier, Movie>()
 
-    init() { self.rootEntities = [] }
+    convenience init() { self.init(isDataRemote: false) }
+
+    convenience init<P>(context: _ReadContext<P>) where P: ResultPayloadConvertible { self.init(isDataRemote: context.responseHeader != nil) }
+
+    private init(isDataRemote: Bool) {
+        self.isDataRemote = isDataRemote
+        self.rootEntities = []
+        self._metadata = nil
+    }
 
     func setRoot<S>(_ entities: S) where S: Sequence, S.Element == AppAnyEntity { rootEntities = entities.array }
 
@@ -93,7 +105,7 @@ final class EntityGraph: MutableGraph {
             case .genre(let entity):
                 genres[entity.identifier] = entity
             case .movie(let entity):
-                movies[entity.identifier] = entity
+                movies[entity.identifier] = movies[entity.identifier].flatMap { $0.merging(entity) } ?? entity
             }
         }
     }
@@ -108,6 +120,10 @@ final class EntityGraph: MutableGraph {
             return false
         }
     }
+
+    func setEndpointResultMetadata(_ metadata: EndpointResultMetadata) { _metadata = metadata }
+
+    func metadata<E>() -> Optional<Metadata<E>> where E : Entity { return _metadata.map { Metadata<E>($0) } }
 
     var entities: AnySequence<AppAnyEntity> {
         let genres = self.genres.lazy.elements.map { AppAnyEntity.genre($0.1) }.any

@@ -153,7 +153,7 @@ private extension MetaEntityObjc {
             
             let valueType = try property.valueTypeID(descriptions, objc: true)
             if valueType == .nsNumber || valueType == .optional(wrapped: .nsNumber) {
-                value = value | .as | valueType.reference
+                value = value | .as(.strict(valueType))
             }
             
             return value

@@ -68,7 +68,7 @@ public final class EndpointResultPayload: ResultPayloadConvertible {
             case .genre(let value):
                 genres[value.identifier] = value
             case .movie(let value):
-                movies[value.identifier] = value
+                movies[value.identifier] = movies[value.identifier].flatMap { $0.merging(value) } ?? value
             }
         }
 

@@ -110,7 +110,7 @@ struct MetaEndpointResultPayload {
                         value: TypeIdentifier.endpointResultMetadata.reference | .call(Tuple()
                             .adding(parameter: TupleParameter(name: "endpoint", value: .named("payload") + .named("endpointMetadata")))
                             .adding(parameter: TupleParameter(name: "entity", value: .named("payload") + .named("entityMetadata") + .named("lazy") + .named(.map) | .block(FunctionBody()
-                                .adding(member: .named("$0") | .as | TypeIdentifier.optional(wrapped: .entityMetadata).reference)
+                                .adding(member: .named("$0") | .as(.strict(TypeIdentifier.optional(wrapped: .entityMetadata))))
                             ) + .named("any")))
                         )
                     ))

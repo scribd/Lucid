@@ -57,9 +57,12 @@ final class CoreManagerProperty<Output: Equatable>: Publisher {
             }
         }
 
+        let lock = dataLock
         let cancellable = currentValue
             .compactMap { $0 }
             .sink(receiveValue: { value in
+                lock.lock()
+                defer { lock.unlock() }
                 _ = subscriber.receive(value)
             })
 

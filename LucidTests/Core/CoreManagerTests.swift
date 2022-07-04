@@ -4878,6 +4878,67 @@ final class CoreManagerTests: XCTestCase {
 
         wait(for: [onceExpectation], timeout: 1)
     }
+
+    // MARK: - Continuous Observation Race Condition Test
+
+    func test_continuous_observation_of_record_counts_after_a_slight_delay_to_make_sure_data_is_still_received() {
+
+        // Set Up Data
+
+        let lruStore = LRUStore<EntitySpy>(store: InMemoryStore().storing, limit: 10)
+        let coreDataStore = CoreDataStore<EntitySpy>(coreDataManager: StubCoreDataManagerFactory.shared)
+        let cacheStore = CacheStore(keyValueStore: lruStore.storing, persistentStore: coreDataStore.storing)
+        manager = CoreManager(stores: [cacheStore.storing]).managing()
+
+        let setExpectation = self.expectation(description: "setting_data")
+
+        let entities: [EntitySpy] = [
+            EntitySpy(idValue: .remote(1, nil)),
+            EntitySpy(idValue: .remote(2, nil)),
+            EntitySpy(idValue: .remote(3, nil)),
+            EntitySpy(idValue: .remote(4, nil)),
+        ]
+
+        coreDataStore.set(entities, in: WriteContext(dataTarget: .local, accessValidator: nil)) { _ in
+            setExpectation.fulfill()
+        }
+        wait(for: [setExpectation], timeout: 1)
+
+        // Continuous Observation
+
+        let continuousExpectation = self.expectation(description: "continuous")
+
+        let publisher = manager
+            .search(withQuery: .all)
+            .continuous
+            .eraseToAnyPublisher()
+            .map { $0.count }
+            .eraseToAnyPublisher()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
+            publisher
+                .receive(on: DispatchQueue.main)
+                .sink { result in
+                    XCTAssertEqual(result, 4)
+                    continuousExpectation.fulfill()
+                }
+                .store(in: &self.cancellables)
+        }
+
+        wait(for: [continuousExpectation], timeout: 1)
+
+        // Clean Up CoreData
+
+        let expectation = self.expectation(description: "tear_down")
+        StubCoreDataManagerFactory.shared.clearDatabase { success in
+            if success == false {
+                XCTFail("Did not clear database successfully.")
+            }
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
+
+    }
 }
 
 // MARK: - UserAccessValidatorSpy Helper

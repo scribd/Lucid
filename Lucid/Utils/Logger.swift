@@ -9,7 +9,6 @@
 import Foundation
 import os
 
-@objc(SCLogType)
 public enum LogType: Int {
     case verbose
     case info
@@ -18,10 +17,8 @@ public enum LogType: Int {
     case error
 }
 
-@objc(SCLogging)
 public protocol Logging {
 
-    @objc(logWithType:message:domain:assert:file:function:line:)
     func log(_ type: LogType,
              _ message: @autoclosure () -> String,
              domain: String,
@@ -32,7 +29,7 @@ public protocol Logging {
 
     func loggableErrorString(_ error: Error) -> String
 
-    @objc func recordErrorOnCrashlytics(_ error: Error)
+    func recordErrorOnCrashlytics(_ error: Error)
 }
 
 extension Logging {
@@ -124,11 +121,11 @@ extension LogType: CustomStringConvertible {
     public var description: String {
         switch self {
         case .debug:
-            return "*Debug*"
+            return "Debug"
         case .error:
-            return "*Error*"
+            return "Error"
         case .info:
-            return "*Info**"
+            return "Info"
         case .verbose:
             return "Verbose"
         case .warning:

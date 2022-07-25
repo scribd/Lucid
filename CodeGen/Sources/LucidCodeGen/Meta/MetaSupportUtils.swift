@@ -16,7 +16,6 @@ struct MetaSupportUtils {
     
     func meta() throws -> FileBodyMember {
         return PlainCode(code: """
-
             // MARK: - Logger
 
             enum Logger {

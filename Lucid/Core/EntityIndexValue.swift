@@ -141,15 +141,6 @@ extension EntityIndexValue {
     }
 }
 
-// MARK: - CMTime + Hashable
-
-extension CMTime: Hashable {
-
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(seconds.hashValue)
-    }
-}
-
 // MARK: - ComparableRawRepresentable
 
 public protocol ComparableRawRepresentable: Comparable {

@@ -704,7 +704,7 @@ public extension ResultPayloadConvertible {
 public extension APIClient {
 
     func send(request: APIRequest<Data>) -> AnyPublisher<APIClientResponse<Data>, APIError> {
-        return Future { promise in
+        return Publishers.ReplayOnce { promise in
             self.send(request: request) { result in
                 switch result {
                 case .success(let response):
@@ -718,7 +718,7 @@ public extension APIClient {
     }
 
     func send<Model>(request: APIRequest<Model>) -> AnyPublisher<APIClientResponse<Model>, APIError> where Model: Decodable {
-        return Future { promise in
+        return Publishers.ReplayOnce { promise in
             self.send(request: request) { result in
                 switch result {
                 case .success(let response):
@@ -1090,7 +1090,7 @@ extension APIRequest {
 public extension APIClient {
 
     func prepareURLRequest(_ requestConfig: APIRequestConfig) -> AnyPublisher<URLRequest?, Never> {
-        return Future { fulfill in
+        return Publishers.ReplayOnce { fulfill in
             self.prepareRequest(requestConfig) { requestConfig in
                 let urlRequest = requestConfig.urlRequest(
                     host: requestConfig.host ?? self.host,

@@ -34,8 +34,8 @@ final class PublisherTests: XCTestCase {
     func test_when_should_filter_entity_updates_on_index() {
         let initialEntities = (0...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "initial_\($0)") }
         let newEntities =
-            (0..<5).map { EntitySpy(idValue: .remote($0, nil), title: "new_\($0)", subtitle: "new_\($0)") } +
-            (5...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "new_\($0)") }
+        (0..<5).map { EntitySpy(idValue: .remote($0, nil), title: "new_\($0)", subtitle: "new_\($0)") } +
+        (5...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "new_\($0)") }
 
         let subject = PassthroughSubject<[EntitySpy], Never>()
         let expectation = self.expectation(description: "update")
@@ -65,9 +65,9 @@ final class PublisherTests: XCTestCase {
     func test_when_should_filter_entity_updates_on_indices() {
         let initialEntities = (0...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "initial_\($0)") }
         let newEntities =
-            (0..<5).map { EntitySpy(idValue: .remote($0, nil), title: "new_\($0)", subtitle: "initial_\($0)") } +
-            (5..<8).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "initial_\($0)") } +
-            (8...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "new_\($0)") }
+        (0..<5).map { EntitySpy(idValue: .remote($0, nil), title: "new_\($0)", subtitle: "initial_\($0)") } +
+        (5..<8).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "initial_\($0)") } +
+        (8...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "new_\($0)") }
 
         let subject = PassthroughSubject<[EntitySpy], Never>()
         let expectation = self.expectation(description: "update")
@@ -99,9 +99,9 @@ final class PublisherTests: XCTestCase {
     func test_whenUpdatingAnything_should_not_filter_entity_updates() {
         let initialEntities = (0...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "initial_\($0)") }
         let newEntities =
-            (0..<5).map { EntitySpy(idValue: .remote($0, nil), title: "new_\($0)", subtitle: "initial_\($0)") } +
-            (5..<8).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "initial_\($0)") } +
-            (8...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "new_\($0)") }
+        (0..<5).map { EntitySpy(idValue: .remote($0, nil), title: "new_\($0)", subtitle: "initial_\($0)") } +
+        (5..<8).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "initial_\($0)") } +
+        (8...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "new_\($0)") }
 
         let subject = PassthroughSubject<[EntitySpy], Never>()
         let expectation = self.expectation(description: "update")
@@ -158,8 +158,8 @@ final class PublisherTests: XCTestCase {
     func test_no_event_should_fire_for_initial_data_when_insertions_are_included() {
         let initialEntities = (0...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "initial_\($0)") }
         let newEntities =
-            (0..<5).map { EntitySpy(idValue: .remote($0, nil), title: "new_\($0)", subtitle: "new_\($0)") } +
-            (5...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "new_\($0)") }
+        (0..<5).map { EntitySpy(idValue: .remote($0, nil), title: "new_\($0)", subtitle: "new_\($0)") } +
+        (5...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "new_\($0)") }
 
         let subject = PassthroughSubject<[EntitySpy], Never>()
         let expectation = self.expectation(description: "update")
@@ -224,8 +224,8 @@ final class PublisherTests: XCTestCase {
     func test_second_event_should_only_include_mutated_entities_when_deletions_are_not_included() {
         let initialEntities = (0...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "initial_\($0)") }
         let newEntities =
-            (0..<5).map { EntitySpy(idValue: .remote($0, nil), title: "new_\($0)", subtitle: "new_\($0)") } +
-            (5...8).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "new_\($0)") }
+        (0..<5).map { EntitySpy(idValue: .remote($0, nil), title: "new_\($0)", subtitle: "new_\($0)") } +
+        (5...8).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "new_\($0)") }
 
         let subject = PassthroughSubject<[EntitySpy], Never>()
         let expectation = self.expectation(description: "update")
@@ -255,8 +255,8 @@ final class PublisherTests: XCTestCase {
     func test_second_event_should_include_mutated_entities_and_deletions_when_deletions_are_included() {
         let initialEntities = (0...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "initial_\($0)") }
         let newEntities =
-            (0..<5).map { EntitySpy(idValue: .remote($0, nil), title: "new_\($0)", subtitle: "new_\($0)") } +
-            (5...8).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "new_\($0)") }
+        (0..<5).map { EntitySpy(idValue: .remote($0, nil), title: "new_\($0)", subtitle: "new_\($0)") } +
+        (5...8).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "new_\($0)") }
 
         let subject = PassthroughSubject<[EntitySpy], Never>()
         let expectation = self.expectation(description: "update")
@@ -818,7 +818,7 @@ final class PublisherTests: XCTestCase {
         XCTAssertEqual(arrayTest, [])
     }
 
-     // MARK: - AMB
+    // MARK: - AMB
 
     func test_amb_chooses_first_publisher_with_successful_value() {
 
@@ -1163,6 +1163,258 @@ final class PublisherTests: XCTestCase {
         subject1.send(10)
         subject2.send(20)
         subject3.send(30)
+    }
+
+    // MARK: ReplayOnce
+
+    func test_replay_once_passes_through_value_and_completion() {
+        var valueEmitter: ((Int) -> Void)?
+
+        let replayOnce = Publishers.ReplayOnce<Int, FirstErrorType> { promise in
+            valueEmitter = { value in
+                promise(.success(value))
+            }
+        }
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 2
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 10)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        valueEmitter?(10)
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_replay_once_passes_through_value_and_completion_if_it_fires_before_subscriber() {
+
+        var valueEmitter: ((Int) -> Void)?
+
+        let replayOnce = Publishers.ReplayOnce<Int, FirstErrorType> { promise in
+            valueEmitter = { value in
+                promise(.success(value))
+            }
+        }
+
+        valueEmitter?(10)
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 2
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 10)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_replay_once_passes_through_failure() {
+        var failureEmitter: ((FirstErrorType) -> Void)?
+
+        let replayOnce = Publishers.ReplayOnce<Int, FirstErrorType> { promise in
+            failureEmitter = { error in
+                promise(.failure(error))
+            }
+        }
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 1
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTAssertEqual(error, .one)
+                    replayExpectation.fulfill()
+                case .finished:
+                    XCTFail("unexpected finished")
+                }
+            }, receiveValue: { value in
+                XCTFail("unexpected value: \(value)")
+            })
+            .store(in: &cancellables)
+
+        failureEmitter?(.one)
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_replay_once_passes_through_failure_if_it_fires_before_subscriber() {
+
+        var failureEmitter: ((FirstErrorType) -> Void)?
+
+        let replayOnce = Publishers.ReplayOnce<Int, FirstErrorType> { promise in
+            failureEmitter = { error in
+                promise(.failure(error))
+            }
+        }
+
+        failureEmitter?(.one)
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 1
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTAssertEqual(error, .one)
+                    replayExpectation.fulfill()
+                case .finished:
+                    XCTFail("unexpected finished")
+                }
+            }, receiveValue: { value in
+                XCTFail("unexpected value: \(value)")
+            })
+            .store(in: &cancellables)
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_replay_once_passes_through_value_and_completion_for_optional_data_returning_actual_value() {
+        var valueEmitter: ((Int?) -> Void)?
+
+        let replayOnce = Publishers.ReplayOnce<Int?, FirstErrorType> { promise in
+            valueEmitter = { value in
+                promise(.success(value))
+            }
+        }
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 2
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 10)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        valueEmitter?(10)
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_replay_once_passes_through_value_and_completion_for_optional_data_returning_nil_value() {
+        var valueEmitter: ((Int?) -> Void)?
+
+        let replayOnce = Publishers.ReplayOnce<Int?, FirstErrorType> { promise in
+            valueEmitter = { value in
+                promise(.success(value))
+            }
+        }
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 2
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertNil(value)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        valueEmitter?(nil)
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_replay_once_passes_through_value_and_completion_for_optional_data_returning_actual_value_if_it_fires_before_subscriber() {
+        var valueEmitter: ((Int?) -> Void)?
+
+        let replayOnce = Publishers.ReplayOnce<Int?, FirstErrorType> { promise in
+            valueEmitter = { value in
+                promise(.success(value))
+            }
+        }
+
+        valueEmitter?(10)
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 2
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 10)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_replay_once_passes_through_value_and_completion_for_optional_data_returning_nil_value_if_it_fires_before_subscriber() {
+        var valueEmitter: ((Int?) -> Void)?
+
+        let replayOnce = Publishers.ReplayOnce<Int?, FirstErrorType> { promise in
+            valueEmitter = { value in
+                promise(.success(value))
+            }
+        }
+
+        valueEmitter?(nil)
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 2
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertNil(value)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        waitForExpectations(timeout: 1)
     }
 }
 

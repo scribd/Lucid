@@ -15,8 +15,6 @@ public extension Publishers {
 
     struct AMB<Output, Failure: Error>: Publisher {
 
-        private var future: Future<Output, Failure>?
-
         private let publishers: [AnyPublisher<Output, Failure>]
 
         private let allowAllToFinish: Bool
@@ -34,7 +32,7 @@ public extension Publishers {
             self.queue.sync {
                 let subscription = AMBSubscription(self, subscriber, count: publishers.count)
 
-                let cancellable = Future<Output, Failure> { promise in
+                let cancellable = ReplayOnce<Output, Failure> { promise in
 
                     var hasBeenChosen: Bool = false
 
@@ -84,7 +82,8 @@ public extension Publishers {
         }
     }
 }
-// MARK: - Subscription
+
+// MARK: Subscription
 
 private extension Publishers.AMB {
 
@@ -112,5 +111,62 @@ private extension Publishers.AMB {
         }
 
         func request(_ demand: Subscribers.Demand) { }
+    }
+}
+
+// MARK: - ReplayOnce
+
+public extension Publishers {
+
+    typealias ReplayPromise<Output, Failure: Error> = (Result<Output, Failure>) -> Void
+
+    final class ReplayOnce<Output, Failure: Error>: Publisher {
+
+        private let currentValue = CurrentValueSubject<Output?, Failure>(nil)
+
+        private let outputValue: AnyPublisher<Output, Failure>
+
+        private let dataLock = NSRecursiveLock(name: "\(ReplayOnce.self):data_lock")
+
+        public init(_ handler: @escaping ((@escaping ReplayPromise<Output, Failure>) -> Void)) {
+
+            let current = currentValue
+            let lock = dataLock
+
+            let promise: ReplayPromise<Output, Failure> = { result in
+                lock.lock()
+                defer { lock.unlock() }
+
+                switch result {
+                case .success(let value):
+                    current.send(value)
+                    current.send(completion: .finished)
+                case .failure(let error):
+                    current.send(completion: .failure(error))
+                }
+            }
+
+            defer {
+                handler(promise)
+            }
+
+            self.outputValue = currentValue
+                .compactMap { $0 }
+                .eraseToAnyPublisher()
+        }
+
+        // MARK: Publisher
+
+        public func receive<S>(subscriber: S) where S : Subscriber, Failure == S.Failure, Output == S.Input {
+            dataLock.lock()
+            defer { dataLock.unlock() }
+
+            if let value = currentValue.value {
+                let just = Just(value).setFailureType(to: Failure.self)
+                just.receive(subscriber: subscriber)
+            } else {
+                outputValue.receive(subscriber: subscriber)
+            }
+        }
     }
 }

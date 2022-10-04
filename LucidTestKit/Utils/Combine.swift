@@ -9,7 +9,7 @@
 import Combine
 import Foundation
 
-public extension Future {
+public extension Publishers.ReplayOnce {
 
     convenience init(just output: Output) {
         self.init { fulfill in

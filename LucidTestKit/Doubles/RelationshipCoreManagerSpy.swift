@@ -23,7 +23,7 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
         context: _ReadContext<EntityEndpointResultPayloadSpy>
     )]()
 
-    public var getByIDsStubs: [AnyPublisher<[AnyEntitySpy], ManagerError>] = [Future(just: []).eraseToAnyPublisher()]
+    public var getByIDsStubs: [AnyPublisher<[AnyEntitySpy], ManagerError>] = [Publishers.ReplayOnce(just: []).eraseToAnyPublisher()]
 
     public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
                     entityType: String,

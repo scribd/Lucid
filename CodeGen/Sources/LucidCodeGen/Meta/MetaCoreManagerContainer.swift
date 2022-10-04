@@ -84,8 +84,8 @@ struct MetaCoreManagerContainer {
                 PlainCode(code: """
 
                 public struct DiskStoreConfig {
-                    public var coreDataManager: CoreDataManager?
-                    public var custom: Any?
+                    public let coreDataManager: CoreDataManager?
+                    public let custom: Any?
 
                     public static var coreData: DiskStoreConfig {
                 \(MetaCode(indentation: 2, meta: Assignment(
@@ -104,14 +104,28 @@ struct MetaCoreManagerContainer {
                 ))
                         return DiskStoreConfig(coreDataManager: coreDataManager, custom: nil)
                     }
+
+                    public init(coreDataManager: CoreDataManager?,
+                                custom: Any?) {
+                        self.coreDataManager = coreDataManager
+                        self.custom = custom
+                    }
                 }
 
                 public struct CacheSize {
-                    let small: Int
-                    let medium: Int
-                    let large: Int
+                    public let small: Int
+                    public let medium: Int
+                    public let large: Int
 
                     public static var `default`: CacheSize { return CacheSize(small: 100, medium: 500, large: 2000) }
+
+                    public init(small: Int,
+                                medium: Int,
+                                large: Int) {
+                        self.small = small
+                        self.medium = medium
+                        self.large = large
+                    }
                 }
 
                 private let _responseHandler: CoreManagerContainerClientQueueResponseHandler?

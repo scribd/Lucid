@@ -406,7 +406,7 @@ private extension CoreManager {
 
         } else {
 
-            return Future { promise in
+            return Publishers.ReplayOnce { promise in
 
                 guard context.requestAllowedForAccessLevel else {
                     promise(.failure(.userAccessInvalid))
@@ -559,7 +559,7 @@ private extension CoreManager {
 
         let property = preparePropertiesForSearchUpdate(forQuery: query, context: context)
 
-        let future = Future<QueryResult<E>, ManagerError> { promise in
+        let replayOnce = Publishers.ReplayOnce<QueryResult<E>, ManagerError> { promise in
 
             guard context.requestAllowedForAccessLevel else {
                 promise(.failure(.userAccessInvalid))
@@ -679,7 +679,7 @@ private extension CoreManager {
         }
 
         return (
-            once: future.eraseToAnyPublisher(),
+            once: replayOnce.eraseToAnyPublisher(),
             continuous: property.eraseToAnyPublisher()
         )
     }
@@ -687,7 +687,7 @@ private extension CoreManager {
     func set(_ entity: E,
              in context: WriteContext<E>) -> AnyPublisher<E, ManagerError> {
 
-        return Future { promise in
+        return Publishers.ReplayOnce { promise in
 
             guard context.requestAllowedForAccessLevel else {
                 promise(.failure(.userAccessInvalid))
@@ -760,7 +760,7 @@ private extension CoreManager {
 
         let entities = Array(entities)
 
-        return Future { promise in
+        return Publishers.ReplayOnce { promise in
 
             guard context.requestAllowedForAccessLevel else {
                 promise(.failure(.userAccessInvalid))
@@ -843,7 +843,7 @@ private extension CoreManager {
     func removeAll(withQuery query: Query<E>,
                    in context: WriteContext<E>) -> AnyPublisher<AnySequence<E.Identifier>, ManagerError> {
 
-        return Future { promise in
+        return Publishers.ReplayOnce { promise in
 
             guard context.requestAllowedForAccessLevel else {
                 promise(.failure(.userAccessInvalid))
@@ -939,7 +939,7 @@ private extension CoreManager {
     func remove(atID identifier: E.Identifier,
                 in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> {
 
-        return Future { promise in
+        return Publishers.ReplayOnce { promise in
 
             guard context.requestAllowedForAccessLevel else {
                 promise(.failure(.userAccessInvalid))
@@ -995,7 +995,7 @@ private extension CoreManager {
     func remove<S>(_ identifiers: S,
                    in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> where S: Sequence, S.Element == E.Identifier {
 
-        return Future { promise in
+        return Publishers.ReplayOnce { promise in
 
             guard context.requestAllowedForAccessLevel else {
                 promise(.failure(.userAccessInvalid))

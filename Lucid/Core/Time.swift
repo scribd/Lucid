@@ -11,10 +11,12 @@ import AVFoundation
 
 public class Time: Hashable, Comparable {
 
-    public let value: CMTime
+    public var value: CMTime { return _value.time }
+
+    private let _value: TimeWrapper
 
     public required init(seconds: Double, preferredTimescale: Int32 = 1000) {
-        value = CMTime(seconds: seconds, preferredTimescale: preferredTimescale)
+        _value = TimeWrapper(time: CMTime(seconds: seconds, preferredTimescale: preferredTimescale))
     }
 
     public static func == (lhs: Time, rhs: Time) -> Bool {
@@ -26,7 +28,7 @@ public class Time: Hashable, Comparable {
     }
 
     public func hash(into hasher: inout Hasher) {
-        return value.hash(into: &hasher)
+        return _value.hash(into: &hasher)
     }
 
     public static var zero: Self {
@@ -51,5 +53,59 @@ public class Time: Hashable, Comparable {
 
     @objc public var value: CMTime {
         return _value.value
+    }
+}
+
+// MARK: - Private
+
+/// Because iOS 16 introduced Hashable onto CMTime, it broke our compilation with our custom Hashable extensions.
+/// Swift doesn't offer syntax to only use the custom extension on iOS 15 and earlier.
+/// When iOS 16 becomes the minimum target, this class can be deleted and just replace it's usage with CMTime.
+private final class TimeWrapper: Hashable, Comparable {
+
+    let time: CMTime
+
+    init(time: CMTime) {
+        self.time = time
+    }
+
+    // MARK: Hashable
+
+    public func hash(into hasher: inout Hasher) {
+        #if os(iOS)
+        if #available(iOS 16.0, *) {
+            time.hash(into: &hasher)
+        } else {
+            hasher.combine(time.seconds.hashValue)
+        }
+        #elseif os(watchOS)
+        if #available(watchOS 9.0, *) {
+            time.hash(into: &hasher)
+        } else {
+            hasher.combine(time.seconds.hashValue)
+        }
+        #elseif os(tvOS)
+        if #available(tvOS 16.0, *) {
+            time.hash(into: &hasher)
+        } else {
+            hasher.combine(time.seconds.hashValue)
+        }
+        #elseif os(macOS)
+        if #available(macOS 13.0, *) {
+            time.hash(into: &hasher)
+        } else {
+            hasher.combine(time.seconds.hashValue)
+        }
+        #endif
+    }
+
+    // MARK: Comparable
+
+    static func == (lhs: TimeWrapper, rhs: TimeWrapper) -> Bool {
+        return lhs.time == rhs.time
+    }
+
+    static func < (lhs: TimeWrapper, rhs: TimeWrapper) -> Bool {
+        return lhs.time < rhs.time
     }
 }

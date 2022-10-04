@@ -36,14 +36,14 @@ jobs:
 
       - name: Run Lucid-iOS Tests
         run: |
-          fastlane scan --scheme Lucid-iOS --skip_testing "$FRAGILE_TESTS" --device "iPhone 8" --output_directory $FASTLANE_LOGS --result_bundle true
+          fastlane scan --scheme Lucid-iOS --skip_testing "$FRAGILE_TESTS" --device "iPhone 12" --output_directory $FASTLANE_LOGS --result_bundle true
 
       # Some tests need to be reworked. Don't forget about them, but don't crash the build either
       # https://scribdjira.atlassian.net/browse/IPT-4387
       - name: Run Fragile Tests
         continue-on-error: true
         run: |
-          fastlane scan --scheme Lucid-iOS --only_testing "$FRAGILE_TESTS" --device "iPhone 8" --output_directory $FASTLANE_FRAGILE_LOGS --result_bundle true
+          fastlane scan --scheme Lucid-iOS --only_testing "$FRAGILE_TESTS" --device "iPhone 12" --output_directory $FASTLANE_FRAGILE_LOGS --result_bundle true
 
       - name: Bundle Log Files
         run: |

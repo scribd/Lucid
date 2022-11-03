@@ -48,6 +48,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 extension CoreManagerContainer {
 
     static func make(_ dependencies: MovieDBClientResolver) -> CoreManagerContainer {
-        return CoreManagerContainer(cacheLimit: 500, client: dependencies.movieDBClient)
+        return CoreManagerContainer(cacheSize: .default,
+                                    client: dependencies.movieDBClient,
+                                    diskStoreConfig: .coreData,
+                                    responseHandler: nil)
     }
 }

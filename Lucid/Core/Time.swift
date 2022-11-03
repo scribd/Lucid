@@ -91,11 +91,7 @@ private final class TimeWrapper: Hashable, Comparable {
             hasher.combine(time.seconds.hashValue)
         }
         #elseif os(macOS)
-        if #available(macOS 13.0, *) {
-            time.hash(into: &hasher)
-        } else {
             hasher.combine(time.seconds.hashValue)
-        }
         #endif
     }
 

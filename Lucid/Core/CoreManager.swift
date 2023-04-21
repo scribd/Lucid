@@ -323,12 +323,12 @@ public final class CoreManager<E> where E: Entity {
 
     private let localStore: StoreStack<E>
 
-    private let propertiesQueue = DispatchQueue(label: "\(CoreManager.self):properties", attributes: .concurrent)
+    private let propertiesQueue = DispatchQueue(label: "\(CoreManager.self):properties")
     private let raiseEventsQueue = DispatchQueue(label: "\(CoreManager.self):raise_events")
     private var _pendingProperties = [PropertyEntry]()
     private var _properties = [PropertyEntry]()
 
-    private let updatesMetadataQueue = DispatchQueue(label: "\(CoreManager.self):updates_metadata", attributes: .concurrent)
+    private let updatesMetadataQueue = DispatchQueue(label: "\(CoreManager.self):updates_metadata")
     private var _updatesMetadata = DualHashDictionary<E.Identifier, UpdateTime>()
 
     private let cancellable = CancellableBox()
@@ -1197,7 +1197,8 @@ private extension CoreManager {
 
     func preparePropertiesForSearchUpdate(forQuery query: Query<E>, context: ReadContext<E>) -> CoreManagerProperty<QueryResult<E>> {
 
-        if let property = propertiesQueue.sync(execute: { (_properties + _pendingProperties).first { $0.query == query }?.property }) {
+        let properties = propertiesQueue.sync { _properties + _pendingProperties }
+        if let property = properties.first(where: { $0.query == query })?.property {
             return property
         }
 

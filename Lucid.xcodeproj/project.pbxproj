@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		01ED569B29E9C3FA00C77548 /* Async.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ED569A29E9C3FA00C77548 /* Async.swift */; };
+		01ED569C29E9C3FA00C77548 /* Async.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ED569A29E9C3FA00C77548 /* Async.swift */; };
+		01ED569D29E9C3FA00C77548 /* Async.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ED569A29E9C3FA00C77548 /* Async.swift */; };
+		01ED569E29E9C3FA00C77548 /* Async.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ED569A29E9C3FA00C77548 /* Async.swift */; };
 		1907AD8424A682D300727F82 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1907AD8224A6826400727F82 /* Configuration.swift */; };
 		1907AD8624A682DB00727F82 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1907AD8224A6826400727F82 /* Configuration.swift */; };
 		190ADC0D2458D71000D22F6D /* Lucid.h in Headers */ = {isa = PBXBuildFile; fileRef = 190ADC0B2458D71000D22F6D /* Lucid.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -413,6 +417,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		01ED569A29E9C3FA00C77548 /* Async.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Async.swift; sourceTree = "<group>"; };
 		1907AD8224A6826400727F82 /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
 		190ADC082458D71000D22F6D /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		190ADC0B2458D71000D22F6D /* Lucid.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Lucid.h; sourceTree = "<group>"; };
@@ -928,6 +933,7 @@
 				190ADC492458D89C00D22F6D /* Result.swift */,
 				190ADC502458D89C00D22F6D /* ScheduledTimer.swift */,
 				190ADC4D2458D89C00D22F6D /* Timestamp.swift */,
+				01ED569A29E9C3FA00C77548 /* Async.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -2090,6 +2096,7 @@
 				190ADC5D2458D89C00D22F6D /* APIClientQueue.swift in Sources */,
 				190ADC7C2458D89C00D22F6D /* ScheduledTimer.swift in Sources */,
 				190ADC6E2458D89C00D22F6D /* CoreDataStore.swift in Sources */,
+				01ED569B29E9C3FA00C77548 /* Async.swift in Sources */,
 				190ADC712458D89C00D22F6D /* DataStructures.swift in Sources */,
 				190ADC6B2458D89C00D22F6D /* RecoverableStore.swift in Sources */,
 				F438471027E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */,
@@ -2209,6 +2216,7 @@
 				190ADD092458DA9B00D22F6D /* APIClientQueue.swift in Sources */,
 				190ADD0A2458DA9B00D22F6D /* ScheduledTimer.swift in Sources */,
 				190ADD0B2458DA9B00D22F6D /* CoreDataStore.swift in Sources */,
+				01ED569E29E9C3FA00C77548 /* Async.swift in Sources */,
 				190ADD0C2458DA9B00D22F6D /* DataStructures.swift in Sources */,
 				190ADD0D2458DA9B00D22F6D /* RecoverableStore.swift in Sources */,
 				F438471227E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */,
@@ -2324,6 +2332,7 @@
 				F48C80412655958E00581182 /* CancellationToken.swift in Sources */,
 				F48C803A2655958E00581182 /* DataStructures.swift in Sources */,
 				F48C80342655958E00581182 /* DiskQueue.swift in Sources */,
+				01ED569C29E9C3FA00C77548 /* Async.swift in Sources */,
 				F48C80402655958E00581182 /* Result.swift in Sources */,
 				F48C802E2655958A00581182 /* RecoverableStore.swift in Sources */,
 				F438470F27E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */,
@@ -2379,6 +2388,7 @@
 				F48C809A2655972700581182 /* Contract.swift in Sources */,
 				F48C808C2655972700581182 /* Color.swift in Sources */,
 				F48C808A2655972700581182 /* Entity.swift in Sources */,
+				01ED569D29E9C3FA00C77548 /* Async.swift in Sources */,
 				F48C80942655972700581182 /* Codable.swift in Sources */,
 				F48C80C02655973000581182 /* Result.swift in Sources */,
 				F48C808F2655972700581182 /* Version.swift in Sources */,

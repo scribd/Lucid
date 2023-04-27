@@ -81,33 +81,91 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
         _ context: WriteContext<E>
     ) -> AnyPublisher<Void, ManagerError>
 
+    // MARK: - Async Methor Types
+
+    public typealias GetEntityAsync = (
+        _ query: Query<E>,
+        _ context: ReadContext<E>
+    ) async throws -> QueryResult<E>
+
+    public typealias SearchEntitiesAsync = (
+        _ query: Query<E>,
+        _ context: ReadContext<E>
+    ) async throws -> (once: () async throws -> QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)
+
+    public typealias SetEntityAsync = (
+        _ entity: E,
+        _ context: WriteContext<E>
+    ) async throws -> E
+
+    public typealias SetEntitiesAsync = (
+        _ entities: AnySequence<E>,
+        _ context: WriteContext<E>
+    ) async throws -> AnySequence<E>
+
+    public typealias RemoveAllEntitiesAsync = (
+        _ query: Query<E>,
+        _ context: WriteContext<E>
+    ) async throws -> AnySequence<E.Identifier>
+
+    public typealias RemoveEntityAsync = (
+        _ identifier: E.Identifier,
+        _ context: WriteContext<E>
+    ) async throws -> Void
+
+    public typealias RemoveEntitiesAsync = (
+        _ identifiers: AnySequence<E.Identifier>,
+        _ context: WriteContext<E>
+    ) async throws -> Void
+
     // MARK: - Methods
 
     private let getEntity: GetEntity
+    private let getEntityAsync: GetEntityAsync
     private let searchEntities: SearchEntities
+    private let searchEntitiesAsync: SearchEntitiesAsync
     private let setEntity: SetEntity
+    private let setEntityAsync: SetEntityAsync
     private let setEntities: SetEntities
+    private let setEntitiesAsync: SetEntitiesAsync
     private let removeAllEntities: RemoveAllEntities
+    private let removeAllEntitiesAsync: RemoveAllEntitiesAsync
     private let removeEntity: RemoveEntity
+    private let removeEntityAsync: RemoveEntityAsync
     private let removeEntities: RemoveEntities
+    private let removeEntitiesAsync: RemoveEntitiesAsync
     private weak var relationshipManager: RelationshipManager?
 
     public init(getEntity: @escaping GetEntity,
+                getEntityAsync: @escaping GetEntityAsync,
                 searchEntities: @escaping SearchEntities,
+                searchEntitiesAsync: @escaping SearchEntitiesAsync,
                 setEntity: @escaping SetEntity,
+                setEntityAsync: @escaping SetEntityAsync,
                 setEntities: @escaping SetEntities,
+                setEntitiesAsync: @escaping SetEntitiesAsync,
                 removeAllEntities: @escaping RemoveAllEntities,
+                removeAllEntitiesAsync: @escaping RemoveAllEntitiesAsync,
                 removeEntity: @escaping RemoveEntity,
+                removeEntityAsync: @escaping RemoveEntityAsync,
                 removeEntities: @escaping RemoveEntities,
+                removeEntitiesAsync: @escaping RemoveEntitiesAsync,
                 relationshipManager: RelationshipManager?) {
 
         self.getEntity = getEntity
+        self.getEntityAsync = getEntityAsync
         self.searchEntities = searchEntities
+        self.searchEntitiesAsync = searchEntitiesAsync
         self.setEntity = setEntity
+        self.setEntityAsync = setEntityAsync
         self.setEntities = setEntities
+        self.setEntitiesAsync = setEntitiesAsync
         self.removeAllEntities = removeAllEntities
+        self.removeAllEntitiesAsync = removeAllEntitiesAsync
         self.removeEntity = removeEntity
+        self.removeEntityAsync = removeEntityAsync
         self.removeEntities = removeEntities
+        self.removeEntitiesAsync = removeEntitiesAsync
         self.relationshipManager = relationshipManager
     }
 
@@ -130,6 +188,11 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
         return getEntity(query, context)
     }
 
+    public func get(byID identifier: E.Identifier, in context: ReadContext<E> = ReadContext<E>()) async throws -> QueryResult<E> {
+        let query = Query<E>.identifier(identifier)
+        return try await getEntityAsync(query, context)
+    }
+
     /// Run a search query resulting with a filtered/ordered set of entities.
     ///
     /// - Parameters:
@@ -149,6 +212,11 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
         return searchEntities(query, context)
     }
 
+    public func search(withQuery query: Query<E>,
+                       in context: ReadContext<E> = ReadContext<E>()) async throws -> (once: () async throws -> QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) {
+        return try await searchEntitiesAsync(query, context)
+    }
+
     /// Write an `Entity` to the `Store`.
     ///
     /// - Parameters:
@@ -166,6 +234,12 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
         return setEntity(entity, context)
     }
 
+    @discardableResult
+    public func set(_ entity: E,
+                    in context: WriteContext<E>) async throws -> E {
+        return try await setEntityAsync(entity, context)
+    }
+
     /// Bulk write an array of entities to the `Store`.
     ///
     /// - Parameters:
@@ -180,6 +254,12 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     public func set<S>(_ entities: S,
                        in context: WriteContext<E>) -> AnyPublisher<AnySequence<E>, ManagerError> where S: Sequence, S.Element == E {
         return setEntities(entities.any, context)
+    }
+
+    @discardableResult
+    public func set<S>(_ entities: S,
+                       in context: WriteContext<E>) async throws -> AnySequence<E> where S: Sequence, S.Element == E {
+        return try await setEntitiesAsync(entities.any, context)
     }
 
     /// Delete all `Entity` objects that match the query.
@@ -202,6 +282,12 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
         return removeAllEntities(query, context)
     }
 
+    @discardableResult
+    public func removeAll(withQuery query: Query<E>,
+                          in context: WriteContext<E>) async throws -> AnySequence<E.Identifier> {
+        return try await removeAllEntitiesAsync(query, context)
+    }
+
     /// Delete an `Entity` based on its identifier.
     ///
     /// - Parameters:
@@ -219,6 +305,11 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
         return removeEntity(identifier, context)
     }
 
+    public func remove(atID identifier: E.Identifier,
+                       in context: WriteContext<E>) async throws {
+        try await removeEntityAsync(identifier, context)
+    }
+
     /// Bulk delete an `Entity` based on its identifier.
     ///
     /// - Parameters:
@@ -233,6 +324,11 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     public func remove<S>(_ identifiers: S,
                           in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> where S: Sequence, S.Element == E.Identifier {
         return removeEntities(identifiers.any, context)
+    }
+
+    public func remove<S>(_ identifiers: S,
+                          in context: WriteContext<E>) async throws where S: Sequence, S.Element == E.Identifier {
+        try await removeEntitiesAsync(identifiers.any, context)
     }
 }
 
@@ -249,6 +345,10 @@ public extension CoreManaging {
         return search(withQuery: .all, in: context).once
     }
 
+    func all(in context: ReadContext<E> = ReadContext<E>()) async throws -> QueryResult<E> {
+        return try await search(withQuery: .all, in: context).once()
+    }
+
     /// Retrieve the first entity found from the core manager based on a given query.
     ///
     /// - Parameters:
@@ -260,6 +360,11 @@ public extension CoreManaging {
     func first(for query: Query<E> = .all,
                in context: ReadContext<E> = ReadContext<E>()) -> AnyPublisher<E?, ManagerError> {
         return search(withQuery: query, in: context).once.map { $0.first }.eraseToAnyPublisher()
+    }
+
+    func first(for query: Query<E> = .all,
+               in context: ReadContext<E> = ReadContext<E>()) async throws -> E? {
+        return try await search(withQuery: query, in: context).once().first
     }
 
     /// Retrieve entities that match one of the given identifiers.
@@ -280,6 +385,15 @@ public extension CoreManaging {
             let query = Query<E>.filter(.identifier >> identifiers).order([.identifiers(identifiers.any)])
 
             return search(withQuery: query, in: context)
+    }
+
+    func get<S>(byIDs identifiers: S,
+                in context: ReadContext<E> = ReadContext<E>()) async throws -> (once: () async throws -> QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)
+        where S: Sequence, S.Element == E.Identifier {
+
+            let query = Query<E>.filter(.identifier >> identifiers).order([.identifiers(identifiers.any)])
+
+            return try await search(withQuery: query, in: context)
     }
 }
 
@@ -302,12 +416,24 @@ public extension CoreManaging where E: RemoteEntity {
             return QueryResult<E>(from: entity, metadata: metadata)
         }.eraseToAnyPublisher()
     }
+
+    func firstWithMetadata(for query: Query<E>? = .all,
+                           in context: ReadContext<E> = ReadContext<E>()) async throws -> QueryResult<E> {
+
+        let result = try await search(withQuery: query ?? .all, in: context).once()
+        guard let entity = result.entity, let metadata = result.metadata else { return .empty() }
+        return QueryResult<E>(from: entity, metadata: metadata)
+    }
 }
 
 public extension CoreManaging where E.Identifier == VoidEntityIdentifier {
 
     func get(in context: ReadContext<E> = ReadContext<E>()) -> AnyPublisher<QueryResult<E>, ManagerError> {
         return getEntity(Query.identifier(VoidEntityIdentifier()), context)
+    }
+
+    func get(in context: ReadContext<E> = ReadContext<E>()) async throws -> QueryResult<E> {
+        return try await getEntityAsync(Query.identifier(VoidEntityIdentifier()), context)
     }
 }
 
@@ -320,6 +446,7 @@ public final class CoreManager<E> where E: Entity {
     private let stores: [Storing<E>]
     private let storeStackQueues = StoreStackQueues<E>()
     private let operationQueue = AsyncOperationQueue()
+    private let asyncTaskQueue = AsyncTaskQueue()
 
     private let localStore: StoreStack<E>
 
@@ -332,6 +459,7 @@ public final class CoreManager<E> where E: Entity {
     private var _updatesMetadata = DualHashDictionary<E.Identifier, UpdateTime>()
 
     private let cancellable = CancellableBox()
+    private let asyncTasks = AsyncTasks()
 
     // MARK: - Inits
 
@@ -342,12 +470,19 @@ public final class CoreManager<E> where E: Entity {
 
     public func managing<AnyEntityType>(_ relationshipManager: CoreManaging<E, AnyEntityType>.RelationshipManager? = nil) -> CoreManaging<E, AnyEntityType> where AnyEntityType: EntityConvertible {
         return CoreManaging(getEntity: { self.get(withQuery: $0, in: $1) },
+                            getEntityAsync: { try await self.get(withQuery: $0, in: $1) },
                             searchEntities: { self.search(withQuery: $0, in: $1) },
+                            searchEntitiesAsync: { try await self.search(withQuery: $0, in: $1) },
                             setEntity: { self.set($0, in: $1) },
+                            setEntityAsync: { try await self.set($0, in: $1) },
                             setEntities: { self.set($0, in: $1) },
+                            setEntitiesAsync: { try await self.set($0, in: $1) },
                             removeAllEntities: { self.removeAll(withQuery: $0, in: $1) },
+                            removeAllEntitiesAsync: { try await self.removeAll(withQuery: $0, in: $1) },
                             removeEntity: { self.remove(atID: $0, in: $1) },
+                            removeEntityAsync: { try await self.remove(atID: $0, in: $1) },
                             removeEntities: { self.remove($0, in: $1) },
+                            removeEntitiesAsync: { try await self.remove($0, in: $1) },
                             relationshipManager: relationshipManager)
     }
 }
@@ -484,6 +619,120 @@ private extension CoreManager {
                 }
             }
             .eraseToAnyPublisher()
+        }
+    }
+
+    func get(withQuery query: Query<E>,
+             in context: ReadContext<E>) async throws -> QueryResult<E> {
+        let queryIdentifiers = query.identifiers?.array ?? []
+        if queryIdentifiers.count != 1 {
+            Logger.log(.error, "\(CoreManager.self) get must be called with a single identifier. Instead found \(queryIdentifiers.count)", assert: true)
+        }
+
+        guard let identifier = queryIdentifiers.first else {
+            Logger.log(.error, "\(CoreManager.self) can not perform get without valid identifier", assert: true)
+            throw ManagerError.notSupported
+        }
+
+        if let remoteContext = context.remoteContextAfterMakingLocalRequest {
+            let localContext = ReadContext<E>(dataSource: .local, contract: context.contract, accessValidator: context.accessValidator)
+            let localResult: QueryResult<E>
+            do {
+                localResult = try await self.get(withQuery: query, in: localContext)
+            } catch {
+                localResult = .empty()
+            }
+
+            if localResult.entity != nil {
+                if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
+                    Task {
+                        _ = try? await self.get(withQuery: query, in: remoteContext)
+                    }
+                    .store(in: self.asyncTasks)
+                }
+                return localResult
+            } else {
+                do {
+                    let remoteResult = try await self.get(withQuery: query, in: remoteContext)
+                    return remoteResult
+                } catch let error as ManagerError {
+                    if error.shouldFallBackToLocalStore {
+                        // if we can't reach the remote store, return local results
+                        return localResult
+                    } else {
+                        throw error
+                    }
+                }
+            }
+        } else {
+            guard context.requestAllowedForAccessLevel else {
+                throw ManagerError.userAccessInvalid
+            }
+
+            let initialUserAccess = context.userAccess
+            let result: QueryResult<E> = try await asyncTaskQueue.enqueue() {
+                let time = UpdateTime()
+                let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+                return try await withCheckedThrowingContinuation { continuation in
+                    storeStack.get(withQuery: query, in: context) { result in
+                        switch result {
+                        case .success(let queryResult):
+
+                            if context.shouldOverwriteInLocalStores {
+                                guard self.canUpdate(identifier: identifier, basedOn: time) else {
+                                    continuation.resume(returning: queryResult)
+                                    return
+                                }
+                                self.setUpdateTime(time, for: identifier)
+
+                                if let entity = queryResult.entity {
+                                    self.localStore.set(entity, in: WriteContext(dataTarget: .local)) { result in
+                                        switch result {
+                                        case .failure(let error):
+                                            Logger.log(.error, "\(CoreManager.self): An error occurred while writing entity: \(error)", assert: true)
+                                        case .success,
+                                             .none:
+                                            break
+                                        }
+                                        continuation.resume(returning: queryResult)
+                                        self.raiseUpdateEvents(withQuery: .identifier(identifier),
+                                                               results: .entities([entity]),
+                                                               returnsCompleteResultSet: context.returnsCompleteResultSet)
+                                    }
+                                } else {
+                                    self.localStore.remove(atID: identifier, in: WriteContext(dataTarget: .local)) { result in
+                                        switch result {
+                                        case .failure(let error):
+                                            Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entity: \(error)", assert: true)
+                                        case .success,
+                                             .none:
+                                            break
+                                        }
+                                        continuation.resume(returning: .empty())
+                                        self.raiseDeleteEvents(DualHashSet([identifier]))
+                                    }
+                                }
+                            } else {
+                                continuation.resume(returning: queryResult)
+                            }
+
+                        case .failure(let error):
+                            if error.shouldFallBackToLocalStore {
+                                Logger.log(.debug, "\(CoreManager.self): Did not receive data while getting entity: \(error). Will fall back to local store if possible.")
+                            } else {
+                                Logger.log(.error, "\(CoreManager.self): An error occurred while getting entity: \(error)", assert: true)
+                            }
+                            continuation.resume(throwing: ManagerError.store(error))
+                        }
+                    }
+                }
+            }
+
+            guard context.responseAllowedForAccessLevel,
+                initialUserAccess == context.userAccess else {
+                throw ManagerError.userAccessInvalid
+            }
+            return result
         }
     }
 
@@ -684,6 +933,203 @@ private extension CoreManager {
         )
     }
 
+    func search(withQuery query: Query<E>,
+                in context: ReadContext<E>) async throws -> (once: () async throws -> QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) {
+
+        if let remoteContext = context.remoteContextAfterMakingLocalRequest {
+            let localContext = ReadContext<E>(dataSource: .local, contract: context.contract, accessValidator: context.accessValidator)
+            let cacheSearches = try await search(withQuery: query, in: localContext)
+
+            let overwriteSearch: (QueryResult<E>?) async throws -> QueryResult<E> = { localResult in
+                do {
+                    let result = try await self.search(withQuery: query, in: remoteContext).once()
+                    return result
+                } catch let error as ManagerError {
+                    if error.shouldFallBackToLocalStore, let localResult = localResult {
+                        // if we can't reach the remote store, return local results
+                        return localResult
+                    } else {
+                        throw error
+                    }
+                }
+            }
+
+            return (
+                once: {
+                    var remoteSearchTask: Task<QueryResult<E>, any Error>?
+                    if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
+                        remoteSearchTask = try await self.asyncTaskQueue.enqueue {
+                            // Return a Task to make this call asynchronous
+                            Task {
+                                return try await overwriteSearch(nil)
+                            }
+                        }
+                    }
+
+                    let localResult: QueryResult<E>
+                    do {
+                        localResult = try await cacheSearches.once()
+                    } catch {
+                        localResult = QueryResult<E>(fromProcessedEntities: [], for: query)
+                    }
+
+                    let searchIdentifierCount = query.filter?.extractOrIdentifiers?.map { $0 }.count ?? 0
+                    let entityResultCount = localResult.count
+
+                    let hasAllIdentifiersLocally = searchIdentifierCount > 0 && entityResultCount == searchIdentifierCount
+                    let hasResultsForComplexSearch = searchIdentifierCount == 0 && entityResultCount > 0
+
+                    if hasAllIdentifiersLocally || hasResultsForComplexSearch {
+                        return localResult
+                    } else {
+                        // If there is a remote task already running, wait for it's completion
+                        if let remoteSearchTask = remoteSearchTask {
+                            do {
+                                return try await remoteSearchTask.value
+                            } catch {
+                                return localResult
+                            }
+                        }
+                        return try await overwriteSearch(localResult)
+                    }
+                },
+                continuous: cacheSearches.continuous)
+        }
+
+        let property = preparePropertiesForSearchUpdate(forQuery: query, context: context)
+
+        guard context.requestAllowedForAccessLevel else {
+            throw ManagerError.userAccessInvalid
+        }
+
+        let initialUserAccess = context.userAccess
+
+        let time = UpdateTime()
+        let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+
+        let once: () async throws -> QueryResult<E> = {
+
+            let result: QueryResult<E> = try await self.asyncTaskQueue.enqueue {
+
+                return try await withCheckedThrowingContinuation { continuation in
+                    
+                    storeStack.search(withQuery: query, in: context) { result in
+                        switch result {
+                        case .success(let remoteResults):
+                            let remoteResults = remoteResults.materialized
+
+                            if context.shouldOverwriteInLocalStores {
+
+                                self.localStore.search(withQuery: query.order([]), in: context) { localResult in
+                                    switch localResult {
+                                    case .success(let localResults):
+                                        var identifiersToDelete: [E.Identifier] = []
+                                        if context.returnsCompleteResultSet {
+                                            var identifiersToDeleteSet = DualHashSet(localResults.lazy.compactMap {
+                                                $0.identifier.remoteSynchronizationState == .synced ? $0.identifier : nil
+                                            })
+                                            identifiersToDeleteSet.subtract(DualHashSet(remoteResults.lazy.map { $0.identifier }))
+                                            identifiersToDelete = self.filter(identifiers: identifiersToDeleteSet.lazy.map { $0 }, basedOn: time).compactMap { $0 }
+                                        }
+
+                                        let entitiesToUpdate = self.filter(entities: remoteResults, basedOn: time).compactMap { $0 }
+                                        guard entitiesToUpdate.count + identifiersToDelete.count > 0 else {
+                                            continuation.resume(returning: remoteResults)
+                                            return
+                                        }
+                                        self.setUpdateTime(time, for: entitiesToUpdate.map { $0.identifier } + identifiersToDelete)
+
+                                        let dispatchGroup = DispatchGroup()
+
+                                        if entitiesToUpdate.isEmpty == false {
+                                            dispatchGroup.enter()
+                                            self.localStore.set(entitiesToUpdate, in: WriteContext(dataTarget: .local)) { result in
+                                                if let error = result?.error {
+                                                    Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
+                                                }
+                                                dispatchGroup.leave()
+                                            }
+                                        }
+
+                                        if identifiersToDelete.isEmpty == false {
+                                            dispatchGroup.enter()
+                                            self.localStore.remove(identifiersToDelete, in: WriteContext(dataTarget: .local)) { result in
+                                                if let error = result?.error {
+                                                    Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entities: \(error)", assert: true)
+                                                }
+                                                dispatchGroup.leave()
+                                            }
+                                        }
+
+                                        dispatchGroup.notify(queue: self.storeStackQueues.writeResultsQueue) {
+                                            continuation.resume(returning: remoteResults)
+                                            self.raiseUpdateEvents(withQuery: query,
+                                                                   results: remoteResults,
+                                                                   returnsCompleteResultSet: context.returnsCompleteResultSet)
+                                        }
+
+                                    case .failure(let error):
+                                        Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities: \(error)", assert: true)
+
+                                        let entitiesToUpdate = self.filter(entities: remoteResults, basedOn: time).compactMap { $0 }
+                                        guard entitiesToUpdate.isEmpty == false else {
+                                            continuation.resume(returning: remoteResults)
+                                            return
+                                        }
+                                        self.setUpdateTime(time, for: entitiesToUpdate.lazy.map { $0.identifier })
+
+                                        self.localStore.set(entitiesToUpdate, in: WriteContext(dataTarget: .local)) { result in
+                                            if let error = result?.error {
+                                                Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
+                                            }
+                                            continuation.resume(returning: remoteResults)
+                                            self.raiseUpdateEvents(withQuery: query,
+                                                                   results: remoteResults,
+                                                                   returnsCompleteResultSet: context.returnsCompleteResultSet)
+                                        }
+                                    }
+                                }
+                            } else {
+                                continuation.resume(returning: remoteResults)
+                                property.update(with: remoteResults)
+                            }
+
+                        case .failure(let error):
+                            if error.shouldFallBackToLocalStore {
+                                Logger.log(.debug, "\(CoreManager.self): Did not receive data while searching entities: \(error). Will fall back to local store if possible.")
+                            } else {
+                                Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities: \(error)", assert: true)
+                            }
+                            continuation.resume(throwing: ManagerError.store(error))
+                        }
+                    }
+                }
+            }
+
+            guard context.responseAllowedForAccessLevel,
+                  initialUserAccess == context.userAccess else {
+                throw ManagerError.userAccessInvalid
+            }
+            
+            return result
+        }
+
+        let continuous = AsyncStream<QueryResult<E>>() { continuation in
+            property
+                .sink(receiveCompletion: { _ in
+                    continuation.finish()
+                }, receiveValue: { value in
+                    continuation.yield(value)
+                })
+                .store(in: cancellable)
+        }
+
+        return (
+            once: once,
+            continuous: continuous
+        )
+    }
+
     func set(_ entity: E,
              in context: WriteContext<E>) -> AnyPublisher<E, ManagerError> {
 
@@ -753,6 +1199,76 @@ private extension CoreManager {
             }
         }
         .eraseToAnyPublisher()
+    }
+
+    func set(_ entity: E,
+             in context: WriteContext<E>) async throws -> E {
+
+        guard context.requestAllowedForAccessLevel else {
+            throw ManagerError.userAccessInvalid
+        }
+
+        let initialUserAccess = context.userAccess
+
+        let result = try await asyncTaskQueue.enqueue {
+            let time = UpdateTime(timestamp: context.originTimestamp)
+
+            guard self.canUpdate(identifier: entity.identifier, basedOn: time) else {
+                let localResult: E = try await withCheckedThrowingContinuation { continuation in
+                    self.localStore.get(withQuery: Query.identifier(entity.identifier), in: ReadContext<E>()) { result in
+                        switch result {
+                        case .success(let queryResult):
+                            if let entity = queryResult.entity {
+                                continuation.resume(returning: entity)
+                            } else {
+                                continuation.resume(throwing: ManagerError.conflict)
+                            }
+                        case .failure(let error):
+                            Logger.log(.error, "\(CoreManager.self): An error occurred while setting entity: \(error)")
+                            continuation.resume(throwing: ManagerError.store(error))
+                        }
+                    }
+                }
+
+                return localResult
+            }
+
+            self.setUpdateTime(time, for: entity.identifier)
+            let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+
+            return try await withCheckedThrowingContinuation { continuation in
+                storeStack.set(
+                    entity,
+                    in: context,
+                    localStoresCompletion: { result in
+                        guard let updatedEntity = result?.value else { return }
+                        self.raiseUpdateEvents(withQuery: .identifier(updatedEntity.identifier), results: .entities([updatedEntity]))
+                    },
+                    allStoresCompletion: { result in
+                        switch result {
+                        case .success(let updatedEntity):
+                            continuation.resume(returning: updatedEntity)
+                            self.raiseUpdateEvents(withQuery: .identifier(updatedEntity.identifier), results: .entities([updatedEntity]))
+
+                        case .none:
+                            continuation.resume(returning: entity)
+                            self.raiseUpdateEvents(withQuery: .identifier(entity.identifier), results: .entities([entity]))
+
+                        case .failure(let error):
+                            Logger.log(.error, "\(CoreManager.self): An error occurred while setting entity: \(error)")
+                            continuation.resume(throwing: ManagerError.store(error))
+                        }
+                    }
+                )
+            }
+        }
+
+        guard context.responseAllowedForAccessLevel,
+            initialUserAccess == context.userAccess else {
+            throw ManagerError.userAccessInvalid
+        }
+
+        return result
     }
 
     func set<S>(_ entities: S,
@@ -838,6 +1354,84 @@ private extension CoreManager {
             }
         }
         .eraseToAnyPublisher()
+    }
+
+    func set<S>(_ entities: S,
+                in context: WriteContext<E>) async throws -> AnySequence<E> where S: Sequence, S.Element == E {
+        let entities = Array(entities)
+
+        guard context.requestAllowedForAccessLevel else {
+            throw ManagerError.userAccessInvalid
+        }
+
+        let initialUserAccess = context.userAccess
+
+        let result: AnySequence<E> = try await asyncTaskQueue.enqueue {
+            let time = UpdateTime(timestamp: context.originTimestamp)
+            var entitiesToUpdate = OrderedDualHashDictionary(
+                self.updateTime(for: entities
+                    .lazy.map { $0.identifier })
+                    .enumerated()
+                    .map { (index, updateTime) -> (E.Identifier, E?) in
+                        let entity = entities[index]
+                        if UpdateTime.isChronological(updateTime, time) {
+                            return (entity.identifier, entity)
+                        } else {
+                            return (entity.identifier, nil)
+                        }
+                    }
+            )
+
+            return try await withCheckedThrowingContinuation { continuation in
+                guard entitiesToUpdate.isEmpty == false else {
+                    continuation.resume(returning: .empty)
+                    return
+                }
+
+                self.setUpdateTime(time, for: entitiesToUpdate.lazy.compactMap { $0.1?.identifier })
+
+                let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+                storeStack.set(
+                    entitiesToUpdate.lazy.compactMap { $0.1 },
+                    in: context,
+                    localStoresCompletion: { result in
+                        guard let updatedEntities = result?.value else { return }
+                        self.raiseUpdateEvents(withQuery: .filter(.identifier >> updatedEntities.lazy.map { $0.identifier }),
+                                               results: .entities(updatedEntities))
+                    },
+                    allStoresCompletion: { result in
+                        switch result {
+                        case .success(let updatedEntities):
+                            for entity in updatedEntities {
+                                entitiesToUpdate[entity.identifier] = entity
+                            }
+                            for entity in entities where entitiesToUpdate[entity.identifier] == nil {
+                                entitiesToUpdate[entity.identifier] = entity
+                            }
+                            continuation.resume(returning: entitiesToUpdate.lazy.compactMap { $0.1 }.any)
+                            self.raiseUpdateEvents(withQuery: .filter(.identifier >> updatedEntities.lazy.map { $0.identifier }),
+                                                   results: .entities(updatedEntities))
+
+                        case .none:
+                            continuation.resume(returning: entities.any)
+                            self.raiseUpdateEvents(withQuery: .filter(.identifier >> entities.lazy.map { $0.identifier }),
+                                                   results: .entities(entities))
+
+                        case .failure(let error):
+                            Logger.log(.error, "\(CoreManager.self): An error occurred while setting entities: \(error)")
+                            continuation.resume(throwing: ManagerError.store(error))
+                        }
+                    }
+                )
+            }
+        }
+
+        guard context.responseAllowedForAccessLevel,
+            initialUserAccess == context.userAccess else {
+            throw ManagerError.userAccessInvalid
+        }
+
+        return result
     }
 
     func removeAll(withQuery query: Query<E>,
@@ -936,6 +1530,93 @@ private extension CoreManager {
         .eraseToAnyPublisher()
     }
 
+    func removeAll(withQuery query: Query<E>,
+                   in context: WriteContext<E>) async throws -> AnySequence<E.Identifier> {
+        guard context.requestAllowedForAccessLevel else {
+            throw ManagerError.userAccessInvalid
+        }
+
+        let initialUserAccess = context.userAccess
+
+        let result: AnySequence<E.Identifier> = try await asyncTaskQueue.enqueue {
+            let time = UpdateTime(timestamp: context.originTimestamp)
+            return try await withCheckedThrowingContinuation { continuation in
+                self.localStore.search(withQuery: query, in: ReadContext<E>()) { result in
+                    switch result {
+                    case .success(var results):
+                        results.materialize()
+
+                        let entitiesToRemove = self.filter(entities: results.any, basedOn: time).compactMap { $0 }
+                        guard entitiesToRemove.isEmpty == false else {
+                            continuation.resume(returning: .empty)
+                            return
+                        }
+                        let identifiersToRemove = entitiesToRemove.lazy.map { $0.identifier }
+                        self.setUpdateTime(time, for: identifiersToRemove)
+
+                        let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+                        if entitiesToRemove.count == results.count {
+                            storeStack.removeAll(
+                                withQuery: query,
+                                in: context,
+                                localStoresCompletion: { result in
+                                    guard let removedIdentifiers = result?.value else { return }
+                                    self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
+                                },
+                                allStoresCompletion: { result in
+                                    switch result {
+                                    case .success(let removedIdentifiers):
+                                        continuation.resume(returning: removedIdentifiers)
+                                        self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
+
+                                    case .none:
+                                        let removedIdentifiers = entitiesToRemove.map { $0.identifier }.any
+                                        continuation.resume(returning: removedIdentifiers)
+                                        self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
+
+                                    case .failure(let error):
+                                        Logger.log(.error, "\(CoreManager.self): An error occurred while removing all entities in query: \(error)")
+                                        continuation.resume(throwing: ManagerError.store(error))
+                                    }
+                                }
+                            )
+                        } else {
+                            storeStack.remove(
+                                identifiersToRemove,
+                                in: context,
+                                localStoresCompletion: { result in
+                                    guard result?.error == nil else { return }
+                                    self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
+                                },
+                                allStoresCompletion: { result in
+                                    switch result {
+                                    case .success, .none:
+                                        continuation.resume(returning: identifiersToRemove.any)
+                                        self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
+
+                                    case .failure(let error):
+                                        Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities for identifiers: \(error)")
+                                        continuation.resume(throwing: ManagerError.store(error))
+                                    }
+                                }
+                            )
+                        }
+
+                    case .failure(let error):
+                        Logger.log(.error, "\(CoreManager.self): An error occurred while searching for entities to remove all: \(error)")
+                        continuation.resume(throwing: ManagerError.store(error))
+                    }
+                }
+            }
+        }
+
+        guard context.responseAllowedForAccessLevel,
+            initialUserAccess == context.userAccess else {
+            throw ManagerError.userAccessInvalid
+        }
+        return result
+    }
+
     func remove(atID identifier: E.Identifier,
                 in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> {
 
@@ -990,6 +1671,54 @@ private extension CoreManager {
             }
         }
         .eraseToAnyPublisher()
+    }
+
+    func remove(atID identifier: E.Identifier,
+                in context: WriteContext<E>) async throws {
+
+        guard context.requestAllowedForAccessLevel else {
+            throw ManagerError.userAccessInvalid
+        }
+
+        let initialUserAccess = context.userAccess
+
+        try await asyncTaskQueue.enqueue {
+            try await withCheckedThrowingContinuation { continuation in
+                let time = UpdateTime(timestamp: context.originTimestamp)
+                guard self.canUpdate(identifier: identifier, basedOn: time) else {
+                    return
+                }
+                self.setUpdateTime(time, for: identifier)
+
+                let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+
+                storeStack.remove(
+                    atID: identifier,
+                    in: context,
+                    localStoresCompletion: { result in
+                        guard result?.error == nil else { return }
+                        self.raiseDeleteEvents(DualHashSet([identifier]))
+                    },
+                    allStoresCompletion: { result in
+                        switch result {
+                        case .success,
+                             .none:
+                            continuation.resume()
+                            self.raiseDeleteEvents(DualHashSet([identifier]))
+
+                        case .failure(let error):
+                            Logger.log(.error, "\(CoreManager.self): An error occurred while removing entity: \(error)")
+                            continuation.resume(throwing: ManagerError.store(error))
+                        }
+                    }
+                )
+            }
+        }
+
+        guard context.responseAllowedForAccessLevel,
+            initialUserAccess == context.userAccess else {
+            throw ManagerError.userAccessInvalid
+        }
     }
 
     func remove<S>(_ identifiers: S,
@@ -1047,6 +1776,56 @@ private extension CoreManager {
             }
         }
         .eraseToAnyPublisher()
+    }
+
+    func remove<S>(_ identifiers: S,
+                   in context: WriteContext<E>) async throws where S: Sequence, S.Element == E.Identifier {
+
+        guard context.requestAllowedForAccessLevel else {
+            throw ManagerError.userAccessInvalid
+        }
+
+        let initialUserAccess = context.userAccess
+
+        try await asyncTaskQueue.enqueue {
+            let time = UpdateTime(timestamp: context.originTimestamp)
+            let identifiersToRemove = self.filter(identifiers: identifiers, basedOn: time).lazy.compactMap { $0 }
+            guard identifiersToRemove.isEmpty == false else {
+                return
+            }
+
+            self.setUpdateTime(time, for: identifiersToRemove)
+
+            let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+
+            try await withCheckedThrowingContinuation { continuation in
+                storeStack.remove(
+                    identifiersToRemove,
+                    in: context,
+                    localStoresCompletion: { result in
+                        guard result?.error == nil else { return }
+                        self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
+                    },
+                    allStoresCompletion: { result in
+                        switch result {
+                        case .success,
+                             .none:
+                            continuation.resume()
+                            self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
+
+                        case .failure(let error):
+                            Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities: \(error)")
+                            continuation.resume(throwing: ManagerError.store(error))
+                        }
+                    }
+                )
+            }
+        }
+
+        guard context.responseAllowedForAccessLevel,
+            initialUserAccess == context.userAccess else {
+            throw ManagerError.userAccessInvalid
+        }
     }
 }
 

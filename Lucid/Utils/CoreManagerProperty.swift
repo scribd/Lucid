@@ -21,8 +21,6 @@ final class CoreManagerProperty<Output: Equatable>: Publisher {
 
     var willRemoveLastObserver: (() -> Void)?
 
-    private let dataQueue = DispatchQueue(label: "\(CoreManagerProperty.self):data_queue")
-
     private let dataLock = NSRecursiveLock(name: "\(CoreManagerProperty.self):data_lock")
 
     private var observerCount = 0
@@ -50,14 +48,13 @@ final class CoreManagerProperty<Output: Equatable>: Publisher {
         dataLock.lock()
         defer { dataLock.unlock() }
 
-        dataQueue.async {
-            self.observerCount += 1
-            if self.observerCount == 1 {
-                self.willAddFirstObserver?()
-            }
+        self.observerCount += 1
+        if self.observerCount == 1 {
+            self.willAddFirstObserver?()
         }
 
         let lock = dataLock
+        let dataQueue = DispatchQueue(label: "\(CoreManagerProperty.self):data_queue")
         let cancellable = currentValue
             .compactMap { $0 }
             .receive(on: dataQueue)
@@ -68,11 +65,12 @@ final class CoreManagerProperty<Output: Equatable>: Publisher {
             })
 
         let subscription = CoreManagerSubscription<S>(subscriber, cancellable) {
-            self.dataQueue.async {
-                self.observerCount -= 1
-                if self.observerCount == 0 {
-                    self.willRemoveLastObserver?()
-                }
+            self.dataLock.lock()
+            defer { self.dataLock.unlock() }
+
+            self.observerCount -= 1
+            if self.observerCount == 0 {
+                self.willRemoveLastObserver?()
             }
         }
 

@@ -49,9 +49,9 @@ public extension Publishers {
 
                         let completion = {
                             if self.allowAllToFinish {
-                                subscription.cancellableSets[index].forEach { $0.cancel() }
+                                subscription.cancellableBoxes[index].cancel()
                             } else {
-                                subscription.cancellableSets.forEach { $0.forEach { $0.cancel() } }
+                                subscription.cancellableBoxes.forEach { $0.cancel() }
                             }
                         }
 
@@ -62,12 +62,12 @@ public extension Publishers {
                                 case .failure(let error):
                                     attemptChoice(.failure(error), completion)
                                 case .finished:
-                                    subscription.cancellableSets[index].forEach { $0.cancel() }
+                                    subscription.cancellableBoxes[index].cancel()
                                 }
                             }, receiveValue: { value in
                                 attemptChoice(.success(value), completion)
                             })
-                            .store(in: &subscription.cancellableSets[index])
+                            .store(in: subscription.cancellableBoxes[index])
                     }
                 }
                 .sink(receiveCompletion: { terminal in
@@ -93,21 +93,31 @@ private extension Publishers.AMB {
 
         private var subscriber: S?
 
-        fileprivate var cancellableSets: [Set<AnyCancellable>]
+        private var _cancellableBoxes: [CancellableBox]
 
         fileprivate var cancellable: Cancellable?
+
+        private let dataLock = NSRecursiveLock(name: "\(AMBSubscription.self):data_lock")
 
         init(_ reference: Any,  _ subscriber: S, count: Int) {
             self.reference = reference
             self.subscriber = subscriber
-            self.cancellableSets = [Set<AnyCancellable>](repeating: [], count: count)
+            self._cancellableBoxes = [CancellableBox](repeating: CancellableBox(), count: count)
+        }
+
+        var cancellableBoxes: [CancellableBox] {
+            dataLock.lock()
+            defer { dataLock.unlock() }
+            return _cancellableBoxes
         }
 
         func cancel() {
+            dataLock.lock()
+            defer { dataLock.unlock() }
             reference = nil
             cancellable = nil
             subscriber = nil
-            cancellableSets = []
+            _cancellableBoxes = []
         }
 
         func request(_ demand: Subscribers.Demand) { }

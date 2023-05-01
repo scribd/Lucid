@@ -997,7 +997,33 @@ final class PublisherTests: XCTestCase {
         let amb1Expectation = self.expectation(description: "amb_1_expectation")
         amb1Expectation.expectedFulfillmentCount = 5
 
-        Publishers.AMB([subject1, subject2, subject3])
+        let testQueue = DispatchQueue(label: "test_queue")
+
+        let valueCheck1 = subject1
+            .receive(on: testQueue)
+            .map { value -> Int in
+                XCTAssertEqual(value, 10)
+                amb1Expectation.fulfill()
+                return value
+            }
+
+        let valueCheck2 = subject2
+            .receive(on: testQueue)
+            .map { value -> Int in
+                XCTAssertEqual(value, 20)
+                amb1Expectation.fulfill()
+                return value
+            }
+
+        let valueCheck3 = subject3
+            .receive(on: testQueue)
+            .map { value -> Int in
+                XCTAssertEqual(value, 30)
+                amb1Expectation.fulfill()
+                return value
+            }
+
+        Publishers.AMB([valueCheck1, valueCheck2, valueCheck3])
             .sink(receiveCompletion: { terminal in
                 switch terminal {
                 case .failure(let error):
@@ -1011,51 +1037,18 @@ final class PublisherTests: XCTestCase {
             })
             .store(in: &cancellables)
 
-        subject1
-            .sink(receiveCompletion: { terminal in
-                switch terminal {
-                case .failure(let error):
-                    XCTFail("unexpected failure: \(error)")
-                case .finished:
-                    XCTFail("unexpected finished")
-                }
-            }, receiveValue: { value in
-                XCTAssertEqual(value, 10)
-                amb1Expectation.fulfill()
-            })
-            .store(in: &cancellables)
-
-        subject2
-            .sink(receiveCompletion: { terminal in
-                switch terminal {
-                case .failure(let error):
-                    XCTFail("unexpected failure: \(error)")
-                case .finished:
-                    XCTFail("unexpected finished")
-                }
-            }, receiveValue: { value in
-                XCTAssertEqual(value, 20)
-                amb1Expectation.fulfill()
-            })
-            .store(in: &cancellables)
-
-        subject3
-            .sink(receiveCompletion: { terminal in
-                switch terminal {
-                case .failure(let error):
-                    XCTFail("unexpected failure: \(error)")
-                case .finished:
-                    XCTFail("unexpected finished")
-                }
-            }, receiveValue: { value in
-                XCTAssertEqual(value, 30)
-                amb1Expectation.fulfill()
-            })
-            .store(in: &cancellables)
-
-        subject1.send(10)
-        subject2.send(20)
-        subject3.send(30)
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(10)) {
+            subject1.send(10)
+            subject1.send(completion: .finished)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(20)) {
+            subject2.send(20)
+            subject2.send(completion: .finished)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(30)) {
+            subject3.send(30)
+            subject3.send(completion: .finished)
+        }
 
         waitForExpectations(timeout: 1)
     }

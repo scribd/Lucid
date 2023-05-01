@@ -102,7 +102,7 @@ private extension Publishers.AMB {
         init(_ reference: Any,  _ subscriber: S, count: Int) {
             self.reference = reference
             self.subscriber = subscriber
-            self._cancellableBoxes = [CancellableBox](repeating: CancellableBox(), count: count)
+            self._cancellableBoxes = (0..<count).map { _ in CancellableBox() }
         }
 
         var cancellableBoxes: [CancellableBox] {

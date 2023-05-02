@@ -997,10 +997,7 @@ final class PublisherTests: XCTestCase {
         let amb1Expectation = self.expectation(description: "amb_1_expectation")
         amb1Expectation.expectedFulfillmentCount = 5
 
-        let testQueue = DispatchQueue(label: "test_queue")
-
         let valueCheck1 = subject1
-            .receive(on: testQueue)
             .map { value -> Int in
                 XCTAssertEqual(value, 10)
                 amb1Expectation.fulfill()
@@ -1008,7 +1005,6 @@ final class PublisherTests: XCTestCase {
             }
 
         let valueCheck2 = subject2
-            .receive(on: testQueue)
             .map { value -> Int in
                 XCTAssertEqual(value, 20)
                 amb1Expectation.fulfill()
@@ -1016,7 +1012,6 @@ final class PublisherTests: XCTestCase {
             }
 
         let valueCheck3 = subject3
-            .receive(on: testQueue)
             .map { value -> Int in
                 XCTAssertEqual(value, 30)
                 amb1Expectation.fulfill()
@@ -1059,16 +1054,12 @@ final class PublisherTests: XCTestCase {
         let subject2 = PassthroughSubject<Int, FirstErrorType>()
         let subject3 = PassthroughSubject<Int, FirstErrorType>()
 
-        let testQueue = DispatchQueue(label: "test_queue")
-
         let errorSubject2 = subject2
-            .receive(on: testQueue)
             .map { value -> Int in
                 XCTFail("unexpected processing on subject 2")
                 return value
             }
         let errorSubject3 = subject3
-            .receive(on: testQueue)
             .map { value -> Int in
                 XCTFail("unexpected processing on subject 3")
                 return value
@@ -1077,7 +1068,7 @@ final class PublisherTests: XCTestCase {
         let amb1Expectation = self.expectation(description: "amb_1_expectation")
         amb1Expectation.expectedFulfillmentCount = 3
 
-        Publishers.AMB([subject1.eraseToAnyPublisher(), errorSubject2.eraseToAnyPublisher(), errorSubject3.eraseToAnyPublisher()], allowAllToFinish: false, queue: testQueue)
+        Publishers.AMB([subject1.eraseToAnyPublisher(), errorSubject2.eraseToAnyPublisher(), errorSubject3.eraseToAnyPublisher()], allowAllToFinish: false)
             .sink(receiveCompletion: { terminal in
                 switch terminal {
                 case .failure(let error):
@@ -1134,11 +1125,9 @@ final class PublisherTests: XCTestCase {
                 return value
             }
 
-        let testQueue = DispatchQueue(label: "test_queue")
-
         var testCancellables = Set<AnyCancellable>()
 
-        Publishers.AMB([errorSubject1, errorSubject2, errorSubject3], allowAllToFinish: true, queue: testQueue)
+        Publishers.AMB([errorSubject1, errorSubject2, errorSubject3], allowAllToFinish: true)
             .sink(receiveCompletion: { terminal in
                 switch terminal {
                 case .failure(let error):

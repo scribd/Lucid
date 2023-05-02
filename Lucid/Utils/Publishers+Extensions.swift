@@ -13,72 +13,67 @@ import Foundation
 
 public extension Publishers {
 
-    struct AMB<Output, Failure: Error>: Publisher {
+    final class AMB<Output, Failure: Error>: Publisher {
 
         private let publishers: [AnyPublisher<Output, Failure>]
 
         private let allowAllToFinish: Bool
 
-        private let queue: DispatchQueue
-
-        public init<P>(_ publishers: [P], allowAllToFinish: Bool = true, queue: DispatchQueue = DispatchQueue(label: "amb_queue")) where P: Publisher, P.Output == Output, P.Failure == Failure {
+        public init<P>(_ publishers: [P], allowAllToFinish: Bool = true) where P: Publisher, P.Output == Output, P.Failure == Failure {
             self.publishers = publishers.map { ($0 as? AnyPublisher<Output, Failure>) ?? $0.eraseToAnyPublisher() }
             self.allowAllToFinish = allowAllToFinish
-            self.queue = queue
         }
 
         public func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
 
-            self.queue.sync {
-                let subscription = AMBSubscription(self, subscriber, count: publishers.count)
+            let subscription = AMBSubscription(self, subscriber, count: publishers.count)
 
-                let cancellable = ReplayOnce<Output, Failure> { promise in
+            subscriber.receive(subscription: subscription)
 
-                    var hasBeenChosen: Bool = false
+            subscription.cancellable = ReplayOnce<Output, Failure> { promise in
 
-                    let attemptChoice: (Result<Output, Failure>, @escaping () -> Void) -> Void = { result, completion in
-                        defer { completion() }
-                        if hasBeenChosen {
-                            return
-                        }
-                        hasBeenChosen = true
-                        promise(result)
+                var hasBeenChosen: Bool = false
+
+                let attemptChoice: (Result<Output, Failure>, @escaping () -> Void) -> Void = { result, completion in
+                    defer { completion() }
+                    if hasBeenChosen {
+                        return
                     }
-
-                    self.publishers.enumerated().forEach { index, publisher in
-
-                        let completion = {
-                            if self.allowAllToFinish {
-                                subscription.cancellableBoxes[index].cancel()
-                            } else {
-                                subscription.cancellableBoxes.forEach { $0.cancel() }
-                            }
-                        }
-
-                        publisher
-                            .receive(on: self.queue)
-                            .sink(receiveCompletion: { terminal in
-                                switch terminal {
-                                case .failure(let error):
-                                    attemptChoice(.failure(error), completion)
-                                case .finished:
-                                    subscription.cancellableBoxes[index].cancel()
-                                }
-                            }, receiveValue: { value in
-                                attemptChoice(.success(value), completion)
-                            })
-                            .store(in: subscription.cancellableBoxes[index])
-                    }
+                    hasBeenChosen = true
+                    promise(result)
                 }
-                .sink(receiveCompletion: { terminal in
-                    subscriber.receive(completion: terminal)
-                }, receiveValue: { value in
-                    _ = subscriber.receive(value)
-                })
 
-                subscription.cancellable = cancellable
-                subscriber.receive(subscription: subscription)
+                self.publishers.enumerated().forEach { index, publisher in
+
+                    let completion = {
+                        if self.allowAllToFinish {
+                            subscription.cancellableBoxes[index].cancel()
+                        } else {
+                            subscription.cancellableBoxes.forEach { $0.cancel() }
+                        }
+                    }
+
+                    publisher
+                        .sink(receiveCompletion: { [weak self] terminal in
+                            guard self != nil else { return }
+                            switch terminal {
+                            case .failure(let error):
+                                attemptChoice(.failure(error), completion)
+                            case .finished:
+                                subscription.cancellableBoxes[index].cancel()
+                            }
+                        }, receiveValue: { [weak self] value in
+                            guard self != nil else { return }
+                            attemptChoice(.success(value), completion)
+                        })
+                        .store(in: subscription.cancellableBoxes[index])
+                }
             }
+            .sink(receiveCompletion: { terminal in
+                subscriber.receive(completion: terminal)
+            }, receiveValue: { value in
+                _ = subscriber.receive(value)
+            })
         }
     }
 }

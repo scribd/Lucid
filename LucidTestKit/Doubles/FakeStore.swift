@@ -8,6 +8,11 @@
 
 import Lucid
 
+public final class FakeStoreCounter {
+
+    public internal(set) static var count: Int = 0
+}
+
 /**
  * This is just a simplified version of the InMemoryStore, altered to allow a fake StoreLevel.
  */
@@ -17,8 +22,13 @@ public final class FakeStore<E>: StoringConvertible where E: LocalEntity {
 
     public let level: StoreLevel
 
+    deinit {
+        FakeStoreCounter.count -= 1
+    }
+
     public init(level: StoreLevel) {
         self.level = level
+        FakeStoreCounter.count += 1
     }
 
     public func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {

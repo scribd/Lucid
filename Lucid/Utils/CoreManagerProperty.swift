@@ -53,18 +53,7 @@ final class CoreManagerProperty<Output: Equatable>: Publisher {
             self.willAddFirstObserver?()
         }
 
-        let lock = dataLock
-        let dataQueue = DispatchQueue(label: "\(CoreManagerProperty.self):data_queue")
-        let cancellable = currentValue
-            .compactMap { $0 }
-            .receive(on: dataQueue)
-            .sink(receiveValue: { value in
-                lock.lock()
-                defer { lock.unlock() }
-                _ = subscriber.receive(value)
-            })
-
-        let subscription = CoreManagerSubscription<S>(subscriber, cancellable) {
+        let subscription = CoreManagerSubscription<S>(subscriber) {
             self.dataLock.lock()
             defer { self.dataLock.unlock() }
 
@@ -75,6 +64,16 @@ final class CoreManagerProperty<Output: Equatable>: Publisher {
         }
 
         subscriber.receive(subscription: subscription)
+
+        let lock = dataLock
+        subscription.cancellable = currentValue
+            .compactMap { $0 }
+            .sink(receiveValue: { [weak self] value in
+                guard self != nil else { return }
+                lock.lock()
+                defer { lock.unlock() }
+                _ = subscriber.receive(value)
+            })
     }
 }
 
@@ -86,18 +85,18 @@ private extension CoreManagerProperty {
 
         private var subscriber: S?
 
-        private var cancellable: AnyCancellable?
+        fileprivate var cancellable: AnyCancellable?
 
         private var didCancel: (() -> Void)?
 
-        init(_ subscriber: S, _ cancellable: AnyCancellable, didCancel: @escaping () -> Void) {
+        init(_ subscriber: S, didCancel: @escaping () -> Void) {
             self.subscriber = subscriber
-            self.cancellable = cancellable
             self.didCancel = didCancel
         }
 
         func cancel() {
             subscriber = nil
+            cancellable = nil
             didCancel?()
             didCancel = nil
         }

@@ -65,13 +65,10 @@ final class CoreManagerProperty<Output: Equatable>: Publisher {
 
         subscriber.receive(subscription: subscription)
 
-        let lock = dataLock
         subscription.cancellable = currentValue
             .compactMap { $0 }
             .sink(receiveValue: { [weak self] value in
                 guard self != nil else { return }
-                lock.lock()
-                defer { lock.unlock() }
                 _ = subscriber.receive(value)
             })
     }

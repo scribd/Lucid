@@ -40,6 +40,12 @@ fileprivate extension AsyncTasks {
 public extension Task where Success == Void, Failure == any Error {
 
     @discardableResult
+    func storeAsync(in asyncTasks: AsyncTasks) async -> Self {
+        await asyncTasks.append(self)
+        return self
+    }
+
+    @discardableResult
     func store(in asyncTasks: AsyncTasks) -> Self {
         Task {
             await asyncTasks.append(self)
@@ -53,7 +59,7 @@ public extension Task where Success == Void, Failure == any Error {
 public actor AsyncTaskQueue {
 
     private let maxConcurrentTasks: Int
-    private var runningTasks: Int = 0
+    private(set) var runningTasks: Int = 0
     private var queue = [CheckedContinuation<Void, Error>]()
 
     public init(maxConcurrentTasks: Int = 1) {

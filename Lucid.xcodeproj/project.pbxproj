@@ -357,6 +357,7 @@
 		F4A758DD291479460046DE3F /* EntityRelationshipSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBF2458D9A500D22F6D /* EntityRelationshipSpy.swift */; };
 		F4A758DE291479490046DE3F /* StubCoreDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = F47E5EF924AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld */; };
 		F4A758DF2914794D0046DE3F /* Combine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1987FA452554A7210057F1CC /* Combine.swift */; };
+		F4B987472A0EAA3000421E20 /* AsyncTaskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4B987462A0EAA3000421E20 /* AsyncTaskQueueTests.swift */; };
 		F4EF380727ADCCF000964191 /* PayloadPersistenceManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4EF380627ADCCF000964191 /* PayloadPersistenceManagerSpy.swift */; };
 		F4FEEF9A27D9A1BA00812A6E /* Publishers+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FEEF9927D9A1BA00812A6E /* Publishers+Extensions.swift */; };
 		F4FEEF9B27D9A1BA00812A6E /* Publishers+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FEEF9927D9A1BA00812A6E /* Publishers+Extensions.swift */; };
@@ -744,6 +745,7 @@
 		F4A7589A291477960046DE3F /* LucidTestKit_tvOS.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LucidTestKit_tvOS.h; sourceTree = "<group>"; };
 		F4A758BF2914791E0046DE3F /* LucidTestKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LucidTestKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F4A758C12914791E0046DE3F /* LucidTestKit_macOS.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LucidTestKit_macOS.h; sourceTree = "<group>"; };
+		F4B987462A0EAA3000421E20 /* AsyncTaskQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncTaskQueueTests.swift; sourceTree = "<group>"; };
 		F4EF380627ADCCF000964191 /* PayloadPersistenceManagerSpy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayloadPersistenceManagerSpy.swift; sourceTree = "<group>"; };
 		F4FEEF9927D9A1BA00812A6E /* Publishers+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Publishers+Extensions.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -985,6 +987,7 @@
 			isa = PBXGroup;
 			children = (
 				19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */,
+				F4B987462A0EAA3000421E20 /* AsyncTaskQueueTests.swift */,
 				191F919324C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift */,
 				F417CD3527EBD69F0077210C /* CombineHelperTests.swift */,
 				19ED00942481C3960033B7BD /* DataStructuresTests.swift */,
@@ -2120,6 +2123,7 @@
 				1987FA4C2554AC1A0057F1CC /* EntitySearchTests.swift in Sources */,
 				1987F9D92554A4120057F1CC /* BackgroundTaskManagerTests.swift in Sources */,
 				1987FA322554A5670057F1CC /* CodingPathTests.swift in Sources */,
+				F4B987472A0EAA3000421E20 /* AsyncTaskQueueTests.swift in Sources */,
 				1987FA1A2554A52C0057F1CC /* LRUStoreTests.swift in Sources */,
 				1987F9F62554A4D70057F1CC /* DiskCacheTests.swift in Sources */,
 				1987FA5E2555D9740057F1CC /* CoreManagerContractTests.swift in Sources */,

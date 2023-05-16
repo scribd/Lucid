@@ -176,6 +176,7 @@
 		198A9B6625560DD1008E3C5E /* Combine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1987FA452554A7210057F1CC /* Combine.swift */; };
 		198CC31424C663D600E2F951 /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
 		19ED00972481C3D10033B7BD /* AsyncOperationQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */; };
+		F40A55BC2A14197E00612C70 /* CoreManagerPropertyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40A55BB2A14197E00612C70 /* CoreManagerPropertyTests.swift */; };
 		F417CD3127EBD5660077210C /* Cancellable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F417CD3027EBD5660077210C /* Cancellable.swift */; };
 		F417CD3227EBD5660077210C /* Cancellable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F417CD3027EBD5660077210C /* Cancellable.swift */; };
 		F417CD3327EBD5660077210C /* Cancellable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F417CD3027EBD5660077210C /* Cancellable.swift */; };
@@ -735,6 +736,7 @@
 		F405C35024A41844004E1BB3 /* APIClientQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueTests.swift; sourceTree = "<group>"; };
 		F405C35124A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueDefaultSchedulerTests.swift; sourceTree = "<group>"; };
 		F405C35224A41844004E1BB3 /* APIClientQueueProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueProcessorTests.swift; sourceTree = "<group>"; };
+		F40A55BB2A14197E00612C70 /* CoreManagerPropertyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreManagerPropertyTests.swift; sourceTree = "<group>"; };
 		F417CD3027EBD5660077210C /* Cancellable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cancellable.swift; sourceTree = "<group>"; };
 		F417CD3527EBD69F0077210C /* CombineHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombineHelperTests.swift; sourceTree = "<group>"; };
 		F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreManagerProperty.swift; sourceTree = "<group>"; };
@@ -999,6 +1001,7 @@
 				F4B987462A0EAA3000421E20 /* AsyncTaskQueueTests.swift */,
 				191F919324C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift */,
 				F417CD3527EBD69F0077210C /* CombineHelperTests.swift */,
+				F40A55BB2A14197E00612C70 /* CoreManagerPropertyTests.swift */,
 				19ED00942481C3960033B7BD /* DataStructuresTests.swift */,
 				190ADC9F2458D8FE00D22F6D /* DiskCacheTests.swift */,
 				190ADC9D2458D8FE00D22F6D /* DiskQueueTests.swift */,
@@ -2145,6 +2148,7 @@
 				1987FA082554A50F0057F1CC /* BaseStoreTests.swift in Sources */,
 				1987FA0E2554A5150057F1CC /* CacheStoreTests.swift in Sources */,
 				1987F9F02554A4C00057F1CC /* DataStructuresTests.swift in Sources */,
+				F40A55BC2A14197E00612C70 /* CoreManagerPropertyTests.swift in Sources */,
 				1987FA2C2554A55A0057F1CC /* RemoteStoreTests.swift in Sources */,
 				19ED00972481C3D10033B7BD /* AsyncOperationQueueTests.swift in Sources */,
 				1987FA582554AC3C0057F1CC /* CoreManagerTests.swift in Sources */,

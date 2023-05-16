@@ -91,7 +91,7 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     public typealias SearchEntitiesAsync = (
         _ query: Query<E>,
         _ context: ReadContext<E>
-    ) async throws -> (once: () async throws -> QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)
+    ) async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)
 
     public typealias SetEntityAsync = (
         _ entity: E,
@@ -213,7 +213,7 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     }
 
     public func search(withQuery query: Query<E>,
-                       in context: ReadContext<E> = ReadContext<E>()) async throws -> (once: () async throws -> QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) {
+                       in context: ReadContext<E> = ReadContext<E>()) async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) {
         return try await searchEntitiesAsync(query, context)
     }
 
@@ -346,7 +346,7 @@ public extension CoreManaging {
     }
 
     func all(in context: ReadContext<E> = ReadContext<E>()) async throws -> QueryResult<E> {
-        return try await search(withQuery: .all, in: context).once()
+        return try await search(withQuery: .all, in: context).once
     }
 
     /// Retrieve the first entity found from the core manager based on a given query.
@@ -364,7 +364,7 @@ public extension CoreManaging {
 
     func first(for query: Query<E> = .all,
                in context: ReadContext<E> = ReadContext<E>()) async throws -> E? {
-        return try await search(withQuery: query, in: context).once().first
+        return try await search(withQuery: query, in: context).once.first
     }
 
     /// Retrieve entities that match one of the given identifiers.
@@ -388,7 +388,7 @@ public extension CoreManaging {
     }
 
     func get<S>(byIDs identifiers: S,
-                in context: ReadContext<E> = ReadContext<E>()) async throws -> (once: () async throws -> QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)
+                in context: ReadContext<E> = ReadContext<E>()) async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)
         where S: Sequence, S.Element == E.Identifier {
 
             let query = Query<E>.filter(.identifier >> identifiers).order([.identifiers(identifiers.any)])
@@ -420,7 +420,7 @@ public extension CoreManaging where E: RemoteEntity {
     func firstWithMetadata(for query: Query<E>? = .all,
                            in context: ReadContext<E> = ReadContext<E>()) async throws -> QueryResult<E> {
 
-        let result = try await search(withQuery: query ?? .all, in: context).once()
+        let result = try await search(withQuery: query ?? .all, in: context).once
         guard let entity = result.entity, let metadata = result.metadata else { return .empty() }
         return QueryResult<E>(from: entity, metadata: metadata)
     }
@@ -640,85 +640,64 @@ private extension CoreManager {
     func search(withQuery query: Query<E>,
                 in context: ReadContext<E>) -> (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnySafePublisher<QueryResult<E>>) {
 
-        let property = preparePropertiesForSearchUpdate(forQuery: query, context: context)
-        let replayOnce = Publishers.ReplayOnce<QueryResult<E>, ManagerError> { promise in
-            Task {
-                do {
-                    let result = try await self.search(withQuery: query, in: context).once()
-                    promise(.success(result))
-                } catch let error as ManagerError {
-                    promise(.failure(error))
-                }
-            }
+        let signals: () async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) =  {
+            return try await self.search(withQuery: query, in: context)
         }
 
+        let asyncToCombine = CoreManagerAsyncToCombineProperty<QueryResult<E>, ManagerError>(signals)
+
         return (
-            once: replayOnce.eraseToAnyPublisher(),
-            continuous: property.eraseToAnyPublisher()
+            once: asyncToCombine.once.eraseToAnyPublisher(),
+            continuous: asyncToCombine.continuous.eraseToAnyPublisher()
         )
     }
 
+    private typealias SearchResult = (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)
+
     func search(withQuery query: Query<E>,
-                in context: ReadContext<E>) async throws -> (once: () async throws -> QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) {
+                in context: ReadContext<E>) async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) {
 
         if let remoteContext = context.remoteContextAfterMakingLocalRequest {
             let localContext = ReadContext<E>(dataSource: .local, contract: context.contract, accessValidator: context.accessValidator)
-            let cacheSearches = try await search(withQuery: query, in: localContext)
 
-            let overwriteSearch: (QueryResult<E>?) async throws -> QueryResult<E> = { localResult in
+            let overwriteSearches: (SearchResult?) async throws -> SearchResult = { localResults in
                 do {
-                    let result = try await self.search(withQuery: query, in: remoteContext).once()
+                    let result = try await self.search(withQuery: query, in: remoteContext)
                     return result
                 } catch let error as ManagerError {
-                    if error.shouldFallBackToLocalStore, let localResult = localResult {
+                    if error.shouldFallBackToLocalStore, let localResults = localResults {
                         // if we can't reach the remote store, return local results
-                        return localResult
+                        return localResults
                     } else {
                         throw error
                     }
                 }
             }
 
-            return (
-                once: {
-                    var remoteSearchTask: Task<QueryResult<E>, any Error>?
-                    if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
-                        remoteSearchTask = try await self.asyncTaskQueue.enqueue {
-                            // Return a Task to make this call asynchronous
-                            Task {
-                                return try await overwriteSearch(nil)
-                            }
-                        }
-                    }
+            if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
+                Task {
+                    _ = try await overwriteSearches(nil)
+                }
+            }
 
-                    let localResult: QueryResult<E>
-                    do {
-                        localResult = try await cacheSearches.once()
-                    } catch {
-                        localResult = QueryResult<E>(fromProcessedEntities: [], for: query)
-                    }
+            let localResults: SearchResult
+            do {
+                localResults = try await search(withQuery: query, in: localContext)
+            } catch {
+                return try await overwriteSearches(nil)
+            }
 
-                    let searchIdentifierCount = query.filter?.extractOrIdentifiers?.map { $0 }.count ?? 0
-                    let entityResultCount = localResult.count
+            let searchIdentifierCount = query.filter?.extractOrIdentifiers?.map { $0 }.count ?? 0
+            let entityResultCount = localResults.once.count
 
-                    let hasAllIdentifiersLocally = searchIdentifierCount > 0 && entityResultCount == searchIdentifierCount
-                    let hasResultsForComplexSearch = searchIdentifierCount == 0 && entityResultCount > 0
+            let hasAllIdentifiersLocally = searchIdentifierCount > 0 && entityResultCount >= searchIdentifierCount
+            let hasResultsForComplexSearch = searchIdentifierCount == 0 && entityResultCount > 0
 
-                    if hasAllIdentifiersLocally || hasResultsForComplexSearch {
-                        return localResult
-                    } else {
-                        // If there is a remote task already running, wait for it's completion
-                        if let remoteSearchTask = remoteSearchTask {
-                            do {
-                                return try await remoteSearchTask.value
-                            } catch {
-                                return localResult
-                            }
-                        }
-                        return try await overwriteSearch(localResult)
-                    }
-                },
-                continuous: cacheSearches.continuous)
+            if hasAllIdentifiersLocally || hasResultsForComplexSearch {
+                return localResults
+            } else {
+                return try await overwriteSearches(localResults)
+            }
         }
 
         let property = await propertyCache.preparePropertiesForSearchUpdate(forQuery: query, context: context)
@@ -851,7 +830,7 @@ private extension CoreManager {
         }
 
         return (
-            once: once,
+            once: try await once(),
             continuous: continuous
         )
     }

@@ -186,6 +186,7 @@
 		F438471027E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */; };
 		F438471127E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */; };
 		F438471227E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */; };
+		F43FFE8F2A1413C60000AAC2 /* AsyncCurrentValueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F43FFE8E2A1413C60000AAC2 /* AsyncCurrentValueTests.swift */; };
 		F440173827A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
 		F440173927A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
 		F440173A27A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
@@ -281,6 +282,10 @@
 		F48C80BF2655973000581182 /* AnyEquatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC532458D89C00D22F6D /* AnyEquatable.swift */; };
 		F48C80C02655973000581182 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
 		F48C80C12655973000581182 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC472458D89C00D22F6D /* Logger.swift */; };
+		F4939A552A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4939A542A12EC4200C69D0E /* AsyncCurrentValue.swift */; };
+		F4939A562A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4939A542A12EC4200C69D0E /* AsyncCurrentValue.swift */; };
+		F4939A572A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4939A542A12EC4200C69D0E /* AsyncCurrentValue.swift */; };
+		F4939A582A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4939A542A12EC4200C69D0E /* AsyncCurrentValue.swift */; };
 		F4A7587A2914746F0046DE3F /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
 		F4A7587B2914746F0046DE3F /* APIClientQueueSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCC02458D9A500D22F6D /* APIClientQueueSpy.swift */; };
 		F4A7587C2914746F0046DE3F /* RelationshipCoreManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBC2458D9A500D22F6D /* RelationshipCoreManagerSpy.swift */; };
@@ -733,6 +738,7 @@
 		F417CD3027EBD5660077210C /* Cancellable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cancellable.swift; sourceTree = "<group>"; };
 		F417CD3527EBD69F0077210C /* CombineHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombineHelperTests.swift; sourceTree = "<group>"; };
 		F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreManagerProperty.swift; sourceTree = "<group>"; };
+		F43FFE8E2A1413C60000AAC2 /* AsyncCurrentValueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncCurrentValueTests.swift; sourceTree = "<group>"; };
 		F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Publisher+Extensions.swift"; sourceTree = "<group>"; };
 		F45FA8FA24EC8D3C00368CCB /* Contract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Contract.swift; sourceTree = "<group>"; };
 		F47A447D291473ED0031286B /* LucidTestKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LucidTestKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -740,6 +746,7 @@
 		F48C717624896F5400099980 /* CoreManagerContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreManagerContractTests.swift; sourceTree = "<group>"; };
 		F48C7FFA2655948200581182 /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F48C8058265596D700581182 /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		F4939A542A12EC4200C69D0E /* AsyncCurrentValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncCurrentValue.swift; sourceTree = "<group>"; };
 		F4A40EBF2513B8700025E48C /* CodingPathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodingPathTests.swift; sourceTree = "<group>"; };
 		F4A75898291477960046DE3F /* LucidTestKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LucidTestKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F4A7589A291477960046DE3F /* LucidTestKit_tvOS.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LucidTestKit_tvOS.h; sourceTree = "<group>"; };
@@ -920,6 +927,8 @@
 			children = (
 				190ADC532458D89C00D22F6D /* AnyEquatable.swift */,
 				190ADC462458D89C00D22F6D /* AnySequence.swift */,
+				01ED569A29E9C3FA00C77548 /* Async.swift */,
+				F4939A542A12EC4200C69D0E /* AsyncCurrentValue.swift */,
 				190ADC4B2458D89C00D22F6D /* AsyncOperationQueue.swift */,
 				190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */,
 				F417CD3027EBD5660077210C /* Cancellable.swift */,
@@ -935,7 +944,6 @@
 				190ADC492458D89C00D22F6D /* Result.swift */,
 				190ADC502458D89C00D22F6D /* ScheduledTimer.swift */,
 				190ADC4D2458D89C00D22F6D /* Timestamp.swift */,
-				01ED569A29E9C3FA00C77548 /* Async.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -986,6 +994,7 @@
 		190ADC9C2458D8FE00D22F6D /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				F43FFE8E2A1413C60000AAC2 /* AsyncCurrentValueTests.swift */,
 				19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */,
 				F4B987462A0EAA3000421E20 /* AsyncTaskQueueTests.swift */,
 				191F919324C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift */,
@@ -2089,6 +2098,7 @@
 				190ADC7D2458D89C00D22F6D /* CancellationToken.swift in Sources */,
 				190ADC7B2458D89C00D22F6D /* BackgroundTaskManager.swift in Sources */,
 				190ADC7A2458D89C00D22F6D /* DiskCache.swift in Sources */,
+				F4939A552A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */,
 				190ADC552458D89C00D22F6D /* Query.swift in Sources */,
 				190ADC6F2458D89C00D22F6D /* RemoteStore.swift in Sources */,
 				190ADC562458D89C00D22F6D /* Metadata.swift in Sources */,
@@ -2141,6 +2151,7 @@
 				1987FA642555DD410057F1CC /* APIClientQueueTests.swift in Sources */,
 				1987FA142554A5230057F1CC /* CoreDataStoreTests.swift in Sources */,
 				1987FA382554A5740057F1CC /* StoreStackTests.swift in Sources */,
+				F43FFE8F2A1413C60000AAC2 /* AsyncCurrentValueTests.swift in Sources */,
 				F417CD3627EBD69F0077210C /* CombineHelperTests.swift in Sources */,
 				1987FA022554A4F50057F1CC /* PublisherTests.swift in Sources */,
 				1987FA3E2554A5810057F1CC /* RelationshipControllerTests.swift in Sources */,
@@ -2210,6 +2221,7 @@
 				190ADCFE2458DA9B00D22F6D /* CancellationToken.swift in Sources */,
 				190ADCFF2458DA9B00D22F6D /* BackgroundTaskManager.swift in Sources */,
 				190ADD002458DA9B00D22F6D /* DiskCache.swift in Sources */,
+				F4939A582A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */,
 				190ADD012458DA9B00D22F6D /* Query.swift in Sources */,
 				190ADD022458DA9B00D22F6D /* RemoteStore.swift in Sources */,
 				190ADD032458DA9B00D22F6D /* Metadata.swift in Sources */,
@@ -2326,6 +2338,7 @@
 				F48C80212655958500581182 /* CoreDataConversion.swift in Sources */,
 				F48C80142655958500581182 /* Color.swift in Sources */,
 				F48C80362655958E00581182 /* PropertyBox.swift in Sources */,
+				F4939A562A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */,
 				F48C803D2655958E00581182 /* Logger.swift in Sources */,
 				F48C80272655958500581182 /* HTTPTypes.swift in Sources */,
 				F48C801C2655958500581182 /* Context.swift in Sources */,
@@ -2382,6 +2395,7 @@
 				F48C809D2655972700581182 /* APIClientQueueDefaultScheduler.swift in Sources */,
 				F48C80BA2655973000581182 /* DiskCache.swift in Sources */,
 				F48C80892655972700581182 /* CoreManager.swift in Sources */,
+				F4939A572A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */,
 				F48C80962655972700581182 /* ManagerResult.swift in Sources */,
 				F48C80882655972700581182 /* Context.swift in Sources */,
 				F48C80A92655972B00581182 /* CoreDataStore.swift in Sources */,

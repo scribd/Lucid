@@ -4366,13 +4366,13 @@ final class CoreManagerTests: XCTestCase {
         do {
             let signals = try await manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
 
-            Task {
+            await Task {
                 _ = try? await signals.once()
 
                 for await _ in signals.continuous {
                     continuousExpectation.fulfill()
                 }
-            }.store(in: asyncTasks)
+            }.storeAsync(in: asyncTasks)
 
             await asyncTasks.cancel()
 
@@ -4405,11 +4405,11 @@ final class CoreManagerTests: XCTestCase {
         do {
             let signals = try await manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
 
-            Task {
+            await Task {
                 _ = try await signals.once()
 
                 onceExpectation.fulfill()
-            }.store(in: asyncTasks)
+            }.storeAsync(in: asyncTasks)
 
             await asyncTasks.cancel()
 
@@ -4441,11 +4441,10 @@ final class CoreManagerTests: XCTestCase {
         )
 
 
-        Task {
+        await Task {
             _ = try await manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: context)
-
             onceExpectation.fulfill()
-        }.store(in: asyncTasks)
+        }.storeAsync(in: asyncTasks)
 
         await asyncTasks.cancel()
 
@@ -4465,10 +4464,10 @@ final class CoreManagerTests: XCTestCase {
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.isInverted = true
 
-        Task {
+        await Task {
             _ = try await manager.set(entity, in: WriteContext(dataTarget: .local))
             onceExpectation.fulfill()
-        }.store(in: asyncTasks)
+        }.storeAsync(in: asyncTasks)
 
         await asyncTasks.cancel()
 

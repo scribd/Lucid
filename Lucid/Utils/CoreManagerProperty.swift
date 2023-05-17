@@ -129,25 +129,25 @@ final class CoreManagerCombineProperty<Output: Equatable, Failure: Error>: Publi
         if isFirstSubscriber.value == false {
             isFirstSubscriber.value = true
 
-            Task {
-                do {
-                    switch self.type {
-                    case .once:
+            switch self.type {
+            case .once:
+                Task {
+                    do {
                         let result = try await signals.value.once
                         self.currentValue.send(result)
                         self.currentValue.send(completion: .finished)
-
-                    case .continuous:
-                        Task {
-                            for await value in try await signals.value.continuous where Task.isCancelled == false {
-                                self.currentValue.send(value)
-                            }
-                        }.store(in: self.asyncTasks)
+                    } catch let error as Failure {
+                        self.currentValue.send(completion: .failure(error))
                     }
-                } catch let error as Failure {
-                    self.currentValue.send(completion: .failure(error))
-                }
-            }.store(in: asyncTasks)
+                }.store(in: asyncTasks)
+
+            case .continuous:
+                Task {
+                    for await value in try await signals.value.continuous where Task.isCancelled == false {
+                        self.currentValue.send(value)
+                    }
+                }.store(in: asyncTasks)
+            }
         }
     }
 }

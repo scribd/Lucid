@@ -1090,7 +1090,7 @@ final class CoreManagerTests: XCTestCase {
 
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     let stream = try await self.manager.search(withQuery: .filter(.identifier >> expectedIdentifiers), in: context).continuous
 
                     var continuousCallCount = 0
@@ -1109,7 +1109,7 @@ final class CoreManagerTests: XCTestCase {
                     }
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
                     try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
                 }
 
@@ -1141,7 +1141,7 @@ final class CoreManagerTests: XCTestCase {
 
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     let stream = try await self.manager.search(withQuery: .filter(.identifier >> expectedIdentifiers), in: context).continuous
                     for await result in stream {
                         XCTAssertEqual(result.count, 1)
@@ -1150,7 +1150,7 @@ final class CoreManagerTests: XCTestCase {
                     }
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
                     try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
                 }
 
@@ -2496,7 +2496,7 @@ final class CoreManagerTests: XCTestCase {
 
                 let signals = try await manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
 
-                group.addTask {
+                group.addTask(priority: .high) {
                     let result = signals.once
 
                     XCTAssertEqual(result.first?.title, "fake_title")
@@ -2510,7 +2510,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(self.remoteStoreSpy.queryRecords.count, 1)
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
                     var continuousCallCount = 0
 
                     for await result in signals.continuous {
@@ -2550,7 +2550,7 @@ final class CoreManagerTests: XCTestCase {
             let signals = try await manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
 
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     let result = signals.once
 
                     XCTAssertEqual(result.first?.title, "fake_title")
@@ -2568,7 +2568,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(getResult.first?.title, "updated_fake_title")
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
                     var continuousCallCount = 0
                     for await result in signals.continuous {
                         defer { continuousCallCount += 1 }
@@ -2610,7 +2610,7 @@ final class CoreManagerTests: XCTestCase {
             let signals = try await manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
 
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     let result = signals.once
 
                     XCTAssertEqual(result.first?.title, "fake_title")
@@ -2626,7 +2626,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(getResult.first?.title, "fake_title")
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
                     for await result in signals.continuous {
                         XCTAssertEqual(result.first?.title, "fake_title")
                         XCTAssertEqual(result.count, 1)
@@ -2662,7 +2662,7 @@ final class CoreManagerTests: XCTestCase {
             let signals = try await manager.search(withQuery: .filter(.title ~= .string(".*fake_title")), in: context)
 
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     let result = signals.once
 
                     XCTAssertEqual(result.first?.title, "fake_title")
@@ -2679,7 +2679,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(getResult.first?.title, "updated_fake_title")
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
                     var continuousCallCount = 0
                     for await result in signals.continuous {
                         defer { continuousCallCount += 1 }
@@ -2723,7 +2723,7 @@ final class CoreManagerTests: XCTestCase {
             let signals = try await manager.search(withQuery: .filter(.title == .string("fake_title")), in: context)
 
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     let result = signals.once
 
                     XCTAssertEqual(result.first?.title, "fake_title")
@@ -2740,7 +2740,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(getResult.first?.title, "updated_fake_title")
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
                     var continuousCallCount = 0
 
                     for await result in signals.continuous {
@@ -2782,7 +2782,7 @@ final class CoreManagerTests: XCTestCase {
             let signals = try await manager.search(withQuery: .filter(.title == .string("fake_title")), in: context)
 
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     let result = signals.once
 
                     XCTAssertEqual(result.first?.title, "fake_title")
@@ -2798,7 +2798,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(getResult.first?.title, "fake_title")
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
                     for await result in signals.continuous {
                         XCTAssertEqual(result.first?.title, "fake_title")
                         XCTAssertEqual(result.count, 1)
@@ -2834,7 +2834,7 @@ final class CoreManagerTests: XCTestCase {
             let signals = try await manager.search(withQuery: .filter(.title == .string("fake_title")), in: context)
 
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     let result = signals.once
 
                     XCTAssertEqual(result.first?.title, "fake_title")
@@ -2853,7 +2853,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(getResult, .empty())
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
                     var continuousCallCount = 0
 
                     for await result in signals.continuous {
@@ -2897,7 +2897,7 @@ final class CoreManagerTests: XCTestCase {
             let signals = try await manager.search(withQuery: .filter(.title == .string("fake_title")), in: context)
 
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     let result = signals.once
 
                     XCTAssertEqual(result.first?.title, "fake_title")
@@ -2910,7 +2910,7 @@ final class CoreManagerTests: XCTestCase {
                     try await self.manager.remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: WriteContext(dataTarget: .local))
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
                     var continuousCallCount = 0
 
                     for await result in signals.continuous {
@@ -2954,7 +2954,7 @@ final class CoreManagerTests: XCTestCase {
             let signals = try await manager.search(withQuery: .filter(.title ~= .string(".*fake_title")), in: context)
 
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     let result = signals.once
 
                     XCTAssertEqual(result.first?.title, "fake_title")
@@ -2968,7 +2968,7 @@ final class CoreManagerTests: XCTestCase {
                     _ = try await self.manager.set(newDocument, in: WriteContext(dataTarget: .local))
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
                     var continuousCallCount = 0
 
                     for await result in signals.continuous {
@@ -3312,7 +3312,8 @@ final class CoreManagerTests: XCTestCase {
 
                 // First update
                 group.addTask(priority: .low) {
-                    try await Task.sleep(nanoseconds: 10000)
+                    try await Task.sleep(nanoseconds: 100000)
+
                     self.remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
                     self.memoryStoreSpy.searchResultStub = .success(.entities([]))
                     self.memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil), title: "fake_title")])
@@ -3330,7 +3331,7 @@ final class CoreManagerTests: XCTestCase {
 
                 // Second update
                 group.addTask(priority: .low) {
-                    try await Task.sleep(nanoseconds: 20000)
+                    try await Task.sleep(nanoseconds: 200000)
 
                     self.remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")]))
                     self.memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
@@ -3438,7 +3439,7 @@ final class CoreManagerTests: XCTestCase {
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continuous Listener
-                group.addTask {
+                group.addTask(priority: .high) {
                     var continuousCallCount = 0
 
                     let allQueryContext = ReadContext<EntitySpy>(dataSource: .local)
@@ -3462,7 +3463,9 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // First Update
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 100000)
+
                     self.remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
                     self.memoryStoreSpy.searchResultStub = .success(.entities([]))
                     self.memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil), title: "fake_title")])
@@ -3483,8 +3486,8 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Second Update
-                group.addTask {
-                    try await Task.sleep(nanoseconds: 10000)
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 200000)
 
                     self.remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")]))
                     self.memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
@@ -4051,7 +4054,7 @@ final class CoreManagerTests: XCTestCase {
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continuous Listener
-                group.addTask {
+                group.addTask(priority: .high) {
                     let continuous = try await self.manager.search(withQuery: query, in: firstContext).continuous
 
                     var continuousCount = 0
@@ -4075,7 +4078,9 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Update
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 100000)
+
                     self.memoryStoreSpy.searchResultStub = .success(.entities([]))
                     self.memoryStoreSpy.setResultStub = .success([])
                     self.remoteStoreSpy.searchResultStub = .success(.entities([
@@ -4113,7 +4118,7 @@ final class CoreManagerTests: XCTestCase {
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continuous Listener
-                group.addTask {
+                group.addTask(priority: .high) {
                     let firstContext = ReadContext<EntitySpy>(dataSource: .local)
                     let continuous = try await self.manager.search(withQuery: query, in: firstContext).continuous
 
@@ -4138,7 +4143,9 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Update
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 100000)
+
                     self.memoryStoreSpy.searchResultStub = .success(.entities([]))
                     self.memoryStoreSpy.setResultStub = .success([])
                     self.remoteStoreSpy.searchResultStub = .success(.entities([
@@ -4176,7 +4183,7 @@ final class CoreManagerTests: XCTestCase {
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continous Listener
-                group.addTask {
+                group.addTask(priority: .high) {
                     let firstContext = ReadContext<EntitySpy>(dataSource: .local)
                     let continuous = try await self.manager.search(withQuery: query, in: firstContext).continuous
 
@@ -4201,7 +4208,9 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Update
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 100000)
+
                     self.memoryStoreSpy.searchResultStub = .success(.entities([]))
                     self.memoryStoreSpy.setResultStub = .success([])
                     self.remoteStoreSpy.searchResultStub = .success(.entities([
@@ -4603,7 +4612,7 @@ final class CoreManagerTests: XCTestCase {
 
                 // Updates
                 group.addTask(priority: .low) {
-                    try? await Task.sleep(nanoseconds: 100000)
+                    try await Task.sleep(nanoseconds: 100000)
 
                     let entities = (0..<count).map { EntitySpy(idValue: .remote($0, nil), title: "title_\($0)") }
 
@@ -5491,7 +5500,7 @@ final class CoreManagerTests: XCTestCase {
 
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continuous Listener
-                group.addTask {
+                group.addTask(priority: .high) {
                     for await result in signals.continuous {
                         XCTAssertEqual(result.first?.lazy, .unrequested)
                         XCTAssertEqual(result.count, 1)
@@ -5500,7 +5509,9 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Once Update
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 100000)
+
                     let result = signals.once
                     XCTAssertEqual(result.first?.lazy, .unrequested)
                     XCTAssertEqual(result.count, 1)
@@ -5543,7 +5554,7 @@ final class CoreManagerTests: XCTestCase {
 
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continuous Listening
-                group.addTask {
+                group.addTask(priority: .high) {
                     for await result in signals.continuous {
                         XCTAssertEqual(result.first?.lazy, .requested(6))
                         XCTAssertEqual(result.count, 1)
@@ -5552,7 +5563,9 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Once update
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 100000)
+
                     let result = signals.once
 
                     XCTAssertEqual(result.first?.lazy, .requested(6))
@@ -5595,7 +5608,7 @@ final class CoreManagerTests: XCTestCase {
 
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continuous Listener
-                group.addTask {
+                group.addTask(priority: .high) {
                     for await result in signals.continuous {
                         XCTAssertEqual(result.first?.lazy, .requested(6))
                         XCTAssertEqual(result.count, 1)
@@ -5604,7 +5617,9 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Once update
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 100000)
+
                     let result = signals.once
 
                     XCTAssertEqual(result.first?.lazy, .requested(6))
@@ -5647,7 +5662,7 @@ final class CoreManagerTests: XCTestCase {
 
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continuous Listener
-                group.addTask {
+                group.addTask(priority: .high) {
                     var continuousCount = 0
 
                     for await result in signals.continuous {
@@ -5664,7 +5679,9 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Once update
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 100000)
+
                     let result = signals.once
 
                     XCTAssertEqual(result.first?.lazy, .unrequested)
@@ -5707,7 +5724,7 @@ final class CoreManagerTests: XCTestCase {
 
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continuous Listener
-                group.addTask {
+                group.addTask(priority: .high) {
                     var continuousCount = 0
 
                     for await result in signals.continuous {
@@ -5724,7 +5741,9 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Once update
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 100000)
+
                     let result = signals.once
 
                     XCTAssertEqual(result.first?.lazy, .requested(7))
@@ -6694,7 +6713,7 @@ final class CoreManagerTests: XCTestCase {
 
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continuous Listener
-                group.addTask {
+                group.addTask(priority: .high) {
                     for await result in signals.continuous {
                         XCTAssertEqual(result.count, 1)
                         return
@@ -6702,7 +6721,9 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Once Update
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 100000)
+
                     let result = signals.once
 
                     XCTAssertEqual(result.count, 1)
@@ -6741,7 +6762,7 @@ final class CoreManagerTests: XCTestCase {
 
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continuous Listener
-                group.addTask {
+                group.addTask(priority: .high) {
                     for await result in signals.continuous {
                         XCTAssertEqual(result.count, 1)
                         return
@@ -6749,7 +6770,9 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Once
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 100000)
+
                     let result = signals.once
 
                     XCTAssertEqual(result.count, 1)
@@ -6791,7 +6814,7 @@ final class CoreManagerTests: XCTestCase {
 
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continuous
-                group.addTask {
+                group.addTask(priority: .high) {
                     for await result in signals.continuous {
                         continuousExpectation.fulfill()
                         XCTFail("Unexpected value: \(result)")
@@ -6799,7 +6822,9 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Once
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 100000)
+
                     let result = signals.once
                     XCTFail("Unexpected value: \(result)")
                 }

@@ -9,57 +9,102 @@
 import Combine
 import Foundation
 
-final class CoreManagerProperty<Output: Equatable>: Publisher {
+final actor CoreManagerProperty<Output: Equatable> {
 
-    typealias Failure = Never
+    let stream = AsyncCurrentValue<Output?>(nil)
 
-    private let currentValue = CurrentValueSubject<Output?, Failure>(nil)
+    init() async {
+        await stream.setDelegate(self)
+    }
 
     // CoreManager
 
-    var willAddFirstObserver: (() -> Void)?
+    private var didRemoveLastObserver: (() async -> Void)?
 
-    var willRemoveLastObserver: (() -> Void)?
-
-    private let dataLock = NSRecursiveLock(name: "\(CoreManagerProperty.self):data_lock")
-
-    private var observerCount = 0
-
-    // Init
-
-    var value: Output? {
-        dataLock.lock()
-        defer { dataLock.unlock() }
-
-        return currentValue.value
+    func setDidRemoveLastObserver(_ block: @escaping () async -> Void) async {
+        didRemoveLastObserver = block
     }
 
-    func update(with value: Output) {
-        dataLock.lock()
-        defer { dataLock.unlock() }
+    func update(with value: Output) async {
+        guard await self.stream.value != value else { return }
+        await stream.update(with: value)
+    }
 
-        guard self.currentValue.value != value else { return }
-        self.currentValue.value = value
+    func value() async -> Output? {
+        return await stream.value
+    }
+}
+
+// MARK: - AsyncCurrentValueDelegate
+
+extension CoreManagerProperty: AsyncCurrentValueDelegate {
+
+    func didRemoveFinalIterator() async {
+        await didRemoveLastObserver?()
+    }
+}
+
+// MARK: - Combine helper to transpose async signals to Publishers
+
+final class CoreManagerAsyncToCombineProperty<Output: Equatable, Failure: Error> {
+
+    private let currentValue = CurrentValueSubject<Output?, Failure>(nil)
+
+    private let continuousCurrentValue = CurrentValueSubject<Output?, Failure>(nil)
+
+    private let cancellable = CancellableBox()
+
+    // Swift Concurrency
+
+    private let signals: Task<(once: Output, continuous: AsyncStream<Output>), Error>
+
+    var once: CoreManagerCombineProperty<Output, Failure> {
+        return CoreManagerCombineProperty<Output, Failure>(signals, type: .once)
+    }
+
+    var continuous: AnySafePublisher<Output> {
+        return CoreManagerCombineProperty<Output, Failure>(signals, type: .continuous).suppressError()
+    }
+
+    init(_ signalFunction: @escaping () async throws -> (once: Output, continuous: AsyncStream<Output>)) {
+        self.signals = Task {
+            return try await signalFunction()
+        }
+    }
+}
+
+final class CoreManagerCombineProperty<Output: Equatable, Failure: Error>: Publisher {
+
+    enum PublisherType {
+        case once
+        case continuous
+    }
+
+    private let currentValue = CurrentValueSubject<Output?, Failure>(nil)
+
+    private let isFirstSubscriber = PropertyBox<Bool>(false, atomic: true)
+
+    // Swift Concurrency
+
+    private let signals: Task<(once: Output, continuous: AsyncStream<Output>), Error>
+
+    private let type: PublisherType
+
+    private let asyncTasks = AsyncTasks()
+
+    init(_ signals: Task<(once: Output, continuous: AsyncStream<Output>), Error>, type: PublisherType) {
+        self.signals = signals
+        self.type = type
     }
 
     // MARK: Publisher
 
     public func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
-        dataLock.lock()
-        defer { dataLock.unlock() }
 
-        self.observerCount += 1
-        if self.observerCount == 1 {
-            self.willAddFirstObserver?()
-        }
-
-        let subscription = CoreManagerSubscription<S>(subscriber) {
-            self.dataLock.lock()
-            defer { self.dataLock.unlock() }
-
-            self.observerCount -= 1
-            if self.observerCount == 0 {
-                self.willRemoveLastObserver?()
+        let subscription = CoreManagerSubscription<S>(subscriber) { [weak self] in
+            guard let self = self else { return }
+            Task {
+                await self.asyncTasks.cancel()
             }
         }
 
@@ -67,16 +112,49 @@ final class CoreManagerProperty<Output: Equatable>: Publisher {
 
         subscription.cancellable = currentValue
             .compactMap { $0 }
-            .sink(receiveValue: { [weak self] value in
+            .sink(receiveCompletion: { [weak self] terminal in
                 guard self != nil else { return }
+                subscriber.receive(completion: terminal)
+            }, receiveValue: { [weak self] value in
+                guard let self = self else { return }
                 _ = subscriber.receive(value)
+                switch self.type {
+                case .once:
+                    subscriber.receive(completion: .finished)
+                case .continuous:
+                    return
+                }
             })
+
+        if isFirstSubscriber.value == false {
+            isFirstSubscriber.value = true
+
+            switch self.type {
+            case .once:
+                Task {
+                    do {
+                        let result = try await signals.value.once
+                        self.currentValue.send(result)
+                        self.currentValue.send(completion: .finished)
+                    } catch let error as Failure {
+                        self.currentValue.send(completion: .failure(error))
+                    }
+                }.store(in: asyncTasks)
+
+            case .continuous:
+                Task {
+                    for await value in try await signals.value.continuous where Task.isCancelled == false {
+                        self.currentValue.send(value)
+                    }
+                }.store(in: asyncTasks)
+            }
+        }
     }
 }
 
 // MARK: - Subscription
 
-private extension CoreManagerProperty {
+private extension CoreManagerCombineProperty {
 
     final class CoreManagerSubscription<S: Subscriber>: Subscription where S.Input == Output, S.Failure == Failure {
 

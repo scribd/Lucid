@@ -91,7 +91,7 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     public typealias SearchEntitiesAsync = (
         _ query: Query<E>,
         _ context: ReadContext<E>
-    ) async throws -> (once: () async throws -> QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)
+    ) async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)
 
     public typealias SetEntityAsync = (
         _ entity: E,
@@ -213,7 +213,7 @@ public final class CoreManaging<E, AnyEntityType> where E: Entity, AnyEntityType
     }
 
     public func search(withQuery query: Query<E>,
-                       in context: ReadContext<E> = ReadContext<E>()) async throws -> (once: () async throws -> QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) {
+                       in context: ReadContext<E> = ReadContext<E>()) async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) {
         return try await searchEntitiesAsync(query, context)
     }
 
@@ -346,7 +346,7 @@ public extension CoreManaging {
     }
 
     func all(in context: ReadContext<E> = ReadContext<E>()) async throws -> QueryResult<E> {
-        return try await search(withQuery: .all, in: context).once()
+        return try await search(withQuery: .all, in: context).once
     }
 
     /// Retrieve the first entity found from the core manager based on a given query.
@@ -364,7 +364,7 @@ public extension CoreManaging {
 
     func first(for query: Query<E> = .all,
                in context: ReadContext<E> = ReadContext<E>()) async throws -> E? {
-        return try await search(withQuery: query, in: context).once().first
+        return try await search(withQuery: query, in: context).once.first
     }
 
     /// Retrieve entities that match one of the given identifiers.
@@ -388,7 +388,7 @@ public extension CoreManaging {
     }
 
     func get<S>(byIDs identifiers: S,
-                in context: ReadContext<E> = ReadContext<E>()) async throws -> (once: () async throws -> QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)
+                in context: ReadContext<E> = ReadContext<E>()) async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)
         where S: Sequence, S.Element == E.Identifier {
 
             let query = Query<E>.filter(.identifier >> identifiers).order([.identifiers(identifiers.any)])
@@ -420,7 +420,7 @@ public extension CoreManaging where E: RemoteEntity {
     func firstWithMetadata(for query: Query<E>? = .all,
                            in context: ReadContext<E> = ReadContext<E>()) async throws -> QueryResult<E> {
 
-        let result = try await search(withQuery: query ?? .all, in: context).once()
+        let result = try await search(withQuery: query ?? .all, in: context).once
         guard let entity = result.entity, let metadata = result.metadata else { return .empty() }
         return QueryResult<E>(from: entity, metadata: metadata)
     }
@@ -445,20 +445,16 @@ public final class CoreManager<E> where E: Entity {
 
     private let stores: [Storing<E>]
     private let storeStackQueues = StoreStackQueues<E>()
-    private let operationQueue = AsyncOperationQueue()
-    private let asyncTaskQueue = AsyncTaskQueue()
-
     private let localStore: StoreStack<E>
 
-    private let propertiesQueue = DispatchQueue(label: "\(CoreManager.self):properties")
-    private let raiseEventsQueue = DispatchQueue(label: "\(CoreManager.self):raise_events")
-    private var _pendingProperties = [PropertyEntry]()
-    private var _properties = [PropertyEntry]()
+    private let operationTaskQueue = AsyncTaskQueue()
+    private let raiseEventsTaskQueue = AsyncTaskQueue()
+
+    private let propertyCache = PropertyCache()
 
     private let updatesMetadataQueue = DispatchQueue(label: "\(CoreManager.self):updates_metadata")
     private var _updatesMetadata = DualHashDictionary<E.Identifier, UpdateTime>()
 
-    private let cancellable = CancellableBox()
     private let asyncTasks = AsyncTasks()
 
     // MARK: - Inits
@@ -565,7 +561,7 @@ private extension CoreManager {
             }
 
             let initialUserAccess = context.userAccess
-            let result: QueryResult<E> = try await asyncTaskQueue.enqueue() {
+            let result: QueryResult<E> = try await operationTaskQueue.enqueue() {
                 let time = UpdateTime()
                 let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
                 return try await withCheckedThrowingContinuation { continuation in
@@ -644,88 +640,66 @@ private extension CoreManager {
     func search(withQuery query: Query<E>,
                 in context: ReadContext<E>) -> (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnySafePublisher<QueryResult<E>>) {
 
-        let property = preparePropertiesForSearchUpdate(forQuery: query, context: context)
-        let replayOnce = Publishers.ReplayOnce<QueryResult<E>, ManagerError> { promise in
-            Task {
-                do {
-                    let result = try await self.search(withQuery: query, in: context).once()
-                    promise(.success(result))
-                } catch let error as ManagerError {
-                    promise(.failure(error))
-                }
-            }
+        let signals: () async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) =  {
+            return try await self.search(withQuery: query, in: context)
         }
 
+        let asyncToCombine = CoreManagerAsyncToCombineProperty<QueryResult<E>, ManagerError>(signals)
+
         return (
-            once: replayOnce.eraseToAnyPublisher(),
-            continuous: property.eraseToAnyPublisher()
+            once: asyncToCombine.once.eraseToAnyPublisher(),
+            continuous: asyncToCombine.continuous.eraseToAnyPublisher()
         )
     }
 
+    private typealias SearchResult = (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)
+
     func search(withQuery query: Query<E>,
-                in context: ReadContext<E>) async throws -> (once: () async throws -> QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) {
+                in context: ReadContext<E>) async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) {
 
         if let remoteContext = context.remoteContextAfterMakingLocalRequest {
             let localContext = ReadContext<E>(dataSource: .local, contract: context.contract, accessValidator: context.accessValidator)
-            let cacheSearches = try await search(withQuery: query, in: localContext)
 
-            let overwriteSearch: (QueryResult<E>?) async throws -> QueryResult<E> = { localResult in
+            let overwriteSearches: (SearchResult?) async throws -> SearchResult = { localResults in
                 do {
-                    let result = try await self.search(withQuery: query, in: remoteContext).once()
+                    let result = try await self.search(withQuery: query, in: remoteContext)
                     return result
                 } catch let error as ManagerError {
-                    if error.shouldFallBackToLocalStore, let localResult = localResult {
+                    if error.shouldFallBackToLocalStore, let localResults = localResults {
                         // if we can't reach the remote store, return local results
-                        return localResult
+                        return localResults
                     } else {
                         throw error
                     }
                 }
             }
 
-            return (
-                once: {
-                    var remoteSearchTask: Task<QueryResult<E>, any Error>?
-                    if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
-                        remoteSearchTask = try await self.asyncTaskQueue.enqueue {
-                            // Return a Task to make this call asynchronous
-                            Task {
-                                return try await overwriteSearch(nil)
-                            }
-                        }
+            let localResults: SearchResult
+            do {
+                localResults = try await search(withQuery: query, in: localContext)
+            } catch {
+                return try await overwriteSearches(nil)
+            }
+
+            let searchIdentifierCount = query.filter?.extractOrIdentifiers?.map { $0 }.count ?? 0
+            let entityResultCount = localResults.once.count
+
+            let hasAllIdentifiersLocally = searchIdentifierCount > 0 && entityResultCount >= searchIdentifierCount
+            let hasResultsForComplexSearch = searchIdentifierCount == 0 && entityResultCount > 0
+
+            if hasAllIdentifiersLocally || hasResultsForComplexSearch {
+                if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
+                    Task {
+                        _ = try await overwriteSearches(nil)
                     }
-
-                    let localResult: QueryResult<E>
-                    do {
-                        localResult = try await cacheSearches.once()
-                    } catch {
-                        localResult = QueryResult<E>(fromProcessedEntities: [], for: query)
-                    }
-
-                    let searchIdentifierCount = query.filter?.extractOrIdentifiers?.map { $0 }.count ?? 0
-                    let entityResultCount = localResult.count
-
-                    let hasAllIdentifiersLocally = searchIdentifierCount > 0 && entityResultCount == searchIdentifierCount
-                    let hasResultsForComplexSearch = searchIdentifierCount == 0 && entityResultCount > 0
-
-                    if hasAllIdentifiersLocally || hasResultsForComplexSearch {
-                        return localResult
-                    } else {
-                        // If there is a remote task already running, wait for it's completion
-                        if let remoteSearchTask = remoteSearchTask {
-                            do {
-                                return try await remoteSearchTask.value
-                            } catch {
-                                return localResult
-                            }
-                        }
-                        return try await overwriteSearch(localResult)
-                    }
-                },
-                continuous: cacheSearches.continuous)
+                }
+                return localResults
+            } else {
+                return try await overwriteSearches(localResults)
+            }
         }
 
-        let property = preparePropertiesForSearchUpdate(forQuery: query, context: context)
+        let property = await propertyCache.preparePropertiesForSearchUpdate(forQuery: query, context: context)
 
         guard context.requestAllowedForAccessLevel else {
             throw ManagerError.userAccessInvalid
@@ -738,7 +712,7 @@ private extension CoreManager {
 
         let once: () async throws -> QueryResult<E> = {
 
-            let result: QueryResult<E> = try await self.asyncTaskQueue.enqueue {
+            let result: QueryResult<E> = try await self.operationTaskQueue.enqueue {
 
                 return try await withCheckedThrowingContinuation { continuation in
                     
@@ -820,7 +794,9 @@ private extension CoreManager {
                                 }
                             } else {
                                 continuation.resume(returning: remoteResults)
-                                property.update(with: remoteResults)
+                                Task {
+                                    await property.update(with: remoteResults)
+                                }
                             }
 
                         case .failure(let error):
@@ -844,17 +820,16 @@ private extension CoreManager {
         }
 
         let continuous = AsyncStream<QueryResult<E>>() { continuation in
-            property
-                .sink(receiveCompletion: { _ in
-                    continuation.finish()
-                }, receiveValue: { value in
+            Task {
+                for try await value in property.stream where Task.isCancelled == false {
+                    guard let value = value else { continue }
                     continuation.yield(value)
-                })
-                .store(in: cancellable)
+                }
+            }
         }
 
         return (
-            once: once,
+            once: try await once(),
             continuous: continuous
         )
     }
@@ -885,7 +860,7 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        let result = try await asyncTaskQueue.enqueue {
+        let result = try await operationTaskQueue.enqueue {
             let time = UpdateTime(timestamp: context.originTimestamp)
 
             guard self.canUpdate(identifier: entity.identifier, basedOn: time) else {
@@ -975,7 +950,7 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        let result: AnySequence<E> = try await asyncTaskQueue.enqueue {
+        let result: AnySequence<E> = try await operationTaskQueue.enqueue {
             let time = UpdateTime(timestamp: context.originTimestamp)
             var entitiesToUpdate = OrderedDualHashDictionary(
                 self.updateTime(for: entities
@@ -1068,7 +1043,7 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        let result: AnySequence<E.Identifier> = try await asyncTaskQueue.enqueue {
+        let result: AnySequence<E.Identifier> = try await operationTaskQueue.enqueue {
             let time = UpdateTime(timestamp: context.originTimestamp)
             return try await withCheckedThrowingContinuation { continuation in
                 self.localStore.search(withQuery: query, in: ReadContext<E>()) { result in
@@ -1173,7 +1148,7 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        try await asyncTaskQueue.enqueue {
+        try await operationTaskQueue.enqueue {
             try await withCheckedThrowingContinuation { continuation in
                 let time = UpdateTime(timestamp: context.originTimestamp)
                 guard self.canUpdate(identifier: identifier, basedOn: time) else {
@@ -1238,7 +1213,7 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        try await asyncTaskQueue.enqueue {
+        try await operationTaskQueue.enqueue {
             let time = UpdateTime(timestamp: context.originTimestamp)
             let identifiersToRemove = self.filter(identifiers: identifiers, basedOn: time).lazy.compactMap { $0 }
             guard identifiersToRemove.isEmpty == false else {
@@ -1380,91 +1355,66 @@ private extension CoreManager {
 
 private extension CoreManager {
 
-    final class PropertyEntry {
+    final actor PropertyCache {
+
+        private(set) var properties: [PropertyEntry] = []
+
+        private func removeEntry(_ entry: PropertyEntry) async {
+            if let index = properties.firstIndex(where: { $0 === entry }) {
+                properties.remove(at: index)
+            }
+        }
+
+        func preparePropertiesForSearchUpdate(forQuery query: Query<E>, context: ReadContext<E>) async -> CoreManagerProperty<QueryResult<E>> {
+
+            if let property = await properties.first(where: { $0.query == query })?.property {
+                return property
+            }
+
+            let property = await CoreManagerProperty<QueryResult<E>>()
+            let entry = PropertyEntry(query, property: property, contract: context.contract, accessValidator: context.accessValidator)
+            properties.append(entry)
+
+            // As soon as the last observer is removed from `property`, the `entry` gets released.
+            await property.setDidRemoveLastObserver { [weak self] in
+                guard let self = self else { return }
+                await self.removeEntry(entry)
+            }
+
+            return property
+        }
+    }
+
+    final actor PropertyEntry {
 
         let query: Query<E>
         private let contract: EntityContract
         private let accessValidator: UserAccessValidating?
 
-        private let propertyDispatchQueue = DispatchQueue(label: "\(PropertyEntry.self):property")
-        private var _strongProperty: CoreManagerProperty<QueryResult<E>>?
-        private weak var _weakProperty: CoreManagerProperty<QueryResult<E>>?
-
-        var property: CoreManagerProperty<QueryResult<E>>? {
-            return propertyDispatchQueue.sync { _weakProperty ?? _strongProperty }
-        }
+        private(set) var property: CoreManagerProperty<QueryResult<E>>?
 
         init(_ query: Query<E>,
              property: CoreManagerProperty<QueryResult<E>>,
              contract: EntityContract,
              accessValidator: UserAccessValidating?) {
             self.query = query
-            self._weakProperty = property
+            self.property = property
             self.contract = contract
             self.accessValidator = accessValidator
         }
 
-        func strengthen() {
-            let propertyReference = property // makes sure to retain before dispatching.
-            propertyDispatchQueue.async {
-                self._strongProperty = propertyReference
-            }
+        func update(with queryResult: QueryResult<E>) async {
+            await property?.update(with: queryResult.validatingContract(contract, with: query).result.materialized)
         }
 
-        func update(with queryResult: QueryResult<E>) {
-            property?.update(with: queryResult.validatingContract(contract, with: query).result.materialized)
-        }
-
-        func shouldAllowUpdate() -> Bool {
+        func shouldAllowUpdate() async -> Bool {
             let shouldAllowUpdate = accessValidator?.userAccess.allowsStoreRequest ?? true
             guard shouldAllowUpdate else {
-                property?.update(with: .entities([]))
+                await property?.update(with: .entities([]))
                 return false
             }
             return true
         }
-    }
-
-    func preparePropertiesForSearchUpdate(forQuery query: Query<E>, context: ReadContext<E>) -> CoreManagerProperty<QueryResult<E>> {
-
-        let properties = propertiesQueue.sync { _properties + _pendingProperties }
-        if let property = properties.first(where: { $0.query == query })?.property {
-            return property
-        }
-
-        let property = CoreManagerProperty<QueryResult<E>>()
-
-        let entry = PropertyEntry(query, property: property, contract: context.contract, accessValidator: context.accessValidator)
-        propertiesQueue.async(flags: .barrier) {
-            self._pendingProperties.removeAll { $0.property == nil }
-            self._pendingProperties.append(entry)
-        }
-
-        // Because `willAddFirstObserver` is called synchronously when `property` gets observed,
-        // `entry` can't get released before being retained by `strengthen`.
-        // If nothing observes, it gets released immediately.
-        property.willAddFirstObserver = { [weak self] in
-            guard let strongSelf = self else { return }
-            entry.strengthen()
-            strongSelf.propertiesQueue.async(flags: .barrier) {
-                if let index = strongSelf._pendingProperties.firstIndex(where: { $0 === entry }) {
-                    strongSelf._pendingProperties.remove(at: index)
-                }
-                strongSelf._properties.append(entry)
-            }
-        }
-
-        // As soon as the last observer is removed from `property`, the `entry` gets released.
-        property.willRemoveLastObserver = { [weak self] in
-            guard let strongSelf = self else { return }
-            strongSelf.propertiesQueue.async(flags: .barrier) {
-                if let index = strongSelf._properties.firstIndex(where: { $0 === entry }) {
-                    strongSelf._properties.remove(at: index)
-                }
-            }
-        }
-
-        return property
     }
 }
 
@@ -1563,80 +1513,91 @@ private extension CoreManager {
 
         let results = results.materialized
 
-        raiseEventsQueue.async {
+        Task {
+            do {
+                try await self.raiseEventsTaskQueue.enqueue() {
+                    let properties = await self.propertyCache.properties
 
-            let properties = self.propertiesQueue.sync { self._properties + self._pendingProperties }
+                    var _newEntitiesByID: DualHashDictionary<E.Identifier, E>?
+                    let lazyNewEntitiesByID = { () -> DualHashDictionary<E.Identifier, E> in
+                        if let newEntitiesByID = _newEntitiesByID { return newEntitiesByID }
+                        let newEntitiesByID = results.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
+                        _newEntitiesByID = newEntitiesByID
+                        return newEntitiesByID
+                    }
 
-            var _newEntitiesByID: DualHashDictionary<E.Identifier, E>?
-            let lazyNewEntitiesByID = { () -> DualHashDictionary<E.Identifier, E> in
-                if let newEntitiesByID = _newEntitiesByID { return newEntitiesByID }
-                let newEntitiesByID = results.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
-                _newEntitiesByID = newEntitiesByID
-                return newEntitiesByID
-            }
+                    for element in properties where await element.shouldAllowUpdate() {
 
-            for element in properties where element.shouldAllowUpdate() {
+                        if element.query != query, let filter = element.query.filter {
+                            let newEntitiesUnion = results.lazy.filter(with: filter)
+                            let newEntitiesUnionsByID = newEntitiesUnion.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
 
-                if element.query != query, let filter = element.query.filter {
-                    let newEntitiesUnion = results.lazy.filter(with: filter)
-                    let newEntitiesUnionsByID = newEntitiesUnion.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
+                            var newEntities: AnySequence<E>
+                            if let previousPropertyValue = await element.property?.value() {
+                                newEntities = previousPropertyValue.update(byReplacingOrAdding: newEntitiesUnionsByID).any
+                                if element.query.order.contains(where: { $0.isDeterministic }) {
+                                    newEntities = newEntities.order(with: element.query.order).any
+                                }
+                            } else {
+                                newEntities = newEntitiesUnion
+                            }
 
-                    var newEntities: AnySequence<E>
-                    if let previousPropertyValue = element.property?.value {
-                        newEntities = previousPropertyValue.update(byReplacingOrAdding: newEntitiesUnionsByID).any
-                        if element.query.order.contains(where: { $0.isDeterministic }) {
-                            newEntities = newEntities.order(with: element.query.order).any
+                            let newEntityIDsExclusion = DualHashSet(results.lazy.filter(with: !filter).map { $0.identifier })
+                            newEntities = newEntities.lazy.filter { newEntityIDsExclusion.contains($0.identifier) == false }.any
+
+                            let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)
+                            await element.update(with: newValue)
+                        } else if element.query == query || query.filter == .all {
+                            if returnsCompleteResultSet == false,
+                               let propertyValue = await element.property?.value() {
+                                var newEntities = propertyValue.update(byReplacingOrAdding: lazyNewEntitiesByID())
+                                if query.order.contains(where: { $0.isDeterministic }) {
+                                    newEntities = newEntities.order(with: query.order)
+                                }
+                                let newValue = QueryResult(fromProcessedEntities: newEntities, for: query)
+                                await element.update(with: newValue)
+                            } else if element.query.order != query.order, element.query.order.contains(where: { $0.isDeterministic }) {
+                                let orderedEntities = results.order(with: element.query.order)
+                                let orderedResults = QueryResult(fromProcessedEntities: orderedEntities, for: element.query)
+                                await element.update(with: orderedResults)
+                            } else {
+                                await element.update(with: results)
+                            }
+                        } else if let propertyValue = await element.property?.value() {
+                            var newEntities = element.query.filter == .all ?
+                            propertyValue.update(byReplacingOrAdding: lazyNewEntitiesByID()) :
+                            propertyValue.update(byReplacing: lazyNewEntitiesByID())
+
+                            if element.query.order.contains(where: { $0.isDeterministic }) {
+                                newEntities = newEntities.order(with: element.query.order)
+                            }
+                            let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)
+                            await element.update(with: newValue)
                         }
-                    } else {
-                        newEntities = newEntitiesUnion
                     }
-
-                    let newEntityIDsExclusion = DualHashSet(results.lazy.filter(with: !filter).map { $0.identifier })
-                    newEntities = newEntities.lazy.filter { newEntityIDsExclusion.contains($0.identifier) == false }.any
-
-                    let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)
-                    element.update(with: newValue)
-                } else if element.query == query || query.filter == .all {
-                    if returnsCompleteResultSet == false,
-                        let propertyValue = element.property?.value {
-                        var newEntities = propertyValue.update(byReplacingOrAdding: lazyNewEntitiesByID())
-                        if query.order.contains(where: { $0.isDeterministic }) {
-                            newEntities = newEntities.order(with: query.order)
-                        }
-                        let newValue = QueryResult(fromProcessedEntities: newEntities, for: query)
-                        element.update(with: newValue)
-                    } else if element.query.order != query.order, element.query.order.contains(where: { $0.isDeterministic }) {
-                        let orderedEntities = results.order(with: element.query.order)
-                        let orderedResults = QueryResult(fromProcessedEntities: orderedEntities, for: element.query)
-                        element.update(with: orderedResults)
-                    } else {
-                        element.update(with: results)
-                    }
-                } else if let propertyValue = element.property?.value {
-                    var newEntities = element.query.filter == .all ?
-                        propertyValue.update(byReplacingOrAdding: lazyNewEntitiesByID()) :
-                        propertyValue.update(byReplacing: lazyNewEntitiesByID())
-
-                    if element.query.order.contains(where: { $0.isDeterministic }) {
-                        newEntities = newEntities.order(with: element.query.order)
-                    }
-                    let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)
-                    element.update(with: newValue)
                 }
+            } catch {
+                Logger.log(.error, "\(CoreManager.self) failed to raise update events for query \(query).", assert: true)
             }
         }
     }
 
     func raiseDeleteEvents(_ deletedIDs: DualHashSet<E.Identifier>) {
-        raiseEventsQueue.async {
-            let properties = self.propertiesQueue.sync { self._properties + self._pendingProperties }
-            for element in properties {
-                if let propertyValue = element.property?.value {
-                    let newEntities = propertyValue.filter { deletedIDs.contains($0.identifier) == false }
-                    guard propertyValue.count != newEntities.count else { continue }
-                    let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)
-                    element.update(with: newValue)
+        Task {
+            do {
+                try await self.raiseEventsTaskQueue.enqueue() {
+                    let properties = await self.propertyCache.properties
+                    for element in properties {
+                        if let propertyValue = await element.property?.value() {
+                            let newEntities = propertyValue.filter { deletedIDs.contains($0.identifier) == false }
+                            guard propertyValue.count != newEntities.count else { continue }
+                            let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)
+                            await element.update(with: newValue)
+                        }
+                    }
                 }
+            } catch {
+                Logger.log(.error, "\(CoreManager.self) failed to raise delete events for ids \(deletedIDs.array).", assert: true)
             }
         }
     }

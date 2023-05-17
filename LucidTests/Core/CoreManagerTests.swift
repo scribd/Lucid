@@ -3289,7 +3289,7 @@ final class CoreManagerTests: XCTestCase {
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continuous Listener
-                group.addTask {
+                group.addTask(priority: .high) {
                     var continuousCallCount = 0
 
                     let allQueryContext = ReadContext<EntitySpy>(dataSource: .local)
@@ -3311,7 +3311,8 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // First update
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 10000)
                     self.remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
                     self.memoryStoreSpy.searchResultStub = .success(.entities([]))
                     self.memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil), title: "fake_title")])
@@ -3328,8 +3329,8 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Second update
-                group.addTask {
-                    try await Task.sleep(nanoseconds: 10000)
+                group.addTask(priority: .low) {
+                    try await Task.sleep(nanoseconds: 20000)
 
                     self.remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")]))
                     self.memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
@@ -3362,7 +3363,7 @@ final class CoreManagerTests: XCTestCase {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continuous Listener
 
-                group.addTask {
+                group.addTask(priority: .high) {
                     var continuousCallCount = 0
 
                     let allQueryContext = ReadContext<EntitySpy>(dataSource: .local)
@@ -3385,7 +3386,7 @@ final class CoreManagerTests: XCTestCase {
                     }
                 }
                 // First Update
-                group.addTask {
+                group.addTask(priority: .low) {
                     try await Task.sleep(nanoseconds: 100000)
 
                     self.remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
@@ -3404,7 +3405,7 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Second Update
-                group.addTask {
+                group.addTask(priority: .low) {
                     try await Task.sleep(nanoseconds: 200000)
 
                     self.remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")]))
@@ -4584,7 +4585,7 @@ final class CoreManagerTests: XCTestCase {
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 // Continuous
-                group.addTask {
+                group.addTask(priority: .high) {
                     var continuousCallCount = 0
                     let signals = try await self.manager.search(withQuery: .all, in: context)
                     for await result in signals.continuous {
@@ -4594,7 +4595,6 @@ final class CoreManagerTests: XCTestCase {
                         }
                         XCTAssertEqual(result.any, expectedResults[continuousCallCount].any)
                         continuousCallCount += 1
-                        print(continuousCallCount)
                         if continuousCallCount >= count {
                             return
                         }
@@ -4602,7 +4602,9 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // Updates
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try? await Task.sleep(nanoseconds: 100000)
+
                     let entities = (0..<count).map { EntitySpy(idValue: .remote($0, nil), title: "title_\($0)") }
 
                     await entities.asyncForEach { entity in

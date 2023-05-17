@@ -31,7 +31,7 @@ final class AsyncCurrentValueTests: XCTestCase {
 
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     for try await value in currentValue {
                         XCTAssertEqual(value, 5)
                         return
@@ -51,7 +51,7 @@ final class AsyncCurrentValueTests: XCTestCase {
 
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     for try await value in currentValue {
                         if self.continuousCount == 0 {
                             XCTAssertEqual(value, 5)
@@ -65,9 +65,10 @@ final class AsyncCurrentValueTests: XCTestCase {
                     }
                 }
 
-                group.addTask {
-                    currentValue.update(with: 10)
-                    currentValue.update(with: 12)
+                group.addTask(priority: .low) {
+                    try? await Task.sleep(nanoseconds: 100000)
+                    await currentValue.update(with: 10)
+                    await currentValue.update(with: 12)
                 }
 
                 try await group.waitForAll()
@@ -83,11 +84,11 @@ final class AsyncCurrentValueTests: XCTestCase {
 
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
-                    currentValue.update(with: 10)
+                group.addTask(priority: .high) {
+                    await currentValue.update(with: 10)
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
                     for try await value in currentValue {
                         XCTAssertEqual(value, 10)
                         return
@@ -107,11 +108,11 @@ final class AsyncCurrentValueTests: XCTestCase {
 
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
-                    currentValue.update(with: 10)
+                group.addTask(priority: .high) {
+                    await currentValue.update(with: 10)
                 }
 
-                group.addTask {
+                group.addTask(priority: .high) {
                     for try await value in currentValue {
                         if self.continuousCount == 0 {
                             XCTAssertEqual(value, 10)
@@ -125,9 +126,10 @@ final class AsyncCurrentValueTests: XCTestCase {
                     }
                 }
 
-                group.addTask {
-                    currentValue.update(with: 20)
-                    currentValue.update(with: 115)
+                group.addTask(priority: .low) {
+                    try? await Task.sleep(nanoseconds: 100000)
+                    await currentValue.update(with: 20)
+                    await currentValue.update(with: 115)
                 }
 
                 try await group.waitForAll()
@@ -144,7 +146,7 @@ final class AsyncCurrentValueTests: XCTestCase {
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
 
-                group.addTask {
+                group.addTask(priority: .high) {
                     var count = 0
                     for try await value in currentValue {
                         if count == 0 {
@@ -157,7 +159,7 @@ final class AsyncCurrentValueTests: XCTestCase {
                     }
                 }
 
-                group.addTask {
+                group.addTask(priority: .high) {
                     var count = 0
                     for try await value in currentValue {
                         if count == 0 {
@@ -170,7 +172,7 @@ final class AsyncCurrentValueTests: XCTestCase {
                     }
                 }
 
-                group.addTask {
+                group.addTask(priority: .high) {
                     var count = 0
                     for try await value in currentValue {
                         if count == 0 {
@@ -183,8 +185,9 @@ final class AsyncCurrentValueTests: XCTestCase {
                     }
                 }
 
-                group.addTask {
-                    currentValue.update(with: 22)
+                group.addTask(priority: .low) {
+                    try? await Task.sleep(nanoseconds: 100000)
+                    await currentValue.update(with: 22)
                 }
 
                 try await group.waitForAll()

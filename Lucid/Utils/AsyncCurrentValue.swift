@@ -31,7 +31,7 @@ public protocol AsyncCurrentValueDelegate: AnyObject {
 
         currentValue.update(newValue)
 */
-public final class AsyncCurrentValue<Element>: AsyncSequence {
+public final actor AsyncCurrentValue<Element>: AsyncSequence {
 
     private(set) var value: Element
 
@@ -41,25 +41,22 @@ public final class AsyncCurrentValue<Element>: AsyncSequence {
         self.value = initialValue
     }
 
-    public func makeAsyncIterator() -> AsyncCurrentValueIterator<Element> {
-        let iterator = AsyncCurrentValueIterator<Element>(value: value)
+    public nonisolated func makeAsyncIterator() -> AsyncCurrentValueIterator<Element> {
+        let iterator = AsyncCurrentValueIterator<Element>(value: nil)
         Task {
             await repository.addIterator(iterator)
+            await iterator.update(with: value)
         }
         return iterator
     }
 
-    public func update(with updatedValue: Element) {
+    public func update(with updatedValue: Element) async {
         value = updatedValue
-        Task {
-            await repository.update(with: updatedValue)
-        }
+        await repository.update(with: updatedValue)
     }
 
-    public func setDelegate(_ delegate: AsyncCurrentValueDelegate) {
-        Task {
-            await repository.setDelegate(delegate)
-        }
+    public func setDelegate(_ delegate: AsyncCurrentValueDelegate) async {
+        await repository.setDelegate(delegate)
     }
 }
 
@@ -69,7 +66,7 @@ public final actor AsyncCurrentValueIterator<Element>: AsyncIteratorProtocol {
 
     private var valueContinuation: CheckedContinuation<Element, Never>?
 
-    init(value: Element) {
+    init(value: Element?) {
         self.value = value
     }
 

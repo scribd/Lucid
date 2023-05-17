@@ -13,12 +13,8 @@ final actor CoreManagerProperty<Output: Equatable> {
 
     let stream = AsyncCurrentValue<Output?>(nil)
 
-    var value: Output? {
-        return stream.value
-    }
-
-    init() {
-        stream.setDelegate(self)
+    init() async {
+        await stream.setDelegate(self)
     }
 
     // CoreManager
@@ -30,8 +26,12 @@ final actor CoreManagerProperty<Output: Equatable> {
     }
 
     func update(with value: Output) async {
-        guard self.stream.value != value else { return }
-        stream.update(with: value)
+        guard await self.stream.value != value else { return }
+        await stream.update(with: value)
+    }
+
+    func value() async -> Output? {
+        return await stream.value
     }
 }
 

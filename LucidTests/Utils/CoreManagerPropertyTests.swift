@@ -15,15 +15,15 @@ final class CoreManagerPropertyTests: XCTestCase {
 
     func test_that_observer_gets_initial_value() async {
 
-        let property = CoreManagerProperty<Int>()
+        let property = await CoreManagerProperty<Int>()
 
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     await property.update(with: 5)
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
                     for try await value in await property.stream {
                         XCTAssertEqual(value, 5)
                         return
@@ -39,11 +39,11 @@ final class CoreManagerPropertyTests: XCTestCase {
 
     func test_that_observer_gets_update() async {
 
-        let property = CoreManagerProperty<Int>()
+        let property = await CoreManagerProperty<Int>()
 
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     var count = 0
                     for try await value in await property.stream {
                         if count == 0 {
@@ -56,7 +56,8 @@ final class CoreManagerPropertyTests: XCTestCase {
                     }
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try? await Task.sleep(nanoseconds: 100000)
                     await property.update(with: 5)
                 }
 
@@ -69,11 +70,11 @@ final class CoreManagerPropertyTests: XCTestCase {
 
     func test_that_observer_does_not_get_update_for_duplicate_values() async {
 
-        let property = CoreManagerProperty<Int>()
+        let property = await CoreManagerProperty<Int>()
 
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask {
+                group.addTask(priority: .high) {
                     var count = 0
                     for try await value in await property.stream {
                         if count == 0 {
@@ -88,7 +89,8 @@ final class CoreManagerPropertyTests: XCTestCase {
                     }
                 }
 
-                group.addTask {
+                group.addTask(priority: .low) {
+                    try? await Task.sleep(nanoseconds: 100000)
                     await property.update(with: 5)
                     await property.update(with: 5)
                     await property.update(with: 17)
@@ -101,20 +103,20 @@ final class CoreManagerPropertyTests: XCTestCase {
         }
     }
 
-    func test_that_delegate_gets_called_when_observers_are_released() {
+    func test_that_delegate_gets_called_when_observers_are_released() async {
 
-        let property = CoreManagerProperty<Int>()
+        let property = await CoreManagerProperty<Int>()
         let delegateExpectation = self.expectation(description: "delegate_called_expectation")
         let asyncTasks = AsyncTasks()
 
 
-        Task {
+        Task(priority: .high) {
             await property.setDidRemoveLastObserver {
                 delegateExpectation.fulfill()
             }
         }
 
-        Task {
+        Task(priority: .high) {
             var count = 0
             for try await value in await property.stream {
                 if count == 0 {
@@ -129,7 +131,7 @@ final class CoreManagerPropertyTests: XCTestCase {
             }
         }.store(in: asyncTasks)
 
-        Task {
+        Task(priority: .high) {
             var count = 0
             for try await value in await property.stream {
                 if count == 0 {
@@ -144,12 +146,12 @@ final class CoreManagerPropertyTests: XCTestCase {
             }
         }.store(in: asyncTasks)
 
-        Task {
-            try? await Task.sleep(nanoseconds: 1000)
+        Task(priority: .low) {
+            try? await Task.sleep(nanoseconds: 100000)
             await property.update(with: 5)
-            try? await Task.sleep(nanoseconds: 1000)
+            try? await Task.sleep(nanoseconds: 100000)
             await property.update(with: 17)
-            try? await Task.sleep(nanoseconds: 1000)
+            try? await Task.sleep(nanoseconds: 100000)
             await property.update(with: 20)
         }
 

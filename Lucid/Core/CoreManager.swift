@@ -1371,7 +1371,7 @@ private extension CoreManager {
                 return property
             }
 
-            let property = CoreManagerProperty<QueryResult<E>>()
+            let property = await CoreManagerProperty<QueryResult<E>>()
             let entry = PropertyEntry(query, property: property, contract: context.contract, accessValidator: context.accessValidator)
             properties.append(entry)
 
@@ -1533,7 +1533,7 @@ private extension CoreManager {
                             let newEntitiesUnionsByID = newEntitiesUnion.reduce(into: DualHashDictionary<E.Identifier, E>()) { $0[$1.identifier] = $1 }
 
                             var newEntities: AnySequence<E>
-                            if let previousPropertyValue = await element.property?.value {
+                            if let previousPropertyValue = await element.property?.value() {
                                 newEntities = previousPropertyValue.update(byReplacingOrAdding: newEntitiesUnionsByID).any
                                 if element.query.order.contains(where: { $0.isDeterministic }) {
                                     newEntities = newEntities.order(with: element.query.order).any
@@ -1549,7 +1549,7 @@ private extension CoreManager {
                             await element.update(with: newValue)
                         } else if element.query == query || query.filter == .all {
                             if returnsCompleteResultSet == false,
-                               let propertyValue = await element.property?.value {
+                               let propertyValue = await element.property?.value() {
                                 var newEntities = propertyValue.update(byReplacingOrAdding: lazyNewEntitiesByID())
                                 if query.order.contains(where: { $0.isDeterministic }) {
                                     newEntities = newEntities.order(with: query.order)
@@ -1563,7 +1563,7 @@ private extension CoreManager {
                             } else {
                                 await element.update(with: results)
                             }
-                        } else if let propertyValue = await element.property?.value {
+                        } else if let propertyValue = await element.property?.value() {
                             var newEntities = element.query.filter == .all ?
                             propertyValue.update(byReplacingOrAdding: lazyNewEntitiesByID()) :
                             propertyValue.update(byReplacing: lazyNewEntitiesByID())
@@ -1588,7 +1588,7 @@ private extension CoreManager {
                 try await self.raiseEventsTaskQueue.enqueue() {
                     let properties = await self.propertyCache.properties
                     for element in properties {
-                        if let propertyValue = await element.property?.value {
+                        if let propertyValue = await element.property?.value() {
                             let newEntities = propertyValue.filter { deletedIDs.contains($0.identifier) == false }
                             guard propertyValue.count != newEntities.count else { continue }
                             let newValue = QueryResult(fromProcessedEntities: newEntities, for: element.query)

@@ -72,15 +72,15 @@ public final class CoreManagerSpy<E: Entity> {
     )]?
 
     public var searchAsyncStub: (
-        once: () async throws -> QueryResult<E>,
+        once: QueryResult<E>,
         continuous: AsyncStream<QueryResult<E>>
     ) = (
-        once: { throw ManagerError.notSupported },
+        once: QueryResult<E>.entities([]),
         continuous: AsyncStream<QueryResult<E>>(unfolding: { return nil })
     )
 
     public var searchAsyncStubs: [(
-        once: () async throws -> QueryResult<E>,
+        once: QueryResult<E>,
         continuous: AsyncStream<QueryResult<E>>
     )]?
 
@@ -138,7 +138,7 @@ public final class CoreManagerSpy<E: Entity> {
     }
 
     public func search(withQuery query: Query<E>,
-                       in context: ReadContext<E>) async throws -> (once: () async throws -> QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) {
+                       in context: ReadContext<E>) async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) {
         searchAsyncRecords.append(SearchRecord(query: query, context: context))
         return searchAsyncStubs?.getOrFail(at: searchAsyncRecords.count - 1) ?? searchAsyncStub
     }

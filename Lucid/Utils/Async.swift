@@ -54,6 +54,53 @@ public extension Task where Success == Void, Failure == any Error {
     }
 }
 
+// MARK: - Type Erasure
+
+struct AnyAsyncSequence<Element>: AsyncSequence {
+    typealias AsyncIterator = AnyAsyncIterator<Element>
+    typealias Element = Element
+
+    let _makeAsyncIterator: () -> AnyAsyncIterator<Element>
+
+    init<S: AsyncSequence>(seq: S) where S.Element == Element {
+        _makeAsyncIterator = {
+            AnyAsyncIterator(iterator: seq.makeAsyncIterator())
+        }
+    }
+
+    func makeAsyncIterator() -> AnyAsyncIterator<Element> {
+        return _makeAsyncIterator()
+    }
+}
+
+extension AnyAsyncSequence {
+
+    struct AnyAsyncIterator<Element>: AsyncIteratorProtocol {
+        typealias Element = Element
+
+        private let _next: () async throws -> Element?
+
+        init<I: AsyncIteratorProtocol>(iterator: I) where I.Element == Element {
+            var iterator = iterator
+            self._next = {
+                try await iterator.next()
+            }
+        }
+
+        mutating func next() async throws -> Element? {
+            return try await _next()
+        }
+    }
+}
+
+extension AsyncSequence {
+
+    func eraseToAnyAsyncSequence() -> AnyAsyncSequence<Element> {
+        AnyAsyncSequence(seq: self)
+    }
+
+}
+
 // MARK: - AsyncTasksQueue
 
 public actor AsyncTaskQueue {
@@ -175,6 +222,58 @@ public extension AsyncSequence {
 
 // MARK: - Combine Bridge
 
+/// `AsyncSequence` implementation that bridges an Upstream Publisher into an async sequence
+/// The outcome is an `AsyncThrowingStream` instance that manages the Publisher values and errors
+///
+/// This is useful if we want to use Swift Concurrency when the inputs are coming as Combine publishers
+public class AsyncStreamPublisherBridge<Upstream: Publisher>: AsyncSequence {
+    public typealias Element = Upstream.Output
+    public typealias AsyncIterator = AsyncStreamPublisherBridge<Upstream>
+
+    private let stream: AsyncThrowingStream<Upstream.Output, Error>
+    private lazy var iterator = stream.makeAsyncIterator()
+
+    fileprivate let originalUpstream: Upstream
+    private var cancellable: AnyCancellable?
+
+    public init(_ upstream: Upstream) {
+        self.originalUpstream = upstream
+
+        var subscription: AnyCancellable?
+
+        stream = AsyncThrowingStream<Upstream.Output, Error>(Upstream.Output.self) { continuation in
+            subscription = upstream.handleEvents(receiveCancel: {
+                continuation.finish(throwing: nil)
+            })
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    continuation.finish(throwing: error)
+                case .finished:
+                    continuation.finish(throwing: nil)
+                }
+            }, receiveValue: { value in
+                continuation.yield(value)
+            })
+        }
+
+        cancellable = subscription
+    }
+
+    deinit {
+        cancel()
+    }
+
+    public func makeAsyncIterator() -> Self {
+        return self
+    }
+
+    public func cancel() {
+        cancellable?.cancel()
+        cancellable = nil
+    }
+}
+
 /// `AsyncSequence` implementation that bridges an Upstream Publisher with Failure type = `Never` into an async sequence
 /// The outcome sequence is an `AsyncStream` type that won't throw any error in the way
 ///
@@ -220,6 +319,12 @@ public class AsyncSafeStreamPublisherBridge<Upstream: Publisher>: AsyncSequence 
 
 // - MARK: - Conformance to `AsyncIteratorProtocol`
 
+extension AsyncStreamPublisherBridge: AsyncIteratorProtocol {
+    public func next() async throws -> Upstream.Output? {
+        return try await iterator.next()
+    }
+}
+
 extension AsyncSafeStreamPublisherBridge: AsyncIteratorProtocol {
     public func next() async -> Upstream.Output? {
         return await iterator.next()
@@ -227,6 +332,12 @@ extension AsyncSafeStreamPublisherBridge: AsyncIteratorProtocol {
 }
 
 // MARK: - Publisher Extensions
+
+public extension Publisher {
+    func asyncStream() -> AsyncStreamPublisherBridge<Self> {
+        return AsyncStreamPublisherBridge(self)
+    }
+}
 
 public extension Publisher where Failure == Never {
     func asyncStream() -> AsyncSafeStreamPublisherBridge<Self> {

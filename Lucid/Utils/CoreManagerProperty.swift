@@ -56,17 +56,20 @@ final class CoreManagerAsyncToCombineProperty<Output: Equatable, Failure: Error>
 
     // Swift Concurrency
 
+    private let operationQueue: AsyncOperationQueue
+
     private let signals: Task<(once: Output, continuous: AsyncStream<Output>), Error>
 
     var once: CoreManagerCombineProperty<Output, Failure> {
-        return CoreManagerCombineProperty<Output, Failure>(signals, type: .once)
+        return CoreManagerCombineProperty<Output, Failure>(operationQueue, signals, type: .once)
     }
 
     var continuous: AnySafePublisher<Output> {
-        return CoreManagerCombineProperty<Output, Failure>(signals, type: .continuous).suppressError()
+        return CoreManagerCombineProperty<Output, Failure>(operationQueue, signals, type: .continuous).suppressError()
     }
 
-    init(_ signalFunction: @escaping () async throws -> (once: Output, continuous: AsyncStream<Output>)) {
+    init(_ operationQueue: AsyncOperationQueue, _ signalFunction: @escaping () async throws -> (once: Output, continuous: AsyncStream<Output>)) {
+        self.operationQueue = operationQueue
         self.signals = Task {
             return try await signalFunction()
         }
@@ -86,13 +89,16 @@ final class CoreManagerCombineProperty<Output: Equatable, Failure: Error>: Publi
 
     // Swift Concurrency
 
+    private let operationQueue: AsyncOperationQueue
+
     private let signals: Task<(once: Output, continuous: AsyncStream<Output>), Error>
 
     private let type: PublisherType
 
     private let asyncTasks = AsyncTasks()
 
-    init(_ signals: Task<(once: Output, continuous: AsyncStream<Output>), Error>, type: PublisherType) {
+    init(_ operationQueue: AsyncOperationQueue, _ signals: Task<(once: Output, continuous: AsyncStream<Output>), Error>, type: PublisherType) {
+        self.operationQueue = operationQueue
         self.signals = signals
         self.type = type
     }
@@ -129,24 +135,33 @@ final class CoreManagerCombineProperty<Output: Equatable, Failure: Error>: Publi
         if isFirstSubscriber.value == false {
             isFirstSubscriber.value = true
 
-            switch self.type {
-            case .once:
-                Task {
-                    do {
-                        let result = try await signals.value.once
-                        self.currentValue.send(result)
-                        self.currentValue.send(completion: .finished)
-                    } catch let error as Failure {
-                        self.currentValue.send(completion: .failure(error))
-                    }
-                }.store(in: asyncTasks)
+            operationQueue.run(title: "\(CoreManagerCombineProperty.self):perform_task") { completion in
+                guard subscription.didCancel != nil else {
+                    completion()
+                    return
+                }
 
-            case .continuous:
-                Task {
-                    for await value in try await signals.value.continuous where Task.isCancelled == false {
-                        self.currentValue.send(value)
-                    }
-                }.store(in: asyncTasks)
+                switch self.type {
+                case .once:
+                    Task {
+                        do {
+                            completion()
+                            let result = try await self.signals.value.once
+                            self.currentValue.send(result)
+                            self.currentValue.send(completion: .finished)
+                        } catch let error as Failure {
+                            self.currentValue.send(completion: .failure(error))
+                        }
+                    }.store(in: self.asyncTasks)
+
+                case .continuous:
+                    Task {
+                        completion()
+                        for await value in try await self.signals.value.continuous where Task.isCancelled == false {
+                            self.currentValue.send(value)
+                        }
+                    }.store(in: self.asyncTasks)
+                }
             }
         }
     }
@@ -162,7 +177,7 @@ private extension CoreManagerCombineProperty {
 
         fileprivate var cancellable: AnyCancellable?
 
-        private var didCancel: (() -> Void)?
+        private(set) var didCancel: (() -> Void)?
 
         init(_ subscriber: S, didCancel: @escaping () -> Void) {
             self.subscriber = subscriber

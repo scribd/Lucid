@@ -452,6 +452,7 @@ public final class CoreManager<E> where E: Entity {
 
     private let propertyCache = PropertyCache()
 
+    private let combineOperationQueue = AsyncOperationQueue()
     private let updatesMetadataQueue = DispatchQueue(label: "\(CoreManager.self):updates_metadata")
     private var _updatesMetadata = DualHashDictionary<E.Identifier, UpdateTime>()
 
@@ -499,9 +500,10 @@ private extension CoreManager {
     func get(withQuery query: Query<E>,
              in context: ReadContext<E>) -> AnyPublisher<QueryResult<E>, ManagerError> {
 
-        let replayOnce = Publishers.ReplayOnce<QueryResult<E>, ManagerError> { promise in
+        return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
             Task {
                 do {
+                    completion()
                     let result = try await self.get(withQuery: query, in: context)
                     promise(.success(result))
                 } catch let error as ManagerError {
@@ -509,8 +511,7 @@ private extension CoreManager {
                 }
             }
         }
-
-        return replayOnce.eraseToAnyPublisher()
+        .eraseToAnyPublisher()
     }
 
     func get(withQuery query: Query<E>,
@@ -644,7 +645,7 @@ private extension CoreManager {
             return try await self.search(withQuery: query, in: context)
         }
 
-        let asyncToCombine = CoreManagerAsyncToCombineProperty<QueryResult<E>, ManagerError>(signals)
+        let asyncToCombine = CoreManagerAsyncToCombineProperty<QueryResult<E>, ManagerError>(combineOperationQueue, signals)
 
         return (
             once: asyncToCombine.once.eraseToAnyPublisher(),
@@ -837,10 +838,10 @@ private extension CoreManager {
     func set(_ entity: E,
              in context: WriteContext<E>) -> AnyPublisher<E, ManagerError> {
 
-        return Publishers.ReplayOnce { promise in
-
+        return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
             Task {
                 do {
+                    completion()
                     let result = try await self.set(entity, in: context)
                     promise(.success(result))
                 } catch let error as ManagerError {
@@ -926,10 +927,10 @@ private extension CoreManager {
 
         let entities = Array(entities)
 
-        return Publishers.ReplayOnce { promise in
-
+        return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
             Task {
                 do {
+                    completion()
                     let result = try await self.set(entities, in: context)
                     promise(.success(result))
                 } catch let error as ManagerError {
@@ -1021,10 +1022,10 @@ private extension CoreManager {
     func removeAll(withQuery query: Query<E>,
                    in context: WriteContext<E>) -> AnyPublisher<AnySequence<E.Identifier>, ManagerError> {
 
-        return Publishers.ReplayOnce { promise in
-
+        return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
             Task {
                 do {
+                    completion()
                     let result = try await self.removeAll(withQuery: query, in: context)
                     promise(.success(result))
                 } catch let error as ManagerError {
@@ -1125,10 +1126,10 @@ private extension CoreManager {
     func remove(atID identifier: E.Identifier,
                 in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> {
 
-        return Publishers.ReplayOnce { promise in
-
+        return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
             Task {
                 do {
+                    completion()
                     try await self.remove(atID: identifier, in: context)
                     promise(.success(()))
                 } catch let error as ManagerError {
@@ -1190,10 +1191,10 @@ private extension CoreManager {
     func remove<S>(_ identifiers: S,
                    in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> where S: Sequence, S.Element == E.Identifier {
 
-        return Publishers.ReplayOnce { promise in
-
+        return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
             Task {
                 do {
+                    completion()
                     try await self.remove(identifiers, in: context)
                     promise(.success(()))
                 } catch let error as ManagerError {

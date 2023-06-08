@@ -3311,8 +3311,8 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // First update
-                group.addTask(priority: .low) {
-                    try await Task.sleep(nanoseconds: 100000)
+                group.addTask(priority: .medium) {
+                    try await Task.sleep(nanoseconds: 10000000)
 
                     self.remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
                     self.memoryStoreSpy.searchResultStub = .success(.entities([]))
@@ -3331,7 +3331,7 @@ final class CoreManagerTests: XCTestCase {
 
                 // Second update
                 group.addTask(priority: .low) {
-                    try await Task.sleep(nanoseconds: 200000)
+                    try await Task.sleep(nanoseconds: 20000000)
 
                     self.remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")]))
                     self.memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
@@ -3463,8 +3463,8 @@ final class CoreManagerTests: XCTestCase {
                 }
 
                 // First Update
-                group.addTask(priority: .low) {
-                    try await Task.sleep(nanoseconds: 100000)
+                group.addTask(priority: .medium) {
+                    try await Task.sleep(nanoseconds: 10000000)
 
                     self.remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
                     self.memoryStoreSpy.searchResultStub = .success(.entities([]))
@@ -3487,7 +3487,7 @@ final class CoreManagerTests: XCTestCase {
 
                 // Second Update
                 group.addTask(priority: .low) {
-                    try await Task.sleep(nanoseconds: 200000)
+                    try await Task.sleep(nanoseconds: 20000000)
 
                     self.remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")]))
                     self.memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))

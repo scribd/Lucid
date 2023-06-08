@@ -428,11 +428,11 @@ final class RelationshipControllerTests: XCTestCase {
             let graph = try await query.includingAllRelationships(recursive: .none).perform(GraphStub.self).once
 
             XCTAssertEqual(graph.entitySpies.count, 1)
-            XCTAssertEqual(graph.entityRelationshipSpies.count, 3)
+            XCTAssertEqual(graph.entityRelationshipSpies.count, 2)
 
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.count, 2)
+            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.count, 1)
             XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.first?.identifiers.count, 2)
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.last?.identifiers.count, 1)
+            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.last?.identifiers.count, 2)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -525,11 +525,11 @@ final class RelationshipControllerTests: XCTestCase {
             let graph = try await query.includingAllRelationships(recursive: .none).perform(GraphStub.self).once
 
             XCTAssertEqual(graph.entitySpies.count, 2)
-            XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
+            XCTAssertEqual(graph.entityRelationshipSpies.count, 3)
 
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.count, 2)
+            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.count, 1)
             XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.first?.identifiers.count, 4)
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.last?.identifiers.count, 2)
+            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.last?.identifiers.count, 4)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -1029,18 +1029,18 @@ final class RelationshipControllerTests: XCTestCase {
                 .once
 
             XCTAssertEqual(graph.entitySpies.count, 2)
-            XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
+            XCTAssertEqual(graph.entityRelationshipSpies.count, 3)
 
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.count, 2)
+            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.count, 1)
             XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.first?.identifiers.count, 4)
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.last?.identifiers.count, 2)
+            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.last?.identifiers.count, 4)
 
             let givenIDs: [EntityRelationshipSpyIdentifier] = self.coreManager
                 .getByIDsAsyncInvocations
                 .flatMap { $0.identifiers }
                 .compactMap { $0.toRelationshipID() }
 
-            XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [2, 3, 4, 5, 1, 1])
+            XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [2, 3, 4, 5])
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -1304,7 +1304,7 @@ final class RelationshipControllerTests: XCTestCase {
             XCTAssertEqual(graph.entitySpies.count, 1)
             XCTAssertEqual(graph.entityRelationshipSpies.count, 2)
 
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.count, 4)
+            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.count, 2)
             XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.first?.identifiers.count, 1)
             XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.last?.identifiers.count, 1)
 
@@ -1313,7 +1313,7 @@ final class RelationshipControllerTests: XCTestCase {
                 .flatMap { $0.identifiers }
                 .compactMap { $0.toRelationshipID() }
 
-            XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [2, 1, 2, 2])
+            XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [2, 2])
         } catch {
             XCTFail("Unexpected error: \(error)")
         }

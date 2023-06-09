@@ -264,8 +264,9 @@ struct MetaCoreManagerContainer {
                     .anyPublisher(of: .anySequence(element: .appAnyEntity), error: .managerError)
                 )
                 .adding(member: Switch(reference: .named("entityType"))
-                    .adding(cases: descriptions.entities.map { entity in
-                        SwitchCase()
+                    .adding(cases: descriptions.entities.compactMap { entity in
+                        guard entity.identifier.identifierType.isVoid == false else { return nil }
+                        return SwitchCase()
                             .adding(value: entity.identifierTypeID().reference + .named("entityTypeUID"))
                             .adding(member: Return(value: entity.coreManagerVariable.reference + .named("get") | .call(Tuple()
                                 .adding(parameter: TupleParameter(name: "byIDs", value: .named("identifiers") + .named("lazy") + .named(.compactMap) | .block(FunctionBody()
@@ -286,6 +287,50 @@ struct MetaCoreManagerContainer {
                             Return(value: TypeIdentifier(name: "Fail").reference | .call(Tuple()
                                 .adding(parameter: TupleParameter(name: "error", value: +.named("notSupported")))
                             ) + .named("eraseToAnyPublisher") | .call())
+                        )
+                    )
+                )
+            )
+            .adding(member: EmptyLine())
+            .adding(member: Function(kind: .named("get"))
+                .with(accessLevel: .public)
+                .with(async: true)
+                .with(throws: true)
+                .adding(parameter: FunctionParameter(
+                    alias: "byIDs",
+                    name: "identifiers",
+                    type: .anySequence(element: .anyRelationshipIdentifierConvertible))
+                )
+                .adding(parameter: FunctionParameter(name: "entityType", type: .string))
+                .adding(parameter: FunctionParameter(
+                    alias: "in",
+                    name: "context",
+                    type: TypeIdentifier(name: "_ReadContext").adding(genericParameter: .endpointResultPayload)
+                ))
+                .with(resultType:
+                    .anySequence(element: .appAnyEntity)
+                )
+                .adding(member: Switch(reference: .named("entityType"))
+                    .adding(cases: descriptions.entities.compactMap { entity in
+                        guard entity.identifier.identifierType.isVoid == false else { return nil }
+                        return SwitchCase()
+                            .adding(value: entity.identifierTypeID().reference + .named("entityTypeUID"))
+                            .adding(member: Return(value: .try | .await | entity.coreManagerVariable.reference + .named("get") | .call(Tuple()
+                                .adding(parameter: TupleParameter(name: "byIDs", value: .named("identifiers") + .named("lazy") + .named(.compactMap) | .block(FunctionBody()
+                                        .adding(member: .named("$0") + .named("toRelationshipID") | .call())
+                                    ) + .named("uniquified") | .call())
+                                )
+                                .adding(parameter: TupleParameter(name: "in", value: Reference.named("context")))
+                            ) + .named("once") + .named("lazy") + .named(.map) | .block(FunctionBody()
+                                    .adding(member: +.named(entity.name.camelCased().variableCased()) | .call(Tuple()
+                                        .adding(parameter: TupleParameter(value: Reference.named("$0")))
+                                    ))
+                                ) + .named("any"))
+                            )
+                    })
+                    .adding(case: SwitchCase(name: .default)
+                        .adding(member:
+                            Reference.throw | .type(.managerError) + .named("notSupported")
                         )
                     )
                 )

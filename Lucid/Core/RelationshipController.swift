@@ -397,68 +397,74 @@ public final class RelationshipController<RelationshipManager, Graph>
         let graphAtCurrentDepth = graph.value
 
         let sortedKeys = relationshipIdentifiersByIndex.keys.sorted { "\($0)" < "\($1)" }
-        for indexName in sortedKeys {
-            guard let _identifiers = relationshipIdentifiersByIndex[indexName] else {
-                continue
-            }
-            let identifiers = await graph.filterOutContainedIDs(of: _identifiers)
 
-            let pathAtCurrentDepth = path + [indexName]
-            let depth = pathAtCurrentDepth.count
+        await withThrowingTaskGroup(of: Void.self) { group in
 
-            let automaticallyFetchRelationships = { (
-                identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
-                recursiveMethod: RelationshipFetcher.RecursiveMethod,
-                context: ReadContext
-            ) async throws in
-                // Identifiers should all have the same type at this point
-                guard let entityTypeUID = identifiers.first?.entityTypeUID else {
-                    return
+            for indexName in sortedKeys {
+                guard let _identifiers = relationshipIdentifiersByIndex[indexName] else {
+                    continue
                 }
+                let identifiers = await graph.filterOutContainedIDs(of: _identifiers)
 
-                let updatedContext = context.updateForRelationshipController(at: pathAtCurrentDepth, graph: graphAtCurrentDepth, deltaStrategy: .retainExtraLocalData)
+                let pathAtCurrentDepth = path + [indexName]
+                let depth = pathAtCurrentDepth.count
 
-                let entities = try await self.relationshipManager?.get(byIDs: identifiers, entityType: entityTypeUID, in: updatedContext) ?? [].any
-
-                let recurse: () async throws -> Void = {
-                    let controller = RelationshipController(
-                        rootEntities: entities,
-                        relationshipContext: context,
-                        relationshipManager: self.relationshipManager,
-                        relationshipFetcher: self.relationshipFetcher
-                    )
-
-                    try await controller.fill(graph, nestedContext: updatedContext, path: pathAtCurrentDepth)
-                }
-
-                let globalDepthLimit = LucidConfiguration.relationshipControllerMaxRecursionDepth
-
-                switch recursiveMethod {
-                case .depthLimit(let limit) where depth < limit && depth < globalDepthLimit:
-                    try await recurse()
-
-                case .full where depth < globalDepthLimit:
-                    try await recurse()
-
-                case .none,
-                        .depthLimit,
-                        .full:
-                    if depth >= globalDepthLimit {
-                        Logger.log(.error, "\(RelationshipController.self): Recursion depth limit (\(globalDepthLimit)) has been reached.", assert: true)
+                let automaticallyFetchRelationships = { (
+                    identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
+                    recursiveMethod: RelationshipFetcher.RecursiveMethod,
+                    context: ReadContext
+                ) async throws in
+                    // Identifiers should all have the same type at this point
+                    guard let entityTypeUID = identifiers.first?.entityTypeUID else {
+                        return
                     }
-                    await graph.insert(entities)
-                }
-            }
 
-            switch relationshipFetcher.fetch(pathAtCurrentDepth, identifiers.any, graph) {
-            case .custom(let customFetch):
-                try await customFetch()
-            case .all(let recursive, let context):
-                try await automaticallyFetchRelationships(identifiers.any, recursive, context ?? nestedContext)
-            case .filtered(let identifiers, let recursive, let context):
-                try await automaticallyFetchRelationships(identifiers.any, recursive, context ?? nestedContext)
-            case .none:
-                continue
+                    let updatedContext = context.updateForRelationshipController(at: pathAtCurrentDepth, graph: graphAtCurrentDepth, deltaStrategy: .retainExtraLocalData)
+
+                    let entities = try await self.relationshipManager?.get(byIDs: identifiers, entityType: entityTypeUID, in: updatedContext) ?? [].any
+
+                    let recurse: () async throws -> Void = {
+                        let controller = RelationshipController(
+                            rootEntities: entities,
+                            relationshipContext: context,
+                            relationshipManager: self.relationshipManager,
+                            relationshipFetcher: self.relationshipFetcher
+                        )
+
+                        try await controller.fill(graph, nestedContext: updatedContext, path: pathAtCurrentDepth)
+                    }
+
+                    let globalDepthLimit = LucidConfiguration.relationshipControllerMaxRecursionDepth
+
+                    switch recursiveMethod {
+                    case .depthLimit(let limit) where depth < limit && depth < globalDepthLimit:
+                        try await recurse()
+
+                    case .full where depth < globalDepthLimit:
+                        try await recurse()
+
+                    case .none,
+                            .depthLimit,
+                            .full:
+                        if depth >= globalDepthLimit {
+                            Logger.log(.error, "\(RelationshipController.self): Recursion depth limit (\(globalDepthLimit)) has been reached.", assert: true)
+                        }
+                        await graph.insert(entities)
+                    }
+                }
+
+                group.addTask {
+                    switch self.relationshipFetcher.fetch(pathAtCurrentDepth, identifiers.any, graph) {
+                    case .custom(let customFetch):
+                        try await customFetch()
+                    case .all(let recursive, let context):
+                        try await automaticallyFetchRelationships(identifiers.any, recursive, context ?? nestedContext)
+                    case .filtered(let identifiers, let recursive, let context):
+                        try await automaticallyFetchRelationships(identifiers.any, recursive, context ?? nestedContext)
+                    case .none:
+                        return
+                    }
+                }
             }
         }
     }

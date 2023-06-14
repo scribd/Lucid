@@ -220,8 +220,19 @@ public extension EntityIdentifierType {
         case .scalarType:
             return true
         case .relationships,
+                .property,
+                .void:
+            return false
+        }
+    }
+
+    var isVoid: Bool {
+        switch self {
+        case .void:
+            return true
+        case .relationships,
              .property,
-             .void:
+             .scalarType:
             return false
         }
     }

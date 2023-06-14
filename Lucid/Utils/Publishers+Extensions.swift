@@ -175,3 +175,93 @@ public extension Publishers {
         }
     }
 }
+
+// MARK: - QueuedReplayOnce
+
+public extension Publishers {
+
+    final class QueuedReplayOnce<Output, Failure: Error>: Publisher {
+
+        private var replayOnce: ReplayOnce<Output, Failure>?
+
+        private let operationQueue: AsyncOperationQueue
+
+        public init(_ operationQueue: AsyncOperationQueue,
+                    _ handler: @escaping ((@escaping ReplayPromise<Output, Failure>, @escaping () -> Void) -> Void)) {
+
+            self.operationQueue = operationQueue
+
+            operationQueue.run(title: "\(QueuedReplayOnce.self):create_replay_once") { completion in
+                self.replayOnce = ReplayOnce<Output, Failure> { promise in
+                    let dispatchQueue = DispatchQueue(label: "\(QueuedReplayOnce.self):dispatch_queue")
+                    let wrappedCompletion = {
+                        dispatchQueue.async {
+                            completion()
+                        }
+                    }
+                    handler(promise, wrappedCompletion)
+                }
+            }
+        }
+
+        // MARK: Publisher
+
+        public func receive<S>(subscriber: S) where S : Subscriber, Failure == S.Failure, Output == S.Input {
+            let preQueueSubscription = QueuedReplayOnceSubscription(self, subscriber)
+            subscriber.receive(subscription: preQueueSubscription)
+            operationQueue.run(title: "\(QueuedReplayOnce.self):receive_subscriber") { completion in
+                defer {
+                    completion()
+                }
+                guard preQueueSubscription.isCancelled == false else { return }
+                guard let publisher = self.replayOnce else {
+                    Logger.log(.error, "\(QueuedReplayOnce.self) attempting to set a subscriber before the publisher is built", assert: true)
+                    return
+                }
+
+                let cancellable = publisher
+                    .sink(receiveCompletion: { terminal in
+                        guard preQueueSubscription.isCancelled == false else { return }
+                        subscriber.receive(completion: terminal)
+                    }, receiveValue: { value in
+                        guard preQueueSubscription.isCancelled == false else { return }
+                        _ = subscriber.receive(value)
+                    })
+
+                preQueueSubscription.cancellable = cancellable
+            }
+        }
+    }
+}
+
+// MARK: - Subscription
+
+private extension Publishers.QueuedReplayOnce {
+
+    final class QueuedReplayOnceSubscription<S: Subscriber>: Subscription where S.Input == Output, S.Failure == Failure {
+
+        private var reference: Any?
+
+        private var subscriber: S?
+
+        fileprivate var cancellable: Cancellable?
+
+        private(set) var isCancelled: Bool = false
+
+        init(_ reference: Any?, _ subscriber: S) {
+            self.reference = reference
+            self.subscriber = subscriber
+        }
+
+        func cancel() {
+            reference = nil
+            subscriber = nil
+            cancellable = nil
+            isCancelled = true
+        }
+
+        func request(_ demand: Subscribers.Demand) { }
+    }
+}
+
+

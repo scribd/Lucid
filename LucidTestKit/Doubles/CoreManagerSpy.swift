@@ -15,6 +15,8 @@ public final class CoreManagerSpy<E: Entity> {
 
     public typealias AnyEntityType = AnyEntitySpy
 
+    public typealias AsyncResults<T> = (once: AsyncResult<T>, continuous: AsyncStream<T>)
+
     public enum AsyncResult<T> {
         case value(_: T)
         case error(_: ManagerError)
@@ -71,18 +73,12 @@ public final class CoreManagerSpy<E: Entity> {
         continuous: AnyPublisher<QueryResult<E>, Never>
     )]?
 
-    public var searchAsyncStub: (
-        once: QueryResult<E>,
-        continuous: AsyncStream<QueryResult<E>>
-    ) = (
-        once: QueryResult<E>.entities([]),
+    public var searchAsyncStub: AsyncResults<QueryResult<E>> = (
+        once: .value(QueryResult<E>.entities([])),
         continuous: AsyncStream<QueryResult<E>>(unfolding: { return nil })
     )
 
-    public var searchAsyncStubs: [(
-        once: QueryResult<E>,
-        continuous: AsyncStream<QueryResult<E>>
-    )]?
+    public var searchAsyncStubs: [AsyncResults<QueryResult<E>>]?
 
     // MARK: Records
 
@@ -140,7 +136,13 @@ public final class CoreManagerSpy<E: Entity> {
     public func search(withQuery query: Query<E>,
                        in context: ReadContext<E>) async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>) {
         searchAsyncRecords.append(SearchRecord(query: query, context: context))
-        return searchAsyncStubs?.getOrFail(at: searchAsyncRecords.count - 1) ?? searchAsyncStub
+        let stub = searchAsyncStubs?.getOrFail(at: searchAsyncRecords.count - 1) ?? searchAsyncStub
+        switch stub.once {
+        case .value(let result):
+            return (once: result, stub.continuous)
+        case .error(let error):
+            throw error
+        }
     }
 
     public func set(_ entity: E,
@@ -152,7 +154,7 @@ public final class CoreManagerSpy<E: Entity> {
     public func set(_ entity: E,
                     in context: WriteContext<E>) async throws -> E {
         setEntityAsyncRecords.append(SetRecord(entity: [entity], context: context))
-        let stub = setEntityAsyncStubs?.getOrFail(at: setEntityRecords.count - 1) ?? setEntityAsyncStub
+        let stub = setEntityAsyncStubs?.getOrFail(at: setEntityAsyncRecords.count - 1) ?? setEntityAsyncStub
         switch stub {
         case .value(let entity):
             return entity

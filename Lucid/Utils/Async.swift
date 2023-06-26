@@ -105,6 +105,8 @@ extension AsyncSequence {
 
 public actor AsyncTaskQueue {
 
+    public typealias OperationCompletion = () -> Void
+
     private let maxConcurrentTasks: Int
     private(set) var runningTasks: Int = 0
     private var queue = [CheckedContinuation<Void, Error>]()
@@ -119,20 +121,21 @@ public actor AsyncTaskQueue {
         }
     }
 
-    public func enqueue<T>(operation: @escaping @Sendable () async throws -> T) async throws -> T {
+    public func enqueue<T>(operation: @escaping @Sendable (OperationCompletion) async throws -> T) async throws -> T {
         try Task.checkCancellation()
+
+        let completion: OperationCompletion = {
+            self.runningTasks -= 1
+            self.tryRunEnqueued()
+        }
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             queue.append(continuation)
             tryRunEnqueued()
         }
 
-        defer {
-            runningTasks -= 1
-            tryRunEnqueued()
-        }
         try Task.checkCancellation()
-        return try await operation()
+        return try await operation(completion)
     }
 
     private func tryRunEnqueued() {
@@ -342,5 +345,23 @@ public extension Publisher {
 public extension Publisher where Failure == Never {
     func asyncStream() -> AsyncSafeStreamPublisherBridge<Self> {
         return AsyncSafeStreamPublisherBridge(self)
+    }
+}
+
+// MARK: - Global Functions
+
+public func withCheckedThrowingContinuation<T>(_ body: @escaping (CheckedContinuation<T, Error>) async throws -> Void) async throws -> T {
+    return try await withCheckedThrowingContinuation { continuation in
+        Task {
+            try await body(continuation)
+        }
+    }
+}
+
+public func withCheckedContinuation<T>(_ body: @escaping (CheckedContinuation<T, Never>) async -> Void) async -> T {
+    return await withCheckedContinuation { continuation in
+        Task {
+            await body(continuation)
+        }
     }
 }

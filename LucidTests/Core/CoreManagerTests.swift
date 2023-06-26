@@ -3407,7 +3407,7 @@ final class CoreManagerTests: XCTestCase {
 
                 // Second Update
                 group.addTask(priority: .low) {
-                    try await Task.sleep(nanoseconds: 200000)
+                    try await Task.sleep(nanoseconds: NSEC_PER_SEC * 1)
 
                     self.remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")]))
                     self.memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
@@ -4529,7 +4529,7 @@ final class CoreManagerTests: XCTestCase {
     func test_continuous_observer_should_receive_all_updates_in_order() {
         let count = 400
 
-        let expectedResults = (0..<count).map { index in
+        let expectedResults = (0...count).map { index in
             (0..<index).map { EntitySpy(idValue: .remote($0, nil), title: "title_\($0)") }
         }
 
@@ -4582,7 +4582,7 @@ final class CoreManagerTests: XCTestCase {
     func test_continuous_observer_should_receive_all_updates_in_order_async() async {
         let count = 400
 
-        let expectedResults = (0..<count).map { index in
+        let expectedResults = (0...count).map { index in
             (0..<index).map { EntitySpy(idValue: .remote($0, nil), title: "title_\($0)") }
         }
 
@@ -4599,14 +4599,11 @@ final class CoreManagerTests: XCTestCase {
                     let signals = try await self.manager.search(withQuery: .all, in: context)
                     for await result in signals.continuous {
                         guard continuousCallCount < count else {
-                            XCTFail("received too many responses")
+                            XCTAssertEqual(result.any, expectedResults[count].any)
                             return
                         }
                         XCTAssertEqual(result.any, expectedResults[continuousCallCount].any)
                         continuousCallCount += 1
-                        if continuousCallCount >= count {
-                            return
-                        }
                     }
                 }
 

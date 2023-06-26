@@ -20,7 +20,9 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: {
+                try await asyncTaskQueue.enqueue(operation: { completion in
+                    defer { completion() }
+
                     await operation.setUp()
                     await operation.perform()
                 })
@@ -54,7 +56,9 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: {
+                try await asyncTaskQueue.enqueue(operation: { completion in
+                    defer { completion() }
+
                     await operation.setUp()
                     await operation.perform()
                 })
@@ -100,7 +104,9 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: {
+                try await asyncTaskQueue.enqueue(operation: { completion in
+                    defer { completion() }
+
                     await operation1.setUp()
                     await operation1.perform()
                 })
@@ -111,7 +117,9 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: {
+                try await asyncTaskQueue.enqueue(operation: { completion in
+                    defer { completion() }
+
                     await operation2.setUp()
                     await operation2.perform()
                 })
@@ -151,7 +159,9 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: {
+                try await asyncTaskQueue.enqueue(operation: { completion in
+                    defer { completion() }
+
                     await operation1.setUp()
                     await operation1.perform()
                 })
@@ -162,7 +172,9 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: {
+                try await asyncTaskQueue.enqueue(operation: { completion in
+                    defer { completion() }
+
                     await operation2.setUp()
                     await operation2.perform()
                 })
@@ -204,7 +216,9 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: {
+                try await asyncTaskQueue.enqueue(operation: { completion in
+                    defer { completion() }
+
                     await operation1.setUp()
                     await operation1.perform()
                 })
@@ -215,7 +229,9 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: {
+                try await asyncTaskQueue.enqueue(operation: { completion in
+                    defer { completion() }
+
                     await operation2.setUp()
                     await operation2.perform()
                 })
@@ -226,7 +242,9 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: {
+                try await asyncTaskQueue.enqueue(operation: { completion in
+                    defer { completion() }
+
                     await operation3.setUp()
                     await operation3.perform()
                 })

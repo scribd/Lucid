@@ -1907,7 +1907,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(result.count, 1)
 
                     self.remoteStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil), title: "updated_fake_title")))
-                    self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+                    self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
                     let getContext = ReadContext<EntitySpy>(dataSource: .remote(
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
@@ -1955,7 +1955,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([entity])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -2066,7 +2066,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(result.count, 1)
 
                     self.remoteStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil), title: "updated_fake_title")))
-                    self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+                    self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
                     let getContext = ReadContext<EntitySpy>(dataSource: .remote(
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                         persistenceStrategy: .persist(.discardExtraLocalData)
@@ -2144,7 +2144,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(result.count, 1)
 
                     self.remoteStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil), title: "updated_fake_title")))
-                    self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+                    self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
                     let getContext = ReadContext<EntitySpy>(dataSource: .remote(
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                         persistenceStrategy: .persist(.discardExtraLocalData)
@@ -2289,7 +2289,7 @@ final class CoreManagerTests: XCTestCase {
                     self.memoryStoreSpy.getResultStub = .success(.empty())
                     self.memoryStoreSpy.removeResultStub = .success(())
                     self.remoteStoreSpy.getResultStub = .success(.empty())
-                    self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+                    self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
                     let getContext = ReadContext<EntitySpy>(dataSource: .remote(
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                         persistenceStrategy: .persist(.discardExtraLocalData)
@@ -2367,7 +2367,7 @@ final class CoreManagerTests: XCTestCase {
 
                     self.memoryStoreSpy.removeResultStub = .success(())
                     self.remoteStoreSpy.removeResultStub = .success(())
-                    self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+                    self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
                     self.manager
                         .remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: WriteContext(dataTarget: .local))
                         .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
@@ -2442,7 +2442,7 @@ final class CoreManagerTests: XCTestCase {
                     let newDocument = EntitySpy(idValue: .remote(42, nil), title: "updated_fake_title")
                     self.memoryStoreSpy.setResultStub = .success([newDocument])
                     self.remoteStoreSpy.setResultStub = .success([newDocument])
-                    self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+                    self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
                     self.manager
                         .set(newDocument, in: WriteContext(dataTarget: .local))
                         .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
@@ -2557,7 +2557,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(result.count, 1)
 
                     self.remoteStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil), title: "updated_fake_title")))
-                    self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+                    self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
                     let getContext = ReadContext<EntitySpy>(dataSource: .remote(
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
@@ -2599,7 +2599,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([entity])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
@@ -2669,7 +2669,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(result.count, 1)
 
                     self.remoteStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil), title: "updated_fake_title")))
-                    self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+                    self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
                     let getContext = ReadContext<EntitySpy>(dataSource: .remote(
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                         persistenceStrategy: .persist(.discardExtraLocalData)
@@ -2730,7 +2730,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(result.count, 1)
 
                     self.remoteStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil), title: "updated_fake_title")))
-                    self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+                    self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
                     let getContext = ReadContext<EntitySpy>(dataSource: .remote(
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                         persistenceStrategy: .persist(.discardExtraLocalData)
@@ -2843,7 +2843,7 @@ final class CoreManagerTests: XCTestCase {
                     self.memoryStoreSpy.getResultStub = .success(.empty())
                     self.memoryStoreSpy.removeResultStub = .success(())
                     self.remoteStoreSpy.getResultStub = .success(.empty())
-                    self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+                    self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
                     let getContext = ReadContext<EntitySpy>(dataSource: .remote(
                         endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                         persistenceStrategy: .persist(.discardExtraLocalData)
@@ -2905,7 +2905,7 @@ final class CoreManagerTests: XCTestCase {
 
                     self.memoryStoreSpy.removeResultStub = .success(())
                     self.remoteStoreSpy.removeResultStub = .success(())
-                    self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+                    self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
                     try await self.manager.remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: WriteContext(dataTarget: .local))
                 }
@@ -2963,7 +2963,7 @@ final class CoreManagerTests: XCTestCase {
                     let newDocument = EntitySpy(idValue: .remote(42, nil), title: "updated_fake_title")
                     self.memoryStoreSpy.setResultStub = .success([newDocument])
                     self.remoteStoreSpy.setResultStub = .success([newDocument])
-                    self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+                    self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
                     _ = try await self.manager.set(newDocument, in: WriteContext(dataTarget: .local))
                 }
@@ -4275,8 +4275,8 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        memoryStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
-        remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        memoryStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
+        remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let continuousExpectation = self.expectation(description: "continuous")
         continuousExpectation.isInverted = true
@@ -4307,8 +4307,8 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        memoryStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
-        remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        memoryStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
+        remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.isInverted = true
@@ -4339,8 +4339,8 @@ final class CoreManagerTests: XCTestCase {
         remoteStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil), title: "fake_title")))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        memoryStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
-        remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        memoryStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
+        remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
 
@@ -4373,8 +4373,8 @@ final class CoreManagerTests: XCTestCase {
         remoteStoreSpy.setResultStub = .success([entity])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        memoryStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
-        remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        memoryStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
+        remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.isInverted = true
@@ -4400,8 +4400,8 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        memoryStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
-        remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        memoryStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
+        remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let continuousExpectation = self.expectation(description: "continuous")
         continuousExpectation.isInverted = true
@@ -4439,8 +4439,8 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        memoryStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
-        remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        memoryStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
+        remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.isInverted = true
@@ -4475,8 +4475,8 @@ final class CoreManagerTests: XCTestCase {
         remoteStoreSpy.getResultStub = .success(QueryResult(from: EntitySpy(idValue: .remote(42, nil), title: "fake_title")))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        memoryStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
-        remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        memoryStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
+        remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil))])
 
@@ -4508,8 +4508,8 @@ final class CoreManagerTests: XCTestCase {
         remoteStoreSpy.setResultStub = .success([entity])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        memoryStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
-        remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        memoryStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
+        remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.isInverted = true
@@ -5081,7 +5081,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([entity])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -5164,7 +5164,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([entity])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -5247,7 +5247,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([entity])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -5330,7 +5330,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([entity])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -5407,7 +5407,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([entity])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -5486,7 +5486,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([entity])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
@@ -5540,7 +5540,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([entity])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
@@ -5594,7 +5594,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([entity])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
@@ -5648,7 +5648,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([entity])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
@@ -5710,7 +5710,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([entity])
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource: .remote(
             endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
@@ -7725,7 +7725,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.getResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -7762,7 +7762,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.getResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -7799,7 +7799,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.getResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -7836,7 +7836,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.getResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -7876,7 +7876,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.getResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource:
             .localOr(
@@ -7900,7 +7900,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.getResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource:
             .localThen(
@@ -7925,7 +7925,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.getResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource:
             .localOr(
@@ -7949,7 +7949,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.getResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource:
             .localThen(
@@ -7975,7 +7975,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -8016,7 +8016,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -8057,7 +8057,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil))]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -8097,7 +8097,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil))]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -8137,7 +8137,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -8175,7 +8175,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -8213,7 +8213,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil))]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -8253,7 +8253,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil))]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let onceExpectation = self.expectation(description: "once")
         onceExpectation.expectedFulfillmentCount = 2
@@ -8295,7 +8295,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource:
             .localOr(
@@ -8323,7 +8323,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource:
             .localThen(
@@ -8351,7 +8351,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil))]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource:
             .localOr(
@@ -8378,7 +8378,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil))]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource:
             .localThen(
@@ -8405,7 +8405,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource:
             .localOr(
@@ -8429,7 +8429,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource:
             .localThen(
@@ -8453,7 +8453,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil))]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource:
             .localOr(
@@ -8480,7 +8480,7 @@ final class CoreManagerTests: XCTestCase {
         memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil))]))
 
         let dispatchQueue = DispatchQueue(label: "CoreManagerTestsQueue")
-        self.remoteStoreSpy.stubAsynchronousCompletionQueue = dispatchQueue
+        self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
 
         let context = ReadContext<EntitySpy>(dataSource:
             .localThen(
@@ -8560,6 +8560,78 @@ final class CoreManagerTests: XCTestCase {
         }
         wait(for: [expectation], timeout: 5)
 
+    }
+
+    // MARK: - Test that separate calls do not block each other
+
+    func test_that_multiple_requests_to_the_same_core_manager_do_not_block_each_other() {
+
+        remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
+        remoteStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil), title: "fake_title")])
+        memoryStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
+        memoryStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil), title: "fake_title")])
+
+        let localExpectation = self.expectation(description: "local_once")
+        localExpectation.expectedFulfillmentCount = 1
+
+        var remoteCompletion: (() -> Void)?
+        self.remoteStoreSpy.asynchronousResult = .manual(fireBlock: { completion in
+            remoteCompletion = completion
+        })
+
+        Task(priority: .high) {
+            let context = ReadContext<EntitySpy>(dataSource: .remote(
+                endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
+                persistenceStrategy: .persist(.discardExtraLocalData)
+            ))
+
+            do {
+                _ = try await manager
+                    .search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
+                    .once
+                XCTFail("Unexpected response")
+            } catch {
+                XCTFail("Unexpected error: \(error)")
+            }
+        }
+
+        Task(priority: .high) {
+            let context = WriteContext<EntitySpy>(dataTarget: .remote(
+                endpoint: .request(APIRequestConfig(method: .post, path: .path("fake_entity/42")))
+            ))
+
+            do {
+                try await Task.sleep(nanoseconds: NSEC_PER_SEC/2)
+
+                _ = try await manager
+                    .set(EntitySpy(idValue: .remote(42, nil), title: "fake_title"), in: context)
+                XCTFail("Unexpected response")
+            } catch {
+                XCTFail("Unexpected error: \(error)")
+            }
+        }
+
+        Task(priority: .low) {
+            let context = ReadContext<EntitySpy>(dataSource: .local)
+
+            do {
+                try await Task.sleep(nanoseconds: NSEC_PER_SEC)
+
+                let result = try await manager
+                    .search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
+                    .once
+
+                XCTAssertEqual(result.first?.title, "fake_title")
+                XCTAssertEqual(result.count, 1)
+                localExpectation.fulfill()
+            } catch {
+                XCTFail("Unexpected error: \(error)")
+            }
+        }
+
+        wait(for: [localExpectation], timeout: 3)
+
+        XCTAssertNotNil(remoteCompletion)
     }
 }
 

@@ -649,7 +649,7 @@ private extension CoreManager {
             return try await self.search(withQuery: query, in: context)
         }
 
-        let asyncToCombine = CoreManagerAsyncToCombineProperty<QueryResult<E>, ManagerError>(combineOperationQueue, signals)
+        let asyncToCombine = CoreManagerAsyncToCombineProperty<E, ManagerError>(combineOperationQueue, signals)
 
         return (
             once: asyncToCombine.once.eraseToAnyPublisher(),

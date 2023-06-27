@@ -46,11 +46,11 @@ extension CoreManagerProperty: AsyncCurrentValueDelegate {
 
 // MARK: - Combine helper to transpose async signals to Publishers
 
-final class CoreManagerAsyncToCombineProperty<Output: Equatable, Failure: Error> {
+final class CoreManagerAsyncToCombineProperty<E: Entity, Failure: Error> {
 
-    private let currentValue = CurrentValueSubject<Output?, Failure>(nil)
+    private let currentValue = CurrentValueSubject<QueryResult<E>?, Failure>(nil)
 
-    private let continuousCurrentValue = CurrentValueSubject<Output?, Failure>(nil)
+    private let continuousCurrentValue = CurrentValueSubject<QueryResult<E>?, Failure>(nil)
 
     private let cancellable = CancellableBox()
 
@@ -58,32 +58,41 @@ final class CoreManagerAsyncToCombineProperty<Output: Equatable, Failure: Error>
 
     private let operationQueue: AsyncOperationQueue
 
-    private let signals: Task<(once: Output, continuous: AsyncStream<Output>), Error>
+    private let wrappedSignals: () async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)
 
-    var once: CoreManagerCombineProperty<Output, Failure> {
-        return CoreManagerCombineProperty<Output, Failure>(operationQueue, signals, type: .once)
+    var once: CoreManagerCombineProperty<E, Failure> {
+        return CoreManagerCombineProperty<E, Failure>(operationQueue, wrappedSignals, type: .once)
     }
 
-    var continuous: AnySafePublisher<Output> {
-        return CoreManagerCombineProperty<Output, Failure>(operationQueue, signals, type: .continuous).suppressError()
+    var continuous: AnySafePublisher<QueryResult<E>> {
+        return CoreManagerCombineProperty<E, Failure>(operationQueue, wrappedSignals, type: .continuous).suppressError()
     }
 
-    init(_ operationQueue: AsyncOperationQueue, _ signalFunction: @escaping () async throws -> (once: Output, continuous: AsyncStream<Output>)) {
+    init(_ operationQueue: AsyncOperationQueue, _ signals: @escaping () async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)) {
         self.operationQueue = operationQueue
-        self.signals = Task {
-            return try await signalFunction()
+
+        var unwrappedSignals: (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)?
+        self.wrappedSignals = { @MainActor in
+            if let unwrappedSignals = unwrappedSignals {
+                return unwrappedSignals
+            }
+            let unwrapped = try await signals()
+            unwrappedSignals = unwrapped
+            return unwrapped
         }
     }
 }
 
-final class CoreManagerCombineProperty<Output: Equatable, Failure: Error>: Publisher {
+final class CoreManagerCombineProperty<E: Entity, Failure: Error>: Publisher {
+
+    typealias Output = QueryResult<E>
 
     enum PublisherType {
         case once
         case continuous
     }
 
-    private let currentValue = CurrentValueSubject<Output?, Failure>(nil)
+    private let currentValue = CurrentValueSubject<QueryResult<E>?, Failure>(nil)
 
     private let isFirstSubscriber = PropertyBox<Bool>(false, atomic: true)
 
@@ -91,13 +100,13 @@ final class CoreManagerCombineProperty<Output: Equatable, Failure: Error>: Publi
 
     private let operationQueue: AsyncOperationQueue
 
-    private let signals: Task<(once: Output, continuous: AsyncStream<Output>), Error>
+    private let signals: () async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>)
 
     private let type: PublisherType
 
     private let asyncTasks = AsyncTasks()
 
-    init(_ operationQueue: AsyncOperationQueue, _ signals: Task<(once: Output, continuous: AsyncStream<Output>), Error>, type: PublisherType) {
+    init(_ operationQueue: AsyncOperationQueue, _ signals: @escaping () async throws -> (once: QueryResult<E>, continuous: AsyncStream<QueryResult<E>>), type: PublisherType) {
         self.operationQueue = operationQueue
         self.signals = signals
         self.type = type
@@ -105,7 +114,7 @@ final class CoreManagerCombineProperty<Output: Equatable, Failure: Error>: Publi
 
     // MARK: Publisher
 
-    public func receive<S: Subscriber>(subscriber: S) where S.Input == Output, S.Failure == Failure {
+    public func receive<S: Subscriber>(subscriber: S) where S.Input == QueryResult<E>, S.Failure == Failure {
 
         let subscription = CoreManagerSubscription<S>(subscriber) { [weak self] in
             guard let self = self else { return }
@@ -122,14 +131,8 @@ final class CoreManagerCombineProperty<Output: Equatable, Failure: Error>: Publi
                 guard self != nil else { return }
                 subscriber.receive(completion: terminal)
             }, receiveValue: { [weak self] value in
-                guard let self = self else { return }
+                guard self != nil else { return }
                 _ = subscriber.receive(value)
-                switch self.type {
-                case .once:
-                    subscriber.receive(completion: .finished)
-                case .continuous:
-                    return
-                }
             })
 
         if isFirstSubscriber.value == false {
@@ -145,8 +148,8 @@ final class CoreManagerCombineProperty<Output: Equatable, Failure: Error>: Publi
                 case .once:
                     Task {
                         do {
+                            let result = try await self.signals().once
                             completion()
-                            let result = try await self.signals.value.once
                             self.currentValue.send(result)
                             self.currentValue.send(completion: .finished)
                         } catch let error as Failure {
@@ -155,11 +158,14 @@ final class CoreManagerCombineProperty<Output: Equatable, Failure: Error>: Publi
                     }.store(in: self.asyncTasks)
 
                 case .continuous:
-                    Task {
-                        completion()
-                        for await value in try await self.signals.value.continuous where Task.isCancelled == false {
+                    Task(priority: .high) {
+                        for await value in try await self.signals().continuous where Task.isCancelled == false {
                             self.currentValue.send(value)
                         }
+                    }.store(in: self.asyncTasks)
+                    Task {
+                        try await Task.sleep(nanoseconds: 100000)
+                        completion()
                     }.store(in: self.asyncTasks)
                 }
             }
@@ -171,7 +177,7 @@ final class CoreManagerCombineProperty<Output: Equatable, Failure: Error>: Publi
 
 private extension CoreManagerCombineProperty {
 
-    final class CoreManagerSubscription<S: Subscriber>: Subscription where S.Input == Output, S.Failure == Failure {
+    final class CoreManagerSubscription<S: Subscriber>: Subscription where S.Input == QueryResult<E>, S.Failure == Failure {
 
         private var subscriber: S?
 

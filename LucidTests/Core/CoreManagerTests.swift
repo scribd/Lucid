@@ -4559,19 +4559,21 @@ final class CoreManagerTests: XCTestCase {
 
         let entities = (0..<count).map { EntitySpy(idValue: .remote($0, nil), title: "title_\($0)") }
 
-        entities.forEach { entity in
-            manager
-                .set(entity, in: WriteContext(dataTarget: .local))
-                .sink(receiveCompletion: { completion in
-                    switch completion {
-                    case .failure(let error):
-                        XCTFail("\(error)")
-                    case .finished:
-                        break
-                    }
-                }, receiveValue: { _ in })
-                .store(in: &cancellables)
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(1000)) {
+            entities.forEach { entity in
+                self.manager
+                    .set(entity, in: WriteContext(dataTarget: .local))
+                    .sink(receiveCompletion: { completion in
+                        switch completion {
+                        case .failure(let error):
+                            XCTFail("\(error)")
+                        case .finished:
+                            break
+                        }
+                    }, receiveValue: { _ in })
+                    .store(in: &self.cancellables)
 
+            }
         }
 
         wait(for: [continuousExpectation], timeout: 60)
@@ -4598,11 +4600,10 @@ final class CoreManagerTests: XCTestCase {
                     var continuousCallCount = 0
                     let signals = try await self.manager.search(withQuery: .all, in: context)
                     for await result in signals.continuous {
-                        guard continuousCallCount < count else {
-                            XCTAssertEqual(result.any, expectedResults[count].any)
+                        XCTAssertEqual(result.any, expectedResults[continuousCallCount].any)
+                        if continuousCallCount == count {
                             return
                         }
-                        XCTAssertEqual(result.any, expectedResults[continuousCallCount].any)
                         continuousCallCount += 1
                     }
                 }

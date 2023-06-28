@@ -590,8 +590,8 @@ private extension CoreManager {
                                              .none:
                                             break
                                         }
-                                        continuation.resume(returning: queryResult)
                                     }
+                                    continuation.resume(returning: queryResult)
                                     self.raiseUpdateEvents(withQuery: .identifier(identifier),
                                                            results: .entities([entity]),
                                                            returnsCompleteResultSet: context.returnsCompleteResultSet)
@@ -604,8 +604,8 @@ private extension CoreManager {
                                              .none:
                                             break
                                         }
-                                        continuation.resume(returning: .empty())
                                     }
+                                    continuation.resume(returning: .empty())
                                     self.raiseDeleteEvents(DualHashSet([identifier]))
                                 }
                             } else {
@@ -787,11 +787,11 @@ private extension CoreManager {
                                             if let error = result?.error {
                                                 Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
                                             }
-                                            continuation.resume(returning: remoteResults)
-                                            self.raiseUpdateEvents(withQuery: query,
-                                                                   results: remoteResults,
-                                                                   returnsCompleteResultSet: context.returnsCompleteResultSet)
                                         }
+                                        continuation.resume(returning: remoteResults)
+                                        self.raiseUpdateEvents(withQuery: query,
+                                                               results: remoteResults,
+                                                               returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
                                 }
                             } else {

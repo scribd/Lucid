@@ -8564,7 +8564,7 @@ final class CoreManagerTests: XCTestCase {
 
     // MARK: - Test that separate calls do not block each other
 
-    func test_that_multiple_requests_to_the_same_core_manager_do_not_block_each_other() {
+    func test_that_multiple_search_requests_to_the_same_core_manager_do_not_block_each_other() {
 
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
         remoteStoreSpy.setResultStub = .success([EntitySpy(idValue: .remote(42, nil), title: "fake_title")])

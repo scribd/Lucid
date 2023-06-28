@@ -444,8 +444,8 @@ public final class RelationshipController<RelationshipManager, Graph>
                         try await recurse()
 
                     case .none,
-                            .depthLimit,
-                            .full:
+                         .depthLimit,
+                         .full:
                         if depth >= globalDepthLimit {
                             Logger.log(.error, "\(RelationshipController.self): Recursion depth limit (\(globalDepthLimit)) has been reached.", assert: true)
                         }

@@ -704,13 +704,11 @@ public extension RelationshipController {
         public func perform(_ graphType: Graph.Type) async throws -> (once: Graph, continuous: AsyncStream<Graph>) {
             let firstGraph = try await self.controller(for: self.rootEntities.once, context: self.mainContext).buildGraph()
 
-            let entities = rootEntities
             let continuous = AsyncStream<Graph> { continuation in
-                Task { [weak self] in
+                let task = Task {
                     var eventCount = 0
 
-                    for try await result in entities.continuous {
-                        guard let self else { return }
+                    for try await result in rootEntities.continuous {
                         defer { eventCount += 1 }
 
                         if eventCount == 0 {
@@ -723,7 +721,11 @@ public extension RelationshipController {
                             continuation.yield(graph)
                         }
                     }
-                }.store(in: asyncTasks)
+                }
+
+                continuation.onTermination = { _ in
+                    task.cancel()
+                }
             }
 
             return (

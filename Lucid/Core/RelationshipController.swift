@@ -704,11 +704,12 @@ public extension RelationshipController {
         public func perform(_ graphType: Graph.Type) async throws -> (once: Graph, continuous: AsyncStream<Graph>) {
             let firstGraph = try await self.controller(for: self.rootEntities.once, context: self.mainContext).buildGraph()
 
+            let entities = rootEntities
             let continuous = AsyncStream<Graph> { continuation in
                 Task { [weak self] in
                     var eventCount = 0
 
-                    for try await result in rootEntities.continuous {
+                    for try await result in entities.continuous {
                         guard let self else { return }
                         defer { eventCount += 1 }
 

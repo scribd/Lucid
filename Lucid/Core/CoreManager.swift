@@ -695,7 +695,7 @@ private extension CoreManager {
             if hasAllIdentifiersLocally || hasResultsForComplexSearch {
                 if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
                     Task {
-                        _ = try await overwriteSearches(nil)
+                        _ = try await overwriteSearches(nil).once
                     }
                 }
                 return localResults

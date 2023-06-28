@@ -591,10 +591,10 @@ private extension CoreManager {
                                             break
                                         }
                                         continuation.resume(returning: queryResult)
-                                        self.raiseUpdateEvents(withQuery: .identifier(identifier),
-                                                               results: .entities([entity]),
-                                                               returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
+                                    self.raiseUpdateEvents(withQuery: .identifier(identifier),
+                                                           results: .entities([entity]),
+                                                           returnsCompleteResultSet: context.returnsCompleteResultSet)
                                 } else {
                                     self.localStore.remove(atID: identifier, in: WriteContext(dataTarget: .local)) { result in
                                         switch result {
@@ -605,8 +605,8 @@ private extension CoreManager {
                                             break
                                         }
                                         continuation.resume(returning: .empty())
-                                        self.raiseDeleteEvents(DualHashSet([identifier]))
                                     }
+                                    self.raiseDeleteEvents(DualHashSet([identifier]))
                                 }
                             } else {
                                 continuation.resume(returning: queryResult)
@@ -751,34 +751,20 @@ private extension CoreManager {
                                         let finalIdentifiersToDelete = identifiersToDelete
                                         let finalEntitiesToUpdate = entitiesToUpdate
                                         Task {
-                                            await withTaskGroup(of: Void.self) { group in
-                                                if finalEntitiesToUpdate.isEmpty == false {
-                                                    group.addTask {
-                                                        await withCheckedContinuation { continuation in
-                                                            self.localStore.set(finalEntitiesToUpdate, in: WriteContext(dataTarget: .local)) { result in
-                                                                if let error = result?.error {
-                                                                    Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
-                                                                }
-                                                                continuation.resume()
-                                                            }
-                                                        }
+                                            if finalEntitiesToUpdate.isEmpty == false {
+                                                self.localStore.set(finalEntitiesToUpdate, in: WriteContext(dataTarget: .local)) { result in
+                                                    if let error = result?.error {
+                                                        Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
                                                     }
                                                 }
+                                            }
 
-                                                if finalIdentifiersToDelete.isEmpty == false {
-                                                    group.addTask {
-                                                        await withCheckedContinuation { continuation in
-                                                            self.localStore.remove(finalIdentifiersToDelete, in: WriteContext(dataTarget: .local)) { result in
-                                                                if let error = result?.error {
-                                                                    Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entities: \(error)", assert: true)
-                                                                }
-                                                                continuation.resume()
-                                                            }
-                                                        }
+                                            if finalIdentifiersToDelete.isEmpty == false {
+                                                self.localStore.remove(finalIdentifiersToDelete, in: WriteContext(dataTarget: .local)) { result in
+                                                    if let error = result?.error {
+                                                        Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entities: \(error)", assert: true)
                                                     }
                                                 }
-
-                                                await group.waitForAll()
                                             }
 
                                             continuation.resume(returning: remoteResults)

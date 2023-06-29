@@ -2064,7 +2064,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [[ $(weaver version) != *\"1.0.7\"* ]] \nthen\n    echo \"Weaver version isn't 1.0.7.\"\n    exit 1\nfi\n\ncd ${PROJECT_DIR}/Sample && weaver swift \n";
+			shellScript = "if [[ $(weaver version) != *\"1.1.5\"* ]] \nthen\n    echo \"Weaver version isn't 1.1.5.\"\n    exit 1\nfi\n\ncd ${PROJECT_DIR}/Sample && weaver swift \n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

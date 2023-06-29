@@ -562,10 +562,14 @@ private extension CoreManager {
             }
 
             let initialUserAccess = context.userAccess
-            let result: QueryResult<E> = try await operationTaskQueue.enqueue() {
-                let time = UpdateTime()
-                let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
-                return try await withCheckedThrowingContinuation { continuation in
+
+            let result = try await withCheckedThrowingContinuation { continuation in
+                try await self.operationTaskQueue.enqueue { operationCompletion in
+                    defer { operationCompletion() }
+
+                    let time = UpdateTime()
+                    let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+
                     storeStack.get(withQuery: query, in: context) { result in
                         switch result {
                         case .success(let queryResult):
@@ -586,11 +590,11 @@ private extension CoreManager {
                                              .none:
                                             break
                                         }
-                                        continuation.resume(returning: queryResult)
-                                        self.raiseUpdateEvents(withQuery: .identifier(identifier),
-                                                               results: .entities([entity]),
-                                                               returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
+                                    continuation.resume(returning: queryResult)
+                                    self.raiseUpdateEvents(withQuery: .identifier(identifier),
+                                                           results: .entities([entity]),
+                                                           returnsCompleteResultSet: context.returnsCompleteResultSet)
                                 } else {
                                     self.localStore.remove(atID: identifier, in: WriteContext(dataTarget: .local)) { result in
                                         switch result {
@@ -600,9 +604,9 @@ private extension CoreManager {
                                              .none:
                                             break
                                         }
-                                        continuation.resume(returning: .empty())
-                                        self.raiseDeleteEvents(DualHashSet([identifier]))
                                     }
+                                    continuation.resume(returning: .empty())
+                                    self.raiseDeleteEvents(DualHashSet([identifier]))
                                 }
                             } else {
                                 continuation.resume(returning: queryResult)
@@ -645,7 +649,7 @@ private extension CoreManager {
             return try await self.search(withQuery: query, in: context)
         }
 
-        let asyncToCombine = CoreManagerAsyncToCombineProperty<QueryResult<E>, ManagerError>(combineOperationQueue, signals)
+        let asyncToCombine = CoreManagerAsyncToCombineProperty<E, ManagerError>(combineOperationQueue, signals)
 
         return (
             once: asyncToCombine.once.eraseToAnyPublisher(),
@@ -691,7 +695,7 @@ private extension CoreManager {
             if hasAllIdentifiersLocally || hasResultsForComplexSearch {
                 if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
                     Task {
-                        _ = try await overwriteSearches(nil)
+                        _ = try await overwriteSearches(nil).once
                     }
                 }
                 return localResults
@@ -713,10 +717,10 @@ private extension CoreManager {
 
         let once: () async throws -> QueryResult<E> = {
 
-            let result: QueryResult<E> = try await self.operationTaskQueue.enqueue {
+            let result: QueryResult<E> = try await withCheckedThrowingContinuation { continuation in
+                try await self.operationTaskQueue.enqueue { operationCompletion in
+                    defer { operationCompletion() }
 
-                return try await withCheckedThrowingContinuation { continuation in
-                    
                     storeStack.search(withQuery: query, in: context) { result in
                         switch result {
                         case .success(let remoteResults):
@@ -743,29 +747,26 @@ private extension CoreManager {
                                         }
                                         self.setUpdateTime(time, for: entitiesToUpdate.map { $0.identifier } + identifiersToDelete)
 
-                                        let dispatchGroup = DispatchGroup()
-
-                                        if entitiesToUpdate.isEmpty == false {
-                                            dispatchGroup.enter()
-                                            self.localStore.set(entitiesToUpdate, in: WriteContext(dataTarget: .local)) { result in
-                                                if let error = result?.error {
-                                                    Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
+                                        // Create immutable versions to use within Tasks
+                                        let finalIdentifiersToDelete = identifiersToDelete
+                                        let finalEntitiesToUpdate = entitiesToUpdate
+                                        Task {
+                                            if finalEntitiesToUpdate.isEmpty == false {
+                                                self.localStore.set(finalEntitiesToUpdate, in: WriteContext(dataTarget: .local)) { result in
+                                                    if let error = result?.error {
+                                                        Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
+                                                    }
                                                 }
-                                                dispatchGroup.leave()
                                             }
-                                        }
 
-                                        if identifiersToDelete.isEmpty == false {
-                                            dispatchGroup.enter()
-                                            self.localStore.remove(identifiersToDelete, in: WriteContext(dataTarget: .local)) { result in
-                                                if let error = result?.error {
-                                                    Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entities: \(error)", assert: true)
+                                            if finalIdentifiersToDelete.isEmpty == false {
+                                                self.localStore.remove(finalIdentifiersToDelete, in: WriteContext(dataTarget: .local)) { result in
+                                                    if let error = result?.error {
+                                                        Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entities: \(error)", assert: true)
+                                                    }
                                                 }
-                                                dispatchGroup.leave()
                                             }
-                                        }
 
-                                        dispatchGroup.notify(queue: self.storeStackQueues.writeResultsQueue) {
                                             continuation.resume(returning: remoteResults)
                                             self.raiseUpdateEvents(withQuery: query,
                                                                    results: remoteResults,
@@ -786,18 +787,18 @@ private extension CoreManager {
                                             if let error = result?.error {
                                                 Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
                                             }
-                                            continuation.resume(returning: remoteResults)
-                                            self.raiseUpdateEvents(withQuery: query,
-                                                                   results: remoteResults,
-                                                                   returnsCompleteResultSet: context.returnsCompleteResultSet)
                                         }
+                                        continuation.resume(returning: remoteResults)
+                                        self.raiseUpdateEvents(withQuery: query,
+                                                               results: remoteResults,
+                                                               returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
                                 }
                             } else {
-                                continuation.resume(returning: remoteResults)
                                 Task {
                                     await property.update(with: remoteResults)
                                 }
+                                continuation.resume(returning: remoteResults)
                             }
 
                         case .failure(let error):
@@ -821,11 +822,16 @@ private extension CoreManager {
         }
 
         let continuous = AsyncStream<QueryResult<E>>() { continuation in
-            Task {
-                for try await value in property.stream where Task.isCancelled == false {
+
+            let task = Task {
+                for try await value in property.stream {
                     guard let value = value else { continue }
                     continuation.yield(value)
                 }
+            }
+
+            continuation.onTermination = { _ in
+                task.cancel()
             }
         }
 
@@ -861,11 +867,13 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        let result = try await operationTaskQueue.enqueue {
-            let time = UpdateTime(timestamp: context.originTimestamp)
+        let result = try await withCheckedThrowingContinuation { continuation in
+            try await self.operationTaskQueue.enqueue { operationCompletion in
+                defer { operationCompletion() }
 
-            guard self.canUpdate(identifier: entity.identifier, basedOn: time) else {
-                let localResult: E = try await withCheckedThrowingContinuation { continuation in
+                let time = UpdateTime(timestamp: context.originTimestamp)
+
+                guard self.canUpdate(identifier: entity.identifier, basedOn: time) else {
                     self.localStore.get(withQuery: Query.identifier(entity.identifier), in: ReadContext<E>()) { result in
                         switch result {
                         case .success(let queryResult):
@@ -879,15 +887,12 @@ private extension CoreManager {
                             continuation.resume(throwing: ManagerError.store(error))
                         }
                     }
+                    return
                 }
 
-                return localResult
-            }
+                self.setUpdateTime(time, for: entity.identifier)
+                let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
 
-            self.setUpdateTime(time, for: entity.identifier)
-            let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
-
-            return try await withCheckedThrowingContinuation { continuation in
                 storeStack.set(
                     entity,
                     in: context,
@@ -951,23 +956,24 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        let result: AnySequence<E> = try await operationTaskQueue.enqueue {
-            let time = UpdateTime(timestamp: context.originTimestamp)
-            var entitiesToUpdate = OrderedDualHashDictionary(
-                self.updateTime(for: entities
-                    .lazy.map { $0.identifier })
-                    .enumerated()
-                    .map { (index, updateTime) -> (E.Identifier, E?) in
-                        let entity = entities[index]
-                        if UpdateTime.isChronological(updateTime, time) {
-                            return (entity.identifier, entity)
-                        } else {
-                            return (entity.identifier, nil)
-                        }
-                    }
-            )
+        let result: AnySequence<E> = try await withCheckedThrowingContinuation { continuation in
+            try await self.operationTaskQueue.enqueue { operationCompletion in
+                defer { operationCompletion() }
 
-            return try await withCheckedThrowingContinuation { continuation in
+                let time = UpdateTime(timestamp: context.originTimestamp)
+                var entitiesToUpdate = OrderedDualHashDictionary(
+                    self.updateTime(for: entities.lazy.map { $0.identifier })
+                        .enumerated()
+                        .map { (index, updateTime) -> (E.Identifier, E?) in
+                            let entity = entities[index]
+                            if UpdateTime.isChronological(updateTime, time) {
+                                return (entity.identifier, entity)
+                            } else {
+                                return (entity.identifier, nil)
+                            }
+                        }
+                )
+
                 guard entitiesToUpdate.isEmpty == false else {
                     continuation.resume(returning: .empty)
                     return
@@ -1044,9 +1050,12 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        let result: AnySequence<E.Identifier> = try await operationTaskQueue.enqueue {
-            let time = UpdateTime(timestamp: context.originTimestamp)
-            return try await withCheckedThrowingContinuation { continuation in
+        let result = try await withCheckedThrowingContinuation { continuation in
+            try await self.operationTaskQueue.enqueue { operationCompletion in
+                defer { operationCompletion() }
+
+                let time = UpdateTime(timestamp: context.originTimestamp)
+
                 self.localStore.search(withQuery: query, in: ReadContext<E>()) { result in
                     switch result {
                     case .success(var results):
@@ -1054,7 +1063,7 @@ private extension CoreManager {
 
                         let entitiesToRemove = self.filter(entities: results.any, basedOn: time).compactMap { $0 }
                         guard entitiesToRemove.isEmpty == false else {
-                            continuation.resume(returning: .empty)
+                            continuation.resume(returning: AnySequence<E.Identifier>.empty)
                             return
                         }
                         let identifiersToRemove = entitiesToRemove.lazy.map { $0.identifier }
@@ -1149,37 +1158,35 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        try await operationTaskQueue.enqueue {
-            try await withCheckedThrowingContinuation { continuation in
-                let time = UpdateTime(timestamp: context.originTimestamp)
-                guard self.canUpdate(identifier: identifier, basedOn: time) else {
-                    return
-                }
-                self.setUpdateTime(time, for: identifier)
+        try await operationTaskQueue.enqueue { operationCompletion in
+            defer { operationCompletion() }
 
-                let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
-
-                storeStack.remove(
-                    atID: identifier,
-                    in: context,
-                    localStoresCompletion: { result in
-                        guard result?.error == nil else { return }
-                        self.raiseDeleteEvents(DualHashSet([identifier]))
-                    },
-                    allStoresCompletion: { result in
-                        switch result {
-                        case .success,
-                             .none:
-                            continuation.resume()
-                            self.raiseDeleteEvents(DualHashSet([identifier]))
-
-                        case .failure(let error):
-                            Logger.log(.error, "\(CoreManager.self): An error occurred while removing entity: \(error)")
-                            continuation.resume(throwing: ManagerError.store(error))
-                        }
-                    }
-                )
+            let time = UpdateTime(timestamp: context.originTimestamp)
+            guard self.canUpdate(identifier: identifier, basedOn: time) else {
+                return
             }
+            self.setUpdateTime(time, for: identifier)
+
+            let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+
+            storeStack.remove(
+                atID: identifier,
+                in: context,
+                localStoresCompletion: { result in
+                    guard result?.error == nil else { return }
+                    self.raiseDeleteEvents(DualHashSet([identifier]))
+                },
+                allStoresCompletion: { result in
+                    switch result {
+                    case .success,
+                         .none:
+                        self.raiseDeleteEvents(DualHashSet([identifier]))
+
+                    case .failure(let error):
+                        Logger.log(.error, "\(CoreManager.self): An error occurred while removing entity: \(error)")
+                    }
+                }
+            )
         }
 
         guard context.responseAllowedForAccessLevel,
@@ -1214,7 +1221,9 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        try await operationTaskQueue.enqueue {
+        try await operationTaskQueue.enqueue { operationCompletion in
+            defer { operationCompletion() }
+
             let time = UpdateTime(timestamp: context.originTimestamp)
             let identifiersToRemove = self.filter(identifiers: identifiers, basedOn: time).lazy.compactMap { $0 }
             guard identifiersToRemove.isEmpty == false else {
@@ -1225,28 +1234,24 @@ private extension CoreManager {
 
             let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
 
-            try await withCheckedThrowingContinuation { continuation in
-                storeStack.remove(
-                    identifiersToRemove,
-                    in: context,
-                    localStoresCompletion: { result in
-                        guard result?.error == nil else { return }
+            storeStack.remove(
+                identifiersToRemove,
+                in: context,
+                localStoresCompletion: { result in
+                    guard result?.error == nil else { return }
+                    self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
+                },
+                allStoresCompletion: { result in
+                    switch result {
+                    case .success,
+                         .none:
                         self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
-                    },
-                    allStoresCompletion: { result in
-                        switch result {
-                        case .success,
-                             .none:
-                            continuation.resume()
-                            self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
 
-                        case .failure(let error):
-                            Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities: \(error)")
-                            continuation.resume(throwing: ManagerError.store(error))
-                        }
+                    case .failure(let error):
+                        Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities: \(error)")
                     }
-                )
-            }
+                }
+            )
         }
 
         guard context.responseAllowedForAccessLevel,
@@ -1516,7 +1521,9 @@ private extension CoreManager {
 
         Task {
             do {
-                try await self.raiseEventsTaskQueue.enqueue() {
+                try await self.raiseEventsTaskQueue.enqueue() { operationCompletion in
+                    defer { operationCompletion() }
+
                     let properties = await self.propertyCache.properties
 
                     var _newEntitiesByID: DualHashDictionary<E.Identifier, E>?
@@ -1586,7 +1593,9 @@ private extension CoreManager {
     func raiseDeleteEvents(_ deletedIDs: DualHashSet<E.Identifier>) {
         Task {
             do {
-                try await self.raiseEventsTaskQueue.enqueue() {
+                try await self.raiseEventsTaskQueue.enqueue() { operationCompletion in
+                    defer { operationCompletion() }
+
                     let properties = await self.propertyCache.properties
                     for element in properties {
                         if let propertyValue = await element.property?.value() {

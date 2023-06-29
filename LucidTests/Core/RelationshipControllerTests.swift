@@ -259,12 +259,14 @@ final class RelationshipControllerTests: XCTestCase {
             streamContinuation = continuation
         }
 
+        let query =  RelationshipController<RelationshipCoreManagerSpy, GraphStub>.RelationshipQuery(
+            rootEntities: (once: result, continuous: continuous),
+            in: _ReadContext(),
+            relationshipManager: coreManager
+        )
+        
         do {
-            let queryResult = try await RelationshipController<RelationshipCoreManagerSpy, GraphStub>.RelationshipQuery(
-                rootEntities: (once: result, continuous: continuous),
-                in: _ReadContext(),
-                relationshipManager: coreManager
-            )
+            let queryResult = try await query
                 .includingAllRelationships(recursive: .none)
                 .perform(GraphStub.self)
 

@@ -444,8 +444,8 @@ public final class RelationshipController<RelationshipManager, Graph>
                         try await recurse()
 
                     case .none,
-                            .depthLimit,
-                            .full:
+                         .depthLimit,
+                         .full:
                         if depth >= globalDepthLimit {
                             Logger.log(.error, "\(RelationshipController.self): Recursion depth limit (\(globalDepthLimit)) has been reached.", assert: true)
                         }
@@ -705,11 +705,10 @@ public extension RelationshipController {
             let firstGraph = try await self.controller(for: self.rootEntities.once, context: self.mainContext).buildGraph()
 
             let continuous = AsyncStream<Graph> { continuation in
-                Task { [weak self] in
+                let task = Task {
                     var eventCount = 0
 
                     for try await result in rootEntities.continuous {
-                        guard let self else { return }
                         defer { eventCount += 1 }
 
                         if eventCount == 0 {
@@ -722,7 +721,11 @@ public extension RelationshipController {
                             continuation.yield(graph)
                         }
                     }
-                }.store(in: asyncTasks)
+                }
+
+                continuation.onTermination = { _ in
+                    task.cancel()
+                }
             }
 
             return (

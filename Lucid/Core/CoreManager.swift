@@ -833,6 +833,8 @@ private extension CoreManager {
             continuation.onTermination = { _ in
                 task.cancel()
             }
+
+            task.store(in: asyncTasks)
         }
 
         return (

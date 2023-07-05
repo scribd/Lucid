@@ -585,11 +585,8 @@ final class RelationshipControllerTests: XCTestCase {
                     expectation.fulfill()
                 }
             }, receiveValue: { graph in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    XCTAssertEqual(graph.entitySpies.count, 2)
-                    XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
-                }
-
+                XCTAssertEqual(graph.entitySpies.count, 2)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
                 XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 0)
                 expectation.fulfill()
             })
@@ -1380,7 +1377,7 @@ final class RelationshipControllerTests: XCTestCase {
                                relationshipManager: coreManager)
 
         do {
-            let graph = try await query
+            _ = try await query
                 .includingAllRelationships(recursive: .full)
                 .perform(GraphStub.self)
                 .once

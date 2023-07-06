@@ -69,11 +69,21 @@ struct MetaEntityGraph {
     private func relationshipQueryUtils() -> PlainCode {
         return PlainCode(code: """
         extension RelationshipController.RelationshipQuery where Graph == EntityGraph {
-            func perform() -> (once: AnyPublisher<EntityGraph, ManagerError>, continuous: AnyPublisher<EntityGraph, ManagerError>) {
+
+            func buildGraph() -> (once: AnyPublisher<EntityGraph, ManagerError>, continuous: AnyPublisher<EntityGraph, ManagerError>) {
                 let publishers = perform(EntityGraph.self)
                 return (
                     publishers.once.map { $0 as EntityGraph }.eraseToAnyPublisher(),
                     publishers.continuous.map { $0 as EntityGraph }.eraseToAnyPublisher()
+                )
+            }
+
+            func buildGraph() async throws -> (once: EntityGraph, continuous: AsyncStream<EntityGraph>) {
+                let result = try await perform(EntityGraph.self)
+
+                return (
+                    result.once,
+                    result.continuous
                 )
             }
         }

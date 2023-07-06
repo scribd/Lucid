@@ -40,4 +40,31 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
 
         return getByIDsStubs[getByIDsInvocations.count - 1].map { $0.any }.eraseToAnyPublisher()
     }
+
+    public private(set) var getByIDsAsyncInvocations = [(
+        identifiers: [AnyRelationshipIdentifierConvertible],
+        entityType: String,
+        context: _ReadContext<EntityEndpointResultPayloadSpy>
+    )]()
+
+    public var getByIDsAsyncStubs: [[AnyEntitySpy]] = []
+    public var getByIDsAsyncError: ManagerError? = nil
+
+    public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
+                    entityType: String,
+                    in context: _ReadContext<EntityEndpointResultPayloadSpy>) async throws -> AnySequence<AnyEntitySpy> {
+
+        getByIDsAsyncInvocations.append((identifiers.array, entityType, context))
+
+        if let error = getByIDsAsyncError {
+            throw error
+        }
+
+        guard getByIDsAsyncStubs.count >= getByIDsAsyncInvocations.count else {
+            XCTFail("Expected stub for call number \(getByIDsInvocations.count - 1)")
+            return [].any
+        }
+
+        return getByIDsAsyncStubs[getByIDsAsyncInvocations.count - 1].any
+    }
 }

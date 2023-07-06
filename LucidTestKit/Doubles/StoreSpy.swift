@@ -50,7 +50,14 @@ open class StoreSpy<E: Entity>: StoringConvertible {
 
     // MARK: - Asynchronous Timing
 
-    public var stubAsynchronousCompletionQueue: DispatchQueue?
+    public enum AsynchronousResult {
+        case delay(millieconds: Int, queue: DispatchQueue)
+        case manual(fireBlock: (@escaping () -> Void) -> Void)
+
+        public static func standardDelay(queue: DispatchQueue) -> AsynchronousResult { return .delay(millieconds: 20, queue: queue) }
+    }
+
+    public var asynchronousResult: AsynchronousResult?
 
     // MARK: - API
 
@@ -74,9 +81,16 @@ open class StoreSpy<E: Entity>: StoringConvertible {
             completion(.failure(.notSupported))
             return
         }
-        if let asynchronousQueue = stubAsynchronousCompletionQueue {
-            asynchronousQueue.asyncAfter(deadline: .now() + .milliseconds(20)) {
-                completion(result)
+        if let asynchronousResult = asynchronousResult {
+            switch asynchronousResult {
+            case .delay(let millieconds, let queue):
+                queue.asyncAfter(deadline: .now() + .milliseconds(millieconds)) {
+                    completion(result)
+                }
+            case .manual(fireBlock: let handler):
+                handler {
+                    completion(result)
+                }
             }
         } else {
             completion(result)
@@ -92,9 +106,16 @@ open class StoreSpy<E: Entity>: StoringConvertible {
             completion(.failure(.notSupported))
             return
         }
-        if let asynchronousQueue = stubAsynchronousCompletionQueue {
-            asynchronousQueue.asyncAfter(deadline: .now() + .milliseconds(20)) {
-                completion(result)
+        if let asynchronousResult = asynchronousResult {
+            switch asynchronousResult {
+            case .delay(let millieconds, let queue):
+                queue.asyncAfter(deadline: .now() + .milliseconds(millieconds)) {
+                    completion(result)
+                }
+            case .manual(fireBlock: let handler):
+                handler {
+                    completion(result)
+                }
             }
         } else {
             completion(result)
@@ -110,9 +131,16 @@ open class StoreSpy<E: Entity>: StoringConvertible {
             completion(.failure(.notSupported))
             return
         }
-        if let asynchronousQueue = stubAsynchronousCompletionQueue {
-            asynchronousQueue.asyncAfter(deadline: .now() + .milliseconds(20)) {
-                completion(result.any)
+        if let asynchronousResult = asynchronousResult {
+            switch asynchronousResult {
+            case .delay(let millieconds, let queue):
+                queue.asyncAfter(deadline: .now() + .milliseconds(millieconds)) {
+                    completion(result.any)
+                }
+            case .manual(fireBlock: let handler):
+                handler {
+                    completion(result.any)
+                }
             }
         } else {
             completion(result.any)
@@ -128,9 +156,16 @@ open class StoreSpy<E: Entity>: StoringConvertible {
             completion(.failure(.notSupported))
             return
         }
-        if let asynchronousQueue = stubAsynchronousCompletionQueue {
-            asynchronousQueue.asyncAfter(deadline: .now() + .milliseconds(20)) {
-                completion(result.any)
+        if let asynchronousResult = asynchronousResult {
+            switch asynchronousResult {
+            case .delay(let millieconds, let queue):
+                queue.asyncAfter(deadline: .now() + .milliseconds(millieconds)) {
+                    completion(result.any)
+                }
+            case .manual(fireBlock: let handler):
+                handler {
+                    completion(result.any)
+                }
             }
         } else {
             completion(result.any)
@@ -146,9 +181,16 @@ open class StoreSpy<E: Entity>: StoringConvertible {
             completion(.failure(.notSupported))
             return
         }
-        if let asynchronousQueue = stubAsynchronousCompletionQueue {
-            asynchronousQueue.asyncAfter(deadline: .now() + .milliseconds(20)) {
-                completion(result)
+        if let asynchronousResult = asynchronousResult {
+            switch asynchronousResult {
+            case .delay(let millieconds, let queue):
+                queue.asyncAfter(deadline: .now() + .milliseconds(millieconds)) {
+                    completion(result)
+                }
+            case .manual(fireBlock: let handler):
+                handler {
+                    completion(result)
+                }
             }
         } else {
             completion(result)

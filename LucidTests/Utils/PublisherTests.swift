@@ -1398,6 +1398,407 @@ final class PublisherTests: XCTestCase {
 
         waitForExpectations(timeout: 1)
     }
+
+    // MARK: QueuedReplayOnce
+
+    func test_queued_replay_once_passes_through_value_and_completion() {
+        var valueEmitter: ((Int) -> Void)?
+
+        let operationQueue = AsyncOperationQueue()
+        let replayOnce = Publishers.QueuedReplayOnce<Int, FirstErrorType>(operationQueue) { promise, completion in
+            valueEmitter = { value in
+                promise(.success(value))
+            }
+            completion()
+        }
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 2
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 10)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        operationQueue.run(title: "emit_value") { completion in
+            valueEmitter?(10)
+            completion()
+        }
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_queued_replay_once_passes_through_value_and_completion_if_it_fires_before_subscriber() {
+
+        var valueEmitter: ((Int) -> Void)?
+
+        let operationQueue = AsyncOperationQueue()
+        let replayOnce = Publishers.QueuedReplayOnce<Int, FirstErrorType>(operationQueue) { promise, completion in
+            valueEmitter = { value in
+                promise(.success(value))
+            }
+            completion()
+        }
+
+        operationQueue.run(title: "emit_value") { completion in
+            valueEmitter?(10)
+            completion()
+        }
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 2
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 10)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_queued_replay_once_passes_through_failure() {
+        var failureEmitter: ((FirstErrorType) -> Void)?
+
+        let operationQueue = AsyncOperationQueue()
+        let replayOnce = Publishers.QueuedReplayOnce<Int, FirstErrorType>(operationQueue) { promise, completion in
+            failureEmitter = { error in
+                promise(.failure(error))
+            }
+            completion()
+        }
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 1
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTAssertEqual(error, .one)
+                    replayExpectation.fulfill()
+                case .finished:
+                    XCTFail("unexpected finished")
+                }
+            }, receiveValue: { value in
+                XCTFail("unexpected value: \(value)")
+            })
+            .store(in: &cancellables)
+
+        operationQueue.run(title: "emit_failure") { completion in
+            failureEmitter?(.one)
+            completion()
+        }
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_queued_replay_once_passes_through_failure_if_it_fires_before_subscriber() {
+
+        var failureEmitter: ((FirstErrorType) -> Void)?
+
+        let operationQueue = AsyncOperationQueue()
+        let replayOnce = Publishers.QueuedReplayOnce<Int, FirstErrorType>(operationQueue) { promise, completion in
+            failureEmitter = { error in
+                promise(.failure(error))
+            }
+            completion()
+        }
+
+        operationQueue.run(title: "emit_failure") { completion in
+            failureEmitter?(.one)
+            completion()
+        }
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 1
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTAssertEqual(error, .one)
+                    replayExpectation.fulfill()
+                case .finished:
+                    XCTFail("unexpected finished")
+                }
+            }, receiveValue: { value in
+                XCTFail("unexpected value: \(value)")
+            })
+            .store(in: &cancellables)
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_queued_replay_once_passes_through_value_and_completion_for_optional_data_returning_actual_value() {
+        var valueEmitter: ((Int?) -> Void)?
+
+        let operationQueue = AsyncOperationQueue()
+        let replayOnce = Publishers.QueuedReplayOnce<Int?, FirstErrorType>(operationQueue) { promise, completion in
+            valueEmitter = { value in
+                promise(.success(value))
+            }
+            completion()
+        }
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 2
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 10)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        operationQueue.run(title: "emit_value") { completion in
+            valueEmitter?(10)
+            completion()
+        }
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_queued_replay_once_passes_through_value_and_completion_for_optional_data_returning_nil_value() {
+        var valueEmitter: ((Int?) -> Void)?
+
+        let operationQueue = AsyncOperationQueue()
+        let replayOnce = Publishers.QueuedReplayOnce<Int?, FirstErrorType>(operationQueue) { promise, completion in
+            valueEmitter = { value in
+                promise(.success(value))
+            }
+            completion()
+        }
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 2
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertNil(value)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        operationQueue.run(title: "emit_value") { completion in
+            valueEmitter?(nil)
+            completion()
+        }
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_queued_replay_once_passes_through_value_and_completion_for_optional_data_returning_actual_value_if_it_fires_before_subscriber() {
+        var valueEmitter: ((Int?) -> Void)?
+
+        let operationQueue = AsyncOperationQueue()
+        let replayOnce = Publishers.QueuedReplayOnce<Int?, FirstErrorType>(operationQueue) { promise, completion in
+            valueEmitter = { value in
+                promise(.success(value))
+            }
+            completion()
+        }
+
+        operationQueue.run(title: "emit_value") { completion in
+            valueEmitter?(10)
+            completion()
+        }
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 2
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertEqual(value, 10)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_queued_replay_once_passes_through_value_and_completion_for_optional_data_returning_nil_value_if_it_fires_before_subscriber() {
+        var valueEmitter: ((Int?) -> Void)?
+
+        let operationQueue = AsyncOperationQueue()
+        let replayOnce = Publishers.QueuedReplayOnce<Int?, FirstErrorType>(operationQueue) { promise, completion in
+            valueEmitter = { value in
+                promise(.success(value))
+            }
+            completion()
+        }
+
+        operationQueue.run(title: "emit_value") { completion in
+            valueEmitter?(nil)
+            completion()
+        }
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 2
+
+        replayOnce
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                XCTAssertNil(value)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        waitForExpectations(timeout: 1)
+    }
+
+    func test_queued_replay_once_performs_operations_in_order() {
+
+        let testQueue = DispatchQueue(label: "test_queue")
+
+        var completion1: (() -> Void)?
+        var completion2: (() -> Void)?
+        var completion3: (() -> Void)?
+
+        let operationQueue = AsyncOperationQueue(dispatchQueue: testQueue)
+        let replayOnce1 = Publishers.QueuedReplayOnce<Int?, FirstErrorType>(operationQueue) { promise, completion in
+            promise(.success(5))
+            completion1 = completion
+        }
+
+        let replayOnce2 = Publishers.QueuedReplayOnce<Int?, FirstErrorType>(operationQueue) { promise, completion in
+            promise(.success(10))
+            completion2 = completion
+        }
+
+        let replayOnce3 = Publishers.QueuedReplayOnce<Int?, FirstErrorType>(operationQueue) { promise, completion in
+            promise(.success(15))
+            completion3 = completion
+        }
+
+        let completionExpectation = self.expectation(description: "replay_expectation")
+
+        let waitForQueues: (@escaping () -> Void) -> Void = { handler in
+            testQueue.asyncAfter(deadline: .now() + .milliseconds(1)) {
+                testQueue.asyncAfter(deadline: .now() + .milliseconds(1)) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(1)) {
+                        handler()
+                    }
+                }
+            }
+        }
+
+        waitForQueues {
+            XCTAssertNotNil(completion1)
+            XCTAssertNil(completion2)
+            XCTAssertNil(completion3)
+            completion1?()
+
+            waitForQueues {
+                XCTAssertNotNil(completion2)
+                XCTAssertNil(completion3)
+                completion2?()
+
+                waitForQueues {
+                    XCTAssertNotNil(completion3)
+                    completion3?()
+                    completionExpectation.fulfill()
+                }
+            }
+        }
+
+        wait(for: [completionExpectation], timeout: 1)
+
+        let replayExpectation = self.expectation(description: "replay_expectation")
+        replayExpectation.expectedFulfillmentCount = 6
+
+        var receivedValues: [Int?] = []
+
+        replayOnce1
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                receivedValues.append(value)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        replayOnce2
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                receivedValues.append(value)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        replayOnce3
+            .sink(receiveCompletion: { terminal in
+                switch terminal {
+                case .failure(let error):
+                    XCTFail("unexpected failure: \(error)")
+                case .finished:
+                    replayExpectation.fulfill()
+                }
+            }, receiveValue: { value in
+                receivedValues.append(value)
+                replayExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        wait(for: [replayExpectation], timeout: 1)
+
+        XCTAssertEqual(receivedValues, [5, 10, 15])
+    }
 }
 
 // MARK: - Error Types

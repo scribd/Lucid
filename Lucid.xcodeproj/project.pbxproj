@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		01ED569B29E9C3FA00C77548 /* Async.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ED569A29E9C3FA00C77548 /* Async.swift */; };
+		01ED569C29E9C3FA00C77548 /* Async.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ED569A29E9C3FA00C77548 /* Async.swift */; };
+		01ED569D29E9C3FA00C77548 /* Async.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ED569A29E9C3FA00C77548 /* Async.swift */; };
+		01ED569E29E9C3FA00C77548 /* Async.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ED569A29E9C3FA00C77548 /* Async.swift */; };
 		1907AD8424A682D300727F82 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1907AD8224A6826400727F82 /* Configuration.swift */; };
 		1907AD8624A682DB00727F82 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1907AD8224A6826400727F82 /* Configuration.swift */; };
 		190ADC0D2458D71000D22F6D /* Lucid.h in Headers */ = {isa = PBXBuildFile; fileRef = 190ADC0B2458D71000D22F6D /* Lucid.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -172,6 +176,7 @@
 		198A9B6625560DD1008E3C5E /* Combine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1987FA452554A7210057F1CC /* Combine.swift */; };
 		198CC31424C663D600E2F951 /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
 		19ED00972481C3D10033B7BD /* AsyncOperationQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */; };
+		F40A55BC2A14197E00612C70 /* CoreManagerPropertyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40A55BB2A14197E00612C70 /* CoreManagerPropertyTests.swift */; };
 		F417CD3127EBD5660077210C /* Cancellable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F417CD3027EBD5660077210C /* Cancellable.swift */; };
 		F417CD3227EBD5660077210C /* Cancellable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F417CD3027EBD5660077210C /* Cancellable.swift */; };
 		F417CD3327EBD5660077210C /* Cancellable.swift in Sources */ = {isa = PBXBuildFile; fileRef = F417CD3027EBD5660077210C /* Cancellable.swift */; };
@@ -182,6 +187,7 @@
 		F438471027E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */; };
 		F438471127E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */; };
 		F438471227E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */; };
+		F43FFE8F2A1413C60000AAC2 /* AsyncCurrentValueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F43FFE8E2A1413C60000AAC2 /* AsyncCurrentValueTests.swift */; };
 		F440173827A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
 		F440173927A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
 		F440173A27A4A7A600B9D983 /* Publisher+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */; };
@@ -277,6 +283,10 @@
 		F48C80BF2655973000581182 /* AnyEquatable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC532458D89C00D22F6D /* AnyEquatable.swift */; };
 		F48C80C02655973000581182 /* Result.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC492458D89C00D22F6D /* Result.swift */; };
 		F48C80C12655973000581182 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADC472458D89C00D22F6D /* Logger.swift */; };
+		F4939A552A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4939A542A12EC4200C69D0E /* AsyncCurrentValue.swift */; };
+		F4939A562A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4939A542A12EC4200C69D0E /* AsyncCurrentValue.swift */; };
+		F4939A572A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4939A542A12EC4200C69D0E /* AsyncCurrentValue.swift */; };
+		F4939A582A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4939A542A12EC4200C69D0E /* AsyncCurrentValue.swift */; };
 		F4A7587A2914746F0046DE3F /* APIClientQueueResponseHandlerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCCE2458D9A500D22F6D /* APIClientQueueResponseHandlerSpy.swift */; };
 		F4A7587B2914746F0046DE3F /* APIClientQueueSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCC02458D9A500D22F6D /* APIClientQueueSpy.swift */; };
 		F4A7587C2914746F0046DE3F /* RelationshipCoreManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBC2458D9A500D22F6D /* RelationshipCoreManagerSpy.swift */; };
@@ -353,6 +363,7 @@
 		F4A758DD291479460046DE3F /* EntityRelationshipSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190ADCBF2458D9A500D22F6D /* EntityRelationshipSpy.swift */; };
 		F4A758DE291479490046DE3F /* StubCoreDataModel.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = F47E5EF924AA57BC007DCC4A /* StubCoreDataModel.xcdatamodeld */; };
 		F4A758DF2914794D0046DE3F /* Combine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1987FA452554A7210057F1CC /* Combine.swift */; };
+		F4B987472A0EAA3000421E20 /* AsyncTaskQueueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4B987462A0EAA3000421E20 /* AsyncTaskQueueTests.swift */; };
 		F4EF380727ADCCF000964191 /* PayloadPersistenceManagerSpy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4EF380627ADCCF000964191 /* PayloadPersistenceManagerSpy.swift */; };
 		F4FEEF9A27D9A1BA00812A6E /* Publishers+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FEEF9927D9A1BA00812A6E /* Publishers+Extensions.swift */; };
 		F4FEEF9B27D9A1BA00812A6E /* Publishers+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FEEF9927D9A1BA00812A6E /* Publishers+Extensions.swift */; };
@@ -413,6 +424,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		01ED569A29E9C3FA00C77548 /* Async.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Async.swift; sourceTree = "<group>"; };
 		1907AD8224A6826400727F82 /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
 		190ADC082458D71000D22F6D /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		190ADC0B2458D71000D22F6D /* Lucid.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Lucid.h; sourceTree = "<group>"; };
@@ -724,9 +736,11 @@
 		F405C35024A41844004E1BB3 /* APIClientQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueTests.swift; sourceTree = "<group>"; };
 		F405C35124A41844004E1BB3 /* APIClientQueueDefaultSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueDefaultSchedulerTests.swift; sourceTree = "<group>"; };
 		F405C35224A41844004E1BB3 /* APIClientQueueProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientQueueProcessorTests.swift; sourceTree = "<group>"; };
+		F40A55BB2A14197E00612C70 /* CoreManagerPropertyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreManagerPropertyTests.swift; sourceTree = "<group>"; };
 		F417CD3027EBD5660077210C /* Cancellable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cancellable.swift; sourceTree = "<group>"; };
 		F417CD3527EBD69F0077210C /* CombineHelperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombineHelperTests.swift; sourceTree = "<group>"; };
 		F438470E27E15D5C00D6EB98 /* CoreManagerProperty.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreManagerProperty.swift; sourceTree = "<group>"; };
+		F43FFE8E2A1413C60000AAC2 /* AsyncCurrentValueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncCurrentValueTests.swift; sourceTree = "<group>"; };
 		F440173727A4A7A600B9D983 /* Publisher+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Publisher+Extensions.swift"; sourceTree = "<group>"; };
 		F45FA8FA24EC8D3C00368CCB /* Contract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Contract.swift; sourceTree = "<group>"; };
 		F47A447D291473ED0031286B /* LucidTestKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LucidTestKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -734,11 +748,13 @@
 		F48C717624896F5400099980 /* CoreManagerContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreManagerContractTests.swift; sourceTree = "<group>"; };
 		F48C7FFA2655948200581182 /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F48C8058265596D700581182 /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		F4939A542A12EC4200C69D0E /* AsyncCurrentValue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncCurrentValue.swift; sourceTree = "<group>"; };
 		F4A40EBF2513B8700025E48C /* CodingPathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodingPathTests.swift; sourceTree = "<group>"; };
 		F4A75898291477960046DE3F /* LucidTestKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LucidTestKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F4A7589A291477960046DE3F /* LucidTestKit_tvOS.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LucidTestKit_tvOS.h; sourceTree = "<group>"; };
 		F4A758BF2914791E0046DE3F /* LucidTestKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = LucidTestKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F4A758C12914791E0046DE3F /* LucidTestKit_macOS.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LucidTestKit_macOS.h; sourceTree = "<group>"; };
+		F4B987462A0EAA3000421E20 /* AsyncTaskQueueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncTaskQueueTests.swift; sourceTree = "<group>"; };
 		F4EF380627ADCCF000964191 /* PayloadPersistenceManagerSpy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PayloadPersistenceManagerSpy.swift; sourceTree = "<group>"; };
 		F4FEEF9927D9A1BA00812A6E /* Publishers+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Publishers+Extensions.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -913,6 +929,8 @@
 			children = (
 				190ADC532458D89C00D22F6D /* AnyEquatable.swift */,
 				190ADC462458D89C00D22F6D /* AnySequence.swift */,
+				01ED569A29E9C3FA00C77548 /* Async.swift */,
+				F4939A542A12EC4200C69D0E /* AsyncCurrentValue.swift */,
 				190ADC4B2458D89C00D22F6D /* AsyncOperationQueue.swift */,
 				190ADC4F2458D89C00D22F6D /* BackgroundTaskManager.swift */,
 				F417CD3027EBD5660077210C /* Cancellable.swift */,
@@ -978,9 +996,12 @@
 		190ADC9C2458D8FE00D22F6D /* Utils */ = {
 			isa = PBXGroup;
 			children = (
+				F43FFE8E2A1413C60000AAC2 /* AsyncCurrentValueTests.swift */,
 				19ED00962481C3D10033B7BD /* AsyncOperationQueueTests.swift */,
+				F4B987462A0EAA3000421E20 /* AsyncTaskQueueTests.swift */,
 				191F919324C12AAA0050C7C6 /* BackgroundTaskManagerTests.swift */,
 				F417CD3527EBD69F0077210C /* CombineHelperTests.swift */,
+				F40A55BB2A14197E00612C70 /* CoreManagerPropertyTests.swift */,
 				19ED00942481C3960033B7BD /* DataStructuresTests.swift */,
 				190ADC9F2458D8FE00D22F6D /* DiskCacheTests.swift */,
 				190ADC9D2458D8FE00D22F6D /* DiskQueueTests.swift */,
@@ -2080,6 +2101,7 @@
 				190ADC7D2458D89C00D22F6D /* CancellationToken.swift in Sources */,
 				190ADC7B2458D89C00D22F6D /* BackgroundTaskManager.swift in Sources */,
 				190ADC7A2458D89C00D22F6D /* DiskCache.swift in Sources */,
+				F4939A552A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */,
 				190ADC552458D89C00D22F6D /* Query.swift in Sources */,
 				190ADC6F2458D89C00D22F6D /* RemoteStore.swift in Sources */,
 				190ADC562458D89C00D22F6D /* Metadata.swift in Sources */,
@@ -2090,6 +2112,7 @@
 				190ADC5D2458D89C00D22F6D /* APIClientQueue.swift in Sources */,
 				190ADC7C2458D89C00D22F6D /* ScheduledTimer.swift in Sources */,
 				190ADC6E2458D89C00D22F6D /* CoreDataStore.swift in Sources */,
+				01ED569B29E9C3FA00C77548 /* Async.swift in Sources */,
 				190ADC712458D89C00D22F6D /* DataStructures.swift in Sources */,
 				190ADC6B2458D89C00D22F6D /* RecoverableStore.swift in Sources */,
 				F438471027E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */,
@@ -2113,6 +2136,7 @@
 				1987FA4C2554AC1A0057F1CC /* EntitySearchTests.swift in Sources */,
 				1987F9D92554A4120057F1CC /* BackgroundTaskManagerTests.swift in Sources */,
 				1987FA322554A5670057F1CC /* CodingPathTests.swift in Sources */,
+				F4B987472A0EAA3000421E20 /* AsyncTaskQueueTests.swift in Sources */,
 				1987FA1A2554A52C0057F1CC /* LRUStoreTests.swift in Sources */,
 				1987F9F62554A4D70057F1CC /* DiskCacheTests.swift in Sources */,
 				1987FA5E2555D9740057F1CC /* CoreManagerContractTests.swift in Sources */,
@@ -2124,12 +2148,14 @@
 				1987FA082554A50F0057F1CC /* BaseStoreTests.swift in Sources */,
 				1987FA0E2554A5150057F1CC /* CacheStoreTests.swift in Sources */,
 				1987F9F02554A4C00057F1CC /* DataStructuresTests.swift in Sources */,
+				F40A55BC2A14197E00612C70 /* CoreManagerPropertyTests.swift in Sources */,
 				1987FA2C2554A55A0057F1CC /* RemoteStoreTests.swift in Sources */,
 				19ED00972481C3D10033B7BD /* AsyncOperationQueueTests.swift in Sources */,
 				1987FA582554AC3C0057F1CC /* CoreManagerTests.swift in Sources */,
 				1987FA642555DD410057F1CC /* APIClientQueueTests.swift in Sources */,
 				1987FA142554A5230057F1CC /* CoreDataStoreTests.swift in Sources */,
 				1987FA382554A5740057F1CC /* StoreStackTests.swift in Sources */,
+				F43FFE8F2A1413C60000AAC2 /* AsyncCurrentValueTests.swift in Sources */,
 				F417CD3627EBD69F0077210C /* CombineHelperTests.swift in Sources */,
 				1987FA022554A4F50057F1CC /* PublisherTests.swift in Sources */,
 				1987FA3E2554A5810057F1CC /* RelationshipControllerTests.swift in Sources */,
@@ -2199,6 +2225,7 @@
 				190ADCFE2458DA9B00D22F6D /* CancellationToken.swift in Sources */,
 				190ADCFF2458DA9B00D22F6D /* BackgroundTaskManager.swift in Sources */,
 				190ADD002458DA9B00D22F6D /* DiskCache.swift in Sources */,
+				F4939A582A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */,
 				190ADD012458DA9B00D22F6D /* Query.swift in Sources */,
 				190ADD022458DA9B00D22F6D /* RemoteStore.swift in Sources */,
 				190ADD032458DA9B00D22F6D /* Metadata.swift in Sources */,
@@ -2209,6 +2236,7 @@
 				190ADD092458DA9B00D22F6D /* APIClientQueue.swift in Sources */,
 				190ADD0A2458DA9B00D22F6D /* ScheduledTimer.swift in Sources */,
 				190ADD0B2458DA9B00D22F6D /* CoreDataStore.swift in Sources */,
+				01ED569E29E9C3FA00C77548 /* Async.swift in Sources */,
 				190ADD0C2458DA9B00D22F6D /* DataStructures.swift in Sources */,
 				190ADD0D2458DA9B00D22F6D /* RecoverableStore.swift in Sources */,
 				F438471227E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */,
@@ -2314,6 +2342,7 @@
 				F48C80212655958500581182 /* CoreDataConversion.swift in Sources */,
 				F48C80142655958500581182 /* Color.swift in Sources */,
 				F48C80362655958E00581182 /* PropertyBox.swift in Sources */,
+				F4939A562A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */,
 				F48C803D2655958E00581182 /* Logger.swift in Sources */,
 				F48C80272655958500581182 /* HTTPTypes.swift in Sources */,
 				F48C801C2655958500581182 /* Context.swift in Sources */,
@@ -2324,6 +2353,7 @@
 				F48C80412655958E00581182 /* CancellationToken.swift in Sources */,
 				F48C803A2655958E00581182 /* DataStructures.swift in Sources */,
 				F48C80342655958E00581182 /* DiskQueue.swift in Sources */,
+				01ED569C29E9C3FA00C77548 /* Async.swift in Sources */,
 				F48C80402655958E00581182 /* Result.swift in Sources */,
 				F48C802E2655958A00581182 /* RecoverableStore.swift in Sources */,
 				F438470F27E15D5C00D6EB98 /* CoreManagerProperty.swift in Sources */,
@@ -2369,6 +2399,7 @@
 				F48C809D2655972700581182 /* APIClientQueueDefaultScheduler.swift in Sources */,
 				F48C80BA2655973000581182 /* DiskCache.swift in Sources */,
 				F48C80892655972700581182 /* CoreManager.swift in Sources */,
+				F4939A572A12EC4200C69D0E /* AsyncCurrentValue.swift in Sources */,
 				F48C80962655972700581182 /* ManagerResult.swift in Sources */,
 				F48C80882655972700581182 /* Context.swift in Sources */,
 				F48C80A92655972B00581182 /* CoreDataStore.swift in Sources */,
@@ -2379,6 +2410,7 @@
 				F48C809A2655972700581182 /* Contract.swift in Sources */,
 				F48C808C2655972700581182 /* Color.swift in Sources */,
 				F48C808A2655972700581182 /* Entity.swift in Sources */,
+				01ED569D29E9C3FA00C77548 /* Async.swift in Sources */,
 				F48C80942655972700581182 /* Codable.swift in Sources */,
 				F48C80C02655973000581182 /* Result.swift in Sources */,
 				F48C808F2655972700581182 /* Version.swift in Sources */,

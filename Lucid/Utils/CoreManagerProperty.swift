@@ -31,7 +31,7 @@ final actor CoreManagerProperty<Output: Equatable> {
     }
 
     func value() async -> Output? {
-        return await stream.value
+        return await stream.value ?? nil
     }
 }
 

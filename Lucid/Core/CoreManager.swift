@@ -823,18 +823,20 @@ private extension CoreManager {
 
         let continuous = AsyncStream<QueryResult<E>>() { continuation in
 
+            let iterator = property.stream.makeAsyncIterator()
             let task = Task {
-                for try await value in property.stream {
-                    guard let value = value else { continue }
+                for try await value in iterator {
+                    guard let value = (value ?? nil) else { continue }
                     continuation.yield(value)
                 }
             }
 
             continuation.onTermination = { _ in
                 task.cancel()
+                Task {
+                    await property.stream.cancelIterator(iterator)
+                }
             }
-
-            task.store(in: asyncTasks)
         }
 
         return (

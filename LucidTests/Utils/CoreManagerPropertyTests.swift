@@ -24,7 +24,8 @@ final class CoreManagerPropertyTests: XCTestCase {
                 }
 
                 group.addTask(priority: .low) {
-                    for try await value in await property.stream {
+                    let iterator = await property.stream.makeAsyncIterator()
+                    for try await value in iterator {
                         XCTAssertEqual(value, 5)
                         return
                     }
@@ -45,7 +46,8 @@ final class CoreManagerPropertyTests: XCTestCase {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 group.addTask(priority: .high) {
                     var count = 0
-                    for try await value in await property.stream {
+                    let iterator = await property.stream.makeAsyncIterator()
+                    for try await value in iterator {
                         if count == 0 {
                             XCTAssertEqual(value, nil)
                         } else if count == 1 {
@@ -76,7 +78,8 @@ final class CoreManagerPropertyTests: XCTestCase {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 group.addTask(priority: .high) {
                     var count = 0
-                    for try await value in await property.stream {
+                    let iterator = await property.stream.makeAsyncIterator()
+                    for try await value in iterator {
                         if count == 0 {
                             XCTAssertEqual(value, nil)
                         } else if count == 1 {
@@ -118,7 +121,8 @@ final class CoreManagerPropertyTests: XCTestCase {
 
         Task(priority: .high) {
             var count = 0
-            for try await value in await property.stream {
+            let iterator = await property.stream.makeAsyncIterator()
+            for try await value in iterator {
                 if count == 0 {
                     XCTAssertEqual(value, nil)
                 } else if count == 1 {
@@ -133,7 +137,8 @@ final class CoreManagerPropertyTests: XCTestCase {
 
         Task(priority: .high) {
             var count = 0
-            for try await value in await property.stream {
+            let iterator = await property.stream.makeAsyncIterator()
+            for try await value in iterator {
                 if count == 0 {
                     XCTAssertEqual(value, nil)
                 } else if count == 1 {

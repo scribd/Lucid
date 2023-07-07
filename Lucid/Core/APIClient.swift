@@ -134,19 +134,18 @@ public struct APIRequestConfig: Codable, Hashable {
             case barrier
         }
 
-        public struct RetryPolicy: OptionSet, Codable, Hashable {
-            public let rawValue: Int
-            public init(rawValue: Int) { self.rawValue = rawValue }
-
-            public static let onNetworkInterrupt = RetryPolicy(rawValue: 1 << 0)
-            public static let onRequestTimeout = RetryPolicy(rawValue: 1 << 1)
+        public enum RetryPolicy: Codable, Hashable {
+            case onNetworkInterrupt
+            case onRequestTimeout
+            case onCustomErrorCodes([Int])
+            case onAllErrorCodesExcept([Int])
         }
 
         public let synchronization: Synchronization
-        public let retryPolicy: RetryPolicy
+        public let retryPolicy: [RetryPolicy]
 
         public init(synchronization: Synchronization,
-                    retryPolicy: RetryPolicy) {
+                    retryPolicy: [RetryPolicy]) {
             self.synchronization = synchronization
             self.retryPolicy = retryPolicy
         }

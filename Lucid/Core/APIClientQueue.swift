@@ -66,6 +66,36 @@ public struct APIClientQueueRequest: Equatable, Codable {
         return wrapped.config.queueingStrategy.retryPolicy.contains(.onRequestTimeout)
     }
 
+    public var retryErrorCodes: [Int]? {
+        let codes: [Int] = wrapped.config.queueingStrategy.retryPolicy.compactMap { policy in
+            switch policy {
+            case .onCustomErrorCodes(let customCodes):
+                return customCodes
+            case .onRequestTimeout,
+                 .onNetworkInterrupt,
+                 .onAllErrorCodesExcept:
+                return nil
+            }
+        }.flatMap { $0 }
+
+        return codes.isEmpty ? nil : codes
+    }
+
+    public var doNotRetryErrorCodes: [Int]? {
+        let codes: [Int] = wrapped.config.queueingStrategy.retryPolicy.compactMap { policy in
+            switch policy {
+            case .onAllErrorCodesExcept(let exceptingCodes):
+                return exceptingCodes
+            case .onRequestTimeout,
+                 .onNetworkInterrupt,
+                 .onCustomErrorCodes:
+                return nil
+            }
+        }.flatMap { $0 }
+
+        return codes.isEmpty ? nil : codes
+    }
+
     public init(wrapping request: APIRequest<Data>, identifiers: Data? = nil) {
         self.wrapped = request
         self.identifiers = identifiers
@@ -795,6 +825,14 @@ private extension APIClientQueueProcessor {
                 removeRequestsMatching({ $0.retryOnRequestTimeout == false })
             }
             delegate?.prepend(request)
+        case .network(.other(let error)):
+            if let retryErrorCodes = request.retryErrorCodes, retryErrorCodes.contains(error.code) {
+                delegate?.prepend(request)
+            } else if let doNotRetryErrorCodes = request.doNotRetryErrorCodes, doNotRetryErrorCodes.contains(error.code) == false {
+                delegate?.prepend(request)
+            } else {
+                Logger.log(.error, "\(APIClientQueueProcessor.self): Request: \(client.description(for: request.wrapped.config)) failed and won't be retried: \(apiError)")
+            }
         case .api,
              .deserialization,
              .network,

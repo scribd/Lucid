@@ -646,6 +646,128 @@ final class APIClientQueueProcessorTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 
+    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_retry_when_returned_error_code_is_not_included_in_custom_list() {
+        let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [
+            .onCustomErrorCodes([1008])
+        ])
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
+        processDelegateSpy.requestStub = request
+        processor.delegate = processDelegateSpy
+
+        let error = NSError(domain: "test", code: 550)
+        clientSpy.resultStubs = [
+            request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.other(error)))
+        ]
+
+        XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
+        XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
+        XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
+
+        processor.processNext()
+
+        let expectation = self.expectation(description: "processor")
+        waitForAsyncQueues {
+            XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
+            XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
+            XCTAssertNil(self.processDelegateSpy.prependInvocations.first)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
+
+    func test_processor_tells_scheduler_request_failed_and_prepends_request_for_retry_when_returned_error_code_is_included_in_custom_list() {
+        let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [
+            .onCustomErrorCodes([1008])
+        ])
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
+        processDelegateSpy.requestStub = request
+        processor.delegate = processDelegateSpy
+
+        let error = NSError(domain: "test", code: 1008)
+        clientSpy.resultStubs = [
+            request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.other(error)))
+        ]
+
+        XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
+        XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
+        XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
+
+        processor.processNext()
+
+        let expectation = self.expectation(description: "processor")
+        waitForAsyncQueues {
+            XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 1)
+            XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
+            XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
+            XCTAssertEqual(self.processDelegateSpy.prependInvocations.first, request)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
+
+    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_retry_when_returned_error_code_is_included_in_exception_list() {
+        let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [
+            .onAllErrorCodesExcept([1008])
+        ])
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
+        processDelegateSpy.requestStub = request
+        processor.delegate = processDelegateSpy
+
+        let error = NSError(domain: "test", code: 1008)
+        clientSpy.resultStubs = [
+            request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.other(error)))
+        ]
+
+        XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
+        XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
+        XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
+
+        processor.processNext()
+
+        let expectation = self.expectation(description: "processor")
+        waitForAsyncQueues {
+            XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
+            XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
+            XCTAssertNil(self.processDelegateSpy.prependInvocations.first)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
+
+    func test_processor_tells_scheduler_request_failed_and_prepends_request_for_retry_when_returned_error_code_is_not_included_in_exception_list() {
+        let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [
+            .onAllErrorCodesExcept([1008])
+        ])
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
+        processDelegateSpy.requestStub = request
+        processor.delegate = processDelegateSpy
+
+        let error = NSError(domain: "test", code: 408)
+        clientSpy.resultStubs = [
+            request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.other(error)))
+        ]
+
+        XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
+        XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
+        XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
+
+        processor.processNext()
+
+        let expectation = self.expectation(description: "processor")
+        waitForAsyncQueues {
+            XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 1)
+            XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
+            XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
+            XCTAssertEqual(self.processDelegateSpy.prependInvocations.first, request)
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1)
+    }
+
     func test_processor_should_call_response_handlers_after_process_is_complete_with_success() {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request

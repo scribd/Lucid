@@ -1386,8 +1386,8 @@ private extension CoreManager {
             properties.append(entry)
 
             // As soon as the last observer is removed from `property`, the `entry` gets released.
-            await property.setDidRemoveLastObserver { [weak self] in
-                guard let self = self else { return }
+            await property.setDidRemoveLastObserver { [weak self, weak entry] in
+                guard let self = self, let entry = entry else { return }
                 await self.removeEntry(entry)
             }
 

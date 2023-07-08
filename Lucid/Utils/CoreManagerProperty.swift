@@ -153,6 +153,7 @@ final class CoreManagerCombineProperty<E: Entity, Failure: Error>: Publisher {
                             self.currentValue.send(result)
                             self.currentValue.send(completion: .finished)
                         } catch let error as Failure {
+                            completion()
                             self.currentValue.send(completion: .failure(error))
                         }
                     }.store(in: self.asyncTasks)
@@ -163,8 +164,7 @@ final class CoreManagerCombineProperty<E: Entity, Failure: Error>: Publisher {
                             self.currentValue.send(value)
                         }
                     }.store(in: self.asyncTasks)
-                    Task {
-                        try await Task.sleep(nanoseconds: 100000)
+                    Task(priority: .low) {
                         completion()
                     }.store(in: self.asyncTasks)
                 }

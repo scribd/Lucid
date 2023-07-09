@@ -456,8 +456,6 @@ public final class CoreManager<E> where E: Entity {
     private let updatesMetadataQueue = DispatchQueue(label: "\(CoreManager.self):updates_metadata")
     private var _updatesMetadata = DualHashDictionary<E.Identifier, UpdateTime>()
 
-    private let asyncTasks = AsyncTasks()
-
     // MARK: - Inits
 
     public init(stores: [Storing<E>]) {
@@ -540,7 +538,6 @@ private extension CoreManager {
                     Task {
                         _ = try? await self.get(withQuery: query, in: remoteContext)
                     }
-                    .store(in: self.asyncTasks)
                 }
                 return localResult
             } else {

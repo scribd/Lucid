@@ -59,7 +59,7 @@ final class CoreManagerPropertyTests: XCTestCase {
                 }
 
                 group.addTask(priority: .low) {
-                    try? await Task.sleep(nanoseconds: 100000)
+                    try? await Task.sleep(nanoseconds: 1000000)
                     await property.update(with: 5)
                 }
 

@@ -456,8 +456,6 @@ public final class CoreManager<E> where E: Entity {
     private let updatesMetadataQueue = DispatchQueue(label: "\(CoreManager.self):updates_metadata")
     private var _updatesMetadata = DualHashDictionary<E.Identifier, UpdateTime>()
 
-    private let asyncTasks = AsyncTasks()
-
     // MARK: - Inits
 
     public init(stores: [Storing<E>]) {
@@ -540,7 +538,6 @@ private extension CoreManager {
                     Task {
                         _ = try? await self.get(withQuery: query, in: remoteContext)
                     }
-                    .store(in: self.asyncTasks)
                 }
                 return localResult
             } else {
@@ -823,18 +820,20 @@ private extension CoreManager {
 
         let continuous = AsyncStream<QueryResult<E>>() { continuation in
 
+            let iterator = property.stream.makeAsyncIterator()
             let task = Task {
-                for try await value in property.stream {
-                    guard let value = value else { continue }
+                for try await value in iterator {
+                    guard let value = (value ?? nil) else { continue }
                     continuation.yield(value)
                 }
             }
 
             continuation.onTermination = { _ in
                 task.cancel()
+                Task {
+                    await property.stream.cancelIterator(iterator)
+                }
             }
-
-            task.store(in: asyncTasks)
         }
 
         return (
@@ -1384,8 +1383,8 @@ private extension CoreManager {
             properties.append(entry)
 
             // As soon as the last observer is removed from `property`, the `entry` gets released.
-            await property.setDidRemoveLastObserver { [weak self] in
-                guard let self = self else { return }
+            await property.setDidRemoveLastObserver { [weak self, weak entry] in
+                guard let self = self, let entry = entry else { return }
                 await self.removeEntry(entry)
             }
 

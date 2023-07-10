@@ -32,7 +32,8 @@ final class AsyncCurrentValueTests: XCTestCase {
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 group.addTask(priority: .high) {
-                    for try await value in currentValue {
+                    let iterator = currentValue.makeAsyncIterator()
+                    for try await value in iterator {
                         XCTAssertEqual(value, 5)
                         return
                     }
@@ -52,7 +53,8 @@ final class AsyncCurrentValueTests: XCTestCase {
         do {
             try await withThrowingTaskGroup(of: Void.self) { group in
                 group.addTask(priority: .high) {
-                    for try await value in currentValue {
+                    let iterator = currentValue.makeAsyncIterator()
+                    for try await value in iterator {
                         if self.continuousCount == 0 {
                             XCTAssertEqual(value, 5)
                         } else if self.continuousCount == 1 {
@@ -89,7 +91,8 @@ final class AsyncCurrentValueTests: XCTestCase {
                 }
 
                 group.addTask(priority: .low) {
-                    for try await value in currentValue {
+                    let iterator = currentValue.makeAsyncIterator()
+                    for try await value in iterator {
                         XCTAssertEqual(value, 10)
                         return
                     }
@@ -113,7 +116,8 @@ final class AsyncCurrentValueTests: XCTestCase {
                 }
 
                 group.addTask(priority: .high) {
-                    for try await value in currentValue {
+                    let iterator = currentValue.makeAsyncIterator()
+                    for try await value in iterator {
                         if self.continuousCount == 0 {
                             XCTAssertEqual(value, 10)
                         } else if self.continuousCount == 1 {
@@ -148,7 +152,8 @@ final class AsyncCurrentValueTests: XCTestCase {
 
                 group.addTask(priority: .high) {
                     var count = 0
-                    for try await value in currentValue {
+                    let iterator = currentValue.makeAsyncIterator()
+                    for try await value in iterator {
                         if count == 0 {
                             XCTAssertEqual(value, 5)
                         } else if count == 1 {
@@ -161,7 +166,8 @@ final class AsyncCurrentValueTests: XCTestCase {
 
                 group.addTask(priority: .high) {
                     var count = 0
-                    for try await value in currentValue {
+                    let iterator = currentValue.makeAsyncIterator()
+                    for try await value in iterator {
                         if count == 0 {
                             XCTAssertEqual(value, 5)
                         } else if count == 1 {
@@ -174,7 +180,8 @@ final class AsyncCurrentValueTests: XCTestCase {
 
                 group.addTask(priority: .high) {
                     var count = 0
-                    for try await value in currentValue {
+                    let iterator = currentValue.makeAsyncIterator()
+                    for try await value in iterator {
                         if count == 0 {
                             XCTAssertEqual(value, 5)
                         } else if count == 1 {
@@ -195,5 +202,38 @@ final class AsyncCurrentValueTests: XCTestCase {
         } catch {
             XCTFail("unexpected error: \(error)")
         }
+    }
+
+    func test_that_did_remove_final_iterator_is_called() async {
+
+        let valueObserver = ValueObserver()
+        let currentValue = AsyncCurrentValue(5)
+        await currentValue.setDelegate(valueObserver)
+
+        let iterator1 = currentValue.makeAsyncIterator()
+        let iterator2 = currentValue.makeAsyncIterator()
+        let iterator3 = currentValue.makeAsyncIterator()
+
+        try? await Task.sleep(nanoseconds: 1000000)
+
+        await currentValue.cancelIterator(iterator1)
+        await currentValue.cancelIterator(iterator2)
+
+        let didComplete1 = await valueObserver.didComplete
+        XCTAssertFalse(didComplete1)
+
+        await currentValue.cancelIterator(iterator3)
+
+        let didComplete2 = await valueObserver.didComplete
+        XCTAssertTrue(didComplete2)
+    }
+}
+
+private final actor ValueObserver: AsyncCurrentValueDelegate {
+
+    private(set) var didComplete = false
+
+    func didRemoveFinalIterator() async {
+        didComplete = true
     }
 }

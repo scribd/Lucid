@@ -31,18 +31,20 @@ public protocol AsyncCurrentValueDelegate: AnyObject {
 
         currentValue.update(newValue)
 */
-public final actor AsyncCurrentValue<Element>: AsyncSequence {
+public final actor AsyncCurrentValue<T> {
+
+    public typealias Element = T?
 
     private(set) var value: Element
 
-    private var repository = AsyncCurrentValueRepository<Element>()
+    private var repository = AsyncCurrentValueRepository<T>()
 
     public init(_ initialValue: Element) {
         self.value = initialValue
     }
 
-    public nonisolated func makeAsyncIterator() -> AsyncCurrentValueIterator<Element> {
-        let iterator = AsyncCurrentValueIterator<Element>(value: nil)
+    public nonisolated func makeAsyncIterator() -> AsyncCurrentValueIterator<T> {
+        let iterator = AsyncCurrentValueIterator<T>(value: nil)
         Task {
             await repository.addIterator(iterator)
             await iterator.update(with: value)
@@ -58,26 +60,42 @@ public final actor AsyncCurrentValue<Element>: AsyncSequence {
     public func setDelegate(_ delegate: AsyncCurrentValueDelegate) async {
         await repository.setDelegate(delegate)
     }
+
+    public func cancelIterator(_ iterator: AsyncCurrentValueIterator<T>) async {
+        await iterator.update(with: nil)
+        await repository.removeIterator(iterator)
+    }
 }
 
-public final actor AsyncCurrentValueIterator<Element>: AsyncIteratorProtocol {
+private enum IteratorCancelledError: Error {
+    case continuousCancelled
+}
 
-    private var value: Element?
+public final actor AsyncCurrentValueIterator<T>: AsyncIteratorProtocol, AsyncSequence {
 
-    private var valueContinuation: CheckedContinuation<Element, Never>?
+    public typealias Element = T?
 
-    init(value: Element?) {
+    private var value: T?
+
+    private var valueContinuation: CheckedContinuation<Element, any Error>?
+
+    init(value: T?) {
         self.value = value
     }
 
+    public nonisolated func makeAsyncIterator() -> AsyncCurrentValueIterator<T> {
+        return self
+    }
+
     public func next() async throws -> Element? {
+
         if Task.isCancelled {
             return nil
         } else if let storedValue = value {
             value = nil
             return storedValue
         } else {
-            return await withCheckedContinuation { continuation in
+            return try await withCheckedThrowingContinuation { continuation in
                 valueContinuation = continuation
             }
         }
@@ -95,11 +113,11 @@ public final actor AsyncCurrentValueIterator<Element>: AsyncIteratorProtocol {
     }
 }
 
-// MARK: - Private
+// MARK: - Repository
 
-private final actor AsyncCurrentValueRepository<Element> {
+final actor AsyncCurrentValueRepository<T> {
 
-    private var iterators: [WeakItem<AsyncCurrentValueIterator<Element>>] = []
+    private var iterators: [WeakItem<AsyncCurrentValueIterator<T>>] = []
 
     private weak var delegate: AsyncCurrentValueDelegate?
 
@@ -107,18 +125,28 @@ private final actor AsyncCurrentValueRepository<Element> {
         self.delegate = delegate
     }
 
-    func addIterator(_ iterator: AsyncCurrentValueIterator<Element>) async {
+    func addIterator(_ iterator: AsyncCurrentValueIterator<T>) async {
         iterators.append(WeakItem(iterator))
     }
 
-    func update(with updatedValue: Element) async {
-        let wasPopulated = iterators.isEmpty == false
-        let validIterators = iterators.filter { $0.item != nil }
+    func removeIterator(_ iterator: AsyncCurrentValueIterator<T>) async {
+        iterators = iterators.filter { $0.item !== iterator }
+        await checkObservers()
+    }
+
+    func update(with updatedValue: T?) async {
+        guard iterators.isEmpty == false else { return }
+
+        iterators = iterators.filter { $0.item != nil }
+        await checkObservers()
+
         for iterator in iterators {
             await iterator.item?.update(with: updatedValue)
         }
-        iterators = validIterators
-        if iterators.isEmpty && wasPopulated {
+    }
+
+    private func checkObservers() async {
+        if iterators.isEmpty {
             await delegate?.didRemoveFinalIterator()
         }
     }

@@ -8574,12 +8574,12 @@ final class CoreManagerTests: XCTestCase {
         let localExpectation = self.expectation(description: "local_once")
         localExpectation.expectedFulfillmentCount = 1
 
-        var remoteCompletion: (() -> Void)?
-        self.remoteStoreSpy.asynchronousResult = .manual(fireBlock: { completion in
-            remoteCompletion = completion
+        var remoteCompletions: [(() -> Void)] = []
+        remoteStoreSpy.asynchronousResult = .manual(fireBlock: { completion in
+            remoteCompletions.append(completion)
         })
 
-        Task(priority: .high) {
+        let task1 = Task(priority: .high) {
             let context = ReadContext<EntitySpy>(dataSource: .remote(
                 endpoint: .request(APIRequestConfig(method: .get, path: .path("fake_entity/42")), resultPayload: .empty),
                 persistenceStrategy: .persist(.discardExtraLocalData)
@@ -8589,13 +8589,14 @@ final class CoreManagerTests: XCTestCase {
                 _ = try await manager
                     .search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
                     .once
+                if Task.isCancelled { return }
                 XCTFail("Unexpected response")
             } catch {
                 XCTFail("Unexpected error: \(error)")
             }
         }
 
-        Task(priority: .high) {
+        let task2 = Task(priority: .high) {
             let context = WriteContext<EntitySpy>(dataTarget: .remote(
                 endpoint: .request(APIRequestConfig(method: .post, path: .path("fake_entity/42")))
             ))
@@ -8605,6 +8606,7 @@ final class CoreManagerTests: XCTestCase {
 
                 _ = try await manager
                     .set(EntitySpy(idValue: .remote(42, nil), title: "fake_title"), in: context)
+                if Task.isCancelled { return }
                 XCTFail("Unexpected response")
             } catch {
                 XCTFail("Unexpected error: \(error)")
@@ -8631,7 +8633,13 @@ final class CoreManagerTests: XCTestCase {
 
         wait(for: [localExpectation], timeout: 3)
 
-        XCTAssertNotNil(remoteCompletion)
+        XCTAssertFalse(remoteCompletions.isEmpty)
+
+        task1.cancel()
+        task2.cancel()
+
+        remoteStoreSpy.asynchronousResult = nil
+        remoteCompletions.forEach { $0() }
     }
 }
 

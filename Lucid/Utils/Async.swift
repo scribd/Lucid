@@ -125,20 +125,26 @@ public actor AsyncTaskQueue {
         try Task.checkCancellation()
 
         let completion: OperationCompletion = {
-            self.runningTasks -= 1
-            self.tryRunEnqueued()
+            Task {
+                await self.endOperation()
+            }
         }
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            queue.append(continuation)
-            tryRunEnqueued()
+            self.queue.append(continuation)
+            await self.tryRunEnqueued()
         }
 
         try Task.checkCancellation()
         return try await operation(completion)
     }
 
-    private func tryRunEnqueued() {
+    private func endOperation() async {
+        runningTasks -= 1
+        await self.tryRunEnqueued()
+    }
+
+    private func tryRunEnqueued() async {
         guard queue.isEmpty == false else { return }
         guard runningTasks < maxConcurrentTasks else { return }
 

@@ -79,7 +79,7 @@ final class AsyncTaskQueueTests: XCTestCase {
             XCTAssertEqual(runningTasks, 1)
 
             await operation.resume()
-            try? await Task.sleep(nanoseconds: 1000)
+            try? await Task.sleep(nanoseconds: 1000000)
 
             let hasCompleted = await operation.hasCompleted
             runningTasks = await asyncTaskQueue.runningTasks

@@ -194,6 +194,31 @@ class StoreTests: XCTestCase {
         _wait(for: [expectation], timeout: 1)
     }
 
+    func test_store_should_set_1000_entities_in_under_1_second() {
+        let expectation = self.expectation(description: "entity")
+
+        let entities = (1...1000).map { EntitySpy(idValue: .remote($0, nil)) }
+
+        entityStore.set(entities, in: WriteContext(dataTarget: .local)) { result in
+            guard let result = result else {
+                XCTFail("Unexpectedly received nil.")
+                expectation.fulfill()
+                return
+            }
+
+            switch result {
+            case .success:
+                expectation.fulfill()
+
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error).")
+                expectation.fulfill()
+            }
+        }
+
+        _wait(for: [expectation], timeout: 1)
+    }
+
     func test_store_should_delete_an_entity() {
         let expectation = self.expectation(description: "entity")
 

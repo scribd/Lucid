@@ -382,9 +382,7 @@ public extension CoreManaging {
                 in context: ReadContext<E> = ReadContext<E>()) -> (once: AnyPublisher<QueryResult<E>, ManagerError>, continuous: AnyPublisher<QueryResult<E>, Never>)
         where S: Sequence, S.Element == E.Identifier {
 
-            let query = Query<E>.filter(.identifier >> identifiers).order([.identifiers(identifiers.any)])
-
-            return search(withQuery: query, in: context)
+            return search(withQuery: .identifiers(identifiers.any), in: context)
     }
 
     func get<S>(byIDs identifiers: S,

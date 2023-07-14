@@ -519,29 +519,36 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
 
             managedObjectContext.perform {
                 var mergedEntities: [E] = []
-                for entity in entities {
-                    switch CoreDataStore._get(byID: entity.identifier, in: managedObjectContext, loggingContext: "SET") {
-                    case .success(.some(let coreDataEntity)):
-                        if let identifier = coreDataEntity.identifierValueType(E.Identifier.self) {
-                            entity.identifier.update(with: identifier)
-                        }
-                        var mergedEntity = entity
-                        if let existingEntity = E.entity(from: coreDataEntity) {
-                            mergedEntity = existingEntity.merging(entity)
-                            mergedEntity.merge(into: coreDataEntity)
-                        } else {
-                            entity.merge(into: coreDataEntity)
-                        }
-                        mergedEntities.append(mergedEntity)
-                    case .success:
-                        let coreDataEntity = E.CoreDataObject(context: managedObjectContext)
-                        entity.merge(into: coreDataEntity)
-                        mergedEntities.append(entity)
-                    case .failure(let error):
-                        Logger.log(.verbose, "\(CoreDataStore.self): SET error.")
-                        completion(.failure(error))
-                        return
+                let query = Query<E>.identifiers(entities.map { $0.identifier }.any)
+
+                let searchResults = CoreDataStore._search(withQuery: query, in: managedObjectContext, loggingContext: "SET")
+                switch searchResults {
+                case .success(let searchEntities):
+                    var dictionary = DualHashDictionary<E.Identifier, (E.CoreDataObject, E)>()
+                    for coreDataEntity in searchEntities {
+                        guard let entity = E.entity(from: coreDataEntity) else { continue }
+                        dictionary[entity.identifier] = (coreDataEntity, entity)
                     }
+
+                    for entity in entities {
+                        if let (coreDataEntity, existingEntity) = dictionary[entity.identifier] {
+                            if let identifier = coreDataEntity.identifierValueType(E.Identifier.self) {
+                                entity.identifier.update(with: identifier)
+                            }
+                            let mergedEntity = existingEntity.merging(entity)
+                            mergedEntity.merge(into: coreDataEntity)
+                            mergedEntities.append(mergedEntity)
+                        } else {
+                            let coreDataEntity = E.CoreDataObject(context: managedObjectContext)
+                            entity.merge(into: coreDataEntity)
+                            mergedEntities.append(entity)
+                        }
+                    }
+
+                case .failure(let error):
+                    Logger.log(.verbose, "\(CoreDataStore.self): SET error.")
+                    completion(.failure(error))
+                    return
                 }
 
                 do {
@@ -600,35 +607,15 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
     }
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
-
-        coreDataManager.makeContext { managedObjectContext in
-            guard let managedObjectContext = managedObjectContext else {
-                completion(.failure(.invalidCoreDataState))
-                return
+        return removeAll(withQuery: .identifiers(identifiers.any), in: context, completion: { result in
+            switch result {
+            case .success,
+                 .none:
+                completion(.success(()))
+            case .failure(let error):
+                completion(.failure(error))
             }
-
-            managedObjectContext.perform {
-                for identifier in identifiers {
-                    switch CoreDataStore._get(byID: identifier, in: managedObjectContext, loggingContext: "REMOVE") {
-                    case .success(.some(let coreDataEntity)):
-                        managedObjectContext.delete(coreDataEntity)
-                    case .success:
-                        break
-                    case .failure(let error):
-                        completion(.failure(error))
-                        return
-                    }
-                }
-
-                do {
-                    try managedObjectContext.save()
-                    completion(.success(()))
-                } catch {
-                    Logger.log(.verbose, "\(CoreDataStore.self): REMOVE failure: \(error).")
-                    completion(.failure(.coreData(error as NSError)))
-                }
-            }
-        }
+        })
     }
 }
 

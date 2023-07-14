@@ -138,6 +138,10 @@ public struct Query<E>: Equatable where E: Entity {
 
     // MARK: - Search Convenience
 
+    public static func identifiers(_ identifiers: AnySequence<E.Identifier>) -> Query {
+        return Query.filter(.identifier >> identifiers).order([.identifiers(identifiers.any)])
+    }
+
     public static func filter(_ filter: Filter?) -> Query {
         return Query(filter: filter)
     }

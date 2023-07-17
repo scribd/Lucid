@@ -266,24 +266,19 @@ final class StoreStackTests: XCTestCase {
         memoryStoreSpy.setResultStub = .success([entity])
         remoteStoreSpy.setResultStub = .success([entity])
 
-        let expectation = self.expectation(description: "entity")
-        await storeStack.set(entity, in: WriteContext(dataTarget: .local)) { result in
-            switch result {
-            case .success(let entity):
-                XCTAssertEqual(entity.identifier.value, .remote(42, nil))
-                XCTAssertEqual(self.memoryStoreSpy.entityRecords.first, entity)
-                XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
-                XCTAssertEqual(self.remoteStoreSpy.entityRecords.first, entity)
-                XCTAssertEqual(self.remoteStoreSpy.entityRecords.count, 1)
-            case .none:
-                XCTFail("Unexpected empty result.")
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            }
-            expectation.fulfill()
+        let result = await storeStack.set(entity, in: WriteContext(dataTarget: .local))
+        switch result {
+        case .success(let entity):
+            XCTAssertEqual(entity.identifier.value, .remote(42, nil))
+            XCTAssertEqual(self.memoryStoreSpy.entityRecords.first, entity)
+            XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
+            XCTAssertEqual(self.remoteStoreSpy.entityRecords.first, entity)
+            XCTAssertEqual(self.remoteStoreSpy.entityRecords.count, 1)
+        case .none:
+            XCTFail("Unexpected empty result.")
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error)")
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
     func test_should_fail_to_set_in_remote_and_memory_stores() {
@@ -321,27 +316,22 @@ final class StoreStackTests: XCTestCase {
             httpStatusCode: 400, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
         )))
 
-        let expectation = self.expectation(description: "entity")
-        await storeStack.set(EntitySpy(idValue: .remote(42, nil)), in: WriteContext(dataTarget: .local)) { result in
-            switch result {
-            case .failure(.composite(
-                current: .api(.api(httpStatusCode: 400, errorPayload: nil, _)), previous: .notSupported)
-            ):
-                XCTAssertEqual(self.memoryStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
-                XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
-                XCTAssertEqual(self.remoteStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
-                XCTAssertEqual(self.remoteStoreSpy.entityRecords.count, 1)
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            case .success:
-                XCTFail("Unexpected success.")
-            case .none:
-                XCTFail("Unexpected empty result.")
-            }
-            expectation.fulfill()
+        let result = await storeStack.set(EntitySpy(idValue: .remote(42, nil)), in: WriteContext(dataTarget: .local))
+        switch result {
+        case .failure(.composite(
+            current: .api(.api(httpStatusCode: 400, errorPayload: nil, _)), previous: .notSupported)
+        ):
+            XCTAssertEqual(self.memoryStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
+            XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
+            XCTAssertEqual(self.remoteStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
+            XCTAssertEqual(self.remoteStoreSpy.entityRecords.count, 1)
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error)")
+        case .success:
+            XCTFail("Unexpected success.")
+        case .none:
+            XCTFail("Unexpected empty result.")
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
     func test_should_fail_to_set_in_remote_store_only() {
@@ -377,25 +367,20 @@ final class StoreStackTests: XCTestCase {
             httpStatusCode: 400, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
         )))
 
-        let expectation = self.expectation(description: "entity")
-        await storeStack.set(EntitySpy(idValue: .remote(42, nil)), in: WriteContext(dataTarget: .local)) { result in
-            switch result {
-            case .failure(.api(.api(httpStatusCode: 400, errorPayload: nil, _))):
-                XCTAssertEqual(self.memoryStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
-                XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
-                XCTAssertEqual(self.remoteStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
-                XCTAssertEqual(self.remoteStoreSpy.entityRecords.count, 1)
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            case .none:
-                XCTFail("Unexpected empty result.")
-            case .success:
-                XCTFail("Unexpected success.")
-            }
-            expectation.fulfill()
+        let result = await storeStack.set(EntitySpy(idValue: .remote(42, nil)), in: WriteContext(dataTarget: .local))
+        switch result {
+        case .failure(.api(.api(httpStatusCode: 400, errorPayload: nil, _))):
+            XCTAssertEqual(self.memoryStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
+            XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
+            XCTAssertEqual(self.remoteStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
+            XCTAssertEqual(self.remoteStoreSpy.entityRecords.count, 1)
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error)")
+        case .none:
+            XCTFail("Unexpected empty result.")
+        case .success:
+            XCTFail("Unexpected success.")
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
     func test_should_not_fail_to_set_when_stack_is_empty() {
@@ -413,13 +398,8 @@ final class StoreStackTests: XCTestCase {
     func test_should_not_fail_to_set_when_stack_is_empty_async() async {
         storeStack = StoreStack(stores: [], queues: StoreStackQueues())
 
-        let expectation = self.expectation(description: "entity")
-        await storeStack.set(EntitySpy(idValue: .remote(42, nil)), in: WriteContext(dataTarget: .local)) { result in
-            XCTAssertNil(result?.error)
-            expectation.fulfill()
-        }
-
-        wait(for: [expectation], timeout: 1)
+        let result = await storeStack.set(EntitySpy(idValue: .remote(42, nil)), in: WriteContext(dataTarget: .local))
+        XCTAssertNil(result?.error)
     }
 
     // MARK: - remove(atID:transaction:completion:)
@@ -453,23 +433,18 @@ final class StoreStackTests: XCTestCase {
         memoryStoreSpy.removeResultStub = .success(())
         remoteStoreSpy.removeResultStub = .success(())
 
-        let expectation = self.expectation(description: "remove")
-        await storeStack.remove(atID: entity.identifier, in: WriteContext(dataTarget: .local)) { result in
-            switch result {
-            case .success:
-                XCTAssertEqual(self.memoryStoreSpy.identifierRecords.first, entity.identifier)
-                XCTAssertEqual(self.memoryStoreSpy.identifierRecords.count, 1)
-                XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first, entity.identifier)
-                XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
-            case .none:
-                XCTFail("Unexpected empty result.")
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            }
-            expectation.fulfill()
+        let result = await storeStack.remove(atID: entity.identifier, in: WriteContext(dataTarget: .local))
+        switch result {
+        case .success:
+            XCTAssertEqual(self.memoryStoreSpy.identifierRecords.first, entity.identifier)
+            XCTAssertEqual(self.memoryStoreSpy.identifierRecords.count, 1)
+            XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first, entity.identifier)
+            XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
+        case .none:
+            XCTFail("Unexpected empty result.")
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error)")
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
     func test_should_fail_to_remove_in_remote_and_memory_stores() {
@@ -507,27 +482,22 @@ final class StoreStackTests: XCTestCase {
             httpStatusCode: 400, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
         )))
 
-        let expectation = self.expectation(description: "remove")
-        await storeStack.remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: WriteContext(dataTarget: .local)) { result in
-            switch result {
-            case .failure(.composite(
-                current: .api(.api(httpStatusCode: 400, errorPayload: nil, _)), previous: .notSupported)
-            ):
-                XCTAssertEqual(self.memoryStoreSpy.identifierRecords.first?.value.remoteValue, 42)
-                XCTAssertEqual(self.memoryStoreSpy.identifierRecords.count, 1)
-                XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
-                XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
-            case .none:
-                XCTFail("Unexpected empty result.")
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            case .success:
-                XCTFail("Unexpected success.")
-            }
-            expectation.fulfill()
+        let result = await storeStack.remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: WriteContext(dataTarget: .local))
+        switch result {
+        case .failure(.composite(
+            current: .api(.api(httpStatusCode: 400, errorPayload: nil, _)), previous: .notSupported)
+        ):
+            XCTAssertEqual(self.memoryStoreSpy.identifierRecords.first?.value.remoteValue, 42)
+            XCTAssertEqual(self.memoryStoreSpy.identifierRecords.count, 1)
+            XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
+            XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
+        case .none:
+            XCTFail("Unexpected empty result.")
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error)")
+        case .success:
+            XCTFail("Unexpected success.")
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
     func _testShouldFailToRemoveInRemoteStoreOnly() {
@@ -563,25 +533,20 @@ final class StoreStackTests: XCTestCase {
             httpStatusCode: 400, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)
         )))
 
-        let expectation = self.expectation(description: "remove")
-        await storeStack.remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: WriteContext(dataTarget: .local)) { result in
-            switch result {
-            case .failure(.api(.api(httpStatusCode: 400, errorPayload: nil, _))):
-                XCTAssertEqual(self.memoryStoreSpy.identifierRecords.first?.value.remoteValue, 42)
-                XCTAssertEqual(self.memoryStoreSpy.identifierRecords.count, 1)
-                XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
-                XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
-            case .none:
-                XCTFail("Unexpected empty result.")
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            case .success:
-                XCTFail("Unexpected success.")
-            }
-            expectation.fulfill()
+        let result = await storeStack.remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: WriteContext(dataTarget: .local))
+        switch result {
+        case .failure(.api(.api(httpStatusCode: 400, errorPayload: nil, _))):
+            XCTAssertEqual(self.memoryStoreSpy.identifierRecords.first?.value.remoteValue, 42)
+            XCTAssertEqual(self.memoryStoreSpy.identifierRecords.count, 1)
+            XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
+            XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
+        case .none:
+            XCTFail("Unexpected empty result.")
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error)")
+        case .success:
+            XCTFail("Unexpected success.")
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
     func test_should_fail_to_remove_in_remote_store_only_with_memory_store_first() {
@@ -619,13 +584,8 @@ final class StoreStackTests: XCTestCase {
     func test_should_not_fail_to_remove_when_stack_is_empty_async() async {
         storeStack = StoreStack(stores: [], queues: StoreStackQueues())
 
-        let expectation = self.expectation(description: "entity")
-        await storeStack.remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: WriteContext(dataTarget: .local)) { result in
-            XCTAssertNil(result?.error)
-            expectation.fulfill()
-        }
-
-        wait(for: [expectation], timeout: 1)
+        let result = await storeStack.remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: WriteContext(dataTarget: .local))
+        XCTAssertNil(result?.error)
     }
 
     // MARK: - search(withQuery:in:completion:)

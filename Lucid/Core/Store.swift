@@ -758,20 +758,18 @@ final class StoreStack<E: Entity> {
 
     func set(_ entity: E,
              in context: WriteContext<E>,
-             localStoresCompletion: @escaping (Result<E, StoreError>?) -> Void = { _ in },
-             allStoresCompletion: @escaping (Result<E, StoreError>?) -> Void) async {
+             localStoresCompletion: @escaping (Result<E, StoreError>?) -> Void = { _ in }) async -> Result<E, StoreError>? {
 
         guard stores.isEmpty == false else {
             do {
-                try await readWriteAsyncQueue.enqueue { operationCompletion in
+                return try await readWriteAsyncQueue.enqueue { operationCompletion in
                     defer { operationCompletion() }
 
-                    allStoresCompletion(.success(entity))
+                    return .success(entity)
                 }
             } catch {
-                allStoresCompletion(.failure(.notSupported))
+                return .failure(.notSupported)
             }
-            return
         }
 
         let handler: (Storing<E>, (Result<E, StoreError>?) async -> Void) async -> Void = { store, resultHandler in
@@ -779,9 +777,8 @@ final class StoreStack<E: Entity> {
             await resultHandler(result)
         }
 
-        await runInParallel(handler: handler,
-                            localStoresCompletion: localStoresCompletion,
-                            allStoresCompletion: allStoresCompletion)
+        return await runInParallel(handler: handler,
+                                   localStoresCompletion: localStoresCompletion)
     }
 
     func set<S>(_ entities: S,
@@ -803,20 +800,18 @@ final class StoreStack<E: Entity> {
 
     func set<S>(_ entities: S,
                 in context: WriteContext<E>,
-                localStoresCompletion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void = { _ in },
-                allStoresCompletion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void) async where S: Sequence, S.Element == E {
+                localStoresCompletion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void = { _ in }) async -> Result<AnySequence<E>, StoreError>? where S: Sequence, S.Element == E {
 
         guard stores.isEmpty == false else {
             do {
-                try await writeResultsAsyncQueue.enqueue { operationCompletion in
+                return try await writeResultsAsyncQueue.enqueue { operationCompletion in
                     defer { operationCompletion() }
 
-                    allStoresCompletion(.success(entities.any))
+                   return .success(entities.any)
                 }
             } catch {
-                allStoresCompletion(.failure(.notSupported))
+                return .failure(.notSupported)
             }
-            return
         }
 
         let handler: (Storing<E>, (Result<AnySequence<E>, StoreError>?) async -> Void) async -> Void = { store, resultHandler in
@@ -824,9 +819,8 @@ final class StoreStack<E: Entity> {
             await resultHandler(result)
         }
 
-        await runInParallel(handler: handler,
-                            localStoresCompletion: localStoresCompletion,
-                            allStoresCompletion: allStoresCompletion)
+        return await runInParallel(handler: handler,
+                                   localStoresCompletion: localStoresCompletion)
     }
 
     // MARK: - Remove
@@ -850,19 +844,17 @@ final class StoreStack<E: Entity> {
 
     func removeAll(withQuery query: Query<E>,
                    in context: WriteContext<E>,
-                   localStoresCompletion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void = { _ in },
-                   allStoresCompletion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void) async {
+                   localStoresCompletion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void = { _ in }) async -> Result<AnySequence<E.Identifier>, StoreError>? {
 
         guard stores.isEmpty == false else {
             do {
-                try await writeResultsAsyncQueue.enqueue { operationCompletion in
+                return try await writeResultsAsyncQueue.enqueue { operationCompletion in
                     defer { operationCompletion() }
-                    allStoresCompletion(.success(.empty))
+                    return .success(.empty)
                 }
             } catch {
-                allStoresCompletion(.failure(.notSupported))
+                return .failure(.notSupported)
             }
-            return
         }
 
         let handler: (Storing<E>, (Result<AnySequence<E.Identifier>, StoreError>?) async -> Void) async -> Void = { store, resultHandler in
@@ -870,9 +862,8 @@ final class StoreStack<E: Entity> {
             await resultHandler(result)
         }
 
-        await runInParallel(handler: handler,
-                            localStoresCompletion: localStoresCompletion,
-                            allStoresCompletion: allStoresCompletion)
+        return await runInParallel(handler: handler,
+                                   localStoresCompletion: localStoresCompletion)
     }
 
     func remove(atID identifier: E.Identifier,
@@ -894,19 +885,17 @@ final class StoreStack<E: Entity> {
 
     func remove(atID identifier: E.Identifier,
                 in context: WriteContext<E>,
-                localStoresCompletion: @escaping (Result<Void, StoreError>?) -> Void = { _ in },
-                allStoresCompletion: @escaping (Result<Void, StoreError>?) -> Void) async {
+                localStoresCompletion: @escaping (Result<Void, StoreError>?) -> Void = { _ in }) async -> Result<Void, StoreError>? {
 
         guard stores.isEmpty == false else {
             do {
-                try await writeResultsAsyncQueue.enqueue { operationCompletion in
+                return try await writeResultsAsyncQueue.enqueue { operationCompletion in
                     defer { operationCompletion() }
-                    allStoresCompletion(.success(()))
+                    return .success(())
                 }
             } catch {
-                allStoresCompletion(.failure(.notSupported))
+                return .failure(.notSupported)
             }
-            return
         }
 
         let handler: (Storing<E>, (Result<Void, StoreError>?) async -> Void) async -> Void = { store, resultHandler in
@@ -914,28 +903,24 @@ final class StoreStack<E: Entity> {
             await resultHandler(result)
         }
 
-
-        await runInParallel(handler: handler,
-                            localStoresCompletion: localStoresCompletion,
-                            allStoresCompletion: allStoresCompletion)
+        return await runInParallel(handler: handler,
+                                   localStoresCompletion: localStoresCompletion)
     }
 
     func remove<S>(_ identifiers: S,
                    in context: WriteContext<E>,
-                   localStoresCompletion: @escaping (Result<Void, StoreError>?) -> Void = { _ in },
-                   allStoresCompletion: @escaping (Result<Void, StoreError>?) -> Void) async where S: Sequence, S.Element == E.Identifier {
+                   localStoresCompletion: @escaping (Result<Void, StoreError>?) -> Void = { _ in }) async -> Result<Void, StoreError>? where S: Sequence, S.Element == E.Identifier {
 
         guard stores.isEmpty == false else {
             do {
-                try await writeResultsAsyncQueue.enqueue { operationCompletion in
+                return try await writeResultsAsyncQueue.enqueue { operationCompletion in
                     defer { operationCompletion() }
 
-                    allStoresCompletion(.success(()))
+                    return .success(())
                 }
             } catch {
-                allStoresCompletion(.failure(.notSupported))
+                return .failure(.notSupported)
             }
-            return
         }
 
         let handler: (Storing<E>, (Result<Void, StoreError>?) async -> Void) async -> Void = { store, resultHandler in
@@ -943,9 +928,8 @@ final class StoreStack<E: Entity> {
             await resultHandler(result)
         }
 
-        await runInParallel(handler: handler,
-                            localStoresCompletion: localStoresCompletion,
-                            allStoresCompletion: allStoresCompletion)
+        return await runInParallel(handler: handler,
+                                   localStoresCompletion: localStoresCompletion)
     }
 
     func remove<S>(_ identifiers: S,
@@ -1043,20 +1027,18 @@ private extension StoreStack {
     }
 
     func runInParallel<Output>(handler: @escaping (Storing<E>, @escaping (Result<Output, StoreError>?) async -> Void) async -> Void,
-                               localStoresCompletion: @escaping (Result<Output, StoreError>?) -> Void,
-                               allStoresCompletion: @escaping (Result<Output, StoreError>?) -> Void) async {
-
+                               localStoresCompletion: @escaping (Result<Output, StoreError>?) -> Void) async -> Result<Output, StoreError>? {
 
         guard stores.isEmpty == false else {
             do {
-                try await readWriteAsyncQueue.enqueue { completion in
+                return try await readWriteAsyncQueue.enqueue { completion in
                     defer { completion() }
-                    allStoresCompletion(.failure(.emptyStack))
+                    return .failure(.emptyStack)
                 }
             } catch {
                 Logger.log(.error, "Error while enqueuing the async Task")
+                return .failure(.notSupported)
             }
-            return
         }
 
         let results = StoreResult<Output>()
@@ -1078,7 +1060,7 @@ private extension StoreStack {
         let localStores: [(Int, Storing<E>)] = stores.enumerated().filter { $1.level.isLocal }
         let remoteStores: [(Int, Storing<E>)] = stores.enumerated().filter { $1.level == .remote }
 
-        await withTaskGroup(of: Void.self) { group in
+        return await withTaskGroup(of: Void.self, returning: Result<Output, StoreError>?.self) { group in
             group.addTask {
                 await withTaskGroup(of: Void.self) { localGroup in
                     for (index, store) in localStores {
@@ -1115,7 +1097,7 @@ private extension StoreStack {
             await group.waitForAll()
 
             let results = await self.stores.enumerated().asyncMap { (index, _) in await results.get(at: index) }
-            allStoresCompletion(self.collectResult(from: results))
+            return self.collectResult(from: results)
         }
     }
 

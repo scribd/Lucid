@@ -8655,9 +8655,19 @@ private final class UserAccessInvalidatingStoreSpy<E: Entity>: StoreSpy<E> {
         super.get(withQuery: query, in: context, completion: completion)
     }
 
+    override func get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        userAccessSpy?.stub = userAccessAfterStoreResponse
+        return await super.get(withQuery: query, in: context)
+    }
+
     override func search(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
         userAccessSpy?.stub = userAccessAfterStoreResponse
         super.search(withQuery: query, in: context, completion: completion)
+    }
+
+    override func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        userAccessSpy?.stub = userAccessAfterStoreResponse
+        return await super.search(withQuery: query, in: context)
     }
 
     override func set<S>(_ entities: S, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void) where S: Sequence, S.Element == E {
@@ -8665,13 +8675,28 @@ private final class UserAccessInvalidatingStoreSpy<E: Entity>: StoreSpy<E> {
         super.set(entities, in: context, completion: completion)
     }
 
+    override func set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where E == S.Element, S : Sequence {
+        userAccessSpy?.stub = userAccessAfterStoreResponse
+        return await super.set(entities, in: context)
+    }
+
     override func removeAll(withQuery query: Query<E>, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void) {
         userAccessSpy?.stub = userAccessAfterStoreResponse
         super.removeAll(withQuery: query, in: context, completion: completion)
     }
 
+    override func removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
+        userAccessSpy?.stub = userAccessAfterStoreResponse
+        return await super.removeAll(withQuery: query, in: context)
+    }
+
     override func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
         userAccessSpy?.stub = userAccessAfterStoreResponse
         super.remove(identifiers, in: context, completion: completion)
+    }
+
+    override func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, E.Identifier == S.Element {
+        userAccessSpy?.stub = userAccessAfterStoreResponse
+        return await super.remove(identifiers, in: context)
     }
 }

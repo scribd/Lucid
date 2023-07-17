@@ -179,6 +179,29 @@ public extension Sequence {
             try await task.value
         }
     }
+
+    func asyncCompactMap<T>(_ transform: (Element) async throws -> T?) async throws -> [T] {
+        var values = [T]()
+
+        for element in self {
+            guard let value = try await transform(element) else { continue }
+            values.append(value)
+        }
+
+        return values
+    }
+
+    func concurrentCompactMap<T>(_ transform: @escaping (Element) async throws -> T?) async throws -> [T] {
+        let tasks = map { element in
+            Task {
+                try await transform(element)
+            }
+        }
+
+        return try await tasks.asyncCompactMap { task in
+            try await task.value
+        }
+    }
 }
 
 public extension Sequence {

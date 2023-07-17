@@ -72,6 +72,21 @@ final class CacheStoreTests: StoreTests {
         waitForExpectations(timeout: 1)
     }
 
+    func test_store_should_search_and_retrieve_a_complete_result_when_search_by_identifiers_and_cache_is_not_complete_async() async {
+
+        let entities = (0..<20).map { EntitySpy(idValue: .remote($0, nil)) }
+        await write(entities)
+
+        let result = await self.entityStore.search(withQuery: .filter(.identifier >> entities.map { $0.identifier }), in: self.context)
+        switch result {
+        case .success(let result):
+            XCTAssertEqual(result.count, entities.count)
+
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
     func test_store_should_search_and_retrieve_a_complete_result_when_search_by_identifiers_and_cache_is_complete() {
 
         let expectation = self.expectation(description: "entities")
@@ -91,6 +106,21 @@ final class CacheStoreTests: StoreTests {
         }
 
         waitForExpectations(timeout: 1)
+    }
+
+    func test_store_should_search_and_retrieve_a_complete_result_when_search_by_identifiers_and_cache_is_complete_async() async {
+
+        let entities = (0..<9).map { EntitySpy(idValue: .remote($0, nil)) }
+        await write(entities)
+
+        let result = await self.entityStore.search(withQuery: .filter(.identifier >> entities.map { $0.identifier }), in: self.context)
+        switch result {
+        case .success(let result):
+            XCTAssertEqual(result.count, entities.count)
+
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error)")
+        }
     }
 
     func test_store_should_not_try_to_write_if_trying_to_save_an_entity_that_matches_exactly() {
@@ -138,6 +168,46 @@ final class CacheStoreTests: StoreTests {
         waitForExpectations(timeout: 1)
     }
 
+    func test_store_should_not_try_to_write_if_trying_to_save_an_entity_that_matches_exactly_async() async {
+
+        let entity = EntitySpy(idValue: .remote(1, nil))
+
+        let storeSpy = StoreSpy<EntitySpy>()
+        storeSpy.setResultStub = .success([entity])
+        storeSpy.searchResultStub = .success(.entity(nil))
+
+        entityStore = CacheStore<EntitySpy>(
+            keyValueStore: LRUStore(
+                store: storeSpy.storing,
+                limit: 10
+            ).storing,
+            persistentStore: CoreDataStore(coreDataManager: StubCoreDataManagerFactory.shared).storing
+        ).storing
+
+
+        let result = await self.entityStore.set(entity, in: WriteContext(dataTarget: .local))
+
+        switch result {
+        case .some(.success):
+            XCTAssertEqual(storeSpy.setCallCount, 1)
+            XCTAssertEqual(storeSpy.entityRecords, [entity])
+            storeSpy.searchResultStub = .success(.entity(entity))
+
+            let secondResult = await self.entityStore.set(entity, in: WriteContext(dataTarget: .local))
+            switch secondResult {
+            case .some(.success):
+                XCTAssertEqual(storeSpy.setCallCount, 1)
+                XCTAssertEqual(storeSpy.entityRecords, [entity])
+            case .some(.failure),
+                 .none:
+                XCTFail("Unexpected state")
+            }
+        case .some(.failure),
+             .none:
+            XCTFail("Unexpected state")
+        }
+    }
+
     func test_store_should_save_entity_even_when_matching_local_version_if_remote_sync_state_is_set_to_merge_identifier() {
 
         let entity = EntitySpy(idValue: .remote(1, nil))
@@ -183,6 +253,44 @@ final class CacheStoreTests: StoreTests {
         waitForExpectations(timeout: 1)
     }
 
+    func test_store_should_save_entity_even_when_matching_local_version_if_remote_sync_state_is_set_to_merge_identifier_async() async {
+
+        let entity = EntitySpy(idValue: .remote(1, nil))
+
+        let storeSpy = StoreSpy<EntitySpy>()
+        storeSpy.setResultStub = .success([entity])
+        storeSpy.searchResultStub = .success(.entity(nil))
+
+        entityStore = CacheStore<EntitySpy>(
+            keyValueStore: LRUStore(
+                store: storeSpy.storing,
+                limit: 10
+            ).storing,
+            persistentStore: CoreDataStore(coreDataManager: StubCoreDataManagerFactory.shared).storing
+        ).storing
+
+        let result = await self.entityStore.set(entity, in: WriteContext(dataTarget: .local))
+        switch result {
+        case .some(.success):
+            XCTAssertEqual(storeSpy.setCallCount, 1)
+            XCTAssertEqual(storeSpy.entityRecords, [entity])
+            storeSpy.searchResultStub = .success(.entity(entity))
+
+            let secondResult = await self.entityStore.set(entity, in: WriteContext(dataTarget: .local, remoteSyncState: .mergeIdentifier))
+            switch secondResult {
+            case .some(.success):
+                XCTAssertEqual(storeSpy.setCallCount, 2)
+                XCTAssertEqual(storeSpy.entityRecords, [entity, entity])
+            case .some(.failure),
+                 .none:
+                XCTFail("Unexpected state")
+            }
+        case .some(.failure),
+             .none:
+            XCTFail("Unexpected state")
+        }
+    }
+
     // MARK: shouldOverwrite
 
     func test_cache_store_does_not_overwrite_local_when_should_overwrite_returns_false() {
@@ -219,6 +327,36 @@ final class CacheStoreTests: StoreTests {
         }
 
         waitForExpectations(timeout: 1)
+    }
+
+    func test_cache_store_does_not_overwrite_local_when_should_overwrite_returns_false_async() async {
+
+        let memoryStoreSpy = StoreSpy<CacheStoreEntitySpy>()
+        memoryStoreSpy.levelStub = .memory
+
+        let diskStoreSpy = StoreSpy<CacheStoreEntitySpy>()
+        diskStoreSpy.levelStub = .disk
+
+        let entityStore = CacheStore<CacheStoreEntitySpy>(
+            keyValueStore: memoryStoreSpy.storing,
+            persistentStore: diskStoreSpy.storing
+        ).storing
+
+        let localEntity = CacheStoreEntitySpy(additionalValue: false)
+        let updatedEntity = CacheStoreEntitySpy(additionalValue: false)
+
+        memoryStoreSpy.searchResultStub = .success(.entity(localEntity))
+
+        let result = await entityStore.set(updatedEntity, in: WriteContext(dataTarget: .local))
+        switch result {
+        case .some(.success):
+            XCTAssertEqual(memoryStoreSpy.searchCallCount, 1)
+            XCTAssertEqual(memoryStoreSpy.setCallCount, 0)
+            XCTAssertEqual(diskStoreSpy.setCallCount, 0)
+        case .some(.failure),
+             .none:
+            XCTFail("Unexpected state")
+        }
     }
 
     func test_cache_store_overwrites_local_when_should_overwrite_returns_true() {
@@ -259,6 +397,38 @@ final class CacheStoreTests: StoreTests {
         waitForExpectations(timeout: 1)
     }
 
+    func test_cache_store_overwrites_local_when_should_overwrite_returns_true_async() async {
+
+        let memoryStoreSpy = StoreSpy<CacheStoreEntitySpy>()
+        memoryStoreSpy.levelStub = .memory
+
+        let diskStoreSpy = StoreSpy<CacheStoreEntitySpy>()
+        diskStoreSpy.levelStub = .disk
+
+        let entityStore = CacheStore<CacheStoreEntitySpy>(
+            keyValueStore: memoryStoreSpy.storing,
+            persistentStore: diskStoreSpy.storing
+        ).storing
+
+        let localEntity = CacheStoreEntitySpy(additionalValue: false)
+        let updatedEntity = CacheStoreEntitySpy(additionalValue: true)
+
+        memoryStoreSpy.searchResultStub = .success(.entity(localEntity))
+        memoryStoreSpy.setResultStub = .success([updatedEntity])
+        diskStoreSpy.setResultStub = .success([updatedEntity])
+
+        let result = await entityStore.set(updatedEntity, in: WriteContext(dataTarget: .local))
+        switch result {
+        case .some(.success):
+            XCTAssertEqual(memoryStoreSpy.searchCallCount, 1)
+            XCTAssertEqual(memoryStoreSpy.setCallCount, 1)
+            XCTAssertEqual(diskStoreSpy.setCallCount, 1)
+        case .some(.failure),
+             .none:
+            XCTFail("Unexpected state")
+        }
+    }
+
     func test_cache_store_uses_standard_equality_and_does_not_overwrite_local_when_should_overwrite_is_not_implemented_and_data_is_the_same() {
 
         let memoryStoreSpy = StoreSpy<EntitySpy>()
@@ -293,6 +463,36 @@ final class CacheStoreTests: StoreTests {
         }
 
         waitForExpectations(timeout: 1)
+    }
+
+    func test_cache_store_uses_standard_equality_and_does_not_overwrite_local_when_should_overwrite_is_not_implemented_and_data_is_the_same_async() async {
+
+        let memoryStoreSpy = StoreSpy<EntitySpy>()
+        memoryStoreSpy.levelStub = .memory
+
+        let diskStoreSpy = StoreSpy<EntitySpy>()
+        diskStoreSpy.levelStub = .disk
+
+        let entityStore = CacheStore<EntitySpy>(
+            keyValueStore: memoryStoreSpy.storing,
+            persistentStore: diskStoreSpy.storing
+        ).storing
+
+        let localEntity = EntitySpy(idValue: .remote(42, nil), title: "test")
+        let updatedEntity = EntitySpy(idValue: .remote(42, nil), title: "test")
+
+        memoryStoreSpy.searchResultStub = .success(.entity(localEntity))
+
+        let result = await entityStore.set(updatedEntity, in: WriteContext(dataTarget: .local))
+        switch result {
+        case .some(.success):
+            XCTAssertEqual(memoryStoreSpy.searchCallCount, 1)
+            XCTAssertEqual(memoryStoreSpy.setCallCount, 0)
+            XCTAssertEqual(diskStoreSpy.setCallCount, 0)
+        case .some(.failure),
+             .none:
+            XCTFail("Unexpected state")
+        }
     }
 
     func test_cache_store_uses_standard_equality_and_overwrites_local_when_should_overwrite_is_not_implemented_and_data_is_different() {
@@ -331,6 +531,38 @@ final class CacheStoreTests: StoreTests {
         }
 
         waitForExpectations(timeout: 1)
+    }
+
+    func test_cache_store_uses_standard_equality_and_overwrites_local_when_should_overwrite_is_not_implemented_and_data_is_different_async() async {
+
+        let memoryStoreSpy = StoreSpy<EntitySpy>()
+        memoryStoreSpy.levelStub = .memory
+
+        let diskStoreSpy = StoreSpy<EntitySpy>()
+        diskStoreSpy.levelStub = .disk
+
+        let entityStore = CacheStore<EntitySpy>(
+            keyValueStore: memoryStoreSpy.storing,
+            persistentStore: diskStoreSpy.storing
+        ).storing
+
+        let localEntity = EntitySpy(idValue: .remote(42, nil), title: "test")
+        let updatedEntity = EntitySpy(idValue: .remote(42, nil), title: "other_title")
+
+        memoryStoreSpy.searchResultStub = .success(.entity(localEntity))
+        memoryStoreSpy.setResultStub = .success([updatedEntity])
+        diskStoreSpy.setResultStub = .success([updatedEntity])
+
+        let result = await entityStore.set(updatedEntity, in: WriteContext(dataTarget: .local))
+        switch result {
+        case .some(.success):
+            XCTAssertEqual(memoryStoreSpy.searchCallCount, 1)
+            XCTAssertEqual(memoryStoreSpy.setCallCount, 1)
+            XCTAssertEqual(diskStoreSpy.setCallCount, 1)
+        case .some(.failure),
+             .none:
+            XCTFail("Unexpected state")
+        }
     }
 }
 

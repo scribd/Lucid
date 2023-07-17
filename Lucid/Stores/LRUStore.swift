@@ -37,6 +37,8 @@ public final class LRUStore<E>: StoringConvertible where E: LocalEntity {
 
     private lazy var identifiersDispatchQueue = DispatchQueue(label: "\(ObjectIdentifier(self))", attributes: .concurrent)
 
+    private lazy var identifiersAsyncQueue = AsyncTaskQueue()
+
     public let level: StoreLevel
 
     public init(store: Storing<E>, limit: Int = 100) {
@@ -65,6 +67,30 @@ public final class LRUStore<E>: StoringConvertible where E: LocalEntity {
         }
     }
 
+    public func get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        let result = await store.get(withQuery: query, in: context)
+
+        switch result {
+        case .success(let queryResult):
+            guard let successfulEntity = queryResult.entity else {
+                return result
+            }
+
+            do {
+                return try await identifiersAsyncQueue.enqueue { operationCompletion in
+                    defer { operationCompletion() }
+
+                    _ = self._push([successfulEntity.identifier].any)
+                    return result
+                }
+            } catch {
+                return .failure(.notSupported)
+            }
+        case .failure:
+            return result
+        }
+    }
+
     public func search(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
 
         store.search(withQuery: query, in: context) { result in
@@ -86,6 +112,30 @@ public final class LRUStore<E>: StoringConvertible where E: LocalEntity {
         }
     }
 
+    public func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        let result = await store.search(withQuery: query, in: context)
+        switch result {
+        case .success(let successfulEntities):
+            guard successfulEntities.isEmpty == false else {
+                return result
+            }
+
+            do {
+                return try await identifiersAsyncQueue.enqueue { operationCompletion in
+                    defer { operationCompletion() }
+
+                    self._push(successfulEntities.lazy.map { $0.identifier })
+                    return result
+                }
+            } catch {
+                return .failure(.notSupported)
+            }
+
+        case .failure(let error):
+            return .failure(error)
+        }
+    }
+
     public func set<S>(_ entities: S, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void) where S: Sequence, S.Element == E {
         store.set(entities, in: context) { result in
             switch result {
@@ -101,6 +151,29 @@ public final class LRUStore<E>: StoringConvertible where E: LocalEntity {
             case .none:
                 completion(.failure(.notSupported))
             }
+        }
+    }
+
+    public func set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where S : Sequence, E == S.Element {
+        let result = await store.set(entities, in: context)
+
+        switch result {
+        case .some(.success(let successfulEntities)):
+            do {
+                return try await identifiersAsyncQueue.enqueue { operationCompletion in
+                    defer { operationCompletion() }
+
+                    let identifiersToRemove = self._push(successfulEntities.lazy.map { $0.identifier })
+                    await self._remove(identifiersToRemove.any, in: context)
+                    return result
+                }
+            } catch {
+                return .failure(.notSupported)
+            }
+        case .some(.failure(let error)):
+            return .failure(error)
+        case .none:
+            return .failure(.notSupported)
         }
     }
 
@@ -125,6 +198,26 @@ public final class LRUStore<E>: StoringConvertible where E: LocalEntity {
         }
     }
 
+    public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
+        let result = await store.search(withQuery: query, in: ReadContext<E>())
+        switch result {
+        case .success(let queryResult):
+            let identifiers = queryResult.lazy.map { $0.identifier }
+            let removeResult = await self.remove(identifiers, in: context)
+
+            switch removeResult {
+            case .some(.success):
+                return .success(identifiers.any)
+            case .some(.failure(let error)):
+                return .failure(error)
+            case .none:
+                return .failure(.notSupported)
+            }
+        case .failure(let error):
+            return .failure(error)
+        }
+    }
+
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
         identifiersDispatchQueue.async(flags: .barrier) {
             let removedIdentifiers = self._remove(identifiers)
@@ -133,6 +226,22 @@ public final class LRUStore<E>: StoringConvertible where E: LocalEntity {
                 return
             }
             self.store.remove(removedIdentifiers.any, in: context, completion: completion)
+        }
+    }
+
+    public func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
+        do {
+            return try await identifiersAsyncQueue.enqueue { operationCompletion in
+                defer { operationCompletion() }
+
+                let removedIdentifiers = self._remove(identifiers)
+                guard !removedIdentifiers.isEmpty else {
+                    return .success(())
+                }
+                return await self.store.remove(removedIdentifiers.any, in: context)
+            }
+        } catch {
+            return .failure(.notSupported)
         }
     }
 }
@@ -198,6 +307,19 @@ private extension LRUStore {
                 Logger.log(.error, "\(LRUStore<E>.self): Could not delete entity: \(identifiers) because of error: \(error).", assert: true)
             }
             completion()
+        }
+    }
+
+    func _remove<S>(_ identifiers: S, in context: WriteContext<E>) async where S: Sequence, S.Element == E.Identifier {
+        guard !identifiers.any.isEmpty else {
+            return
+        }
+
+        let result = await store.remove(identifiers, in: context)
+        if result == nil {
+            Logger.log(.error, "\(LRUStore<E>.self): Could not delete entity: \(identifiers) because of error. Unexpectedly received nil.", assert: true)
+        } else if let error = result?.error {
+            Logger.log(.error, "\(LRUStore<E>.self): Could not delete entity: \(identifiers) because of error: \(error).", assert: true)
         }
     }
 }

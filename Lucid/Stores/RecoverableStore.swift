@@ -15,6 +15,8 @@ public final class RecoverableStore<E> where E: LocalEntity {
 
     private let operationQueue = AsyncOperationQueue()
 
+    private let asyncTaskQueue = AsyncTaskQueue()
+
     public init(mainStore: Storing<E>,
                 recoveryStore: Storing<E>) {
 
@@ -46,6 +48,19 @@ extension RecoverableStore: StoringConvertible {
         }
     }
 
+    public func get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        do {
+            return try await asyncTaskQueue.enqueue { operationCompletion in
+                defer { operationCompletion() }
+
+                let result = await self.mainStore.get(withQuery: query, in: context)
+                return result
+            }
+        } catch {
+            return .failure(.notSupported)
+        }
+    }
+
     public func search(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
 
         operationQueue.run(title: "\(RecoverableStore.self):search") { operationCompletion in
@@ -53,6 +68,18 @@ extension RecoverableStore: StoringConvertible {
                 completion(result)
                 operationCompletion()
             }
+        }
+    }
+
+    public func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        do {
+            return try await asyncTaskQueue.enqueue { operationCompletion in
+                defer { operationCompletion() }
+                let result = await self.mainStore.search(withQuery: query, in: context)
+                return result
+            }
+        } catch {
+            return .failure(.notSupported)
         }
     }
 
@@ -73,6 +100,27 @@ extension RecoverableStore: StoringConvertible {
         }
     }
 
+    public func set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where S : Sequence, E == S.Element {
+        do {
+            return try await asyncTaskQueue.enqueue { operationCompletion in
+                defer { operationCompletion() }
+
+                async let mainStoreResult = self.mainStore.set(entities, in: context)
+                async let recoveryStoreResult = self.recoveryStore.set(entities, in: context)
+
+                if await recoveryStoreResult == nil {
+                    Logger.log(.error, "\(RecoverableStore.self) could not set entities \(entities.map { $0.identifier }) in recovery store. Unexpectedly received nil.", assert: true)
+                } else if let error = await recoveryStoreResult?.error {
+                    Logger.log(.error, "\(RecoverableStore.self) could not set entities \(entities.map { $0.identifier }) in recovery store: \(error)", assert: true)
+                }
+
+                return await mainStoreResult
+            }
+        } catch {
+            return .failure(.notSupported)
+        }
+    }
+
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void) {
 
         operationQueue.run(title: "\(RecoverableStore.self):remove_all") { operationCompletion in
@@ -90,6 +138,27 @@ extension RecoverableStore: StoringConvertible {
         }
     }
 
+    public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
+        do {
+            return try await asyncTaskQueue.enqueue { operationCompletion in
+                defer { operationCompletion() }
+
+                async let mainStoreResult = self.mainStore.removeAll(withQuery: query, in: context)
+                async let recoveryStoreResult = self.recoveryStore.removeAll(withQuery: query, in: context)
+
+                if await recoveryStoreResult == nil {
+                    Logger.log(.error, "\(RecoverableStore.self) could not remove entities matching query: \(query) from recovery store. Unexpectedly received nil.", assert: true)
+                } else if let error = await recoveryStoreResult?.error {
+                    Logger.log(.error, "\(RecoverableStore.self) could not remove entities matching query: \(query) from recovery store: \(error)", assert: true)
+                }
+
+                return await mainStoreResult
+            }
+        } catch {
+            return .failure(.notSupported)
+        }
+    }
+
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
 
         operationQueue.run(title: "\(RecoverableStore.self):remove") { operationCompletion in
@@ -104,6 +173,27 @@ extension RecoverableStore: StoringConvertible {
                     operationCompletion()
                 }
             }
+        }
+    }
+
+    public func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
+        do {
+            return try await asyncTaskQueue.enqueue { operationCompletion in
+                defer { operationCompletion() }
+
+                async let mainStoreResult = self.mainStore.remove(identifiers, in: context)
+                async let recoveryStoreResult = self.recoveryStore.remove(identifiers, in: context)
+
+                if await recoveryStoreResult == nil {
+                    Logger.log(.error, "\(RecoverableStore.self) could not remove entities \(identifiers) from recovery store. Unexpectedly received nil.", assert: true)
+                } else if let error = await recoveryStoreResult?.error {
+                    Logger.log(.error, "\(RecoverableStore.self) could not remove entities \(identifiers) from recovery store: \(error)", assert: true)
+                }
+
+                return await mainStoreResult
+            }
+        } catch {
+            return .failure(.notSupported)
         }
     }
 }

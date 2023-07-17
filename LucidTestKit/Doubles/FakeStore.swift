@@ -39,8 +39,20 @@ public final class FakeStore<E>: StoringConvertible where E: LocalEntity {
         }
     }
 
+    public func get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        if let identifier = query.identifier {
+            return .success(QueryResult(from: self._cache[identifier]))
+        } else {
+            return .failure(.identifierNotFound)
+        }
+    }
+
     public func search(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
         completion(.success(self._collectEntities(for: query)))
+    }
+
+    public func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        return .success(self._collectEntities(for: query))
     }
 
     public func set<S>(_ entities: S, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void) where S: Sequence, S.Element == E {
@@ -54,6 +66,19 @@ public final class FakeStore<E>: StoringConvertible where E: LocalEntity {
             mergedEntities.append(mergedEntity)
         }
         completion(.success(mergedEntities.any))
+    }
+
+    public func set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where S: Sequence, S.Element == E {
+        var mergedEntities: [E] = []
+        for entity in entities {
+            var mergedEntity = entity
+            if let existingEntity = self._cache[entity.identifier] {
+                mergedEntity = existingEntity.merging(entity)
+            }
+            self._cache[entity.identifier] = mergedEntity
+            mergedEntities.append(mergedEntity)
+        }
+        return .success(mergedEntities.any)
     }
 
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void) {
@@ -71,11 +96,32 @@ public final class FakeStore<E>: StoringConvertible where E: LocalEntity {
         }
     }
 
+    public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
+        let results = self._collectEntities(for: query)
+        let identifiers = results.any.lazy.map { $0.identifier }
+        let result = await self.remove(identifiers, in: context)
+        switch result {
+        case .some(.success):
+            return .success(identifiers.any)
+        case .some(.failure(let error)):
+            return .failure(error)
+        case .none:
+            return .failure(.notSupported)
+        }
+    }
+
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
         for identifier in identifiers {
             self._cache[identifier] = nil
         }
         completion(.success(()))
+    }
+
+    public func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
+        for identifier in identifiers {
+            self._cache[identifier] = nil
+        }
+        return .success(())
     }
 }
 

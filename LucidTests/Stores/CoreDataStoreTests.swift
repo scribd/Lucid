@@ -58,6 +58,23 @@ final class CoreDataStoreTests: StoreTests {
         wait(for: [expectation], timeout: 1)
     }
 
+    func test_store_should_not_retrieve_documents_with_an_invalid_expression_equal_to_another_expression_async() async {
+        LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
+
+        let documents = (0..<10).map { EntitySpy(idValue: .remote($0, nil)) }
+        await write(documents)
+
+        let result = await self.entityStore.search(withQuery: .filter((.identifier == .identifier(EntitySpyIdentifier(value: .remote(5, nil)))) == (.identifier == .identifier(EntitySpyIdentifier(value: .remote(5, nil))))), in: self.context)
+        switch result {
+        case .failure(.notSupported):
+            break
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error).")
+        case .success:
+            XCTFail("Unexpected success.")
+        }
+    }
+
     func test_store_should_not_retrieve_documents_with_an_invalid_expression_contained_in_another_expression() {
         LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
 
@@ -85,6 +102,27 @@ final class CoreDataStoreTests: StoreTests {
         wait(for: [expectation], timeout: 1)
     }
 
+    func test_store_should_not_retrieve_documents_with_an_invalid_expression_contained_in_another_expression_async() async {
+        LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
+
+        let documents = (0..<10).map { EntitySpy(idValue: .remote($0, nil)) }
+        await write(documents)
+
+        let filter: Query<EntitySpy>.Filter = .binary(.identifier == .identifier(EntitySpyIdentifier(value: .remote(5, nil))),
+                                                          .containedIn,
+                                                          .identifier == .identifier(EntitySpyIdentifier(value: .remote(5, nil))))
+
+        let result = await self.entityStore.search(withQuery: .filter(filter), in: self.context)
+        switch result {
+        case .failure(.notSupported):
+            break
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error).")
+        case .success:
+            XCTFail("Unexpected success.")
+        }
+    }
+
     func test_store_should_not_retrieve_documents_with_an_invalid_expression_matched_against_another_expression() {
         LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
 
@@ -107,5 +145,21 @@ final class CoreDataStoreTests: StoreTests {
         }
 
         wait(for: [expectation], timeout: 1)
+    }
+
+    func test_store_should_not_retrieve_documents_with_an_invalid_expression_matched_against_another_expression_async() async {
+        LucidConfiguration.logger = LoggerMock(shouldCauseFailures: false)
+
+        let documents = (0..<10).map { EntitySpy(idValue: .remote($0, nil)) }
+        await write(documents)
+        let result = await self.entityStore.search(withQuery: .filter((.identifier == .identifier(EntitySpyIdentifier(value: .remote(5, nil)))) ~= (.identifier == .identifier(EntitySpyIdentifier(value: .remote(5, nil))))), in: self.context)
+        switch result {
+        case .failure(.notSupported):
+            break
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error).")
+        case .success:
+            XCTFail("Unexpected success.")
+        }
     }
 }

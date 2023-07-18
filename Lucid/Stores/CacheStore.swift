@@ -80,19 +80,19 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
     }
 
     public func get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
-        let result = await keyValueStore.get(withQuery: query, in: context)
+        do {
+            return try await self.asyncTaskQueue.enqueue { operationCompletion in
+                defer { operationCompletion() }
 
-        switch result {
-        case .success(let queryResult) where queryResult.entity != nil:
-            return .success(queryResult)
-        case .success, .failure:
-            if let error = result.error {
-                Logger.log(.error, "\(CacheStore<E>.self): Could not get entity: \(query) from cache store: \(error)", assert: true)
-            }
+                let result = await self.keyValueStore.get(withQuery: query, in: context)
 
-            do {
-                return try await self.asyncTaskQueue.enqueue { operationCompletion in
-                    defer { operationCompletion() }
+                switch result {
+                case .success(let queryResult) where queryResult.entity != nil:
+                    return .success(queryResult)
+                case .success, .failure:
+                    if let error = result.error {
+                        Logger.log(.error, "\(CacheStore<E>.self): Could not get entity: \(query) from cache store: \(error)", assert: true)
+                    }
 
                     let getResult = await self.persistentStore.get(withQuery: query, in: context)
                     switch getResult {
@@ -113,9 +113,9 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
                         return .failure(error)
                     }
                 }
-            } catch {
-                return .failure(.notSupported)
             }
+        } catch {
+            return .failure(.notSupported)
         }
     }
 
@@ -172,30 +172,25 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
     }
 
     public func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
-        guard let identifiers = query.identifiers?.array,
-              query.order.contains(where: { $0.isDeterministic == false }) == false,
-              query.offset == nil,
-              query.limit == nil else {
+        do {
+            return try await asyncTaskQueue.enqueue { operationCompletion in
+                defer { operationCompletion() }
 
-            do {
-                return try await asyncTaskQueue.enqueue { operationCompletion in
+                guard let identifiers = query.identifiers?.array,
+                      query.order.contains(where: { $0.isDeterministic == false }) == false,
+                      query.offset == nil,
+                      query.limit == nil else {
+                    
                     defer { operationCompletion() }
                     return await self.persistentStore.search(withQuery: query, in: context)
                 }
-            } catch {
-                return .failure(.notSupported)
-            }
-        }
 
-        let result = await keyValueStore.search(withQuery: query, in: context)
+                let result = await self.keyValueStore.search(withQuery: query, in: context)
 
-        switch result {
-        case .success(var keyValueStoreEntities):
+                switch result {
+                case .success(var keyValueStoreEntities):
 
-            if keyValueStoreEntities.materialize().count != identifiers.count {
-                do {
-                    return try await asyncTaskQueue.enqueue { operationCompletion in
-                        defer { operationCompletion() }
+                    if keyValueStoreEntities.materialize().count != identifiers.count {
                         let searchResult = await self.persistentStore.search(withQuery: query, in: context)
 
                         switch searchResult {
@@ -212,16 +207,16 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
                         case .failure(let error):
                             return .failure(error)
                         }
+                    } else {
+                        return result
                     }
-                } catch {
-                    return .failure(.notSupported)
-                }
-            } else {
-                return result
-            }
 
-        case .failure(let error):
-            return .failure(error)
+                case .failure(let error):
+                    return .failure(error)
+                }
+            }
+        } catch {
+            return .failure(.notSupported)
         }
     }
 
@@ -432,6 +427,8 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
                         return .failure(.notSupported)
                     }
 
+                    await group.waitForAll()
+
                     return result
                 }
             }
@@ -499,6 +496,8 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
                         Logger.log(.error, "\(CacheStore<E>.self): Should never happen. If it does, fix asap.", assert: true)
                         return .failure(.notSupported)
                     }
+
+                    await group.waitForAll()
 
                     return result
                 }

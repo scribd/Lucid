@@ -226,36 +226,6 @@ public final class CoreDataManager: NSObject {
         }
     }
 
-    fileprivate func clearDatabase(_ descriptions: [NSEntityDescription]) async throws -> Bool {
-        let context = await makeContext()
-
-        guard let context = context else {
-            return false
-        }
-
-        let entityNames = descriptions.compactMap { $0.name }
-
-        return try await withCheckedThrowingContinuation { continuation in
-            context.perform {
-                do {
-                    for name in entityNames {
-                        let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: name)
-                        let request = NSBatchDeleteRequest(fetchRequest: fetch)
-                        try context.execute(request)
-                    }
-
-                    try context.save()
-                    Logger.log(.info, "\(CoreDataManager.self): The database is now cleared.")
-                    continuation.resume(returning: true)
-                } catch {
-                    Logger.log(.error, "\(CoreDataManager.self): Could not clear database: \(error)", assert: true)
-                    continuation.resume(throwing: error as NSError)
-                }
-            }
-        }
-
-    }
-
     public func clearDatabase(_ completion: @escaping (Bool) -> Void) {
         makeContext { _ in
             guard let (persistentContainer, _) = self._state.loadedValues else {
@@ -772,16 +742,15 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
                     continuation.resume(returning: .success(.empty))
                 case .success(let coreDataEntities) where query.filter == .all:
                     let identifiers = coreDataEntities.compactMap { E.entity(from: $0)?.identifier }
-                    Task {
-                        do {
-                            let success = try await self.coreDataManager.clearDatabase([E.CoreDataObject.entity()])
-                            if success {
-                                continuation.resume(returning: .success(identifiers.any))
+                    self.coreDataManager.clearDatabase([E.CoreDataObject.entity()]) { success, error in
+                        if success {
+                            continuation.resume(returning: .success(identifiers.any))
+                        } else {
+                            if let error = error {
+                                continuation.resume(returning: .failure(.coreData(error)))
                             } else {
                                 continuation.resume(returning: .failure(.invalidCoreDataState))
                             }
-                        } catch let error as NSError {
-                            continuation.resume(returning: .failure(.coreData(error)))
                         }
                     }
                 case .success(let coreDataEntities):

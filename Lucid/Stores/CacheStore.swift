@@ -427,8 +427,6 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
                         return .failure(.notSupported)
                     }
 
-                    await group.waitForAll()
-
                     return result
                 }
             }
@@ -496,8 +494,6 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
                         Logger.log(.error, "\(CacheStore<E>.self): Should never happen. If it does, fix asap.", assert: true)
                         return .failure(.notSupported)
                     }
-
-                    await group.waitForAll()
 
                     return result
                 }

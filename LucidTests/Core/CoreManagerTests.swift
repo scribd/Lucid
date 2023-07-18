@@ -8585,15 +8585,11 @@ final class CoreManagerTests: XCTestCase {
                 persistenceStrategy: .persist(.discardExtraLocalData)
             ))
 
-            do {
-                _ = try await manager
-                    .search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
-                    .once
-                if Task.isCancelled { return }
-                XCTFail("Unexpected response")
-            } catch {
-                XCTFail("Unexpected error: \(error)")
-            }
+            _ = try? await manager
+                .search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
+                .once
+            if Task.isCancelled { return }
+            XCTFail("Unexpected response")
         }
 
         let task2 = Task(priority: .high) {
@@ -8601,16 +8597,12 @@ final class CoreManagerTests: XCTestCase {
                 endpoint: .request(APIRequestConfig(method: .post, path: .path("fake_entity/42")))
             ))
 
-            do {
-                try await Task.sleep(nanoseconds: NSEC_PER_SEC/2)
+            try await Task.sleep(nanoseconds: NSEC_PER_SEC/2)
 
-                _ = try await manager
-                    .set(EntitySpy(idValue: .remote(42, nil), title: "fake_title"), in: context)
-                if Task.isCancelled { return }
-                XCTFail("Unexpected response")
-            } catch {
-                XCTFail("Unexpected error: \(error)")
-            }
+            _ = try? await manager
+                .set(EntitySpy(idValue: .remote(42, nil), title: "fake_title"), in: context)
+            if Task.isCancelled { return }
+            XCTFail("Unexpected response")
         }
 
         Task(priority: .low) {

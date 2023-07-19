@@ -1072,7 +1072,7 @@ private extension StoreStack {
                     await localGroup.waitForAll()
 
                     do {
-                        let results = try await localStores.enumerated().asyncCompactMap { (index, store) -> Result<Output, StoreError>?? in
+                        let results = try await localStores.asyncCompactMap { (index, store) -> Result<Output, StoreError>?? in
                             await results.get(at: index)
                         }
                         guard results.isEmpty == false else { return }

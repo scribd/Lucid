@@ -859,6 +859,7 @@ private extension CoreManager {
             let time = UpdateTime(timestamp: context.originTimestamp)
 
             guard self.canUpdate(identifier: entity.identifier, basedOn: time) else {
+                operationCompletion()
                 let result = await self.localStore.get(withQuery: Query.identifier(entity.identifier), in: ReadContext<E>())
                 switch result {
                 case .success(let queryResult):
@@ -950,6 +951,7 @@ private extension CoreManager {
             )
 
             guard entitiesToUpdate.isEmpty == false else {
+                operationCompletion()
                 return .empty
             }
 
@@ -1115,6 +1117,7 @@ private extension CoreManager {
         try await operationTaskQueue.enqueue { operationCompletion in
             let time = UpdateTime(timestamp: context.originTimestamp)
             guard self.canUpdate(identifier: identifier, basedOn: time) else {
+                operationCompletion()
                 return
             }
             self.setUpdateTime(time, for: identifier)
@@ -1174,6 +1177,7 @@ private extension CoreManager {
             let time = UpdateTime(timestamp: context.originTimestamp)
             let identifiersToRemove = self.filter(identifiers: identifiers, basedOn: time).lazy.compactMap { $0 }
             guard identifiersToRemove.isEmpty == false else {
+                operationCompletion()
                 return
             }
 

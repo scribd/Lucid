@@ -949,15 +949,15 @@ private extension CoreManager {
                     }
             )
 
+            self.setUpdateTime(time, for: entitiesToUpdate.lazy.compactMap { $0.1?.identifier })
+
+            operationCompletion()
+
             guard entitiesToUpdate.isEmpty == false else {
                 return .empty
             }
 
-            self.setUpdateTime(time, for: entitiesToUpdate.lazy.compactMap { $0.1?.identifier })
-
             let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
-
-            operationCompletion()
 
             let result = await storeStack.set(entitiesToUpdate.lazy.compactMap { $0.1 }, in: context, localStoresCompletion: { result in
                 guard let updatedEntities = result?.value else { return }

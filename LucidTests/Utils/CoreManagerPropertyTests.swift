@@ -43,8 +43,13 @@ final class CoreManagerPropertyTests: XCTestCase {
         let property = await CoreManagerProperty<Int>()
 
         do {
+            Task {
+                try? await Task.sleep(nanoseconds: 10000000)
+                await property.update(with: 5)
+            }
+
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask(priority: .high) {
+                group.addTask {
                     var count = 0
                     let iterator = await property.stream.makeAsyncIterator()
                     for try await value in iterator {
@@ -58,12 +63,15 @@ final class CoreManagerPropertyTests: XCTestCase {
                     }
                 }
 
-                group.addTask(priority: .low) {
-                    try? await Task.sleep(nanoseconds: 10000000)
-                    await property.update(with: 5)
+                group.addTask {
+                    // Timeout
+                    try? await Task.sleep(nanoseconds: NSEC_PER_SEC * 5)
+                    if Task.isCancelled { return }
+                    XCTFail("Timed out")
                 }
 
-                try await group.waitForAll()
+                try await group.next()
+                group.cancelAll()
             }
         } catch {
             XCTFail("unexpected error: \(error)")
@@ -75,11 +83,19 @@ final class CoreManagerPropertyTests: XCTestCase {
         let property = await CoreManagerProperty<Int>()
 
         do {
+            Task {
+                try? await Task.sleep(nanoseconds: 100000)
+                await property.update(with: 5)
+                await property.update(with: 5)
+                await property.update(with: 17)
+            }
+
             try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask(priority: .high) {
+                group.addTask {
                     var count = 0
                     let iterator = await property.stream.makeAsyncIterator()
                     for try await value in iterator {
+                        defer { count += 1 }
                         if count == 0 {
                             XCTAssertEqual(value, nil)
                         } else if count == 1 {
@@ -88,18 +104,18 @@ final class CoreManagerPropertyTests: XCTestCase {
                             XCTAssertEqual(value, 17)
                             return
                         }
-                        count += 1
                     }
                 }
 
-                group.addTask(priority: .low) {
-                    try? await Task.sleep(nanoseconds: 100000)
-                    await property.update(with: 5)
-                    await property.update(with: 5)
-                    await property.update(with: 17)
+                group.addTask {
+                    // Timeout
+                    try? await Task.sleep(nanoseconds: NSEC_PER_SEC * 2)
+                    if Task.isCancelled { return }
+                    XCTFail("Timed out")
                 }
 
-                try await group.waitForAll()
+                try await group.next()
+                group.cancelAll()
             }
         } catch {
             XCTFail("unexpected error: \(error)")

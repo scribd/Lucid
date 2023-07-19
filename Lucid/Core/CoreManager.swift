@@ -558,64 +558,58 @@ private extension CoreManager {
 
             let initialUserAccess = context.userAccess
 
-            let result = try await withCheckedThrowingContinuation { continuation in
-                try await self.operationTaskQueue.enqueue { operationCompletion in
-                    defer { operationCompletion() }
+            let result = try await self.operationTaskQueue.enqueue { operationCompletion in
+                let time = UpdateTime()
+                let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
 
-                    let time = UpdateTime()
-                    let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+                operationCompletion()
 
-                    storeStack.get(withQuery: query, in: context) { result in
-                        switch result {
-                        case .success(let queryResult):
+                let result = await storeStack.get(withQuery: query, in: context)
+                switch result {
+                case .success(let queryResult):
 
-                            if context.shouldOverwriteInLocalStores {
-                                guard self.canUpdate(identifier: identifier, basedOn: time) else {
-                                    continuation.resume(returning: queryResult)
-                                    return
-                                }
-                                self.setUpdateTime(time, for: identifier)
-
-                                if let entity = queryResult.entity {
-                                    self.localStore.set(entity, in: WriteContext(dataTarget: .local)) { result in
-                                        switch result {
-                                        case .failure(let error):
-                                            Logger.log(.error, "\(CoreManager.self): An error occurred while writing entity: \(error)", assert: true)
-                                        case .success,
-                                             .none:
-                                            break
-                                        }
-                                    }
-                                    continuation.resume(returning: queryResult)
-                                    self.raiseUpdateEvents(withQuery: .identifier(identifier),
-                                                           results: .entities([entity]),
-                                                           returnsCompleteResultSet: context.returnsCompleteResultSet)
-                                } else {
-                                    self.localStore.remove(atID: identifier, in: WriteContext(dataTarget: .local)) { result in
-                                        switch result {
-                                        case .failure(let error):
-                                            Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entity: \(error)", assert: true)
-                                        case .success,
-                                             .none:
-                                            break
-                                        }
-                                    }
-                                    continuation.resume(returning: .empty())
-                                    self.raiseDeleteEvents(DualHashSet([identifier]))
-                                }
-                            } else {
-                                continuation.resume(returning: queryResult)
-                            }
-
-                        case .failure(let error):
-                            if error.shouldFallBackToLocalStore {
-                                Logger.log(.debug, "\(CoreManager.self): Did not receive data while getting entity: \(error). Will fall back to local store if possible.")
-                            } else {
-                                Logger.log(.error, "\(CoreManager.self): An error occurred while getting entity: \(error)", assert: true)
-                            }
-                            continuation.resume(throwing: ManagerError.store(error))
+                    if context.shouldOverwriteInLocalStores {
+                        guard self.canUpdate(identifier: identifier, basedOn: time) else {
+                            return queryResult
                         }
+                        self.setUpdateTime(time, for: identifier)
+
+                        if let entity = queryResult.entity {
+                            let result = await self.localStore.set(entity, in: WriteContext(dataTarget: .local))
+                            switch result {
+                            case .failure(let error):
+                                Logger.log(.error, "\(CoreManager.self): An error occurred while writing entity: \(error)", assert: true)
+                            case .success,
+                                 .none:
+                                break
+                            }
+                            self.raiseUpdateEvents(withQuery: .identifier(identifier),
+                                                   results: .entities([entity]),
+                                                   returnsCompleteResultSet: context.returnsCompleteResultSet)
+                            return queryResult
+                        } else {
+                            let result = await self.localStore.remove(atID: identifier, in: WriteContext(dataTarget: .local))
+                            switch result {
+                            case .failure(let error):
+                                Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entity: \(error)", assert: true)
+                            case .success,
+                                 .none:
+                                break
+                            }
+                            self.raiseDeleteEvents(DualHashSet([identifier]))
+                            return .empty()
+                        }
+                    } else {
+                        return queryResult
                     }
+
+                case .failure(let error):
+                    if error.shouldFallBackToLocalStore {
+                        Logger.log(.debug, "\(CoreManager.self): Did not receive data while getting entity: \(error). Will fall back to local store if possible.")
+                    } else {
+                        Logger.log(.error, "\(CoreManager.self): An error occurred while getting entity: \(error)", assert: true)
+                    }
+                    throw ManagerError.store(error)
                 }
             }
 
@@ -712,99 +706,94 @@ private extension CoreManager {
 
         let once: () async throws -> QueryResult<E> = {
 
-            let result: QueryResult<E> = try await withCheckedThrowingContinuation { continuation in
-                try await self.operationTaskQueue.enqueue { operationCompletion in
-                    defer { operationCompletion() }
+            let result: QueryResult<E> = try await self.operationTaskQueue.enqueue { operationCompletion in
+                operationCompletion()
 
-                    storeStack.search(withQuery: query, in: context) { result in
-                        switch result {
-                        case .success(let remoteResults):
-                            let remoteResults = remoteResults.materialized
+                let result = await storeStack.search(withQuery: query, in: context)
+                switch result {
+                case .success(let remoteResults):
+                    let remoteResults = remoteResults.materialized
 
-                            if context.shouldOverwriteInLocalStores {
+                    if context.shouldOverwriteInLocalStores {
 
-                                self.localStore.search(withQuery: query.order([]), in: context) { localResult in
-                                    switch localResult {
-                                    case .success(let localResults):
-                                        var identifiersToDelete: [E.Identifier] = []
-                                        if context.returnsCompleteResultSet {
-                                            var identifiersToDeleteSet = DualHashSet(localResults.lazy.compactMap {
-                                                $0.identifier.remoteSynchronizationState == .synced ? $0.identifier : nil
-                                            })
-                                            identifiersToDeleteSet.subtract(DualHashSet(remoteResults.lazy.map { $0.identifier }))
-                                            identifiersToDelete = self.filter(identifiers: identifiersToDeleteSet.lazy.map { $0 }, basedOn: time).compactMap { $0 }
+                        let localResult = await self.localStore.search(withQuery: query.order([]), in: context)
+                        switch localResult {
+                        case .success(let localResults):
+                            var identifiersToDelete: [E.Identifier] = []
+                            if context.returnsCompleteResultSet {
+                                var identifiersToDeleteSet = DualHashSet(localResults.lazy.compactMap {
+                                    $0.identifier.remoteSynchronizationState == .synced ? $0.identifier : nil
+                                })
+                                identifiersToDeleteSet.subtract(DualHashSet(remoteResults.lazy.map { $0.identifier }))
+                                identifiersToDelete = self.filter(identifiers: identifiersToDeleteSet.lazy.map { $0 }, basedOn: time).compactMap { $0 }
+                            }
+
+                            let entitiesToUpdate = self.filter(entities: remoteResults, basedOn: time).compactMap { $0 }
+                            guard entitiesToUpdate.count + identifiersToDelete.count > 0 else {
+                                return remoteResults
+                            }
+                            self.setUpdateTime(time, for: entitiesToUpdate.map { $0.identifier } + identifiersToDelete)
+
+                            // Create immutable versions to use within Tasks
+                            let finalIdentifiersToDelete = identifiersToDelete
+                            let finalEntitiesToUpdate = entitiesToUpdate
+                            await withTaskGroup(of: Void.self) { group in
+                                if finalEntitiesToUpdate.isEmpty == false {
+                                    group.addTask {
+                                        let result = await self.localStore.set(finalEntitiesToUpdate, in: WriteContext(dataTarget: .local))
+                                        if let error = result?.error {
+                                            Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
                                         }
-
-                                        let entitiesToUpdate = self.filter(entities: remoteResults, basedOn: time).compactMap { $0 }
-                                        guard entitiesToUpdate.count + identifiersToDelete.count > 0 else {
-                                            continuation.resume(returning: remoteResults)
-                                            return
-                                        }
-                                        self.setUpdateTime(time, for: entitiesToUpdate.map { $0.identifier } + identifiersToDelete)
-
-                                        // Create immutable versions to use within Tasks
-                                        let finalIdentifiersToDelete = identifiersToDelete
-                                        let finalEntitiesToUpdate = entitiesToUpdate
-                                        Task {
-                                            if finalEntitiesToUpdate.isEmpty == false {
-                                                self.localStore.set(finalEntitiesToUpdate, in: WriteContext(dataTarget: .local)) { result in
-                                                    if let error = result?.error {
-                                                        Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
-                                                    }
-                                                }
-                                            }
-
-                                            if finalIdentifiersToDelete.isEmpty == false {
-                                                self.localStore.remove(finalIdentifiersToDelete, in: WriteContext(dataTarget: .local)) { result in
-                                                    if let error = result?.error {
-                                                        Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entities: \(error)", assert: true)
-                                                    }
-                                                }
-                                            }
-
-                                            continuation.resume(returning: remoteResults)
-                                            self.raiseUpdateEvents(withQuery: query,
-                                                                   results: remoteResults,
-                                                                   returnsCompleteResultSet: context.returnsCompleteResultSet)
-                                        }
-
-                                    case .failure(let error):
-                                        Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities: \(error)", assert: true)
-
-                                        let entitiesToUpdate = self.filter(entities: remoteResults, basedOn: time).compactMap { $0 }
-                                        guard entitiesToUpdate.isEmpty == false else {
-                                            continuation.resume(returning: remoteResults)
-                                            return
-                                        }
-                                        self.setUpdateTime(time, for: entitiesToUpdate.lazy.map { $0.identifier })
-
-                                        self.localStore.set(entitiesToUpdate, in: WriteContext(dataTarget: .local)) { result in
-                                            if let error = result?.error {
-                                                Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
-                                            }
-                                        }
-                                        continuation.resume(returning: remoteResults)
-                                        self.raiseUpdateEvents(withQuery: query,
-                                                               results: remoteResults,
-                                                               returnsCompleteResultSet: context.returnsCompleteResultSet)
                                     }
                                 }
-                            } else {
-                                Task {
-                                    await property.update(with: remoteResults)
+
+                                if finalIdentifiersToDelete.isEmpty == false {
+                                    group.addTask {
+                                        let result = await self.localStore.remove(finalIdentifiersToDelete, in: WriteContext(dataTarget: .local))
+                                        if let error = result?.error {
+                                            Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entities: \(error)", assert: true)
+                                        }
+                                    }
                                 }
-                                continuation.resume(returning: remoteResults)
+
+                                self.raiseUpdateEvents(withQuery: query,
+                                                       results: remoteResults,
+                                                       returnsCompleteResultSet: context.returnsCompleteResultSet)
                             }
+                            return remoteResults
 
                         case .failure(let error):
-                            if error.shouldFallBackToLocalStore {
-                                Logger.log(.debug, "\(CoreManager.self): Did not receive data while searching entities: \(error). Will fall back to local store if possible.")
-                            } else {
-                                Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities: \(error)", assert: true)
+                            Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities: \(error)", assert: true)
+
+                            let entitiesToUpdate = self.filter(entities: remoteResults, basedOn: time).compactMap { $0 }
+                            guard entitiesToUpdate.isEmpty == false else {
+                                return remoteResults
                             }
-                            continuation.resume(throwing: ManagerError.store(error))
+                            self.setUpdateTime(time, for: entitiesToUpdate.lazy.map { $0.identifier })
+
+                            let result = await self.localStore.set(entitiesToUpdate, in: WriteContext(dataTarget: .local))
+                            if let error = result?.error {
+                                Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
+                            }
+                            self.raiseUpdateEvents(withQuery: query,
+                                                   results: remoteResults,
+                                                   returnsCompleteResultSet: context.returnsCompleteResultSet)
+                            return remoteResults
                         }
+                    } else {
+                        Task {
+                            await property.update(with: remoteResults)
+                        }
+                        return remoteResults
                     }
+
+                case .failure(let error):
+                    if error.shouldFallBackToLocalStore {
+                        Logger.log(.debug, "\(CoreManager.self): Did not receive data while searching entities: \(error). Will fall back to local store if possible.")
+                    } else {
+                        Logger.log(.error, "\(CoreManager.self): An error occurred while searching entities: \(error)", assert: true)
+                    }
+                    throw ManagerError.store(error)
                 }
             }
 
@@ -866,55 +855,46 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        let result = try await withCheckedThrowingContinuation { continuation in
-            try await self.operationTaskQueue.enqueue { operationCompletion in
-                defer { operationCompletion() }
+        let result = try await self.operationTaskQueue.enqueue { operationCompletion in
+            let time = UpdateTime(timestamp: context.originTimestamp)
 
-                let time = UpdateTime(timestamp: context.originTimestamp)
-
-                guard self.canUpdate(identifier: entity.identifier, basedOn: time) else {
-                    self.localStore.get(withQuery: Query.identifier(entity.identifier), in: ReadContext<E>()) { result in
-                        switch result {
-                        case .success(let queryResult):
-                            if let entity = queryResult.entity {
-                                continuation.resume(returning: entity)
-                            } else {
-                                continuation.resume(throwing: ManagerError.conflict)
-                            }
-                        case .failure(let error):
-                            Logger.log(.error, "\(CoreManager.self): An error occurred while setting entity: \(error)")
-                            continuation.resume(throwing: ManagerError.store(error))
-                        }
+            guard self.canUpdate(identifier: entity.identifier, basedOn: time) else {
+                operationCompletion()
+                let result = await self.localStore.get(withQuery: Query.identifier(entity.identifier), in: ReadContext<E>())
+                switch result {
+                case .success(let queryResult):
+                    if let entity = queryResult.entity {
+                        return entity
+                    } else {
+                        throw ManagerError.conflict
                     }
-                    return
+                case .failure(let error):
+                    Logger.log(.error, "\(CoreManager.self): An error occurred while setting entity: \(error)")
+                    throw ManagerError.store(error)
                 }
+            }
 
-                self.setUpdateTime(time, for: entity.identifier)
-                let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+            self.setUpdateTime(time, for: entity.identifier)
+            let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
 
-                storeStack.set(
-                    entity,
-                    in: context,
-                    localStoresCompletion: { result in
-                        guard let updatedEntity = result?.value else { return }
-                        self.raiseUpdateEvents(withQuery: .identifier(updatedEntity.identifier), results: .entities([updatedEntity]))
-                    },
-                    allStoresCompletion: { result in
-                        switch result {
-                        case .success(let updatedEntity):
-                            continuation.resume(returning: updatedEntity)
-                            self.raiseUpdateEvents(withQuery: .identifier(updatedEntity.identifier), results: .entities([updatedEntity]))
+            operationCompletion()
+            let result = await storeStack.set(entity, in: context, localStoresCompletion: { result in
+                guard let updatedEntity = result?.value else { return }
+                self.raiseUpdateEvents(withQuery: .identifier(updatedEntity.identifier), results: .entities([updatedEntity]))
+            })
 
-                        case .none:
-                            continuation.resume(returning: entity)
-                            self.raiseUpdateEvents(withQuery: .identifier(entity.identifier), results: .entities([entity]))
+            switch result {
+            case .success(let updatedEntity):
+                self.raiseUpdateEvents(withQuery: .identifier(updatedEntity.identifier), results: .entities([updatedEntity]))
+                return updatedEntity
 
-                        case .failure(let error):
-                            Logger.log(.error, "\(CoreManager.self): An error occurred while setting entity: \(error)")
-                            continuation.resume(throwing: ManagerError.store(error))
-                        }
-                    }
-                )
+            case .none:
+                self.raiseUpdateEvents(withQuery: .identifier(entity.identifier), results: .entities([entity]))
+                return entity
+
+            case .failure(let error):
+                Logger.log(.error, "\(CoreManager.self): An error occurred while setting entity: \(error)")
+                throw ManagerError.store(error)
             }
         }
 
@@ -955,64 +935,57 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        let result: AnySequence<E> = try await withCheckedThrowingContinuation { continuation in
-            try await self.operationTaskQueue.enqueue { operationCompletion in
-                defer { operationCompletion() }
-
-                let time = UpdateTime(timestamp: context.originTimestamp)
-                var entitiesToUpdate = OrderedDualHashDictionary(
-                    self.updateTime(for: entities.lazy.map { $0.identifier })
-                        .enumerated()
-                        .map { (index, updateTime) -> (E.Identifier, E?) in
-                            let entity = entities[index]
-                            if UpdateTime.isChronological(updateTime, time) {
-                                return (entity.identifier, entity)
-                            } else {
-                                return (entity.identifier, nil)
-                            }
-                        }
-                )
-
-                guard entitiesToUpdate.isEmpty == false else {
-                    continuation.resume(returning: .empty)
-                    return
-                }
-
-                self.setUpdateTime(time, for: entitiesToUpdate.lazy.compactMap { $0.1?.identifier })
-
-                let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
-                storeStack.set(
-                    entitiesToUpdate.lazy.compactMap { $0.1 },
-                    in: context,
-                    localStoresCompletion: { result in
-                        guard let updatedEntities = result?.value else { return }
-                        self.raiseUpdateEvents(withQuery: .filter(.identifier >> updatedEntities.lazy.map { $0.identifier }),
-                                               results: .entities(updatedEntities))
-                    },
-                    allStoresCompletion: { result in
-                        switch result {
-                        case .success(let updatedEntities):
-                            for entity in updatedEntities {
-                                entitiesToUpdate[entity.identifier] = entity
-                            }
-                            for entity in entities where entitiesToUpdate[entity.identifier] == nil {
-                                entitiesToUpdate[entity.identifier] = entity
-                            }
-                            continuation.resume(returning: entitiesToUpdate.lazy.compactMap { $0.1 }.any)
-                            self.raiseUpdateEvents(withQuery: .filter(.identifier >> updatedEntities.lazy.map { $0.identifier }),
-                                                   results: .entities(updatedEntities))
-
-                        case .none:
-                            continuation.resume(returning: entities.any)
-                            self.raiseUpdateEvents(withQuery: .filter(.identifier >> entities.lazy.map { $0.identifier }),
-                                                   results: .entities(entities))
-
-                        case .failure(let error):
-                            Logger.log(.error, "\(CoreManager.self): An error occurred while setting entities: \(error)")
-                            continuation.resume(throwing: ManagerError.store(error))
+        let result: AnySequence<E> = try await self.operationTaskQueue.enqueue { operationCompletion in
+            let time = UpdateTime(timestamp: context.originTimestamp)
+            var entitiesToUpdate = OrderedDualHashDictionary(
+                self.updateTime(for: entities.lazy.map { $0.identifier })
+                    .enumerated()
+                    .map { (index, updateTime) -> (E.Identifier, E?) in
+                        let entity = entities[index]
+                        if UpdateTime.isChronological(updateTime, time) {
+                            return (entity.identifier, entity)
+                        } else {
+                            return (entity.identifier, nil)
                         }
                     }
-                )
+            )
+
+            guard entitiesToUpdate.isEmpty == false else {
+                operationCompletion()
+                return .empty
+            }
+
+            self.setUpdateTime(time, for: entitiesToUpdate.lazy.compactMap { $0.1?.identifier })
+
+            let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+
+            operationCompletion()
+
+            let result = await storeStack.set(entitiesToUpdate.lazy.compactMap { $0.1 }, in: context, localStoresCompletion: { result in
+                guard let updatedEntities = result?.value else { return }
+                self.raiseUpdateEvents(withQuery: .filter(.identifier >> updatedEntities.lazy.map { $0.identifier }),
+                                       results: .entities(updatedEntities))
+            })
+            switch result {
+            case .success(let updatedEntities):
+                for entity in updatedEntities {
+                    entitiesToUpdate[entity.identifier] = entity
+                }
+                for entity in entities where entitiesToUpdate[entity.identifier] == nil {
+                    entitiesToUpdate[entity.identifier] = entity
+                }
+                self.raiseUpdateEvents(withQuery: .filter(.identifier >> updatedEntities.lazy.map { $0.identifier }),
+                                       results: .entities(updatedEntities))
+                return entitiesToUpdate.lazy.compactMap { $0.1 }.any
+
+            case .none:
+                self.raiseUpdateEvents(withQuery: .filter(.identifier >> entities.lazy.map { $0.identifier }),
+                                       results: .entities(entities))
+                return entities.any
+
+            case .failure(let error):
+                Logger.log(.error, "\(CoreManager.self): An error occurred while setting entities: \(error)")
+                throw ManagerError.store(error)
             }
         }
 
@@ -1049,78 +1022,62 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        let result = try await withCheckedThrowingContinuation { continuation in
-            try await self.operationTaskQueue.enqueue { operationCompletion in
-                defer { operationCompletion() }
+        let result = try await self.operationTaskQueue.enqueue { operationCompletion in
+            let time = UpdateTime(timestamp: context.originTimestamp)
 
-                let time = UpdateTime(timestamp: context.originTimestamp)
+            operationCompletion()
 
-                self.localStore.search(withQuery: query, in: ReadContext<E>()) { result in
+            let result = await self.localStore.search(withQuery: query, in: ReadContext<E>())
+            switch result {
+            case .success(var results):
+                results.materialize()
+
+                let entitiesToRemove = self.filter(entities: results.any, basedOn: time).compactMap { $0 }
+                guard entitiesToRemove.isEmpty == false else {
+                    return AnySequence<E.Identifier>.empty
+                }
+                let identifiersToRemove = entitiesToRemove.lazy.map { $0.identifier }
+                self.setUpdateTime(time, for: identifiersToRemove)
+
+                let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+                if entitiesToRemove.count == results.count {
+                    let result = await storeStack.removeAll(withQuery: query, in: context, localStoresCompletion: { result in
+                        guard let removedIdentifiers = result?.value else { return }
+                        self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
+                    })
                     switch result {
-                    case .success(var results):
-                        results.materialize()
+                    case .success(let removedIdentifiers):
+                        self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
+                        return removedIdentifiers
 
-                        let entitiesToRemove = self.filter(entities: results.any, basedOn: time).compactMap { $0 }
-                        guard entitiesToRemove.isEmpty == false else {
-                            continuation.resume(returning: AnySequence<E.Identifier>.empty)
-                            return
-                        }
-                        let identifiersToRemove = entitiesToRemove.lazy.map { $0.identifier }
-                        self.setUpdateTime(time, for: identifiersToRemove)
-
-                        let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
-                        if entitiesToRemove.count == results.count {
-                            storeStack.removeAll(
-                                withQuery: query,
-                                in: context,
-                                localStoresCompletion: { result in
-                                    guard let removedIdentifiers = result?.value else { return }
-                                    self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
-                                },
-                                allStoresCompletion: { result in
-                                    switch result {
-                                    case .success(let removedIdentifiers):
-                                        continuation.resume(returning: removedIdentifiers)
-                                        self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
-
-                                    case .none:
-                                        let removedIdentifiers = entitiesToRemove.map { $0.identifier }.any
-                                        continuation.resume(returning: removedIdentifiers)
-                                        self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
-
-                                    case .failure(let error):
-                                        Logger.log(.error, "\(CoreManager.self): An error occurred while removing all entities in query: \(error)")
-                                        continuation.resume(throwing: ManagerError.store(error))
-                                    }
-                                }
-                            )
-                        } else {
-                            storeStack.remove(
-                                identifiersToRemove,
-                                in: context,
-                                localStoresCompletion: { result in
-                                    guard result?.error == nil else { return }
-                                    self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
-                                },
-                                allStoresCompletion: { result in
-                                    switch result {
-                                    case .success, .none:
-                                        continuation.resume(returning: identifiersToRemove.any)
-                                        self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
-
-                                    case .failure(let error):
-                                        Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities for identifiers: \(error)")
-                                        continuation.resume(throwing: ManagerError.store(error))
-                                    }
-                                }
-                            )
-                        }
+                    case .none:
+                        let removedIdentifiers = entitiesToRemove.map { $0.identifier }.any
+                        self.raiseDeleteEvents(DualHashSet(removedIdentifiers))
+                        return removedIdentifiers
 
                     case .failure(let error):
-                        Logger.log(.error, "\(CoreManager.self): An error occurred while searching for entities to remove all: \(error)")
-                        continuation.resume(throwing: ManagerError.store(error))
+                        Logger.log(.error, "\(CoreManager.self): An error occurred while removing all entities in query: \(error)")
+                        throw ManagerError.store(error)
+                    }
+                } else {
+                    let result = await storeStack.remove(identifiersToRemove, in: context, localStoresCompletion: { result in
+                        guard result?.error == nil else { return }
+                        self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
+                    })
+                    switch result {
+                    case .success, .none:
+                        self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
+                        return identifiersToRemove.any
+
+                    case .failure(let error):
+                        Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities for identifiers: \(error)")
+                        throw ManagerError.store(error)
                     }
                 }
+
+            case .failure(let error):
+                Logger.log(.error, "\(CoreManager.self): An error occurred while searching for entities to remove all: \(error)")
+                throw ManagerError.store(error)
             }
         }
 
@@ -1158,34 +1115,29 @@ private extension CoreManager {
         let initialUserAccess = context.userAccess
 
         try await operationTaskQueue.enqueue { operationCompletion in
-            defer { operationCompletion() }
-
             let time = UpdateTime(timestamp: context.originTimestamp)
             guard self.canUpdate(identifier: identifier, basedOn: time) else {
+                operationCompletion()
                 return
             }
             self.setUpdateTime(time, for: identifier)
 
             let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
 
-            storeStack.remove(
-                atID: identifier,
-                in: context,
-                localStoresCompletion: { result in
-                    guard result?.error == nil else { return }
-                    self.raiseDeleteEvents(DualHashSet([identifier]))
-                },
-                allStoresCompletion: { result in
-                    switch result {
-                    case .success,
-                         .none:
-                        self.raiseDeleteEvents(DualHashSet([identifier]))
+            operationCompletion()
 
-                    case .failure(let error):
-                        Logger.log(.error, "\(CoreManager.self): An error occurred while removing entity: \(error)")
-                    }
-                }
-            )
+            let result = await storeStack.remove(atID: identifier, in: context, localStoresCompletion: { result in
+                guard result?.error == nil else { return }
+                self.raiseDeleteEvents(DualHashSet([identifier]))
+            })
+            switch result {
+            case .success,
+                 .none:
+                self.raiseDeleteEvents(DualHashSet([identifier]))
+
+            case .failure(let error):
+                Logger.log(.error, "\(CoreManager.self): An error occurred while removing entity: \(error)")
+            }
         }
 
         guard context.responseAllowedForAccessLevel,
@@ -1221,11 +1173,11 @@ private extension CoreManager {
         let initialUserAccess = context.userAccess
 
         try await operationTaskQueue.enqueue { operationCompletion in
-            defer { operationCompletion() }
 
             let time = UpdateTime(timestamp: context.originTimestamp)
             let identifiersToRemove = self.filter(identifiers: identifiers, basedOn: time).lazy.compactMap { $0 }
             guard identifiersToRemove.isEmpty == false else {
+                operationCompletion()
                 return
             }
 
@@ -1233,24 +1185,20 @@ private extension CoreManager {
 
             let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
 
-            storeStack.remove(
-                identifiersToRemove,
-                in: context,
-                localStoresCompletion: { result in
-                    guard result?.error == nil else { return }
-                    self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
-                },
-                allStoresCompletion: { result in
-                    switch result {
-                    case .success,
-                         .none:
-                        self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
+            operationCompletion()
 
-                    case .failure(let error):
-                        Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities: \(error)")
-                    }
-                }
-            )
+            let result = await storeStack.remove(identifiersToRemove, in: context, localStoresCompletion: { result in
+                guard result?.error == nil else { return }
+                self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
+            })
+            switch result {
+            case .success,
+                 .none:
+                self.raiseDeleteEvents(DualHashSet(identifiersToRemove))
+
+            case .failure(let error):
+                Logger.log(.error, "\(CoreManager.self): An error occurred while removing entities: \(error)")
+            }
         }
 
         guard context.responseAllowedForAccessLevel,

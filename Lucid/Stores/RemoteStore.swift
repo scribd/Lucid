@@ -173,6 +173,14 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
         clientQueue.append(clientQueueRequest)
     }
 
+    public func get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        return await withCheckedContinuation { continuation in
+            self.get(withQuery: query, in: context, completion: { result in
+                continuation.resume(returning: result)
+            })
+        }
+    }
+
     private func coreSearch(withQuery query: Query<E>,
                             in context: ReadContext<E>,
                             completion: @escaping (Result<(result: QueryResult<E>, isFromCache: Bool), StoreError>) -> Void) {
@@ -336,6 +344,14 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
         }
     }
 
+    public func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        return await withCheckedContinuation { continuation in
+            self.search(withQuery: query, in: context, completion: { result in
+                continuation.resume(returning: result)
+            })
+        }
+    }
+
     public func set<S>(_ entities: S, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void) where S: Sequence, S.Element == E {
 
         var countMismatch = false
@@ -396,6 +412,14 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
         }
     }
 
+    public func set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where S : Sequence, E == S.Element {
+        return await withCheckedContinuation { continuation in
+            self.set(entities, in: context, completion: { result in
+                continuation.resume(returning: result)
+            })
+        }
+    }
+
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void) {
 
         let path = RemotePath<E>.removeAll(query)
@@ -433,6 +457,14 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
         }
 
         clientQueue.append(clientQueueRequest)
+    }
+
+    public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
+        return await withCheckedContinuation { continuation in
+            self.removeAll(withQuery: query, in: context, completion: { result in
+                continuation.resume(returning: result)
+            })
+        }
     }
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
@@ -481,6 +513,14 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
         for request in requests {
             clientQueue.append(request)
+        }
+    }
+
+    public func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
+        return await withCheckedContinuation { continuation in
+            self.remove(identifiers, in: context, completion: { result in
+                continuation.resume(returning: result)
+            })
         }
     }
 }

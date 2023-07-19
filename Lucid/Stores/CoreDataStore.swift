@@ -96,6 +96,7 @@ public final class CoreDataManager: NSObject {
 
     private var _state: State = .unloaded
     private let stateDispatchQueue: DispatchQueue
+    private let stateAsyncQueue: AsyncTaskQueue = AsyncTaskQueue()
     private let forceMigration: Bool
     private let userDefaults: UserDefaults
 
@@ -179,6 +180,21 @@ public final class CoreDataManager: NSObject {
             self._persistentContainer {
                 completion(self._state.loadedValues?.context)
             }
+        }
+    }
+
+    func makeContext() async -> NSManagedObjectContext? {
+        do {
+            return try await stateAsyncQueue.enqueue { operationCompletion in
+                defer { operationCompletion() }
+                return await withCheckedContinuation { continuation in
+                    self._persistentContainer {
+                        continuation.resume(returning: self._state.loadedValues?.context)
+                    }
+                }
+            }
+        } catch {
+            return nil
         }
     }
 
@@ -485,6 +501,35 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
         }
     }
 
+    public func get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        guard let identifier = query.identifier else {
+            return .failure(.identifierNotFound)
+        }
+
+        let managedObjectContext = await coreDataManager.makeContext()
+
+        guard let managedObjectContext = managedObjectContext else {
+            return .failure(.invalidCoreDataState)
+        }
+
+        return await withCheckedContinuation { continuation in
+            managedObjectContext.perform {
+                switch CoreDataStore._get(byID: identifier, in: managedObjectContext) {
+                case .success(.some(let coreDataEntity)):
+                    guard let entity = E.entity(from: coreDataEntity) else {
+                        continuation.resume(returning: .failure(.invalidCoreDataEntity))
+                        return
+                    }
+                    continuation.resume(returning: .success(QueryResult(from: entity)))
+                case .success:
+                    continuation.resume(returning: .success(.empty()))
+                case .failure(let error):
+                    continuation.resume(returning: .failure(error))
+                }
+            }
+        }
+    }
+
     public func search(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
 
         coreDataManager.makeContext { managedObjectContext in
@@ -504,6 +549,30 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
                     completion(.success(result))
                 case .failure(let error):
                     completion(.failure(error))
+                }
+            }
+        }
+    }
+
+    public func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        let managedObjectContext = await coreDataManager.makeContext()
+
+        guard let managedObjectContext = managedObjectContext else {
+            return .failure(.invalidCoreDataState)
+        }
+
+        return await withCheckedContinuation { continuation in
+            managedObjectContext.perform {
+                switch CoreDataStore._search(withQuery: query, in: managedObjectContext) {
+                case .success(let coreDataEntities):
+                    var entities = coreDataEntities.compactMap { E.entity(from: $0) }
+                    if query.order.contains(where: { $0.isByIdentifiers }) {
+                        entities = entities.order(with: query.order)
+                    }
+                    let result = QueryResult(fromProcessedEntities: entities, for: query)
+                    continuation.resume(returning: .success(result))
+                case .failure(let error):
+                    continuation.resume(returning: .failure(error))
                 }
             }
         }
@@ -562,6 +631,59 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
         }
     }
 
+    public func set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where S : Sequence, E == S.Element {
+        let managedObjectContext = await coreDataManager.makeContext()
+
+        guard let managedObjectContext = managedObjectContext else {
+            return .failure(.invalidCoreDataState)
+        }
+
+        return await withCheckedContinuation { continuation in
+            managedObjectContext.perform {
+                var mergedEntities: [E] = []
+                let query = Query<E>.identifiers(entities.map { $0.identifier }.any)
+
+                let searchResults = CoreDataStore._search(withQuery: query, in: managedObjectContext, loggingContext: "SET")
+                switch searchResults {
+                case .success(let searchEntities):
+                    var dictionary = DualHashDictionary<E.Identifier, (E.CoreDataObject, E)>()
+                    for coreDataEntity in searchEntities {
+                        guard let entity = E.entity(from: coreDataEntity) else { continue }
+                        dictionary[entity.identifier] = (coreDataEntity, entity)
+                    }
+
+                    for entity in entities {
+                        if let (coreDataEntity, existingEntity) = dictionary[entity.identifier] {
+                            if let identifier = coreDataEntity.identifierValueType(E.Identifier.self) {
+                                entity.identifier.update(with: identifier)
+                            }
+                            let mergedEntity = existingEntity.merging(entity)
+                            mergedEntity.merge(into: coreDataEntity)
+                            mergedEntities.append(mergedEntity)
+                        } else {
+                            let coreDataEntity = E.CoreDataObject(context: managedObjectContext)
+                            entity.merge(into: coreDataEntity)
+                            mergedEntities.append(entity)
+                        }
+                    }
+
+                case .failure(let error):
+                    Logger.log(.verbose, "\(CoreDataStore.self): SET error.")
+                    continuation.resume(returning: .failure(error))
+                    return
+                }
+
+                do {
+                    try managedObjectContext.save()
+                    continuation.resume(returning: .success(mergedEntities.any))
+                } catch {
+                    Logger.log(.verbose, "\(CoreDataStore.self): SET error: \(error).")
+                    continuation.resume(returning: .failure(.coreData(error as NSError)))
+                }
+            }
+        }
+    }
+
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void) {
 
         coreDataManager.makeContext { managedObjectContext in
@@ -606,6 +728,50 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
         }
     }
 
+    public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
+        let managedObjectContext = await coreDataManager.makeContext()
+
+        guard let managedObjectContext = managedObjectContext else {
+            return .failure(.invalidCoreDataState)
+        }
+
+        return await withCheckedContinuation { continuation in
+            managedObjectContext.perform {
+                switch CoreDataStore._search(withQuery: query, in: managedObjectContext, loggingContext: "REMOVE ALL") {
+                case .success(let coreDataEntities) where coreDataEntities.isEmpty:
+                    continuation.resume(returning: .success(.empty))
+                case .success(let coreDataEntities) where query.filter == .all:
+                    let identifiers = coreDataEntities.compactMap { E.entity(from: $0)?.identifier }
+                    self.coreDataManager.clearDatabase([E.CoreDataObject.entity()]) { success, error in
+                        if success {
+                            continuation.resume(returning: .success(identifiers.any))
+                        } else {
+                            if let error = error {
+                                continuation.resume(returning: .failure(.coreData(error)))
+                            } else {
+                                continuation.resume(returning: .failure(.invalidCoreDataState))
+                            }
+                        }
+                    }
+                case .success(let coreDataEntities):
+                    let identifiers = coreDataEntities.compactMap { E.entity(from: $0)?.identifier }
+                    coreDataEntities.forEach { coreDataEntity in
+                        managedObjectContext.delete(coreDataEntity)
+                    }
+                    do {
+                        try managedObjectContext.save()
+                        continuation.resume(returning: .success(identifiers.any))
+                    } catch {
+                        Logger.log(.verbose, "\(CoreDataStore.self): REMOVE ALL failure: \(error).")
+                        continuation.resume(returning: .failure(.coreData(error as NSError)))
+                    }
+                case .failure(let error):
+                    continuation.resume(returning: .failure(error))
+                }
+            }
+        }
+    }
+
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
         return removeAll(withQuery: .identifiers(identifiers.any), in: context, completion: { result in
             switch result {
@@ -616,6 +782,14 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
                 completion(.failure(error))
             }
         })
+    }
+
+    public func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S: Sequence, S.Element == E.Identifier {
+        let result = await removeAll(withQuery: .identifiers(identifiers.any), in: context)
+        if case .failure(let error) = result {
+            return .failure(error)
+        }
+        return .success(())
     }
 }
 

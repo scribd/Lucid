@@ -35,6 +35,8 @@ public final class APIClientSpy: APIClient {
 
     public private(set) var shouldHandleResponseRecords = [(APIRequestConfig, (Result<Void, APIError>) -> Void)]()
 
+    public private(set) var shouldHandleResponseAsyncRecords = [APIRequestConfig]()
+
     // MARK: - Implementation
 
     public init() {
@@ -75,6 +77,24 @@ public final class APIClientSpy: APIClient {
         }
     }
 
+    public func send(request: APIRequest<Data>) async -> Result<APIClientResponse<Data>, APIError> {
+        requestRecords.append(request as Any)
+        guard let resultStub = resultStubs[request.config] as? Result<APIClientResponse<Data>, APIError> else {
+            XCTFail("Expected stub for request with path: \(request.config.path.description)")
+            return .failure(.api(httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)))
+        }
+        if requestWillComplete {
+            if let completionDelay = completionDelay {
+                try? await Task.sleep(nanoseconds: NSEC_PER_SEC * UInt64(completionDelay))
+                return resultStub
+            } else {
+                return resultStub
+            }
+        } else {
+            return .failure(APIError.network(.cancelled))
+        }
+    }
+
     public func send<Model>(request: APIRequest<Model>, completion: @escaping (Result<Model, APIError>) -> Void) where Model: Decodable {
         requestRecords.append(request as Any)
         guard let resultStub = resultStubs[request.config] as? Result<Model, APIError> else {
@@ -93,9 +113,32 @@ public final class APIClientSpy: APIClient {
         }
     }
 
+    public func send<Model>(request: APIRequest<Model>) async -> Result<Model, APIError> where Model: Decodable {
+        requestRecords.append(request as Any)
+        guard let resultStub = resultStubs[request.config] as? Result<Model, APIError> else {
+            XCTFail("Expected stub for request with path: \(request.config.path.description)")
+            return .failure(.api(httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)))
+        }
+        if requestWillComplete {
+            if let completionDelay = completionDelay {
+                try? await Task.sleep(nanoseconds: NSEC_PER_SEC * UInt64(completionDelay))
+                return resultStub
+            } else {
+                return resultStub
+            }
+        } else {
+            return .failure(APIError.network(.cancelled))
+        }
+    }
+
     public func shouldHandleResponse(for requestConfig: APIRequestConfig, completion: @escaping (Result<Void, APIError>) -> Void) {
         shouldHandleResponseRecords.append((requestConfig, completion))
         completion(willHandleResponse)
+    }
+
+    public func shouldHandleResponse(for requestConfig: APIRequestConfig) async -> Result<Void, APIError> {
+        shouldHandleResponseAsyncRecords.append((requestConfig))
+        return willHandleResponse
     }
 
     public func errorPayload(from body: Data) -> APIErrorPayload? {

@@ -445,10 +445,27 @@ public protocol APIClient: AnyObject {
     /// Send a request to the server.
     ///
     /// - Parameters:
+    ///     - request: Data request to send.
+    /// - Returns:
+    ///     - Result with either the retrieved `Model` or an `APIError`.
+    func send(request: APIRequest<Data>) async -> Result<APIClientResponse<Data>, APIError>
+
+    /// Send a request to the server.
+    ///
+    /// - Parameters:
     ///     - request: `Model` request to send.
     ///     - completion: Block to be called with either the retrieved `Model` or an `APIError`.
     /// - Note: Automatically decode the retrived `Data` to a given `Model` type.
     func send<Model>(request: APIRequest<Model>, completion: @escaping (Result<APIClientResponse<Model>, APIError>) -> Void) where Model: Decodable
+
+    /// Send a request to the server.
+    ///
+    /// - Parameters:
+    ///     - request: `Model` request to send.
+    /// - Returns:
+    ///     - Result with either the retrieved `Model` or an `APIError`.
+    /// - Note: Automatically decode the retrived `Data` to a given `Model` type.
+    func send<Model>(request: APIRequest<Model>) async -> Result<APIClientResponse<Model>, APIError> where Model: Decodable
 
     /// Determine if the current state is consistent from when the request was sent, and the response should be handled.
     ///
@@ -456,6 +473,14 @@ public protocol APIClient: AnyObject {
     ///     - requestConfig: The configuration of the request being sent.
     ///     - completion: A completion block determining if the response is handled or ignored. Call completion(.success(())) to proceed with the request.
     func shouldHandleResponse(for requestConfig: APIRequestConfig, completion: @escaping (Result<Void, APIError>) -> Void)
+
+    /// Determine if the current state is consistent from when the request was sent, and the response should be handled.
+    ///
+    /// - Parameters:
+    ///     - requestConfig: The configuration of the request being sent.
+    /// - Returns:
+    ///     - A result determining if the response is handled or ignored. Call completion(.success(())) to proceed with the request.
+    func shouldHandleResponse(for requestConfig: APIRequestConfig) async -> Result<Void, APIError>
 
     /// Allows the client to track events that were sent. This will not be called for deduplicated requests.
     ///
@@ -488,6 +513,14 @@ public protocol APIClient: AnyObject {
     /// - Returns: Prepared copy of a given request configuration.
     /// - Note: A good place to add default headers/query strings.
     func prepareRequest(_ requestConfig: APIRequestConfig, completion: @escaping (APIRequestConfig) -> Void)
+
+    /// Prepare a request to be sent to the server.
+    ///
+    /// - Parameters:
+    ///     - requestConfig: Request configuration to prepare.
+    /// - Returns: Prepared copy of a given request configuration.
+    /// - Note: A good place to add default headers/query strings.
+    func prepareRequest(_ requestConfig: APIRequestConfig) async -> APIRequestConfig
 
     /// Build a JSONCoder configuration to encode/decode client data.
     ///
@@ -599,6 +632,72 @@ extension APIClient {
         }
     }
 
+    public func send(request: APIRequest<Data>) async -> Result<APIClientResponse<Data>, APIError> {
+        let requestConfig = await prepareRequest(request.config)
+
+        let requestDescription = self.description(for: requestConfig)
+
+        if await self.deduplicator.isDuplicated(request: requestConfig) {
+            return await self.deduplicator.waitForDuplicated(request: requestConfig)
+        }
+
+        let completion: (Result<APIClientResponse<Data>, APIError>) async -> Result<APIClientResponse<Data>, APIError> = { result in
+            await self.deduplicator.applyResultToDuplicates(request: requestConfig, result: result)
+            self.didReceive(result: result)
+            return result
+        }
+
+        let host = requestConfig.host ?? self.host
+        guard let urlRequest = requestConfig.urlRequest(host: host, queryEncoder: Self.encodeQuery, bodyEncoder: Self.encodeBody) else {
+            return await completion(.failure(.url))
+        }
+
+        var request = request
+        request.config = requestConfig
+
+        Logger.log(.info, "\(APIClient.self): \(self.identifier): Requesting \(requestDescription).")
+
+        do {
+            let (data, response) = try await self.networkClient.data(for: urlRequest)
+            let result = await self.shouldHandleResponse(for: requestConfig)
+
+            switch result {
+            case .success:
+                guard let response = response as? HTTPURLResponse else {
+                    let error = APIError.networkingProtocolIsNotHTTP
+                    Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
+                    return await completion(.failure(error))
+                }
+
+                let wrappedResponse = APIClientResponse(data: data,
+                                                        urlResponse: response,
+                                                        jsonCoderConfig: self.jsonCoderConfig())
+
+                guard response.isSuccess else {
+                    let errorPayload = self.errorPayload(from: data)
+                    let error = APIError.api(httpStatusCode: response.statusCode, errorPayload: errorPayload, response: wrappedResponse)
+                    Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
+                    return await completion(.failure(error))
+                }
+
+                Logger.log(.info, "\(Self.self): \(self.identifier): Request succeeded: \(requestDescription).")
+                return await completion(.success(wrappedResponse))
+            case .failure(let error):
+                Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
+                return await completion(.failure(error))
+            }
+
+        } catch let error as NSError {
+            let apiError = APIError(network: error)
+            if apiError.isNetworkConnectionFailure {
+                Logger.log(.debug, "\(Self.self): \(self.identifier): Network connection failure occurred for request: \(urlRequest): \(error)")
+            } else {
+                Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
+            }
+            return await completion(.failure(apiError))
+        }
+    }
+
     public func send<Model>(request: APIRequest<Model>, completion: @escaping (Result<APIClientResponse<Model>, APIError>) -> Void) where Model: Decodable {
 
         let dataRequest = APIRequest<Data>(request.config)
@@ -620,8 +719,29 @@ extension APIClient {
         }
     }
 
+    public func send<Model>(request: APIRequest<Model>) async -> Result<APIClientResponse<Model>, APIError> where Model: Decodable {
+        let dataRequest = APIRequest<Data>(request.config)
+
+        let result = await self.send(request: dataRequest)
+        switch result {
+        case.success(let response):
+            do {
+                let model: Model = try self.response(from: response.data, with: response.jsonCoderConfig)
+                return .success(response.with(data: model))
+            } catch {
+                return .failure(.deserialization(error))
+            }
+        case .failure(let error):
+            return .failure(error)
+        }
+    }
+
     public func shouldHandleResponse(for requestConfig: APIRequestConfig, completion: @escaping (Bool) -> Void) {
         completion(true)
+    }
+
+    public func shouldHandleResponse(for requestConfig: APIRequestConfig) async -> Result<Void, APIError> {
+        return .success(())
     }
 
     public func didSend(request: APIRequest<Data>) {}
@@ -634,6 +754,10 @@ extension APIClient {
 
     public func prepareRequest(_ requestConfig: APIRequestConfig, completion: @escaping (APIRequestConfig) -> Void) {
         completion(requestConfig)
+    }
+
+    public func prepareRequest(_ requestConfig: APIRequestConfig) async -> APIRequestConfig {
+        return requestConfig
     }
 
     public func jsonCoderConfig() -> APIJSONCoderConfig {
@@ -1178,7 +1302,9 @@ extension APIRequestConfig {
 
 public protocol NetworkClient {
 
-    func dataTask(with request: URLRequest, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask
+    func dataTask(with request: URLRequest, completionHandler: @escaping @Sendable (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask
+
+    func data(for: URLRequest) async throws -> (Data, URLResponse)
 }
 
 extension URLSession: NetworkClient {}

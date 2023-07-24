@@ -30,6 +30,25 @@ public final class APIRequestDeduplicatorSpy: APIRequestDeduplicating {
         }
     }
 
+    public var isDuplicatedValue: Bool = true
+
+    public private(set) var isDuplicatedInvocations = [APIRequestConfig]()
+
+    public func isDuplicated(request: Lucid.APIRequestConfig) async -> Bool {
+        isDuplicatedInvocations.append(request)
+        return isDuplicatedValue
+    }
+
+    public var waitForDuplicatedValue: Result<APIClientResponse<Data>, APIError> = .failure(APIError.other("Failure"))
+
+    public private(set) var waitForDuplicatedInvocations = [APIRequestConfig]()
+
+    public func waitForDuplicated(request: Lucid.APIRequestConfig) async -> Result<Lucid.APIClientResponse<Data>, Lucid.APIError> {
+        waitForDuplicatedInvocations.append(request)
+        return waitForDuplicatedValue
+    }
+
+
     public private(set) var applyResultToDuplicatesInvocations = [(
         APIRequestConfig,
         Result<APIClientResponse<Data>, APIError>

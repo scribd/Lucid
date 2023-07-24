@@ -640,15 +640,15 @@ extension APIClient {
         if await self.deduplicator.isDuplicated(request: requestConfig) {
             return await self.deduplicator.waitForDuplicated(request: requestConfig)
         } else {
-            let completion: (Result<APIClientResponse<Data>, APIError>) -> Result<APIClientResponse<Data>, APIError> = { result in
-                self.deduplicator.applyResultToDuplicates(request: requestConfig, result: result)
+            let completion: (Result<APIClientResponse<Data>, APIError>) async -> Result<APIClientResponse<Data>, APIError> = { result in
+                await self.deduplicator.applyResultToDuplicates(request: requestConfig, result: result)
                 self.didReceive(result: result)
                 return result
             }
 
             let host = requestConfig.host ?? self.host
             guard let urlRequest = requestConfig.urlRequest(host: host, queryEncoder: Self.encodeQuery, bodyEncoder: Self.encodeBody) else {
-                return completion(.failure(.url))
+                return await completion(.failure(.url))
             }
 
             var request = request
@@ -665,7 +665,7 @@ extension APIClient {
                     guard let response = response as? HTTPURLResponse else {
                         let error = APIError.networkingProtocolIsNotHTTP
                         Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
-                        return completion(.failure(error))
+                        return await completion(.failure(error))
                     }
 
                     let wrappedResponse = APIClientResponse(data: data,
@@ -676,14 +676,14 @@ extension APIClient {
                         let errorPayload = self.errorPayload(from: data)
                         let error = APIError.api(httpStatusCode: response.statusCode, errorPayload: errorPayload, response: wrappedResponse)
                         Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
-                        return completion(.failure(error))
+                        return await completion(.failure(error))
                     }
 
                     Logger.log(.info, "\(Self.self): \(self.identifier): Request succeeded: \(requestDescription).")
-                    return completion(.success(wrappedResponse))
+                    return await completion(.success(wrappedResponse))
                 case .failure(let error):
                     Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
-                    return completion(.failure(error))
+                    return await completion(.failure(error))
                 }
 
             } catch let error as NSError {
@@ -693,7 +693,7 @@ extension APIClient {
                 } else {
                     Logger.log(.error, "\(Self.self): \(self.identifier): Error occurred for request: \(urlRequest): \(error)")
                 }
-                return completion(.failure(apiError))
+                return await completion(.failure(apiError))
             }
         }
     }

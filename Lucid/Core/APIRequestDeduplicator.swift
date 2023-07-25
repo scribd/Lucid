@@ -36,17 +36,21 @@ public final class APIRequestDeduplicator: APIRequestDeduplicating {
                                    handler: @escaping (Result<APIClientResponse<Data>, APIError>) -> Void,
                                    completion: @escaping (Bool) -> Void) {
         Task {
-            try? await asyncTaskQueue.enqueue { operationCompletion in
-                defer { operationCompletion() }
-                if request.deduplicate && self._requestsInProgress.contains(request) {
-                    var handlers = self._duplicateHandlers[request] ?? []
-                    handlers.append(handler)
-                    self._duplicateHandlers[request] = handlers
-                    completion(true)
-                } else {
-                    self._requestsInProgress.insert(request)
-                    completion(false)
+            do {
+                try await asyncTaskQueue.enqueue { operationCompletion in
+                    defer { operationCompletion() }
+                    if request.deduplicate && self._requestsInProgress.contains(request) {
+                        var handlers = self._duplicateHandlers[request] ?? []
+                        handlers.append(handler)
+                        self._duplicateHandlers[request] = handlers
+                        completion(true)
+                    } else {
+                        self._requestsInProgress.insert(request)
+                        completion(false)
+                    }
                 }
+            } catch {
+                Logger.log(.error, "\(APIRequestDeduplicator.self) found error while enqueuing async task")
             }
         }
     }
@@ -80,17 +84,21 @@ public final class APIRequestDeduplicator: APIRequestDeduplicating {
 
     public func applyResultToDuplicates(request: APIRequestConfig, result: Result<APIClientResponse<Data>, APIError>) {
         Task {
-            try? await asyncTaskQueue.enqueue { completion in
-                defer { completion() }
-                self._requestsInProgress.remove(request)
-                let handlers = self._duplicateHandlers.removeValue(forKey: request) ?? []
-                for handler in handlers {
-                    handler(result)
+            do {
+                try await asyncTaskQueue.enqueue { completion in
+                    defer { completion() }
+                    self._requestsInProgress.remove(request)
+                    let handlers = self._duplicateHandlers.removeValue(forKey: request) ?? []
+                    for handler in handlers {
+                        handler(result)
+                    }
+                    let continuations = self._asyncDuplicateContinuations.removeValue(forKey: request) ?? []
+                    for continuation in continuations {
+                        continuation.resume(returning: result)
+                    }
                 }
-                let continuations = self._asyncDuplicateContinuations.removeValue(forKey: request) ?? []
-                for continuation in continuations {
-                    continuation.resume(returning: result)
-                }
+            } catch {
+                Logger.log(.error, "\(APIRequestDeduplicator.self) found error while enqueuing async task")
             }
         }
     }

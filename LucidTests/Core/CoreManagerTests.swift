@@ -2502,7 +2502,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(result.first?.title, "fake_title")
                     XCTAssertEqual(result.count, 1)
 
-                    try await Task.sleep(nanoseconds: 500000)
+                    try await Task.sleep(nanoseconds: 1000000)
 
                     XCTAssertEqual(self.memoryStoreSpy.queryRecords.first?.filter, .identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil))))
                     XCTAssertEqual(self.memoryStoreSpy.queryRecords.count, 2)

@@ -642,7 +642,7 @@ extension APIClient {
         }
 
         let completion: (Result<APIClientResponse<Data>, APIError>) async -> Result<APIClientResponse<Data>, APIError> = { result in
-            await self.deduplicator.applyResultToDuplicates(request: requestConfig, result: result)
+            self.deduplicator.applyResultToDuplicates(request: requestConfig, result: result)
             self.didReceive(result: result)
             return result
         }

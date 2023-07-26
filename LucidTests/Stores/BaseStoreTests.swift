@@ -323,7 +323,7 @@ class StoreTests: XCTestCase {
         let entities = (1...1000).map { EntitySpy(idValue: .remote($0, nil)) }
 
         let expectation = self.expectation(description: "entity")
-        Task {
+        Task(priority: .high) {
             let result = await entityStore.set(entities, in: WriteContext(dataTarget: .local))
 
             guard let result = result else {

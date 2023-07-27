@@ -185,8 +185,7 @@ public final class CoreDataManager: NSObject {
 
     func makeContext() async -> NSManagedObjectContext? {
         do {
-            return try await stateAsyncQueue.enqueue { operationCompletion in
-                defer { operationCompletion() }
+            return try await stateAsyncQueue.enqueue {
                 return await withCheckedContinuation { continuation in
                     self._persistentContainer {
                         continuation.resume(returning: self._state.loadedValues?.context)

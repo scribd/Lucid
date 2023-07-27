@@ -37,7 +37,7 @@ public final class APIRequestDeduplicator: APIRequestDeduplicating {
                                    completion: @escaping (Bool) -> Void) {
         Task {
             do {
-                try await asyncTaskQueue.enqueue { operationCompletion in
+                try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                     defer { operationCompletion() }
                     if request.deduplicate && self._requestsInProgress.contains(request) {
                         var handlers = self._duplicateHandlers[request] ?? []
@@ -57,7 +57,7 @@ public final class APIRequestDeduplicator: APIRequestDeduplicating {
 
     public func isDuplicated(request: APIRequestConfig) async -> Bool {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
+            return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 defer { operationCompletion() }
                 return request.deduplicate && self._requestsInProgress.contains(request)
             }
@@ -69,7 +69,7 @@ public final class APIRequestDeduplicator: APIRequestDeduplicating {
 
     public func waitForDuplicated(request: APIRequestConfig) async -> Result<APIClientResponse<Data>, APIError> {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
+            return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 var continuations = self._asyncDuplicateContinuations[request] ?? []
                 return await withCheckedContinuation { continuation in
                     continuations.append(continuation)
@@ -85,7 +85,7 @@ public final class APIRequestDeduplicator: APIRequestDeduplicating {
     public func applyResultToDuplicates(request: APIRequestConfig, result: Result<APIClientResponse<Data>, APIError>) {
         Task {
             do {
-                try await asyncTaskQueue.enqueue { completion in
+                try await asyncTaskQueue.enqueueBarrier { completion in
                     defer { completion() }
                     self._requestsInProgress.remove(request)
                     let handlers = self._duplicateHandlers.removeValue(forKey: request) ?? []

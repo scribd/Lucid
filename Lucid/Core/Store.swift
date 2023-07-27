@@ -543,8 +543,7 @@ final class StoreStack<E: Entity> {
 
         guard let store = stores.first else {
             do {
-                return try await readWriteAsyncQueue.enqueue { operationCompletion in
-                    operationCompletion()
+                return try await readWriteAsyncQueue.enqueue {
                     if let error = error {
                         return .failure(error)
                     } else {
@@ -565,17 +564,14 @@ final class StoreStack<E: Entity> {
         switch storeResult {
         case .success(let queryResult):
             do {
-                return try await self.contractAsyncQueue.enqueue { contractOperationCompletion in
+                return try await self.contractAsyncQueue.enqueue {
 
                     let (validatedResult, invalidCount) = queryResult.validatingContract(context.contract, with: query)
                     let shouldRefetch = invalidCount > 0 || validatedResult.isEmpty
                     if shouldRefetch {
-                        contractOperationCompletion()
                         return await Task { return await self.get(withQuery: query, in: context, stores: storesCopy, error: error) }.value
                     } else {
-                        contractOperationCompletion()
-                        return try await self.readWriteAsyncQueue.enqueue { readWriteOperationCompletion in
-                            defer { readWriteOperationCompletion() }
+                        return try await self.readWriteAsyncQueue.enqueue {
                             return .success(validatedResult)
                         }
                     }
@@ -618,9 +614,7 @@ final class StoreStack<E: Entity> {
                 in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
         guard stores.isEmpty == false else {
             do {
-                return try await readWriteAsyncQueue.enqueue { operationCompletion in
-                    defer { operationCompletion() }
-
+                return try await readWriteAsyncQueue.enqueue {
                     return .success(.entities(AnySequence.empty))
                 }
             } catch {
@@ -691,9 +685,7 @@ final class StoreStack<E: Entity> {
 
         guard let store = stores.first else {
             do {
-                return try await readWriteAsyncQueue.enqueue { operationCompletion in
-                    defer { operationCompletion () }
-
+                return try await readWriteAsyncQueue.enqueue {
                     if let error = error {
                         return .failure(error)
                     } else {
@@ -714,16 +706,13 @@ final class StoreStack<E: Entity> {
         switch storeResult {
         case .success(let queryResult):
             do {
-                return try await self.contractAsyncQueue.enqueue { contractOperationCompletion in
+                return try await self.contractAsyncQueue.enqueue {
                     let (validatedResult, invalidCount) = queryResult.validatingContract(context.contract, with: query)
                     let shouldRefetch = (invalidCount > 0 || validatedResult.isEmpty) && storesCopy.isEmpty == false && store.level.isLocal
                     if shouldRefetch {
-                        contractOperationCompletion()
                         return await Task { await self.search(withQuery: query, in: context, stores: storesCopy, error: error) }.value
                     } else {
-                        contractOperationCompletion()
-                        return try await self.readWriteAsyncQueue.enqueue { readWriteOperationCompletion in
-                            defer { readWriteOperationCompletion() }
+                        return try await self.readWriteAsyncQueue.enqueue {
                             return .success(validatedResult)
                         }
                     }
@@ -762,9 +751,7 @@ final class StoreStack<E: Entity> {
 
         guard stores.isEmpty == false else {
             do {
-                return try await readWriteAsyncQueue.enqueue { operationCompletion in
-                    defer { operationCompletion() }
-
+                return try await writeResultsAsyncQueue.enqueue {
                     return .success(entity)
                 }
             } catch {
@@ -804,9 +791,7 @@ final class StoreStack<E: Entity> {
 
         guard stores.isEmpty == false else {
             do {
-                return try await writeResultsAsyncQueue.enqueue { operationCompletion in
-                    defer { operationCompletion() }
-
+                return try await writeResultsAsyncQueue.enqueue {
                    return .success(entities.any)
                 }
             } catch {
@@ -848,8 +833,7 @@ final class StoreStack<E: Entity> {
 
         guard stores.isEmpty == false else {
             do {
-                return try await writeResultsAsyncQueue.enqueue { operationCompletion in
-                    defer { operationCompletion() }
+                return try await writeResultsAsyncQueue.enqueue {
                     return .success(.empty)
                 }
             } catch {
@@ -889,8 +873,7 @@ final class StoreStack<E: Entity> {
 
         guard stores.isEmpty == false else {
             do {
-                return try await writeResultsAsyncQueue.enqueue { operationCompletion in
-                    defer { operationCompletion() }
+                return try await writeResultsAsyncQueue.enqueue {
                     return .success(())
                 }
             } catch {
@@ -913,9 +896,7 @@ final class StoreStack<E: Entity> {
 
         guard stores.isEmpty == false else {
             do {
-                return try await writeResultsAsyncQueue.enqueue { operationCompletion in
-                    defer { operationCompletion() }
-
+                return try await writeResultsAsyncQueue.enqueue {
                     return .success(())
                 }
             } catch {
@@ -1031,8 +1012,7 @@ private extension StoreStack {
 
         guard stores.isEmpty == false else {
             do {
-                return try await readWriteAsyncQueue.enqueue { completion in
-                    defer { completion() }
+                return try await readWriteAsyncQueue.enqueue {
                     return .failure(.emptyStack)
                 }
             } catch {
@@ -1046,9 +1026,7 @@ private extension StoreStack {
         @Sendable func handleStore(store: Storing<E>, at index: Int) async -> Void {
             await handler(store, { result in
                 do {
-                    try await self.readWriteAsyncQueue.enqueue { completion in
-                        defer { completion() }
-
+                    try await self.readWriteAsyncQueue.enqueue {
                         await results.append(result: result, at: index)
                     }
                 } catch {

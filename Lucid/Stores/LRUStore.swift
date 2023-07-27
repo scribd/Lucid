@@ -77,7 +77,7 @@ public final class LRUStore<E>: StoringConvertible where E: LocalEntity {
             }
 
             do {
-                return try await identifiersAsyncQueue.enqueue { operationCompletion in
+                return try await identifiersAsyncQueue.enqueueBarrier { operationCompletion in
                     defer { operationCompletion() }
 
                     _ = self._push([successfulEntity.identifier].any)
@@ -121,7 +121,7 @@ public final class LRUStore<E>: StoringConvertible where E: LocalEntity {
             }
 
             do {
-                return try await identifiersAsyncQueue.enqueue { operationCompletion in
+                return try await identifiersAsyncQueue.enqueueBarrier { operationCompletion in
                     defer { operationCompletion() }
 
                     self._push(successfulEntities.lazy.map { $0.identifier })
@@ -160,7 +160,7 @@ public final class LRUStore<E>: StoringConvertible where E: LocalEntity {
         switch result {
         case .some(.success(let successfulEntities)):
             do {
-                return try await identifiersAsyncQueue.enqueue { operationCompletion in
+                return try await identifiersAsyncQueue.enqueueBarrier { operationCompletion in
                     defer { operationCompletion() }
 
                     let identifiersToRemove = self._push(successfulEntities.lazy.map { $0.identifier })
@@ -231,7 +231,7 @@ public final class LRUStore<E>: StoringConvertible where E: LocalEntity {
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
         do {
-            return try await identifiersAsyncQueue.enqueue { operationCompletion in
+            return try await identifiersAsyncQueue.enqueueBarrier { operationCompletion in
                 defer { operationCompletion() }
 
                 let removedIdentifiers = self._remove(identifiers)

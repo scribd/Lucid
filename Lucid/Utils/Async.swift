@@ -106,22 +106,52 @@ extension AsyncSequence {
 public actor AsyncTaskQueue {
 
     public typealias OperationCompletion = () -> Void
+    public typealias AsyncOperation = (barrier: Bool, continuation: CheckedContinuation<Void, Error>)
 
     private let maxConcurrentTasks: Int
     private(set) var runningTasks: Int = 0
-    private var queue = [CheckedContinuation<Void, Error>]()
+    private var queue = [AsyncOperation]()
 
-    public init(maxConcurrentTasks: Int = 1) {
+    public var isLastBarrier: Bool {
+        return queue.last?.barrier ?? false
+    }
+
+    private var current: AsyncOperation?
+
+    private var isCurrentBarrier: Bool {
+        return current?.barrier ?? false
+    }
+
+    private var isNextBarrier: Bool {
+        return queue.first?.barrier ?? false
+    }
+
+    public init(maxConcurrentTasks: Int = 5) {
         self.maxConcurrentTasks = maxConcurrentTasks
     }
 
     deinit {
-        for continuation in queue {
+        for continuation in queue.map({ $1 }) {
             continuation.resume(throwing: CancellationError())
         }
     }
 
-    public func enqueue<T>(operation: @escaping @Sendable (OperationCompletion) async throws -> T) async throws -> T {
+    public func enqueue<T>(operation: @escaping @Sendable () async throws -> T) async throws -> T {
+        try Task.checkCancellation()
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            self.queue.append((false, continuation))
+            await self.tryRunEnqueued()
+        }
+
+        try Task.checkCancellation()
+        let result = try await operation()
+        await self.endOperation()
+
+        return result
+    }
+
+    public func enqueueBarrier<T>(operation: @escaping @Sendable (OperationCompletion) async throws -> T) async throws -> T {
         try Task.checkCancellation()
 
         let completion: OperationCompletion = {
@@ -131,7 +161,7 @@ public actor AsyncTaskQueue {
         }
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            self.queue.append(continuation)
+            self.queue.append((true, continuation))
             await self.tryRunEnqueued()
         }
 
@@ -141,6 +171,7 @@ public actor AsyncTaskQueue {
 
     private func endOperation() async {
         runningTasks -= 1
+        current = nil
         await self.tryRunEnqueued()
     }
 
@@ -148,9 +179,19 @@ public actor AsyncTaskQueue {
         guard queue.isEmpty == false else { return }
         guard runningTasks < maxConcurrentTasks else { return }
 
+        if runningTasks > 0 {
+            if isCurrentBarrier || isNextBarrier { return }
+        }
+
         runningTasks += 1
-        let continuation = queue.removeFirst()
-        continuation.resume()
+        let operation = queue.removeFirst()
+        current = operation
+        operation.continuation.resume()
+
+        // Try to run as many operations in parallel as possible
+        if isCurrentBarrier == false && isNextBarrier == false {
+            await tryRunEnqueued()
+        }
     }
 }
 

@@ -20,9 +20,7 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: { completion in
-                    defer { completion() }
-
+                try await asyncTaskQueue.enqueue(operation: {
                     await operation.setUp()
                     await operation.perform()
                 })
@@ -56,9 +54,7 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: { completion in
-                    defer { completion() }
-
+                try await asyncTaskQueue.enqueue(operation: {
                     await operation.setUp()
                     await operation.perform()
                 })
@@ -104,9 +100,7 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: { completion in
-                    defer { completion() }
-
+                try await asyncTaskQueue.enqueue(operation: {
                     await operation1.setUp()
                     await operation1.perform()
                 })
@@ -117,9 +111,7 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: { completion in
-                    defer { completion() }
-
+                try await asyncTaskQueue.enqueue(operation: {
                     await operation2.setUp()
                     await operation2.perform()
                 })
@@ -159,9 +151,7 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: { completion in
-                    defer { completion() }
-
+                try await asyncTaskQueue.enqueue(operation: {
                     await operation1.setUp()
                     await operation1.perform()
                 })
@@ -172,9 +162,7 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: { completion in
-                    defer { completion() }
-
+                try await asyncTaskQueue.enqueue(operation: {
                     await operation2.setUp()
                     await operation2.perform()
                 })
@@ -216,9 +204,7 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: { completion in
-                    defer { completion() }
-
+                try await asyncTaskQueue.enqueue(operation: {
                     await operation1.setUp()
                     await operation1.perform()
                 })
@@ -229,9 +215,7 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: { completion in
-                    defer { completion() }
-
+                try await asyncTaskQueue.enqueue(operation: {
                     await operation2.setUp()
                     await operation2.perform()
                 })
@@ -242,9 +226,7 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         Task {
             do {
-                try await asyncTaskQueue.enqueue(operation: { completion in
-                    defer { completion() }
-
+                try await asyncTaskQueue.enqueue(operation: {
                     await operation3.setUp()
                     await operation3.perform()
                 })
@@ -282,6 +264,299 @@ final class AsyncTaskQueueTests: XCTestCase {
             XCTAssertFalse(operation2HasCompleted)
             XCTAssertTrue(operation3HasStarted)
             XCTAssertEqual(runningTasks, 2)
+
+            setUpExpectation.fulfill()
+        }
+
+        wait(for: [setUpExpectation], timeout: 1)
+    }
+
+    // MARK: Barrier
+
+    func test_that_it_immediately_runs_a_barrier_operation_when_queue_is_empty() {
+        let asyncTaskQueue = AsyncTaskQueue(maxConcurrentTasks: 2)
+
+        let operation = BlockingOperation()
+
+        Task {
+            do {
+                try await asyncTaskQueue.enqueueBarrier(operation: { completion in
+                    defer { completion() }
+
+                    await operation.setUp()
+                    await operation.perform()
+                })
+            } catch {
+                XCTFail("unexpected error thrown: \(error)")
+            }
+        }
+
+        let setUpExpectation = expectation(description: "set_up_expectation")
+
+        Task { @MainActor in
+            await operation.waitForSetUp()
+
+            let hasStarted = await operation.hasStarted
+            let runningTasks = await asyncTaskQueue.runningTasks
+
+            XCTAssertTrue(hasStarted)
+            XCTAssertEqual(runningTasks, 1)
+
+            await operation.resume()
+            setUpExpectation.fulfill()
+        }
+
+        wait(for: [setUpExpectation], timeout: 1)
+    }
+
+    func test_that_it_waits_until_barrier_finishes_before_starting_next_operation() {
+        let asyncTaskQueue = AsyncTaskQueue(maxConcurrentTasks: 1)
+
+        let operation1 = BlockingOperation()
+        let operation2 = BlockingOperation()
+
+        Task {
+            do {
+                try await asyncTaskQueue.enqueueBarrier(operation: { completion in
+                    defer { completion() }
+
+                    await operation1.setUp()
+                    await operation1.perform()
+                })
+            } catch {
+                XCTFail("unexpected error thrown: \(error)")
+            }
+        }
+
+        Task {
+            do {
+                try await asyncTaskQueue.enqueue(operation: {
+                    await operation2.setUp()
+                    await operation2.perform()
+                })
+            } catch {
+                XCTFail("unexpected error thrown: \(error)")
+            }
+        }
+
+        let setUpExpectation = expectation(description: "set_up_expectation")
+
+        Task { @MainActor in
+            await operation1.waitForSetUp()
+            try? await Task.sleep(nanoseconds: 1000)
+
+            let operation1HasStarted = await operation1.hasStarted
+            var operation2HasStarted = await operation2.hasStarted
+            var runningTasks = await asyncTaskQueue.runningTasks
+
+            XCTAssertTrue(operation1HasStarted)
+            XCTAssertFalse(operation2HasStarted)
+            XCTAssertEqual(runningTasks, 1)
+
+            await operation1.resume()
+            await operation2.waitForSetUp()
+
+            let operation1HasCompleted = await operation1.hasCompleted
+            operation2HasStarted = await operation2.hasStarted
+            runningTasks = await asyncTaskQueue.runningTasks
+
+            XCTAssertTrue(operation1HasCompleted)
+            XCTAssertTrue(operation2HasStarted)
+            XCTAssertEqual(runningTasks, 1)
+
+            setUpExpectation.fulfill()
+        }
+
+        wait(for: [setUpExpectation], timeout: 1)
+    }
+
+    func test_that_it_runs_in_parallel_until_it_finds_a_barrier() {
+        let asyncTaskQueue = AsyncTaskQueue(maxConcurrentTasks: 2)
+
+        let operation1 = BlockingOperation()
+        let operation2 = BlockingOperation()
+        let operation3 = BlockingOperation()
+
+        Task {
+            do {
+                try await asyncTaskQueue.enqueue(operation: {
+                    await operation1.setUp()
+                    await operation1.perform()
+                })
+            } catch {
+                XCTFail("unexpected error thrown: \(error)")
+            }
+        }
+
+        Task {
+            do {
+                try await asyncTaskQueue.enqueue(operation: {
+                    await operation2.setUp()
+                    await operation2.perform()
+                })
+            } catch {
+                XCTFail("unexpected error thrown: \(error)")
+            }
+        }
+
+        Task {
+            do {
+                try await asyncTaskQueue.enqueueBarrier(operation: { completion in
+                    defer { completion() }
+
+                    await operation3.setUp()
+                    await operation3.perform()
+                })
+            } catch {
+                XCTFail("unexpected error thrown: \(error)")
+            }
+        }
+
+        let setUpExpectation = expectation(description: "set_up_expectation")
+
+        Task { @MainActor in
+            await operation1.waitForSetUp()
+            await operation2.waitForSetUp()
+            try? await Task.sleep(nanoseconds: 1000)
+
+            let operation1HasStarted = await operation1.hasStarted
+            let operation2HasStarted = await operation2.hasStarted
+            var operation3HasStarted = await operation3.hasStarted
+            var runningTasks = await asyncTaskQueue.runningTasks
+
+            XCTAssertTrue(operation1HasStarted)
+            XCTAssertTrue(operation2HasStarted)
+            XCTAssertFalse(operation3HasStarted)
+            XCTAssertEqual(runningTasks, 2)
+
+            await operation1.resume()
+            await operation2.resume()
+            await operation3.waitForSetUp()
+
+            let operation1HasCompleted = await operation1.hasCompleted
+            let operation2HasCompleted = await operation2.hasCompleted
+            operation3HasStarted = await operation3.hasStarted
+            runningTasks = await asyncTaskQueue.runningTasks
+
+            XCTAssertTrue(operation1HasCompleted)
+            XCTAssertTrue(operation2HasCompleted)
+            XCTAssertTrue(operation3HasStarted)
+            XCTAssertEqual(runningTasks, 1)
+
+            await operation3.resume()
+
+            let operation3HasCompleted = await operation3.hasCompleted
+            XCTAssertTrue(operation1HasCompleted)
+            XCTAssertTrue(operation2HasCompleted)
+            XCTAssertTrue(operation3HasCompleted)
+
+            setUpExpectation.fulfill()
+        }
+
+        wait(for: [setUpExpectation], timeout: 1)
+    }
+
+    func test_that_it_runs_in_parallel_until_it_finds_a_barrier_then_it_waits_for_barrier_to_end_to_continue() {
+        let asyncTaskQueue = AsyncTaskQueue(maxConcurrentTasks: 2)
+
+        let operation1 = BlockingOperation()
+        let operation2 = BlockingOperation()
+        let operation3 = BlockingOperation()
+        let operation4 = BlockingOperation()
+
+        Task {
+            do {
+                try await asyncTaskQueue.enqueue(operation: {
+                    await operation1.setUp()
+                    await operation1.perform()
+                })
+            } catch {
+                XCTFail("unexpected error thrown: \(error)")
+            }
+        }
+
+        Task {
+            do {
+                try await asyncTaskQueue.enqueue(operation: {
+                    await operation2.setUp()
+                    await operation2.perform()
+                })
+            } catch {
+                XCTFail("unexpected error thrown: \(error)")
+            }
+        }
+
+        Task {
+            do {
+                try await asyncTaskQueue.enqueueBarrier(operation: { completion in
+                    defer { completion() }
+
+                    await operation3.setUp()
+                    await operation3.perform()
+                })
+            } catch {
+                XCTFail("unexpected error thrown: \(error)")
+            }
+        }
+
+        Task {
+            do {
+                try await asyncTaskQueue.enqueue(operation: {
+                    await operation4.setUp()
+                    await operation4.perform()
+                })
+            } catch {
+                XCTFail("unexpected error thrown: \(error)")
+            }
+        }
+
+        let setUpExpectation = expectation(description: "set_up_expectation")
+
+        Task { @MainActor in
+            await operation1.waitForSetUp()
+            await operation2.waitForSetUp()
+            try? await Task.sleep(nanoseconds: 1000)
+
+            let operation1HasStarted = await operation1.hasStarted
+            let operation2HasStarted = await operation2.hasStarted
+            var operation3HasStarted = await operation3.hasStarted
+            var operation4HasStarted = await operation4.hasStarted
+            var runningTasks = await asyncTaskQueue.runningTasks
+
+            XCTAssertTrue(operation1HasStarted)
+            XCTAssertTrue(operation2HasStarted)
+            XCTAssertFalse(operation3HasStarted)
+            XCTAssertFalse(operation4HasStarted)
+            XCTAssertEqual(runningTasks, 2)
+
+            await operation1.resume()
+            await operation2.resume()
+            await operation3.waitForSetUp()
+
+            let operation1HasCompleted = await operation1.hasCompleted
+            let operation2HasCompleted = await operation2.hasCompleted
+            operation3HasStarted = await operation3.hasStarted
+            operation4HasStarted = await operation4.hasStarted
+            runningTasks = await asyncTaskQueue.runningTasks
+
+            XCTAssertTrue(operation1HasCompleted)
+            XCTAssertTrue(operation2HasCompleted)
+            XCTAssertTrue(operation3HasStarted)
+            XCTAssertFalse(operation4HasStarted)
+            XCTAssertEqual(runningTasks, 1)
+
+            await operation3.resume()
+            await operation4.waitForSetUp()
+
+            let operation3HasCompleted = await operation3.hasCompleted
+            operation4HasStarted = await operation4.hasStarted
+            runningTasks = await asyncTaskQueue.runningTasks
+
+            XCTAssertTrue(operation1HasCompleted)
+            XCTAssertTrue(operation2HasCompleted)
+            XCTAssertTrue(operation3HasCompleted)
+            XCTAssertTrue(operation4HasStarted)
+            XCTAssertEqual(runningTasks, 1)
 
             setUpExpectation.fulfill()
         }

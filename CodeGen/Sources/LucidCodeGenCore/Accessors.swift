@@ -474,7 +474,16 @@ public extension EntityProperty.PropertyType {
             return nil
         }
     }
-    
+
+    func subtypeInArray(_ descriptions: Descriptions) throws -> Subtype? {
+        switch self {
+        case .array(let arraySubtype):
+            return try arraySubtype.subtype(descriptions)
+        default:
+            return nil
+        }
+    }
+
     var scalarType: PropertyScalarType? {
         switch self {
         case .scalar(let scalarType):

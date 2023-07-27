@@ -58,9 +58,7 @@ public final class InMemoryStore<E>: StoringConvertible where E: LocalEntity {
         }
 
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
-                defer { operationCompletion() }
-
+            return try await asyncTaskQueue.enqueue {
                 let entity = self._cache[identifier]
                 return .success(QueryResult(from: entity))
             }
@@ -79,9 +77,7 @@ public final class InMemoryStore<E>: StoringConvertible where E: LocalEntity {
 
     public func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
-                defer { operationCompletion() }
-
+            return try await asyncTaskQueue.enqueue {
                 let results = self._collectEntities(for: query)
                 return .success(results)
             }
@@ -107,7 +103,7 @@ public final class InMemoryStore<E>: StoringConvertible where E: LocalEntity {
 
     public func set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where S : Sequence, E == S.Element {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
+            return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 defer { operationCompletion() }
 
                 var mergedEntities: [E] = []
@@ -145,7 +141,7 @@ public final class InMemoryStore<E>: StoringConvertible where E: LocalEntity {
 
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
+            return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 let results = self._collectEntities(for: query)
                 let identifiers = results.any.lazy.map { $0.identifier }
 
@@ -177,7 +173,7 @@ public final class InMemoryStore<E>: StoringConvertible where E: LocalEntity {
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
+            return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 defer { operationCompletion() }
 
                 for identifier in identifiers {
@@ -217,7 +213,7 @@ private extension InMemoryStore {
 
     func didReceiveMemoryWarning() async {
         do {
-            try await asyncTaskQueue.enqueue { operationCompletion in
+            try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 defer { operationCompletion() }
 
                 self._cache = DualHashDictionary<E.Identifier, E>()

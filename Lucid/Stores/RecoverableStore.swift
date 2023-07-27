@@ -50,7 +50,7 @@ extension RecoverableStore: StoringConvertible {
 
     public func get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
+            return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 defer { operationCompletion() }
 
                 let result = await self.mainStore.get(withQuery: query, in: context)
@@ -73,7 +73,7 @@ extension RecoverableStore: StoringConvertible {
 
     public func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
+            return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 defer { operationCompletion() }
                 let result = await self.mainStore.search(withQuery: query, in: context)
                 return result
@@ -102,7 +102,7 @@ extension RecoverableStore: StoringConvertible {
 
     public func set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where S : Sequence, E == S.Element {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
+            return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 defer { operationCompletion() }
 
                 async let mainStoreResult = self.mainStore.set(entities, in: context)
@@ -140,7 +140,7 @@ extension RecoverableStore: StoringConvertible {
 
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
+            return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 defer { operationCompletion() }
 
                 async let mainStoreResult = self.mainStore.removeAll(withQuery: query, in: context)
@@ -178,7 +178,7 @@ extension RecoverableStore: StoringConvertible {
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
+            return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 defer { operationCompletion() }
 
                 async let mainStoreResult = self.mainStore.remove(identifiers, in: context)

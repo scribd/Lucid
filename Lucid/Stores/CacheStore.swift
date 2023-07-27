@@ -81,18 +81,18 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
 
     public func get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
         do {
-            return try await self.asyncTaskQueue.enqueue { operationCompletion in
-                defer { operationCompletion() }
+            let result = await self.keyValueStore.get(withQuery: query, in: context)
 
-                let result = await self.keyValueStore.get(withQuery: query, in: context)
+            switch result {
+            case .success(let queryResult) where queryResult.entity != nil:
+                return .success(queryResult)
+            case .success, .failure:
+                if let error = result.error {
+                    Logger.log(.error, "\(CacheStore<E>.self): Could not get entity: \(query) from cache store: \(error)", assert: true)
+                }
 
-                switch result {
-                case .success(let queryResult) where queryResult.entity != nil:
-                    return .success(queryResult)
-                case .success, .failure:
-                    if let error = result.error {
-                        Logger.log(.error, "\(CacheStore<E>.self): Could not get entity: \(query) from cache store: \(error)", assert: true)
-                    }
+                return try await self.asyncTaskQueue.enqueueBarrier { operationCompletion in
+                    defer { operationCompletion() }
 
                     let getResult = await self.persistentStore.get(withQuery: query, in: context)
                     switch getResult {
@@ -173,24 +173,25 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
 
     public func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
-                defer { operationCompletion() }
+            guard let identifiers = query.identifiers?.array,
+                  query.order.contains(where: { $0.isDeterministic == false }) == false,
+                  query.offset == nil,
+                  query.limit == nil else {
 
-                guard let identifiers = query.identifiers?.array,
-                      query.order.contains(where: { $0.isDeterministic == false }) == false,
-                      query.offset == nil,
-                      query.limit == nil else {
-                    
+                return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                     defer { operationCompletion() }
                     return await self.persistentStore.search(withQuery: query, in: context)
                 }
+            }
 
-                let result = await self.keyValueStore.search(withQuery: query, in: context)
+            let result = await self.keyValueStore.search(withQuery: query, in: context)
 
-                switch result {
-                case .success(var keyValueStoreEntities):
+            switch result {
+            case .success(var keyValueStoreEntities):
 
-                    if keyValueStoreEntities.materialize().count != identifiers.count {
+                if keyValueStoreEntities.materialize().count != identifiers.count {
+                    return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
+                        defer { operationCompletion() }
                         let searchResult = await self.persistentStore.search(withQuery: query, in: context)
 
                         switch searchResult {
@@ -207,13 +208,13 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
                         case .failure(let error):
                             return .failure(error)
                         }
-                    } else {
-                        return result
                     }
-
-                case .failure(let error):
-                    return .failure(error)
+                } else {
+                    return result
                 }
+
+            case .failure(let error):
+                return .failure(error)
             }
         } catch {
             return .failure(.notSupported)
@@ -271,7 +272,7 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
 
     public func set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where S : Sequence, E == S.Element {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
+            return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 defer { operationCompletion() }
 
                 let entitiesToSave = DualHashDictionary(entities.map { ($0.identifier, $0) })
@@ -403,7 +404,7 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
 
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
+            return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 defer { operationCompletion() }
 
                 return await withTaskGroup(of: Result<AnySequence<E.Identifier>, StoreError>?.self) { group in
@@ -471,7 +472,7 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
         do {
-            return try await asyncTaskQueue.enqueue { operationCompletion in
+            return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 defer { operationCompletion() }
 
                 return await withTaskGroup(of: Result<Void, StoreError>?.self) { group in

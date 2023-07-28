@@ -430,6 +430,10 @@ public extension EntityProperty {
             return persistedName ?? name
         }
     }
+
+    var isArrayOfSubtype: Bool {
+        return propertyType.isArrayOfSubtype
+    }
 }
 
 public extension EntityProperty.PropertyType {
@@ -499,6 +503,17 @@ public extension EntityProperty.PropertyType {
             return true
         case .relationship(let relationship) where relationship.association == .toMany:
             return true
+        case .relationship,
+             .scalar,
+             .subtype:
+            return false
+        }
+    }
+
+    var isArrayOfSubtype: Bool {
+        switch self {
+        case .array(let subtype):
+            return subtype.isSubtype
         case .relationship,
              .scalar,
              .subtype:

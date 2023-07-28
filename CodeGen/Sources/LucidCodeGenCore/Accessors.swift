@@ -430,6 +430,10 @@ public extension EntityProperty {
             return persistedName ?? name
         }
     }
+
+    var isArrayOfSubtype: Bool {
+        return propertyType.isArrayOfSubtype
+    }
 }
 
 public extension EntityProperty.PropertyType {
@@ -474,7 +478,16 @@ public extension EntityProperty.PropertyType {
             return nil
         }
     }
-    
+
+    func subtypeInArray(_ descriptions: Descriptions) throws -> Subtype? {
+        switch self {
+        case .array(let arraySubtype):
+            return try arraySubtype.subtype(descriptions)
+        default:
+            return nil
+        }
+    }
+
     var scalarType: PropertyScalarType? {
         switch self {
         case .scalar(let scalarType):
@@ -490,6 +503,17 @@ public extension EntityProperty.PropertyType {
             return true
         case .relationship(let relationship) where relationship.association == .toMany:
             return true
+        case .relationship,
+             .scalar,
+             .subtype:
+            return false
+        }
+    }
+
+    var isArrayOfSubtype: Bool {
+        switch self {
+        case .array(let subtype):
+            return subtype.isSubtype
         case .relationship,
              .scalar,
              .subtype:

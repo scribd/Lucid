@@ -286,10 +286,18 @@ struct MetaSubtype {
                 )
         }
     }
-    
+
     private func coreDataConveniences() throws -> [FileBodyMember] {
         let subtype = try descriptions.subtype(for: subtypeName)
         let subtypeVariableName = subtype.name.camelCased().variableCased()
+        let isUsedAsArrayWithDefaultValue = descriptions.entities.contains { entity in
+            guard let subtypeProperty = entity.properties.first(where: {
+                guard let propertySubtype = try? $0.propertyType.subtypeInArray(descriptions) else { return false }
+                return propertySubtype.name == subtypeName
+            }) else { return false }
+
+            return subtypeProperty.isArray && subtypeProperty.defaultValue != nil
+        }
 
         switch subtype.items {
         case .cases:
@@ -388,6 +396,19 @@ struct MetaSubtype {
                         .with(resultType: .optional(wrapped: .anySequence(element: subtype.typeID())))
                         .adding(member: Return(value: Reference.named(.`self`) | .unwrap + .named("\(subtypeVariableName)ArrayValue") | .call()))
                     )
+                    .adding(member: isUsedAsArrayWithDefaultValue ? EmptyLine() : nil)
+                    .adding(member: isUsedAsArrayWithDefaultValue ? Function(kind: .named("\(subtypeVariableName)ArrayValue"))
+                        .adding(parameter: FunctionParameter(name: "propertyName", type: .string))
+                        .with(throws: true)
+                        .with(resultType: .anySequence(element: subtype.typeID()))
+                        .adding(member: Return(value: Reference.named("(") | .optionalTry | Reference.named("stringArrayValue") | .call(Tuple()
+                                    .adding(parameter: TupleParameter(name: "propertyName", value: Reference.named("propertyName")))
+                                ) + .named("lazy") + .named(.compactMap) | .block(FunctionBody()
+                                .adding(member: subtype.typeID().reference | .call(Tuple()
+                                .adding(parameter: TupleParameter(name: "rawValue", value: Reference.named("$0")))
+                            ))
+                        ) + .named("any") | Reference.named(")") | Reference.named(" ?? ") | Reference.named(".empty")))
+                    : nil)
             ]
 
         case .options:

@@ -558,9 +558,11 @@ private extension CoreManager {
 
             let initialUserAccess = context.userAccess
 
-            let result = try await self.operationTaskQueue.enqueue {
+            let result = try await self.operationTaskQueue.enqueueBarrier { operationCompletion in
                 let time = UpdateTime()
                 let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+
+                operationCompletion()
 
                 let result = await storeStack.get(withQuery: query, in: context)
                 switch result {
@@ -704,7 +706,9 @@ private extension CoreManager {
 
         let once: () async throws -> QueryResult<E> = {
 
-            let result: QueryResult<E> = try await self.operationTaskQueue.enqueue {
+            let result: QueryResult<E> = try await self.operationTaskQueue.enqueueBarrier { operationCompletion in
+                operationCompletion()
+
                 let result = await storeStack.search(withQuery: query, in: context)
                 switch result {
                 case .success(let remoteResults):
@@ -851,10 +855,11 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        let result = try await self.operationTaskQueue.enqueue {
+        let result = try await self.operationTaskQueue.enqueueBarrier { operationCompletion in
             let time = UpdateTime(timestamp: context.originTimestamp)
 
             guard self.canUpdate(identifier: entity.identifier, basedOn: time) else {
+                operationCompletion()
                 let result = await self.localStore.get(withQuery: Query.identifier(entity.identifier), in: ReadContext<E>())
                 switch result {
                 case .success(let queryResult):
@@ -872,6 +877,7 @@ private extension CoreManager {
             self.setUpdateTime(time, for: entity.identifier)
             let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
 
+            operationCompletion()
             let result = await storeStack.set(entity, in: context, localStoresCompletion: { result in
                 guard let updatedEntity = result?.value else { return }
                 self.raiseUpdateEvents(withQuery: .identifier(updatedEntity.identifier), results: .entities([updatedEntity]))
@@ -929,7 +935,7 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        let result: AnySequence<E> = try await self.operationTaskQueue.enqueue {
+        let result: AnySequence<E> = try await self.operationTaskQueue.enqueueBarrier { operationCompletion in
             let time = UpdateTime(timestamp: context.originTimestamp)
             var entitiesToUpdate = OrderedDualHashDictionary(
                 self.updateTime(for: entities.lazy.map { $0.identifier })
@@ -945,12 +951,15 @@ private extension CoreManager {
             )
 
             guard entitiesToUpdate.isEmpty == false else {
+                operationCompletion()
                 return .empty
             }
 
             self.setUpdateTime(time, for: entitiesToUpdate.lazy.compactMap { $0.1?.identifier })
 
             let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+
+            operationCompletion()
 
             let result = await storeStack.set(entitiesToUpdate.lazy.compactMap { $0.1 }, in: context, localStoresCompletion: { result in
                 guard let updatedEntities = result?.value else { return }
@@ -1013,8 +1022,10 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        let result = try await self.operationTaskQueue.enqueue {
+        let result = try await self.operationTaskQueue.enqueueBarrier { operationCompletion in
             let time = UpdateTime(timestamp: context.originTimestamp)
+
+            operationCompletion()
 
             let result = await self.localStore.search(withQuery: query, in: ReadContext<E>())
             switch result {
@@ -1103,14 +1114,17 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        try await operationTaskQueue.enqueue {
+        try await operationTaskQueue.enqueueBarrier { operationCompletion in
             let time = UpdateTime(timestamp: context.originTimestamp)
             guard self.canUpdate(identifier: identifier, basedOn: time) else {
+                operationCompletion()
                 return
             }
             self.setUpdateTime(time, for: identifier)
 
             let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+
+            operationCompletion()
 
             let result = await storeStack.remove(atID: identifier, in: context, localStoresCompletion: { result in
                 guard result?.error == nil else { return }
@@ -1158,17 +1172,20 @@ private extension CoreManager {
 
         let initialUserAccess = context.userAccess
 
-        try await operationTaskQueue.enqueue {
+        try await operationTaskQueue.enqueueBarrier { operationCompletion in
 
             let time = UpdateTime(timestamp: context.originTimestamp)
             let identifiersToRemove = self.filter(identifiers: identifiers, basedOn: time).lazy.compactMap { $0 }
-            guard identifiersToRemove.isEmpty == false else {
-                return
-            }
 
             self.setUpdateTime(time, for: identifiersToRemove)
 
             let storeStack = context.storeStack(with: self.stores, queues: self.storeStackQueues)
+
+            operationCompletion()
+
+            guard identifiersToRemove.isEmpty == false else {
+                return
+            }
 
             let result = await storeStack.remove(identifiersToRemove, in: context, localStoresCompletion: { result in
                 guard result?.error == nil else { return }
@@ -1451,7 +1468,8 @@ private extension CoreManager {
 
         Task {
             do {
-                try await self.raiseEventsTaskQueue.enqueue {
+                try await self.raiseEventsTaskQueue.enqueueBarrier { operationCompletion in
+                    defer { operationCompletion() }
 
                     let properties = await self.propertyCache.properties
 
@@ -1522,7 +1540,8 @@ private extension CoreManager {
     func raiseDeleteEvents(_ deletedIDs: DualHashSet<E.Identifier>) {
         Task {
             do {
-                try await self.raiseEventsTaskQueue.enqueue {
+                try await self.raiseEventsTaskQueue.enqueueBarrier { operationCompletion in
+                    defer { operationCompletion() }
 
                     let properties = await self.propertyCache.properties
                     for element in properties {

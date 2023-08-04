@@ -147,7 +147,7 @@ public final class InMemoryStore<E>: StoringConvertible where E: LocalEntity {
 
                 // Release the task from queue to allow the following task in
                 operationCompletion()
-                let result = await self.remove(identifiers, in: context)
+                let result = await self._remove(identifiers, in: context)
                 switch result {
                 case .some(.success):
                     return .success(identifiers.any)
@@ -175,15 +175,18 @@ public final class InMemoryStore<E>: StoringConvertible where E: LocalEntity {
         do {
             return try await asyncTaskQueue.enqueueBarrier { operationCompletion in
                 defer { operationCompletion() }
-
-                for identifier in identifiers {
-                    self._cache[identifier] = nil
-                }
-                return .success(())
+                return await self._remove(identifiers, in: context)
             }
         } catch {
             return .failure(.notSupported)
         }
+    }
+
+    private func _remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
+        for identifier in identifiers {
+            self._cache[identifier] = nil
+        }
+        return .success(())
     }
 }
 

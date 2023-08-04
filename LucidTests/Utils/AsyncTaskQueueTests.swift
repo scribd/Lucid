@@ -563,6 +563,32 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         wait(for: [setUpExpectation], timeout: 1)
     }
+
+    func test_that_enqueue_continues_to_work_even_if_previous_operation_threw_an_error() {
+
+        let asyncTaskQueue = AsyncTaskQueue(maxConcurrentTasks: 1)
+
+        Task {
+            try? await asyncTaskQueue.enqueue(operation: {
+                throw TestError.someError
+            })
+        }
+
+        let performExpectation = expectation(description: "perform_operation")
+
+        Task {
+            do {
+                try await Task.sleep(nanoseconds: NSEC_PER_SEC / 2)
+                try await asyncTaskQueue.enqueue(operation: {
+                    performExpectation.fulfill()
+                })
+            } catch {
+                XCTFail("unexpected error thrown: \(error)")
+            }
+        }
+
+        wait(for: [performExpectation], timeout: 1)
+    }
 }
 
 private final actor BlockingOperation {
@@ -606,4 +632,8 @@ private final actor BlockingOperation {
         hasCompleted = true
         performContinuation.resume()
     }
+}
+
+private enum TestError: Error {
+    case someError
 }

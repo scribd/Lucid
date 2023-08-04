@@ -137,18 +137,23 @@ public actor AsyncTaskQueue {
     }
 
     public func enqueue<T>(operation: @escaping @Sendable () async throws -> T) async throws -> T {
-        try Task.checkCancellation()
+        do {
+            try Task.checkCancellation()
 
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            self.queue.append((false, continuation))
-            await self.tryRunEnqueued()
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                self.queue.append((false, continuation))
+                await self.tryRunEnqueued()
+            }
+
+            try Task.checkCancellation()
+            let result = try await operation()
+            await self.endOperation()
+
+            return result
+        } catch {
+            await self.endOperation()
+            throw error
         }
-
-        try Task.checkCancellation()
-        let result = try await operation()
-        await self.endOperation()
-
-        return result
     }
 
     public func enqueueBarrier<T>(operation: @escaping @Sendable (OperationCompletion) async throws -> T) async throws -> T {

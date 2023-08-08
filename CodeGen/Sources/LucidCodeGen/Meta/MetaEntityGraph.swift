@@ -223,9 +223,13 @@ struct MetaEntityGraph {
     
     private func entityGraphProperties() -> [TypeBodyMember] {
         return [
-            Property(variable: Variable(name: "isDataRemote")
-                .with(type: .bool)
+            Property(variable: Variable(name: "remoteResponseSource")
+                .with(type: .optional(wrapped: .named("RemoteResponseSource")))
                 .with(immutable: true)),
+            EmptyLine(),
+            ComputedProperty(variable: Variable(name: "isDataRemote")
+                .with(type: .bool))
+                .adding(member: Return(value: Reference.named("remoteResponseSource != nil"))),
             EmptyLine(),
             Property(variable: Variable(name: "rootEntities")
                 .with(type: .array(element: .appAnyEntity))
@@ -258,7 +262,7 @@ struct MetaEntityGraph {
     private func initFunction() -> Function {
         return Function(kind: .`init`(convenience: true, optional: false))
             .adding(member: Reference.named(.`self`) + .named(.`init`) | .call(Tuple()
-                .adding(parameter: TupleParameter(name: "isDataRemote", value: Value.bool(false)))
+                .adding(parameter: TupleParameter(name: "remoteResponseSource", value: Value.nil))
             ))
     }
 
@@ -268,17 +272,17 @@ struct MetaEntityGraph {
             .adding(parameter: FunctionParameter(name: "context", type: TypeIdentifier(name: "_ReadContext<P>")))
             .adding(constraint: .value(Reference.named("P: ResultPayloadConvertible")))
             .adding(member: Reference.named(.`self`) + .named(.`init`) | .call(Tuple()
-                .adding(parameter: TupleParameter(name: "isDataRemote", value: Reference.named("context.responseHeader != nil")))
+                .adding(parameter: TupleParameter(name: "remoteResponseSource", value: Reference.named("context.remoteResponseSource")))
             ))
     }
 
     private func privateInitFunction() -> Function {
         return Function(kind: .`init`(convenience: false, optional: false))
-            .adding(parameter: FunctionParameter(name: "isDataRemote", type: .bool))
+            .adding(parameter: FunctionParameter(name: "remoteResponseSource", type: .optional(wrapped: .named("RemoteResponseSource"))))
             .with(accessLevel: .private)
             .adding(member: Assignment(
-                variable: .named(.`self`) + .named("isDataRemote"),
-                value: Reference.named("isDataRemote")
+                variable: .named(.`self`) + .named("remoteResponseSource"),
+                value: Reference.named("remoteResponseSource")
             ))
             .adding(member: Assignment(
                 variable: .named(.`self`) + .named("rootEntities"),

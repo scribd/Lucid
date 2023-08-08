@@ -12,7 +12,11 @@ import Lucid
 
 public final class GraphStub: MutableGraph {
 
-    let isDataRemote: Bool
+    let remoteResponseSource: Optional<RemoteResponseSource>
+
+    var isDataRemote: Bool {
+        return remoteResponseSource != nil
+    }
 
     public typealias AnyEntity = AnyEntitySpy
 
@@ -27,15 +31,15 @@ public final class GraphStub: MutableGraph {
     public private(set) var _metadata: EndpointResultMetadata?
 
     public convenience init() {
-        self.init(isDataRemote: false)
+        self.init(remoteResponseSource: nil)
     }
 
     public convenience init<P>(context: _ReadContext<P>) where P : ResultPayloadConvertible {
-        self.init(isDataRemote: context.responseHeader != nil)
+        self.init(remoteResponseSource: context.remoteResponseSource)
     }
 
-    private init(isDataRemote: Bool) {
-        self.isDataRemote = isDataRemote
+    private init(remoteResponseSource: Optional<RemoteResponseSource>) {
+        self.remoteResponseSource = remoteResponseSource
         self.rootEntities = []
     }
 

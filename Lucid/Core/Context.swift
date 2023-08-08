@@ -170,14 +170,8 @@ public final class _ReadContext<ResultPayload> where ResultPayload: ResultPayloa
         return dataSource.persistenceStrategy
     }
 
-    public var responseHeader: APIResponseHeader? {
-        switch remoteStoreCache.remoteResponseSource {
-        case .some(.server(let header)),
-             .some(.urlCache(let header)):
-            return header
-        case .none:
-            return nil
-        }
+    public var remoteResponseSource: RemoteResponseSource? {
+        return remoteStoreCache.remoteResponseSource
     }
 
     public var endpointResultMetadata: EndpointResultMetadata? {
@@ -508,6 +502,16 @@ extension WriteContext {
 public enum RemoteResponseSource {
     case urlCache(_ header: APIResponseHeader)
     case server(_ header: APIResponseHeader)
+}
+
+public extension RemoteResponseSource {
+    var header: APIResponseHeader {
+        switch self {
+        case .server(let header),
+             .urlCache(let header):
+            return header
+        }
+    }
 }
 
 // MARK: - Persistence Manager

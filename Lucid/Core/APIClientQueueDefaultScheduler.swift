@@ -10,12 +10,19 @@ import Foundation
 
 public final class APIClientQueueDefaultScheduler {
 
-    private enum State {
-        case ready
-        case requestScheduled(timer: ScheduledTimer)
+    private actor State {
+        enum Value {
+            case ready
+            case requestScheduled(timer: ScheduledTimer)
+        }
+
+        var currentValue: Value = .ready
+
+        func setValue(value: Value) {
+            self.currentValue = value
+        }
     }
 
-    private let stateQueue: DispatchQueue
     private var _state: State
 
     private let timeInterval: TimeInterval
@@ -24,57 +31,43 @@ public final class APIClientQueueDefaultScheduler {
     public weak var delegate: APIClientQueueSchedulerDelegate?
 
     public init(timeInterval: TimeInterval = Constants.defaultTimeInterval,
-                timerProvider: ScheduledTimerProviding = ScheduledTimerProvider(),
-                stateQueue: DispatchQueue = DispatchQueue(label: "\(APIClientQueueDefaultScheduler.self)_state_queue")) {
+                timerProvider: ScheduledTimerProviding = ScheduledTimerProvider()) {
 
         self.timeInterval = timeInterval
         self.timerProvider = timerProvider
-        self.stateQueue = stateQueue
-        self._state = .ready
-
-        if stateQueue === DispatchQueue.main {
-            Logger.log(.error, "\(APIClientQueueDefaultScheduler.self) should not assign the main queue as the state queue.", assert: true)
-        }
+        self._state = State()
     }
 }
 
 extension APIClientQueueDefaultScheduler: APIClientQueueScheduling {
 
-    public func didEnqueueNewRequest() {
-        stateQueue.async(flags: .barrier) {
-            self._beginRequest()
+    public func didEnqueueNewRequest() async {
+        await self._beginRequest()
+    }
+
+    public func flush() async {
+        await self._beginRequest()
+    }
+
+    public func requestDidSucceed() async {
+        switch await self._state.currentValue {
+        case .requestScheduled:
+            Logger.log(.info, "\(APIClientQueueDefaultScheduler.self) request did succeed while in scheduled state.")
+        case .ready:
+            await self._beginRequest()
         }
     }
 
-    public func flush() {
-        stateQueue.async(flags: .barrier) {
-            self._beginRequest()
-        }
-    }
-
-    public func requestDidSucceed() {
-        stateQueue.async(flags: .barrier) {
-            switch self._state {
-            case .requestScheduled:
-                Logger.log(.info, "\(APIClientQueueDefaultScheduler.self) request did succeed while in scheduled state.")
-            case .ready:
-                self._beginRequest()
-            }
-        }
-    }
-
-    public func requestDidFail() {
-        stateQueue.async(flags: .barrier) {
-            switch self._state {
-            case .requestScheduled:
-                Logger.log(.info, "\(APIClientQueueDefaultScheduler.self) request did fail while in scheduled state")
-                return
-            case .ready:
-                let timer = self.timerProvider.scheduledTimer(timeInterval: self.timeInterval,
-                                                              target: self,
-                                                              selector: #selector(self.beginRequest))
-                self._state = .requestScheduled(timer: timer)
-            }
+    public func requestDidFail() async {
+        switch await self._state.currentValue {
+        case .requestScheduled:
+            Logger.log(.info, "\(APIClientQueueDefaultScheduler.self) request did fail while in scheduled state")
+            return
+        case .ready:
+            let timer = self.timerProvider.scheduledTimer(timeInterval: self.timeInterval,
+                                                          target: self,
+                                                          selector: #selector(self.beginRequest))
+            await self._state.setValue(value: .requestScheduled(timer: timer))
         }
     }
 }
@@ -82,34 +75,34 @@ extension APIClientQueueDefaultScheduler: APIClientQueueScheduling {
 private extension APIClientQueueDefaultScheduler {
 
     @objc func beginRequest() {
-        stateQueue.async(flags: .barrier) {
-            self._beginRequest()
+        Task {
+            await self._beginRequest()
         }
     }
 
-    func _beginRequest() {
-        switch _state {
+    func _beginRequest() async {
+        switch await _state.currentValue {
         case .ready:
              break
         case .requestScheduled(let timer):
             timer.invalidate()
         }
 
-        _state = .ready
+        await _state.setValue(value: .ready)
 
         guard let delegate = delegate else {
             Logger.log(.error, "\(APIClientQueueDefaultScheduler.self) lacks delegate", assert: true)
             return
         }
 
-        let processResult = delegate.processNext()
+        let processResult = await delegate.processNext()
 
         switch processResult {
         case .didNotProcess,
              .processedBarrier:
             return
         case .processedConcurrent:
-            _beginRequest()
+            await _beginRequest()
         }
     }
 }

@@ -14,8 +14,6 @@ import XCTest
 
 final class APIClientQueueDefaultSchedulerTests: XCTestCase {
 
-    private var dispatchQueue: DispatchQueue!
-
     private var timeInterval: TimeInterval!
 
     private var timer: MockTimer!
@@ -28,20 +26,17 @@ final class APIClientQueueDefaultSchedulerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        dispatchQueue = DispatchQueue(label: "\(APIClientQueueDefaultSchedulerTests.self)")
         timeInterval = 12345
         LucidConfiguration.logger = LoggerMock()
         timer = MockTimer()
         timerProvider = MockTimerProvider(timer: timer)
         delegate = APIClientQueueSchedulerDelegateSpy()
         scheduler = APIClientQueueDefaultScheduler(timeInterval: timeInterval,
-                                                   timerProvider: timerProvider,
-                                                   stateQueue: dispatchQueue)
+                                                   timerProvider: timerProvider)
         scheduler.delegate = delegate
     }
 
     override func tearDown() {
-        dispatchQueue = nil
         timeInterval = nil
         timer = nil
         timerProvider = nil
@@ -53,7 +48,7 @@ final class APIClientQueueDefaultSchedulerTests: XCTestCase {
 
 extension APIClientQueueDefaultSchedulerTests {
 
-    func testThatItInvokesTheDelegateWhenDidEnqueueNewRequestIsCalledInACleanState() {
+    func testThatItInvokesTheDelegateWhenDidEnqueueNewRequestIsCalledInACleanState() async {
 
         // state
         delegate.processNextStubs = [.processedBarrier]
@@ -62,15 +57,13 @@ extension APIClientQueueDefaultSchedulerTests {
         XCTAssertEqual(delegate.processNextInvocations.count, 0)
 
         // invoke scheduler
-        scheduler.didEnqueueNewRequest()
+        await scheduler.didEnqueueNewRequest()
 
         // ensure delegate was invoked
-        dispatchQueue.sync {
-            XCTAssertEqual(delegate.processNextInvocations.count, 1)
-        }
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 1)
     }
 
-    func testThatItInvokesTheDelegateWhenFlushIsCalledInACleanState() {
+    func testThatItInvokesTheDelegateWhenFlushIsCalledInACleanState() async {
 
         // state
         delegate.processNextStubs = [.processedBarrier]
@@ -79,15 +72,13 @@ extension APIClientQueueDefaultSchedulerTests {
         XCTAssertEqual(delegate.processNextInvocations.count, 0)
 
         // invoke scheduler
-        scheduler.flush()
+        await scheduler.flush()
 
         // ensure delegate was invoked
-        dispatchQueue.sync {
-            XCTAssertEqual(delegate.processNextInvocations.count, 1)
-        }
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 1)
     }
 
-    func testThatItInvokesTheDelegateEveryTimeDidEnqueueNewRequestIsCalledWhileTheDelegateHasNothingToProcess() {
+    func testThatItInvokesTheDelegateEveryTimeDidEnqueueNewRequestIsCalledWhileTheDelegateHasNothingToProcess() async {
 
         // state
         delegate.processNextStubs = [.didNotProcess]
@@ -96,17 +87,15 @@ extension APIClientQueueDefaultSchedulerTests {
         XCTAssertEqual(delegate.processNextInvocations.count, 0)
 
         // invoke scheduler
-        scheduler.didEnqueueNewRequest()
-        scheduler.didEnqueueNewRequest()
-        scheduler.didEnqueueNewRequest()
+        await scheduler.didEnqueueNewRequest()
+        await scheduler.didEnqueueNewRequest()
+        await scheduler.didEnqueueNewRequest()
 
         // ensure delegate was invoked
-        dispatchQueue.sync {
-            XCTAssertEqual(delegate.processNextInvocations.count, 3)
-        }
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 3)
     }
 
-    func testThatItInvokesTheDelegateEveryTimeFlushIsCalledWhileTheDelegateHasNothingToProcess() {
+    func testThatItInvokesTheDelegateEveryTimeFlushIsCalledWhileTheDelegateHasNothingToProcess() async {
 
         // state
         delegate.processNextStubs = [.didNotProcess]
@@ -115,228 +104,200 @@ extension APIClientQueueDefaultSchedulerTests {
         XCTAssertEqual(delegate.processNextInvocations.count, 0)
 
         // invoke scheduler
-        scheduler.flush()
-        scheduler.flush()
-        scheduler.flush()
+        await scheduler.flush()
+        await scheduler.flush()
+        await scheduler.flush()
 
         // ensure delegate was invoked
-        dispatchQueue.sync {
-            XCTAssertEqual(delegate.processNextInvocations.count, 3)
-        }
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 3)
     }
 
-    func testThatItInvokesTheDelegateEveryTimeDidEnqueueNewRequestIsCalled() {
+    func testThatItInvokesTheDelegateEveryTimeDidEnqueueNewRequestIsCalled() async {
 
         // state
         delegate.processNextStubs = [.processedBarrier]
 
         // invoke scheduler
-        scheduler.didEnqueueNewRequest()
-        scheduler.didEnqueueNewRequest()
+        await scheduler.didEnqueueNewRequest()
+        await scheduler.didEnqueueNewRequest()
 
-        dispatchQueue.sync {
-            // ensure delegate was invoked twice
-            XCTAssertEqual(delegate.processNextInvocations.count, 2)
-        }
+        // ensure delegate was invoked twice
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 2)
     }
 
-    func testThatItInvokesTheDelegateWhenFlushIsCalledEvenIfOperationsAreProcessing() {
+    func testThatItInvokesTheDelegateWhenFlushIsCalledEvenIfOperationsAreProcessing() async {
 
         // state
         delegate.processNextStubs = [.processedBarrier]
 
         // invoke scheduler
-        scheduler.didEnqueueNewRequest()
-        scheduler.flush()
+        await scheduler.didEnqueueNewRequest()
+        await scheduler.flush()
 
-        dispatchQueue.sync {
-            // ensure delegate was invoked twice
-            XCTAssertEqual(delegate.processNextInvocations.count, 2)
-        }
+        // ensure delegate was invoked twice
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 2)
     }
 
-    func testThatItReinvokesTheDelegateWhenARequestSucceeds() {
+    func testThatItReinvokesTheDelegateWhenARequestSucceeds() async {
 
         // state
         delegate.processNextStubs = [.processedBarrier]
 
         // invoke scheduler
-        scheduler.didEnqueueNewRequest()
-        scheduler.requestDidSucceed()
+        await scheduler.didEnqueueNewRequest()
+        await scheduler.requestDidSucceed()
 
-        dispatchQueue.sync {
-            // ensure delegate was invoked twice
-            XCTAssertEqual(delegate.processNextInvocations.count, 2)
-        }
+        // ensure delegate was invoked twice
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 2)
     }
 
-    func testThatItInvokesTheDelegateWhenDidEnqueueNewRequestIsCalledIfThePriorRequestWasSuccessfulAndNoFurtherRequestsWereWaiting() {
+    func testThatItInvokesTheDelegateWhenDidEnqueueNewRequestIsCalledIfThePriorRequestWasSuccessfulAndNoFurtherRequestsWereWaiting() async {
 
         // state
         delegate.processNextStubs = [.processedBarrier]
 
         // invoke scheduler
-        scheduler.didEnqueueNewRequest()
-        scheduler.requestDidSucceed()
+        await scheduler.didEnqueueNewRequest()
+        await scheduler.requestDidSucceed()
 
         // invoke scheduler
-        scheduler.didEnqueueNewRequest()
+        await scheduler.didEnqueueNewRequest()
 
-        dispatchQueue.sync {
-            // ensure delegate was invoked three times
-            XCTAssertEqual(delegate.processNextInvocations.count, 3)
-        }
+        // ensure delegate was invoked three times
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 3)
     }
 
-    func testThatItInvokesTheDelegateWhenFlushIsCalledIfThePriorRequestWasSuccessfulAndNoFurtherRequestsWereWaiting() {
+    func testThatItInvokesTheDelegateWhenFlushIsCalledIfThePriorRequestWasSuccessfulAndNoFurtherRequestsWereWaiting() async {
 
         // state
         delegate.processNextStubs = [.processedBarrier]
 
         // invoke scheduler
-        scheduler.flush()
-        scheduler.requestDidSucceed()
-        scheduler.flush()
+        await scheduler.flush()
+        await scheduler.requestDidSucceed()
+        await scheduler.flush()
 
-        dispatchQueue.sync {
-            // ensure delegate was invoked three times
-            XCTAssertEqual(delegate.processNextInvocations.count, 3)
-        }
+        // ensure delegate was invoked three times
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 3)
     }
 
-    func testThatItGetsATimerWhenARequestFails() {
+    func testThatItGetsATimerWhenARequestFails() async {
 
         // state
         delegate.processNextStubs = [.processedBarrier]
 
         // invoke scheduler
-        scheduler.didEnqueueNewRequest()
+        await scheduler.didEnqueueNewRequest()
 
-        dispatchQueue.sync {
-            // ensure timer provider starts out clean
-            XCTAssertEqual(timerProvider.scheduledTimerInvocations.count, 0)
-        }
+        // ensure timer provider starts out clean
+        XCTAssertEqual(self.timerProvider.scheduledTimerInvocations.count, 0)
 
         // fail request
-        scheduler.requestDidFail()
+        await scheduler.requestDidFail()
 
-        dispatchQueue.sync {
-            // ensure timer provider was invoked
-            XCTAssertEqual(timerProvider.scheduledTimerInvocations.count, 1)
-            let invocation = timerProvider.scheduledTimerInvocations[0]
-            XCTAssertEqual(invocation.timeInterval, timeInterval)
-            XCTAssertTrue(invocation.target === scheduler)
-        }
+        // ensure timer provider was invoked
+        XCTAssertEqual(self.timerProvider.scheduledTimerInvocations.count, 1)
+        let invocation = self.timerProvider.scheduledTimerInvocations[0]
+        XCTAssertEqual(invocation.timeInterval, self.timeInterval)
+        XCTAssertTrue(invocation.target === self.scheduler)
     }
 
-    func testThatItReinvokesTheDelegateWhenARequestFailsAndTheTimerFinishes() {
+    func testThatItReinvokesTheDelegateWhenARequestFailsAndTheTimerFinishes() async {
 
         // state
         delegate.processNextStubs = [.processedBarrier]
 
         // invoke scheduler
-        scheduler.didEnqueueNewRequest()
+        await scheduler.didEnqueueNewRequest()
 
         // fail request
-        scheduler.requestDidFail()
+        await scheduler.requestDidFail()
 
-        dispatchQueue.sync {
-            // ensure delegate starts out clean
-            XCTAssertEqual(delegate.processNextInvocations.count, 1)
+        // ensure delegate starts out clean
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 1)
 
-            // ensure timer provider was invoked
-            XCTAssertEqual(timerProvider.scheduledTimerInvocations.count, 1)
+        // ensure timer provider was invoked
+        XCTAssertEqual(self.timerProvider.scheduledTimerInvocations.count, 1)
 
-            // finish timer
-            let invocation = timerProvider.scheduledTimerInvocations[0]
-            _ = invocation.target.perform(invocation.selector)
-        }
+        // finish timer
+        let invocation = self.timerProvider.scheduledTimerInvocations[0]
+        _ = invocation.target.perform(invocation.selector)
 
-        dispatchQueue.sync {
-            // ensure delegate was invoked
-            XCTAssertEqual(delegate.processNextInvocations.count, 2)
-        }
+        try? await Task.sleep(nanoseconds: 1000000)
+
+        // ensure delegate was invoked
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 2)
     }
 
-    func testThatItInvalidatesTheTimerAndInvokesTheDelegateWhenDidEnqueueNewRequestIsCalledAndAPriorRequestFailedAndTheTimerHasNotFinished() {
+    func testThatItInvalidatesTheTimerAndInvokesTheDelegateWhenDidEnqueueNewRequestIsCalledAndAPriorRequestFailedAndTheTimerHasNotFinished() async {
 
         // state
         delegate.processNextStubs = [.processedBarrier]
 
         // invoke scheduler
-        scheduler.didEnqueueNewRequest()
+        await scheduler.didEnqueueNewRequest()
 
         // fail request
-        scheduler.requestDidFail()
+        await scheduler.requestDidFail()
 
         // invoke scheduler
-        scheduler.didEnqueueNewRequest()
+        await scheduler.didEnqueueNewRequest()
 
-        dispatchQueue.sync {
-            // ensure timer was invalidated
-            XCTAssertEqual(timer.invalidateInvocations, 1)
+        // ensure timer was invalidated
+        XCTAssertEqual(self.timer.invalidateInvocations, 1)
 
-            // ensure delegate was invoked only twice
-            XCTAssertEqual(delegate.processNextInvocations.count, 2)
-        }
+        // ensure delegate was invoked only twice
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 2)
     }
 
-    func testThatItInvokesTheDelegateWhenFlushIsCalledIfAPriorRequestFailedEvenfIfTheTimerHasNotFinished() {
+    func testThatItInvokesTheDelegateWhenFlushIsCalledIfAPriorRequestFailedEvenfIfTheTimerHasNotFinished() async {
 
         // state
         delegate.processNextStubs = [.processedBarrier]
 
         // invoke scheduler
-        scheduler.flush()
+        await scheduler.flush()
 
         // fail request
-        scheduler.requestDidFail()
+        await scheduler.requestDidFail()
 
-        dispatchQueue.sync {
-            // ensure timer starts out clean
-            XCTAssertEqual(timer.invalidateInvocations, 0)
-        }
+        // ensure timer starts out clean
+        XCTAssertEqual(self.timer.invalidateInvocations, 0)
 
         // invoke scheduler
-        scheduler.flush()
+        await scheduler.flush()
 
-        dispatchQueue.sync {
-            // ensure timer was invalidated
-            XCTAssertEqual(timer.invalidateInvocations, 1)
+        // ensure timer was invalidated
+        XCTAssertEqual(self.timer.invalidateInvocations, 1)
 
-            // ensure delegate was invoked only twice
-            XCTAssertEqual(delegate.processNextInvocations.count, 2)
-        }
+        // ensure delegate was invoked only twice
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 2)
     }
 
     // MARK: - barrier vs concurrent
 
-    func testThatItInvokesTheProcessingDelegateOnceWhenProcessingBarrier() {
+    func testThatItInvokesTheProcessingDelegateOnceWhenProcessingBarrier() async {
 
         // state
         delegate.processNextStubs = [.processedBarrier]
 
         // invoke scheduler
-        scheduler.flush()
+        await scheduler.flush()
 
-        dispatchQueue.sync {
-            // ensure delegate was not invoked
-            XCTAssertEqual(delegate.processNextInvocations.count, 1)
-        }
+        // ensure delegate was not invoked
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 1)
     }
 
-    func testThatItInvokesTheProcessingDelegateTwiceWhenProcessingConcurrent() {
+    func testThatItInvokesTheProcessingDelegateTwiceWhenProcessingConcurrent() async {
 
         // state
         delegate.processNextStubs = [.processedConcurrent]
 
         // invoke scheduler
-        scheduler.flush()
+        await scheduler.flush()
 
-        dispatchQueue.sync {
-            // ensure delegate was not invoked
-            XCTAssertEqual(delegate.processNextInvocations.count, 2)
-        }
+        // ensure delegate was not invoked
+        XCTAssertEqual(self.delegate.processNextInvocations.count, 2)
     }
 }
 

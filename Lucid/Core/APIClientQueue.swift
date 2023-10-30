@@ -141,7 +141,7 @@ public protocol APIClientQueuing: AnyObject {
     ///
     /// - Parameters:
     ///     - request: `APIRequest` to add in front of the queue.
-    func append(_ request: APIClientQueueRequest)
+    func append(_ request: APIClientQueueRequest) async
 
     /// Registers a response handler which will be notified when the client received a response.
     ///
@@ -149,19 +149,19 @@ public protocol APIClientQueuing: AnyObject {
     ///     - handler: `APIClientQueueResponseHandler` to register.
     /// - Returns: The handler's registration token.
     @discardableResult
-    func register(_ handler: APIClientQueueResponseHandler) -> APIClientQueueResponseHandlerToken
+    func register(_ handler: APIClientQueueResponseHandler) async -> APIClientQueueResponseHandlerToken
 
     /// Unregister a response handler based on its token.
     ///
     /// - Parameters:
     ///     - token: Token of the handler to unregister.
-    func unregister(_ token: APIClientQueueResponseHandlerToken)
+    func unregister(_ token: APIClientQueueResponseHandlerToken) async
 
     /// Transform each elements of the queue.
     ///
     /// - Parameters:
     ///     - transform: Block performing the transformation.
-    func map(_ transform: @escaping (APIClientQueueRequest) -> APIClientQueueRequest)
+    func map(_ transform: @escaping (APIClientQueueRequest) -> APIClientQueueRequest) async
 }
 
 protocol APIClientPriorityQueuing {
@@ -170,14 +170,14 @@ protocol APIClientPriorityQueuing {
     ///
     /// - Parameters:
     ///     - request: `APIRequest` to add in front of the queue.
-    func prepend(_ request: APIClientQueueRequest)
+    func prepend(_ request: APIClientQueueRequest) async
 
     /// Remove requests from the queue based on a passed in filter.
     ///
     /// - Parameters:
     ///     - filter: Logical filter to identify requests to remove. Return true to remove.
     /// - Returns: The removed requests
-    func removeRequests(matching: @escaping (APIClientQueueRequest) -> Bool) -> [APIClientQueueRequest]
+    func removeRequests(matching: @escaping (APIClientQueueRequest) -> Bool) async -> [APIClientQueueRequest]
 }
 
 public protocol APIClientQueueFlushing {
@@ -191,7 +191,7 @@ public protocol APIClientQueueFlushing {
     ///       The default scheduler retries after 15 seconds.
     ///     - The scheduler will also inform the processor when to attempt the next request,
     ///       at which time it will alert the queue and the request will be popped off.
-    func flush()
+    func flush() async
 }
 
 public final class APIClientQueue: NSObject {
@@ -218,7 +218,7 @@ public final class APIClientQueue: NSObject {
 
     enum Cache {
         case `default`(DiskQueue<APIClientQueueRequest>)
-        case uniquing(DiskCaching<OrderedSet<String>>, DiskCaching<APIClientQueueRequest>, DispatchQueue, UniquingFunction)
+        case uniquing(DiskCaching<OrderedSet<String>>, DiskCaching<APIClientQueueRequest>, AsyncTaskQueue, UniquingFunction)
     }
 
     private let cache: Cache
@@ -280,7 +280,7 @@ public final class APIClientQueue: NSObject {
                                                                      codingContext: codingContext)
                         let valueCache = DiskCache<APIClientQueueRequest>(basePath: Constants.diskCacheBasePath(queueIdentifier + "_values"),
                                                                           codingContext: codingContext)
-                        let dataQueue = DispatchQueue(label: "\(APIClientQueue.self)_uniquing_data_queue")
+                        let dataQueue = AsyncTaskQueue()
                         return .uniquing(orderingSetCache.caching,
                                          valueCache.caching,
                                          dataQueue,
@@ -305,49 +305,52 @@ public final class APIClientQueue: NSObject {
 
 extension APIClientQueue: APIClientQueuing {
 
-    public func append(_ request: APIClientQueueRequest) {
-        processor.prepareRequest(request.wrapped.config) { config in
-            var request = request
-            request.wrapped.config = config
+    public func append(_ request: APIClientQueueRequest) async {
+        let config = await processor.prepareRequest(request.wrapped.config)
+        var request = request
+        request.wrapped.config = config
 
-            switch self.cache {
-            case .default(let queue):
-                queue.append(request)
-                self.processor.didEnqueueNewRequest()
-            case .uniquing(let orderingSetCache, let valueCache, let dataQueue, let uniquingFunction):
-                let key = uniquingFunction(request)
-                dataQueue.async(flags: .barrier) {
-                    var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
-                    orderingSet.append(key)
-                    orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
-                    if let existingRequest = valueCache[key] {
-                        self.processor.abortRequest(existingRequest)
-                    }
-                    valueCache[key] = request
-                    self.processor.didEnqueueNewRequest()
+        switch self.cache {
+        case .default(let queue):
+            queue.append(request)
+            await self.processor.didEnqueueNewRequest()
+        case .uniquing(let orderingSetCache, let valueCache, let dataQueue, let uniquingFunction):
+            let key = uniquingFunction(request)
+
+            let requestCopy = request
+            try? await dataQueue.enqueueBarrier { operationCompletion in
+                defer { operationCompletion() }
+                var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
+                orderingSet.append(key)
+                orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
+                if let existingRequest = valueCache[key] {
+                    await self.processor.abortRequest(existingRequest)
                 }
+                valueCache[key] = requestCopy
+                await self.processor.didEnqueueNewRequest()
             }
         }
     }
 
     @discardableResult
-    public func register(_ handler: APIClientQueueResponseHandler) -> APIClientQueueResponseHandlerToken {
-        return processor.register { [weak self] response, request in
+    public func register(_ handler: APIClientQueueResponseHandler) async -> APIClientQueueResponseHandlerToken {
+        return await processor.register { [weak self] response, request in
             guard let strongSelf = self else { return }
             handler.clientQueue(strongSelf, didReceiveResponse: response, for: request)
         }
     }
 
-    public func unregister(_ token: APIClientQueueResponseHandlerToken) {
-        processor.unregister(token)
+    public func unregister(_ token: APIClientQueueResponseHandlerToken) async {
+        await processor.unregister(token)
     }
 
-    public func map(_ transform: @escaping (APIClientQueueRequest) -> APIClientQueueRequest) {
+    public func map(_ transform: @escaping (APIClientQueueRequest) -> APIClientQueueRequest) async {
         switch cache {
         case .default(let queue):
             queue.map(transform)
         case .uniquing(let orderingSetCache, let valueCache, let dataQueue, let uniquingFunction):
-            dataQueue.async(flags: .barrier) {
+            try? await dataQueue.enqueueBarrier { operationCompletion in
+                defer { operationCompletion() }
 
                 let orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
                 guard orderingSet.isEmpty == false else { return }
@@ -374,31 +377,34 @@ extension APIClientQueue: APIClientQueuing {
 
 extension APIClientQueue: APIClientPriorityQueuing {
 
-    func prepend(_ request: APIClientQueueRequest) {
-        processor.prepareRequest(request.wrapped.config) { config in
-            var request = request
-            request.wrapped.config = config
+    func prepend(_ request: APIClientQueueRequest) async {
+        let config = await processor.prepareRequest(request.wrapped.config)
+        var request = request
+        request.wrapped.config = config
 
-            switch self.cache {
-            case .default(let queue):
-                queue.prepend(request)
-            case .uniquing(let orderingSetCache, let valueCache, let dataQueue, let uniquingFunction):
-                let key = uniquingFunction(request)
-                dataQueue.async(flags: .barrier) {
-                    var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
-                    guard orderingSet.contains(key) == false else {
-                        self.processor.abortRequest(request)
-                        return
-                    }
-                    orderingSet.prepend(key)
-                    orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
-                    valueCache[key] = request
+        switch self.cache {
+        case .default(let queue):
+            queue.prepend(request)
+        case .uniquing(let orderingSetCache, let valueCache, let dataQueue, let uniquingFunction):
+            let key = uniquingFunction(request)
+
+            let requestCopy = request
+            try? await dataQueue.enqueueBarrier { operationCompletion in
+                defer { operationCompletion() }
+
+                var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
+                guard orderingSet.contains(key) == false else {
+                    await self.processor.abortRequest(requestCopy)
+                    return
                 }
+                orderingSet.prepend(key)
+                orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
+                valueCache[key] = requestCopy
             }
         }
     }
 
-    func removeRequests(matching: (APIClientQueueRequest) -> Bool) -> [APIClientQueueRequest] {
+    func removeRequests(matching: @escaping (APIClientQueueRequest) -> Bool) async -> [APIClientQueueRequest] {
         var removedElements: [APIClientQueueRequest] = []
 
         switch cache {
@@ -412,16 +418,23 @@ extension APIClientQueue: APIClientPriorityQueuing {
                 }
             }
         case .uniquing(let orderingSetCache, let valueCache, let dataQueue, _):
-            dataQueue.sync(flags: .barrier) {
-                var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
-                for key in orderingSet {
-                    guard let request = valueCache[key] else { continue }
-                    guard matching(request) else { continue }
-                    removedElements.append(request)
-                    orderingSet.remove(key)
-                    valueCache[key] = nil
+            do {
+                removedElements = try await dataQueue.enqueueBarrier { operationCompletion in
+                    defer { operationCompletion() }
+                    var removedRequests: [APIClientQueueRequest] = []
+                    var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
+                    for key in orderingSet {
+                        guard let request = valueCache[key] else { continue }
+                        guard matching(request) else { continue }
+                        removedRequests.append(request)
+                        orderingSet.remove(key)
+                        valueCache[key] = nil
+                    }
+                    orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
+                    return removedRequests
                 }
-                orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
+            } catch {
+                Logger.log(.error, "\(APIClientQueue.self) Error while enqueuing async task")
             }
         }
 
@@ -433,8 +446,8 @@ extension APIClientQueue: APIClientPriorityQueuing {
 
 extension APIClientQueue: APIClientQueueFlushing {
 
-    public func flush() {
-        self.processor.flush()
+    public func flush() async {
+        await self.processor.flush()
     }
 }
 
@@ -442,12 +455,13 @@ extension APIClientQueue: APIClientQueueFlushing {
 
 extension APIClientQueue: APIClientQueueProcessorDelegate {
 
-    func nextRequest() -> APIClientQueueRequest? {
+    func nextRequest() async -> APIClientQueueRequest? {
         switch cache {
         case .default(let queue):
             return queue.dropFirst()
         case .uniquing(let orderingSetCache, let valueCache, let dataQueue, _):
-            return dataQueue.sync(flags: .barrier) {
+            return try? await dataQueue.enqueueBarrier { operationCompletion in
+                defer { operationCompletion() }
                 guard var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey],
                     let key = orderingSet.popFirst() else { return nil }
 
@@ -474,17 +488,17 @@ extension APIClientQueue: APIClientQueueProcessorDelegate {
 ///       correctly since it's used by the queueing retry strategy.
 protocol APIClientQueueProcessing: AnyObject {
 
-    func didEnqueueNewRequest()
+    func didEnqueueNewRequest() async
 
-    func flush()
+    func flush() async
 
-    func register(_ handler: @escaping APIClientQueueProcessorResponseHandler) -> APIClientQueueProcessorResponseHandlerToken
+    func register(_ handler: @escaping APIClientQueueProcessorResponseHandler) async -> APIClientQueueProcessorResponseHandlerToken
 
-    func unregister(_ token: APIClientQueueProcessorResponseHandlerToken)
+    func unregister(_ token: APIClientQueueProcessorResponseHandlerToken) async
 
-    func abortRequest(_ request: APIClientQueueRequest)
+    func abortRequest(_ request: APIClientQueueRequest) async
 
-    func prepareRequest(_ requestConfig: APIRequestConfig, completion: @escaping (APIRequestConfig) -> Void)
+    func prepareRequest(_ requestConfig: APIRequestConfig) async -> APIRequestConfig
 
     var delegate: APIClientQueueProcessorDelegate? { get set }
 }
@@ -497,20 +511,39 @@ public typealias APIClientQueueProcessorResponseHandler = (
 
 protocol APIClientQueueProcessorDelegate: AnyObject, APIClientPriorityQueuing {
 
-    func nextRequest() -> APIClientQueueRequest?
+    func nextRequest() async -> APIClientQueueRequest?
 }
 
 final class APIClientQueueProcessor {
+
+    actor ResponseHandlers {
+
+        private var values: OrderedDictionary<APIClientQueueProcessorResponseHandlerToken, APIClientQueueProcessorResponseHandler>
+
+        init(values: [APIClientQueueProcessorResponseHandler]) {
+            self.values = OrderedDictionary(values.map { (UUID(), $0) })
+        }
+
+        func get() -> [APIClientQueueProcessorResponseHandler] {
+            return self.values.orderedValues
+        }
+
+        func append(token: APIClientQueueProcessorResponseHandlerToken, handler: @escaping APIClientQueueProcessorResponseHandler) {
+            self.values.append(key: token, value: handler)
+        }
+
+        func remove(at token: APIClientQueueProcessorResponseHandlerToken) {
+            self.values[token] = nil
+        }
+    }
 
     private let client: APIClient
     private let scheduler: APIClientQueueScheduling
     private let diskCache: DiskCaching<APIClientQueueRequest>
 
-    private var _responseHandlers: OrderedDictionary<APIClientQueueProcessorResponseHandlerToken, APIClientQueueProcessorResponseHandler>
+    private var _responseHandlers: ResponseHandlers
 
-    private let processingQueue: DispatchQueue
-
-    private let operationQueue: AsyncOperationQueue
+    private let operationQueue: AsyncTaskQueue
 
     private let lock = NSRecursiveLock(name: "\(APIClientQueueProcessor.self)")
 
@@ -525,10 +558,16 @@ final class APIClientQueueProcessor {
             defer { lock.unlock() }
 
             let keys = diskCache.keys()
-            for key in keys {
-                guard let cachedRequest = diskCache[key] else { continue }
-                delegate.prepend(cachedRequest)
-                diskCache[key] = nil
+            Task {
+                await withTaskGroup(of: Void.self) { group in
+                    for key in keys {
+                        guard let cachedRequest = diskCache[key] else { continue }
+                        group.addTask {
+                            await delegate.prepend(cachedRequest)
+                            self.diskCache[key] = nil
+                        }
+                    }
+                }
             }
         }
     }
@@ -540,18 +579,13 @@ final class APIClientQueueProcessor {
          scheduler: APIClientQueueScheduling,
          diskCache: DiskCaching<APIClientQueueRequest>,
          responseHandlers: [APIClientQueueProcessorResponseHandler],
-         processingQueue: DispatchQueue = DispatchQueue(label: "\(APIClientQueueProcessor.self)_processing_queue"),
-         operationQueue: AsyncOperationQueue = AsyncOperationQueue()) {
+         operationQueue: AsyncTaskQueue = AsyncTaskQueue()) {
 
         self.client = client
         self._backgroundTaskManager = backgroundTaskManager
         self.scheduler = scheduler
         self.diskCache = diskCache
-        self._responseHandlers = OrderedDictionary(responseHandlers.map { (UUID(), $0) })
-        if processingQueue === DispatchQueue.main {
-            Logger.log(.error, "\(APIClientQueueProcessor.self) should not assign the main queue as the processing queue.", assert: true)
-        }
-        self.processingQueue = processingQueue
+        self._responseHandlers = ResponseHandlers(values: responseHandlers)
         self.operationQueue = operationQueue
         self.scheduler.delegate = self
     }
@@ -584,17 +618,12 @@ final class APIClientQueueProcessor {
          scheduler: APIClientQueueScheduling,
          diskCache: DiskCaching<APIClientQueueRequest>,
          responseHandlers: [APIClientQueueProcessorResponseHandler],
-         processingQueue: DispatchQueue = DispatchQueue(label: "\(APIClientQueueProcessor.self)_processing_queue"),
-         operationQueue: AsyncOperationQueue = AsyncOperationQueue()) {
+         operationQueue: AsyncTaskQueue = AsyncTaskQueue()) {
 
         self.client = client
         self.scheduler = scheduler
         self.diskCache = diskCache
-        self._responseHandlers = OrderedDictionary(responseHandlers.map { (UUID(), $0) })
-        if processingQueue === DispatchQueue.main {
-            Logger.log(.error, "\(APIClientQueueProcessor.self) should not assign the main queue as the processing queue.", assert: true)
-        }
-        self.processingQueue = processingQueue
+        self._responseHandlers = ResponseHandlers(values: responseHandlers)
         self.operationQueue = operationQueue
         self.scheduler.delegate = self
     }
@@ -627,46 +656,31 @@ final class APIClientQueueProcessor {
 
 extension APIClientQueueProcessor: APIClientQueueProcessing {
 
-    func register(_ handler: @escaping APIClientQueueProcessorResponseHandler) -> APIClientQueueProcessorResponseHandlerToken {
+    func register(_ handler: @escaping APIClientQueueProcessorResponseHandler) async -> APIClientQueueProcessorResponseHandlerToken {
         let token = UUID()
-        processingQueue.async(flags: .barrier) {
-            self.lock.lock()
-            defer { self.lock.unlock() }
-
-            self._responseHandlers.append(key: token, value: handler)
-        }
+        await self._responseHandlers.append(token: token, handler: handler)
         return token
     }
 
-    func unregister(_ token: APIClientQueueProcessorResponseHandlerToken) {
-        processingQueue.async(flags: .barrier) {
-            self.lock.lock()
-            defer { self.lock.unlock() }
-
-            self._responseHandlers[token] = nil
-        }
+    func unregister(_ token: APIClientQueueProcessorResponseHandlerToken) async {
+        await self._responseHandlers.remove(at: token)
     }
 
-    func abortRequest(_ request: APIClientQueueRequest) {
-        processingQueue.async(flags: .barrier) {
-            self.lock.lock()
-            let handlers = self._responseHandlers.orderedValues
-            self.lock.unlock()
-
-            self.forwardDidReceiveResponseToHandlers(.aborted(request), handlers: handlers)
-        }
+    func abortRequest(_ request: APIClientQueueRequest) async {
+        let handlers = await self._responseHandlers.get()
+        self.forwardDidReceiveResponseToHandlers(.aborted(request), handlers: handlers)
     }
 
-    func didEnqueueNewRequest() {
-        scheduler.didEnqueueNewRequest()
+    func didEnqueueNewRequest() async {
+        await scheduler.didEnqueueNewRequest()
     }
 
-    func flush() {
-        scheduler.flush()
+    func flush() async {
+        await scheduler.flush()
     }
 
-    func prepareRequest(_ requestConfig: APIRequestConfig, completion: @escaping (APIRequestConfig) -> Void) {
-        client.prepareRequest(requestConfig, completion: completion)
+    func prepareRequest(_ requestConfig: APIRequestConfig) async -> APIRequestConfig {
+        return await client.prepareRequest(requestConfig)
     }
 }
 
@@ -675,29 +689,31 @@ extension APIClientQueueProcessor: APIClientQueueProcessing {
 extension APIClientQueueProcessor: APIClientQueueSchedulerDelegate {
 
     @discardableResult
-    func processNext() -> APIClientQueueSchedulerProcessNextResult {
-        lock.lock()
-        defer { lock.unlock() }
-
-        guard operationQueue.last?.barrier != .some(true) else {
+    func processNext() async -> APIClientQueueSchedulerProcessNextResult {
+        guard await operationQueue.isLastBarrier == false else {
             return .didNotProcess
         }
 
-        guard let request = delegate?.nextRequest() else {
+        guard let request = await delegate?.nextRequest() else {
             return .didNotProcess
         }
 
         diskCache[request.token.uuidString] = request
 
-        let requestOperation = AsyncOperation(on: processingQueue, title: request.token.uuidString, barrier: request.isBarrier) { completion in
-            let operationCompletion = {
-                self.diskCache[request.token.uuidString] = nil
-                completion()
-            }
-            self._process(request, operationCompletion)
+        let operation: () async -> Void = {
+            await self._process(request)
+            self.diskCache[request.token.uuidString] = nil
         }
-
-        operationQueue.run(operation: requestOperation)
+        if request.isBarrier {
+            try? await operationQueue.enqueueBarrier { operationCompletion in
+                await operation()
+                operationCompletion()
+            }
+        } else {
+            try? await operationQueue.enqueue {
+                await operation()
+            }
+        }
 
         if request.isBarrier {
             return .processedBarrier
@@ -711,17 +727,17 @@ extension APIClientQueueProcessor: APIClientQueueSchedulerDelegate {
 
 private extension APIClientQueueProcessor {
 
-    func _process(_ request: APIClientQueueRequest, _ operationCompletion: @escaping () -> Void) {
+    func _process(_ request: APIClientQueueRequest) async {
 
         #if canImport(UIKit) && os(iOS)
         let taskID: UUID?
+        var backgroundTask: Task<Void, Never>?
         if request.wrapped.config.background {
             taskID = _backgroundTaskManager.start {
-                self.lock.lock()
-                defer { self.lock.unlock() }
-
-                Logger.log(.warning, "\(APIClientQueueProcessor.self): Background task expired.")
-                self._complete(.backgroundSessionExpired(request), operationCompletion)
+                backgroundTask = Task {
+                    Logger.log(.warning, "\(APIClientQueueProcessor.self): Background task expired.")
+                    await self._complete(.backgroundSessionExpired(request))
+                }
             }
         } else {
             taskID = nil
@@ -731,26 +747,25 @@ private extension APIClientQueueProcessor {
         let requestDescription = client.description(for: request.wrapped.config)
         Logger.log(.info, "\(APIClientQueueProcessor.self): Processing request: \(requestDescription)")
 
-        client.send(request: request.wrapped) { result in
-            self.lock.lock()
-            defer { self.lock.unlock() }
+        let result = await client.send(request: request.wrapped)
 
-            #if canImport(UIKit) && os(iOS)
-            if let taskID = taskID, self._backgroundTaskManager.stop(taskID) == false {
-                Logger.log(.warning, "\(APIClientQueueProcessor.self): Received response after background task timed out: \(requestDescription)")
-                return
-            }
-            #endif
+        #if canImport(UIKit) && os(iOS)
+        if let taskID = taskID, self._backgroundTaskManager.stop(taskID) == false {
+            Logger.log(.warning, "\(APIClientQueueProcessor.self): Received response after background task timed out: \(requestDescription)")
+            return
+        }
+        backgroundTask?.cancel()
+        backgroundTask = nil
+        #endif
 
-            switch result {
-            case .success(let response):
-                Logger.log(.info, "\(APIClientQueueProcessor.self): Request succeeded: \(requestDescription)")
-                self._complete(.success(response, request), operationCompletion)
+        switch result {
+        case .success(let response):
+            Logger.log(.info, "\(APIClientQueueProcessor.self): Request succeeded: \(requestDescription)")
+            await self._complete(.success(response, request))
 
-            case .failure(let apiError):
-                Logger.log(.info, "\(APIClientQueueProcessor.self): Request \(requestDescription) failed: \(apiError)")
-                self._complete(.apiError(apiError, request), operationCompletion)
-            }
+        case .failure(let apiError):
+            Logger.log(.info, "\(APIClientQueueProcessor.self): Request \(requestDescription) failed: \(apiError)")
+            await self._complete(.apiError(apiError, request))
         }
     }
 
@@ -765,12 +780,9 @@ private extension APIClientQueueProcessor {
         case backgroundSessionExpired(_ request: APIClientQueueRequest)
     }
 
-    private func _complete(_ result: ProcessingResult, _ operationCompletion: @escaping () -> Void) {
+    private func _complete(_ result: ProcessingResult) async {
 
-        lock.lock()
-        defer { lock.unlock() }
-
-        let responseHandlers = _responseHandlers.orderedValues
+        let responseHandlers = await self._responseHandlers.get()
         forwardDidReceiveResponseToHandlers(result, handlers: responseHandlers)
 
         let didSucceed: Bool
@@ -781,28 +793,26 @@ private extension APIClientQueueProcessor {
             Logger.log(.error, "\(APIClientQueueProcessor.self): Processor should not be aborting requests in flight.", assert: true)
             didSucceed = true
         case .apiError(let apiError, let request):
-            _handleAPIError(apiError, request: request, responseHandlers: responseHandlers)
+            await _handleAPIError(apiError, request: request, responseHandlers: responseHandlers)
             didSucceed = false
         case .backgroundSessionExpired(let request):
             Logger.log(.info, "\(APIClientQueueProcessor.self): Background session expired. Will reschedule request.")
-            self.delegate?.prepend(request)
+            await self.delegate?.prepend(request)
             didSucceed = false
         }
 
-        operationCompletion()
-
         if didSucceed {
-            self.scheduler.requestDidSucceed()
+            await self.scheduler.requestDidSucceed()
         } else {
-            self.scheduler.requestDidFail()
+            await self.scheduler.requestDidFail()
         }
     }
 
-    private func _handleAPIError(_ apiError: APIError, request: APIClientQueueRequest, responseHandlers: [APIClientQueueProcessorResponseHandler]) {
+    private func _handleAPIError(_ apiError: APIError, request: APIClientQueueRequest, responseHandlers: [APIClientQueueProcessorResponseHandler]) async {
 
-        let removeRequestsMatching: (@escaping (APIClientQueueRequest) -> Bool) -> Void = { criteria in
+        let removeRequestsMatching: (@escaping (APIClientQueueRequest) -> Bool) async -> Void = { criteria in
             /// Any requests in the queue that expect to fail and not retry on .networkConnectionFailure should be sent the failure right away.
-            if let requestsToCancel = self.delegate?.removeRequests(matching: criteria) {
+            if let requestsToCancel = await self.delegate?.removeRequests(matching: criteria) {
                 Logger.log(.info, "\(APIClientQueueProcessor.self): Removing \(requestsToCancel.count) from the queue on network or timeout error.")
                 for requestToCancel in requestsToCancel {
                     self.forwardDidReceiveResponseToHandlers(.apiError(apiError, requestToCancel), handlers: responseHandlers)
@@ -814,22 +824,22 @@ private extension APIClientQueueProcessor {
         case .network(.networkConnectionFailure(.networkConnectionLost)),
              .network(.networkConnectionFailure(.notConnectedToInternet)):
             Logger.log(.info, "\(APIClientQueueProcessor.self): Not connected to network. Will reschedule request and cancel non-retrying \requests in the queue.")
-            removeRequestsMatching({ $0.retryOnNetworkInterrupt == false })
+            await removeRequestsMatching({ $0.retryOnNetworkInterrupt == false })
             if request.retryOnNetworkInterrupt {
-                delegate?.prepend(request)
+                await delegate?.prepend(request)
             } else {
                 Logger.log(.error, "\(APIClientQueueProcessor.self): Request: \(client.description(for: request.wrapped.config)) failed and won't be retried: \(apiError)")
             }
         case .network(.networkConnectionFailure(.requestTimedOut)) where request.retryOnRequestTimeout:
             if request.isBarrier {
-                removeRequestsMatching({ $0.retryOnRequestTimeout == false })
+                await removeRequestsMatching({ $0.retryOnRequestTimeout == false })
             }
-            delegate?.prepend(request)
+            await delegate?.prepend(request)
         case .network(.other(let error)):
             if let retryErrorCodes = request.retryErrorCodes, retryErrorCodes.contains(error.code) {
-                delegate?.prepend(request)
+                await delegate?.prepend(request)
             } else if let doNotRetryErrorCodes = request.doNotRetryErrorCodes, doNotRetryErrorCodes.contains(error.code) == false {
-                delegate?.prepend(request)
+                await delegate?.prepend(request)
             } else {
                 Logger.log(.error, "\(APIClientQueueProcessor.self): Request: \(client.description(for: request.wrapped.config)) failed and won't be retried: \(apiError)")
             }
@@ -875,8 +885,8 @@ private extension APIClientQueueProcessor {
 
 public extension APIClientQueuing {
 
-    func merge<ID>(with entityIdentifier: ID) where ID: RemoteIdentifier {
-        map { $0.merging(with: entityIdentifier) }
+    func merge<ID>(with entityIdentifier: ID) async where ID: RemoteIdentifier {
+        await map { $0.merging(with: entityIdentifier) }
     }
 }
 

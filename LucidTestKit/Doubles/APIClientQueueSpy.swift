@@ -35,7 +35,7 @@ public final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
         // no-op
     }
 
-    public func append(_ request: APIClientQueueRequest) {
+    public func append(_ request: APIClientQueueRequest) async {
         appendInvocations.append(request)
         registerInvocations.forEach {
             guard let response = responseStubs[request.wrapped.config] else { return }
@@ -43,16 +43,16 @@ public final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
         }
     }
 
-    public func flush() {
+    public func flush() async {
         flushInvocations += 1
     }
 
-    public func register(_ handler: APIClientQueueResponseHandler) -> APIClientQueueProcessorResponseHandlerToken {
+    public func register(_ handler: APIClientQueueResponseHandler) async -> APIClientQueueProcessorResponseHandlerToken {
         registerInvocations.append(handler)
         return tokenStub
     }
 
-    public func unregister(_ token: APIClientQueueResponseHandlerToken) {
+    public func unregister(_ token: APIClientQueueResponseHandlerToken) async {
         unregisterInvocations.append(token)
     }
 

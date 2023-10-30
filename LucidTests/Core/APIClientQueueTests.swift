@@ -22,7 +22,7 @@ final class APIClientQueueTests: XCTestCase {
 
     // MARK: - Doubles
 
-    private var uniquingCacheDataQueue: DispatchQueue!
+    private var uniquingCacheDataQueue: AsyncTaskQueue!
     private var uniquingFunction: ((APIClientQueueRequest) -> String)!
 
     // MARK: - Subject
@@ -39,7 +39,7 @@ final class APIClientQueueTests: XCTestCase {
         uniquingQueueOrderingCache = DiskCacheSpy()
         uniquingQueueValueCache = DiskCacheSpy()
         queueProcessor = APIClientQueueProcessorSpy()
-        uniquingCacheDataQueue = DispatchQueue(label: "\(APIClientQueueTests.self)_uniquing_cache_data_queue")
+        uniquingCacheDataQueue = AsyncTaskQueue()
 
         defaultQueue = APIClientQueue(cache: .default(DiskQueue(diskCache: defaultQueueCache.caching)),
                                       processor: queueProcessor)
@@ -99,61 +99,61 @@ extension APIClientQueueTests {
 
 extension APIClientQueueTests {
 
-    func test_append_should_add_an_element_to_the_default_queue_when_it_is_empty() {
+    func test_append_should_add_an_element_to_the_default_queue_when_it_is_empty() async {
 
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
 
         XCTAssertEqual(defaultQueueCache.setInvocations.count, 0)
 
-        defaultQueue.append(request)
-        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
+        await defaultQueue.append(request)
+//        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
 
         XCTAssertEqual(defaultQueueCache.setInvocations.count, 1)
         XCTAssertEqual(defaultQueueCache.setInvocations[0].1, request)
     }
 
-    func test_append_should_add_an_element_to_the_default_queue_when_it_has_other_elements() {
+    func test_append_should_add_an_element_to_the_default_queue_when_it_has_other_elements() async {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path2")))
 
         XCTAssertEqual(defaultQueueCache.setInvocations.count, 0)
 
-        defaultQueue.append(request0)
-        defaultQueue.append(request1)
+        await defaultQueue.append(request0)
+        await defaultQueue.append(request1)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
 
         XCTAssertEqual(defaultQueueCache.setInvocations.count, 2)
         XCTAssertEqual(defaultQueueCache.setInvocations[0].1, request0)
         XCTAssertEqual(defaultQueueCache.setInvocations[1].1, request1)
     }
 
-    func test_append_to_empty_default_queue_should_trigger_a_call_to_the_processor() {
+    func test_append_to_empty_default_queue_should_trigger_a_call_to_the_processor() async {
 
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 0)
         XCTAssertEqual(queueProcessor.flushInvocations, 0)
 
-        defaultQueue.append(request)
-        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
+        await defaultQueue.append(request)
+//        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 1)
         XCTAssertEqual(queueProcessor.flushInvocations, 0)
     }
 
-    func test_calling_append_to_default_queue_twice_should_trigger_two_calls_to_the_processor() {
+    func test_calling_append_to_default_queue_twice_should_trigger_two_calls_to_the_processor() async {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path2")))
 
-        defaultQueue.append(request0)
-        defaultQueue.append(request1)
+        await defaultQueue.append(request0)
+        await defaultQueue.append(request1)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 2)
         XCTAssertEqual(queueProcessor.flushInvocations, 0)
@@ -164,47 +164,47 @@ extension APIClientQueueTests {
 
 extension APIClientQueueTests {
 
-    func test_prepend_should_add_an_element_to_the_default_queue_when_it_is_empty() {
+    func test_prepend_should_add_an_element_to_the_default_queue_when_it_is_empty() async {
 
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
 
         XCTAssertEqual(defaultQueueCache.setInvocations.count, 0)
 
-        defaultQueue.prepend(request)
-        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
+        await defaultQueue.prepend(request)
+//        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
 
         XCTAssertEqual(defaultQueueCache.setInvocations.count, 1)
         XCTAssertEqual(defaultQueueCache.setInvocations[0].1, request)
     }
 
-    func test_prepend_should_add_an_element_to_the_default_queue_when_it_has_other_elements() {
+    func test_prepend_should_add_an_element_to_the_default_queue_when_it_has_other_elements() async {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path2")))
 
         XCTAssertEqual(defaultQueueCache.setInvocations.count, 0)
 
-        defaultQueue.prepend(request0)
-        defaultQueue.prepend(request1)
+        await defaultQueue.prepend(request0)
+        await defaultQueue.prepend(request1)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
 
         XCTAssertEqual(defaultQueueCache.setInvocations.count, 2)
         XCTAssertEqual(defaultQueueCache.setInvocations[0].1, request0)
         XCTAssertEqual(defaultQueueCache.setInvocations[1].1, request1)
     }
 
-    func test_prepend_to_default_queue_should_not_trigger_a_call_to_the_processor() {
+    func test_prepend_to_default_queue_should_not_trigger_a_call_to_the_processor() async {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path2")))
 
-        defaultQueue.prepend(request0)
-        defaultQueue.prepend(request1)
+        await defaultQueue.prepend(request0)
+        await defaultQueue.prepend(request1)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 0)
         XCTAssertEqual(queueProcessor.flushInvocations, 0)
@@ -215,16 +215,16 @@ extension APIClientQueueTests {
 
 extension APIClientQueueTests {
 
-    func test_append_should_add_an_element_to_the_uniquing_queue_when_it_is_empty() {
+    func test_append_should_add_an_element_to_the_uniquing_queue_when_it_is_empty() async {
 
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 0)
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations.count, 0)
 
-        uniquingQueue.append(request)
-        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
-        uniquingCacheDataQueue.sync { }
+        await uniquingQueue.append(request)
+//        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
+        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 1)
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations[0].0, "APIClientQueue_uniquing_cache_key")
@@ -235,20 +235,20 @@ extension APIClientQueueTests {
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations[0].1, request)
     }
 
-    func test_append_should_add_an_element_to_the_uniquing_queue_when_it_only_contains_elements_with_different_keys() {
+    func test_append_should_add_an_element_to_the_uniquing_queue_when_it_only_contains_elements_with_different_keys() async {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path2")))
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 0)
 
-        uniquingQueue.append(request0)
-        uniquingQueue.append(request1)
+        await uniquingQueue.append(request0)
+        await uniquingQueue.append(request1)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
 
-        uniquingCacheDataQueue.sync { }
+        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 2)
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations[0].0, "APIClientQueue_uniquing_cache_key")
@@ -263,7 +263,7 @@ extension APIClientQueueTests {
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations[1].1, request1)
     }
 
-    func test_append_should_overwrite_elements_with_matching_keys_in_the_uniquing_queue_and_abort_the_existing_request() {
+    func test_append_should_overwrite_elements_with_matching_keys_in_the_uniquing_queue_and_abort_the_existing_request() async {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, host: "host0", path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, host: "host0", path: .path("fake_path2")))
@@ -271,15 +271,15 @@ extension APIClientQueueTests {
 
         XCTAssertEqual(uniquingQueueOrderingCache.setInvocations.count, 0)
 
-        uniquingQueue.append(request0)
-        uniquingQueue.append(request1)
-        uniquingQueue.append(request2)
+        await uniquingQueue.append(request0)
+        await uniquingQueue.append(request1)
+        await uniquingQueue.append(request2)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
-        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
 
-        uniquingCacheDataQueue.sync { }
+        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 3)
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations[0].0, "APIClientQueue_uniquing_cache_key")
@@ -300,34 +300,34 @@ extension APIClientQueueTests {
         XCTAssertEqual(queueProcessor.abortRequestInvocations, [request0])
     }
 
-    func test_append_to_empty_uniquing_queue_should_trigger_a_call_to_the_processor() {
+    func test_append_to_empty_uniquing_queue_should_trigger_a_call_to_the_processor() async {
 
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 0)
         XCTAssertEqual(queueProcessor.flushInvocations, 0)
 
-        uniquingQueue.append(request)
-        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
+        await uniquingQueue.append(request)
+//        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
 
-        uniquingCacheDataQueue.sync { }
+        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 1)
         XCTAssertEqual(queueProcessor.flushInvocations, 0)
     }
 
-    func test_calling_append_to_uniquing_queue_twice_should_trigger_two_calls_to_the_processor() {
+    func test_calling_append_to_uniquing_queue_twice_should_trigger_two_calls_to_the_processor() async {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path2")))
 
-        uniquingQueue.append(request0)
-        uniquingQueue.append(request1)
+        await uniquingQueue.append(request0)
+        await uniquingQueue.append(request1)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
 
-        uniquingCacheDataQueue.sync { }
+        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 2)
         XCTAssertEqual(queueProcessor.flushInvocations, 0)
@@ -338,17 +338,17 @@ extension APIClientQueueTests {
 
 extension APIClientQueueTests {
 
-    func test_prepend_should_add_an_element_to_the_uniquing_queue_when_it_is_empty() {
+    func test_prepend_should_add_an_element_to_the_uniquing_queue_when_it_is_empty() async {
 
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 0)
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations.count, 0)
 
-        uniquingQueue.prepend(request)
-        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
+        await uniquingQueue.prepend(request)
+//        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
 
-        uniquingCacheDataQueue.sync { }
+//        uniquingCacheDataQueue.sync { }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 1)
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations[0].0, "APIClientQueue_uniquing_cache_key")
@@ -359,20 +359,20 @@ extension APIClientQueueTests {
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations[0].1, request)
     }
 
-    func test_prepend_should_add_an_element_to_the_uniquing_queue_when_it_only_contains_elements_with_different_keys() {
+    func test_prepend_should_add_an_element_to_the_uniquing_queue_when_it_only_contains_elements_with_different_keys() async {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path2")))
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 0)
 
-        uniquingQueue.prepend(request0)
-        uniquingQueue.prepend(request1)
+        await uniquingQueue.prepend(request0)
+        await uniquingQueue.prepend(request1)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
 
-        uniquingCacheDataQueue.sync { }
+//        uniquingCacheDataQueue.sync { }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 2)
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations[0].0, "APIClientQueue_uniquing_cache_key")
@@ -387,7 +387,7 @@ extension APIClientQueueTests {
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations[1].1, request1)
     }
 
-    func test_prepend_should_not_overwrite_elements_with_matching_keys_in_the_uniquing_queue() {
+    func test_prepend_should_not_overwrite_elements_with_matching_keys_in_the_uniquing_queue() async {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, host: "host0", path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, host: "host0", path: .path("fake_path2")))
@@ -395,15 +395,15 @@ extension APIClientQueueTests {
 
         XCTAssertEqual(uniquingQueueOrderingCache.setInvocations.count, 0)
 
-        uniquingQueue.prepend(request0)
-        uniquingQueue.prepend(request1)
-        uniquingQueue.prepend(request2)
+        await uniquingQueue.prepend(request0)
+        await uniquingQueue.prepend(request1)
+        await uniquingQueue.prepend(request2)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
-        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
 
-        uniquingCacheDataQueue.sync { }
+//        uniquingCacheDataQueue.sync { }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 2)
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations[0].0, "APIClientQueue_uniquing_cache_key")
@@ -418,18 +418,18 @@ extension APIClientQueueTests {
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations[1].1, request1)
     }
 
-    func test_prepend_to_uniquing_queue_should_not_trigger_a_call_to_the_processor() {
+    func test_prepend_to_uniquing_queue_should_not_trigger_a_call_to_the_processor() async {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path2")))
 
-        uniquingQueue.prepend(request0)
-        uniquingQueue.prepend(request1)
+        await uniquingQueue.prepend(request0)
+        await uniquingQueue.prepend(request1)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
 
-        uniquingCacheDataQueue.sync { }
+//        uniquingCacheDataQueue.sync { }
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 0)
         XCTAssertEqual(queueProcessor.flushInvocations, 0)
@@ -440,21 +440,21 @@ extension APIClientQueueTests {
 
 extension APIClientQueueTests {
 
-    func test_calling_flush_should_only_send_once_regardless_of_size_of_default_queue() {
+    func test_calling_flush_should_only_send_once_regardless_of_size_of_default_queue() async {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path2")))
         let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path3")))
 
-        defaultQueue.append(request0)
-        defaultQueue.append(request1)
-        defaultQueue.append(request2)
+        await defaultQueue.append(request0)
+        await defaultQueue.append(request1)
+        await defaultQueue.append(request2)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
-        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
 
-        defaultQueue.flush()
+        await defaultQueue.flush()
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 3)
         XCTAssertEqual(queueProcessor.flushInvocations, 1)
@@ -465,23 +465,23 @@ extension APIClientQueueTests {
 
 extension APIClientQueueTests {
 
-    func test_calling_flush_should_only_send_once_regardless_of_size_of_uniquing_queue() {
+    func test_calling_flush_should_only_send_once_regardless_of_size_of_uniquing_queue() async {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path2")))
         let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path3")))
 
-        uniquingQueue.append(request0)
-        uniquingQueue.append(request1)
-        uniquingQueue.append(request2)
+        await uniquingQueue.append(request0)
+        await uniquingQueue.append(request1)
+        await uniquingQueue.append(request2)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
-        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
 
-        uniquingCacheDataQueue.sync { }
+//        uniquingCacheDataQueue.sync { }
 
-        uniquingQueue.flush()
+        await uniquingQueue.flush()
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 3)
         XCTAssertEqual(queueProcessor.flushInvocations, 1)
@@ -492,43 +492,43 @@ extension APIClientQueueTests {
 
 extension APIClientQueueTests {
 
-    func test_calling_next_request_on_default_queue_returns_request_and_empties_it() {
+    func test_calling_next_request_on_default_queue_returns_request_and_empties_it() async {
 
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
 
-        defaultQueue.append(request)
-        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
+        await defaultQueue.append(request)
+//        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
 
-        let retrievedRequest = defaultQueue.nextRequest()
+        let retrievedRequest = await defaultQueue.nextRequest()
 
         XCTAssertEqual(retrievedRequest, request)
         XCTAssertEqual(defaultQueueCache.values.count, 0)
     }
 
-    func test_calling_next_request_on_default_queue_returns_requests_in_order() {
+    func test_calling_next_request_on_default_queue_returns_requests_in_order() async {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path2")))
         let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path3")))
 
-        defaultQueue.append(request0)
-        defaultQueue.append(request1)
-        defaultQueue.append(request2)
+        await defaultQueue.append(request0)
+        await defaultQueue.append(request1)
+        await defaultQueue.append(request2)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
-        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
 
-        let retrievedRequest0 = defaultQueue.nextRequest()
+        let retrievedRequest0 = await defaultQueue.nextRequest()
         XCTAssertEqual(request0, retrievedRequest0)
 
-        let retrievedRequest1 = defaultQueue.nextRequest()
+        let retrievedRequest1 = await defaultQueue.nextRequest()
         XCTAssertEqual(request1, retrievedRequest1)
 
-        let retrievedRequest2 = defaultQueue.nextRequest()
+        let retrievedRequest2 = await defaultQueue.nextRequest()
         XCTAssertEqual(request2, retrievedRequest2)
 
-        let retrievedRequest3 = defaultQueue.nextRequest()
+        let retrievedRequest3 = await defaultQueue.nextRequest()
         XCTAssertNil(retrievedRequest3)
     }
 }
@@ -537,47 +537,47 @@ extension APIClientQueueTests {
 
 extension APIClientQueueTests {
 
-    func test_calling_next_request_on_uniquing_queue_returns_request_and_empties_it() {
+    func test_calling_next_request_on_uniquing_queue_returns_request_and_empties_it() async {
 
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
 
-        uniquingQueue.append(request)
-        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
+        await uniquingQueue.append(request)
+//        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
 
-        uniquingCacheDataQueue.sync { }
+//        uniquingCacheDataQueue.sync { }
 
-        let retrievedRequest = uniquingQueue.nextRequest()
+        let retrievedRequest = await uniquingQueue.nextRequest()
 
         XCTAssertEqual(retrievedRequest, request)
         XCTAssertEqual(defaultQueueCache.values.count, 0)
     }
 
-    func test_calling_next_request_on_uniquing_queue_returns_unique_requests_in_order() {
+    func test_calling_next_request_on_uniquing_queue_returns_unique_requests_in_order() async {
 
         let request0 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, host: "host0", path: .path("fake_path1")))
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, host: "host1", path: .path("fake_path1")))
         let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, host: "host2", path: .path("fake_path2")))
         let request3 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, host: "host3", path: .path("fake_path2")))
 
-        uniquingQueue.append(request0)
-        uniquingQueue.append(request1)
-        uniquingQueue.append(request2)
-        uniquingQueue.append(request3)
+        await uniquingQueue.append(request0)
+        await uniquingQueue.append(request1)
+        await uniquingQueue.append(request2)
+        await uniquingQueue.append(request3)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
-        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
-        queueProcessor.prepareRequestInvocations[3].completion(request3.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[3].completion(request3.wrapped.config)
 
-        uniquingCacheDataQueue.sync { }
+//        uniquingCacheDataQueue.sync { }
 
-        let retrievedRequest0 = uniquingQueue.nextRequest()
+        let retrievedRequest0 = await uniquingQueue.nextRequest()
         XCTAssertEqual(request1, retrievedRequest0)
 
-        let retrievedRequest1 = uniquingQueue.nextRequest()
+        let retrievedRequest1 = await uniquingQueue.nextRequest()
         XCTAssertEqual(request3, retrievedRequest1)
 
-        let retrievedRequest2 = uniquingQueue.nextRequest()
+        let retrievedRequest2 = await uniquingQueue.nextRequest()
         XCTAssertNil(retrievedRequest2)
     }
 }
@@ -586,7 +586,7 @@ extension APIClientQueueTests {
 
 extension APIClientQueueTests {
 
-    func test_merging_an_identifier_should_inject_that_identifier_in_every_matching_request_in_the_queue() {
+    func test_merging_an_identifier_should_inject_that_identifier_in_every_matching_request_in_the_queue() async {
 
         let localIdentifier = EntitySpyIdentifier(value: .local("1"))
         let localIdentifierData = "[{\"local\":\"1\"}]".data(using: .utf8)
@@ -595,21 +595,18 @@ extension APIClientQueueTests {
                                              identifiers: localIdentifierData)
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path2")))
 
-        defaultQueue.append(request0)
-        defaultQueue.append(request1)
-
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+        await defaultQueue.append(request0)
+        await defaultQueue.append(request1)
 
         let remoteIdentifier = EntitySpyIdentifier(value: .remote(1, "1"))
-        defaultQueue.merge(with: remoteIdentifier)
+        await defaultQueue.merge(with: remoteIdentifier)
 
         XCTAssertEqual(request0.wrapped.config.path.description, "fake_path1/:identifier_entity_spy:1")
 
-        let retrievedRequest0 = defaultQueue.nextRequest()
+        let retrievedRequest0 = await defaultQueue.nextRequest()
         XCTAssertEqual(retrievedRequest0?.wrapped.config.path.description, "fake_path1/1")
 
-        let retrievedRequest1 = defaultQueue.nextRequest()
+        let retrievedRequest1 = await defaultQueue.nextRequest()
         XCTAssertEqual(retrievedRequest1, request1)
     }
 }
@@ -618,7 +615,7 @@ extension APIClientQueueTests {
 
 extension APIClientQueueTests {
 
-    func test_merging_an_identifier_should_inject_that_identifier_in_every_matching_request_in_the_uniquing_queue() {
+    func test_merging_an_identifier_should_inject_that_identifier_in_every_matching_request_in_the_uniquing_queue() async {
 
         let localIdentifier = EntitySpyIdentifier(value: .local("1"))
         let localIdentifierData = "[{\"local\":\"1\"}]".data(using: .utf8)
@@ -627,23 +624,18 @@ extension APIClientQueueTests {
                                              identifiers: localIdentifierData)
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path2")))
 
-        uniquingQueue.append(request0)
-        uniquingQueue.append(request1)
-
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
-
-        uniquingCacheDataQueue.sync { }
+        await uniquingQueue.append(request0)
+        await uniquingQueue.append(request1)
 
         let remoteIdentifier = EntitySpyIdentifier(value: .remote(1, "1"))
-        uniquingQueue.merge(with: remoteIdentifier)
+        await uniquingQueue.merge(with: remoteIdentifier)
 
         XCTAssertEqual(request0.wrapped.config.path.description, "fake_path1/:identifier_entity_spy:1")
 
-        let retrievedRequest0 = uniquingQueue.nextRequest()
+        let retrievedRequest0 = await uniquingQueue.nextRequest()
         XCTAssertEqual(retrievedRequest0?.wrapped.config.path.description, "fake_path1/1")
 
-        let retrievedRequest1 = uniquingQueue.nextRequest()
+        let retrievedRequest1 = await uniquingQueue.nextRequest()
         XCTAssertEqual(retrievedRequest1, request1)
     }
 }
@@ -652,7 +644,7 @@ extension APIClientQueueTests {
 
 extension APIClientQueueTests {
 
-    func test_remove_requests_should_remove_every_request_matching_the_filter_in_the_queue() {
+    func test_remove_requests_should_remove_every_request_matching_the_filter_in_the_queue() async {
 
         let localIdentifierData = "[{\"local\":\"1\"}]".data(using: .utf8)
 
@@ -668,17 +660,17 @@ extension APIClientQueueTests {
         let config3 = APIRequestConfig(method: .get, path: .path("fake_path1"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: []))
         let request3 = APIClientQueueRequest(wrapping: APIRequest<Data>(config3), identifiers: localIdentifierData)
 
-        defaultQueue.append(request0)
-        defaultQueue.append(request1)
-        defaultQueue.append(request2)
-        defaultQueue.append(request3)
+        await defaultQueue.append(request0)
+        await defaultQueue.append(request1)
+        await defaultQueue.append(request2)
+        await defaultQueue.append(request3)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
-        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
-        queueProcessor.prepareRequestInvocations[3].completion(request3.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
+//        queueProcessor.prepareRequestInvocations[3].completion(request3.wrapped.config)
 
-        let removedRequests = defaultQueue.removeRequests(matching: { $0.wrapped.config.queueingStrategy.retryPolicy.contains(.onNetworkInterrupt) == false })
+        let removedRequests = await defaultQueue.removeRequests(matching: { $0.wrapped.config.queueingStrategy.retryPolicy.contains(.onNetworkInterrupt) == false })
 
         // test correct requests were removed
         XCTAssertEqual(removedRequests.count, 2)
@@ -686,17 +678,17 @@ extension APIClientQueueTests {
         XCTAssertEqual(removedRequests.last?.wrapped.config, config3)
 
         // test remaining queue is correct
-        let retrievedRequest0 = defaultQueue.nextRequest()
+        let retrievedRequest0 = await defaultQueue.nextRequest()
         XCTAssertEqual(retrievedRequest0?.wrapped.config, config0)
 
-        let retrievedRequest1 = defaultQueue.nextRequest()
+        let retrievedRequest1 = await defaultQueue.nextRequest()
         XCTAssertEqual(retrievedRequest1?.wrapped.config, config2)
 
-        let retrievedRequest2 = defaultQueue.nextRequest()
+        let retrievedRequest2 = await defaultQueue.nextRequest()
         XCTAssertNil(retrievedRequest2)
     }
 
-    func test_remove_requests_should_remove_every_request_matching_the_filter_in_the_uniquing_queue() {
+    func test_remove_requests_should_remove_every_request_matching_the_filter_in_the_uniquing_queue() async {
 
 
         let config0 = APIRequestConfig(method: .get, path: .path("fake_path1"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onNetworkInterrupt]))
@@ -711,17 +703,12 @@ extension APIClientQueueTests {
         let config3 = APIRequestConfig(method: .get, path: .path("fake_path4"), queueingStrategy: APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: []))
         let request3 = APIClientQueueRequest(wrapping: APIRequest<Data>(config3), identifiers: "[{\"local\":\"4\"}]".data(using: .utf8))
 
-        uniquingQueue.append(request0)
-        uniquingQueue.append(request1)
-        uniquingQueue.append(request2)
-        uniquingQueue.append(request3)
+        await uniquingQueue.append(request0)
+        await uniquingQueue.append(request1)
+        await uniquingQueue.append(request2)
+        await uniquingQueue.append(request3)
 
-        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
-        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
-        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
-        queueProcessor.prepareRequestInvocations[3].completion(request3.wrapped.config)
-
-        let removedRequests = uniquingQueue.removeRequests(matching: { $0.wrapped.config.queueingStrategy.retryPolicy.contains(.onNetworkInterrupt) == false })
+        let removedRequests = await uniquingQueue.removeRequests(matching: { $0.wrapped.config.queueingStrategy.retryPolicy.contains(.onNetworkInterrupt) == false })
 
         // test correct requests were removed
         XCTAssertEqual(removedRequests.count, 2)
@@ -729,13 +716,13 @@ extension APIClientQueueTests {
         XCTAssertEqual(removedRequests.last?.wrapped.config, config3)
 
         // test remaining queue is correct
-        let retrievedRequest0 = uniquingQueue.nextRequest()
+        let retrievedRequest0 = await uniquingQueue.nextRequest()
         XCTAssertEqual(retrievedRequest0?.wrapped.config, config0)
 
-        let retrievedRequest1 = uniquingQueue.nextRequest()
+        let retrievedRequest1 = await uniquingQueue.nextRequest()
         XCTAssertEqual(retrievedRequest1?.wrapped.config, config2)
 
-        let retrievedRequest2 = uniquingQueue.nextRequest()
+        let retrievedRequest2 = await uniquingQueue.nextRequest()
         XCTAssertNil(retrievedRequest2)
     }
 }

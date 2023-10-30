@@ -27,10 +27,7 @@ public final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
 
     public private(set) var abortRequestInvocations = [APIClientQueueRequest]()
 
-    public private(set) var prepareRequestInvocations = [(
-        requestConfig: APIRequestConfig,
-        completion: (APIRequestConfig) -> Void
-    )]()
+    public private(set) var prepareRequestInvocations = [APIRequestConfig]()
 
     // MARK: - Stubs
 
@@ -75,8 +72,9 @@ public final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
 
     public var jsonCoderConfig = APIJSONCoderConfig()
 
-    public func prepareRequest(_ requestConfig: APIRequestConfig, completion: @escaping (APIRequestConfig) -> Void) {
-        prepareRequestInvocations.append((requestConfig, completion))
+    public func prepareRequest(_ requestConfig: APIRequestConfig) async -> APIRequestConfig {
+        prepareRequestInvocations.append(requestConfig)
+        return requestConfig
     }
 }
 
@@ -106,16 +104,16 @@ public final class APIClientQueueProcessorDelegateSpy: APIClientQueueProcessorDe
         // no-op
     }
 
-    public func prepend(_ request: APIClientQueueRequest) {
+    public func prepend(_ request: APIClientQueueRequest) async {
         prependInvocations.append((request))
     }
 
-    public func removeRequests(matching: @escaping (APIClientQueueRequest) -> Bool) -> [APIClientQueueRequest] {
+    public func removeRequests(matching: @escaping (APIClientQueueRequest) -> Bool) async -> [APIClientQueueRequest] {
         removeRequestsInvocations.append(matching)
         return removeRequestsStub
     }
 
-    public func nextRequest() -> APIClientQueueRequest? {
+    public func nextRequest() async -> APIClientQueueRequest? {
         nextRequestInvocations += 1
         return requestStub
     }

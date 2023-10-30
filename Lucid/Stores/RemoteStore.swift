@@ -109,33 +109,29 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                     Task {
                         do {
                             try await self.decodingAsyncQueue.enqueue {
-                                do {
-                                    switch context.dataSource {
-                                    case ._remote(.request(_, let endpoint), _, _, _):
-                                        let payload = try E.ResultPayload(from: response.data,
-                                                                          endpoint: endpoint,
-                                                                          decoder: response.jsonCoderConfig.decoder)
-                                        context.set(payloadResult: .success(payload), source: source, for: request.config)
+                                switch context.dataSource {
+                                case ._remote(.request(_, let endpoint), _, _, _):
+                                    let payload = try E.ResultPayload(from: response.data,
+                                                                      endpoint: endpoint,
+                                                                      decoder: response.jsonCoderConfig.decoder)
+                                    context.set(payloadResult: .success(payload), source: source, for: request.config)
 
-                                    case ._remote(.derivedFromEntityType, _, _, _):
-                                        let payload = try E.ResultPayload(from: response.data,
-                                                                          endpoint: try E.unwrappedEndpoint(for: path),
-                                                                          decoder: response.jsonCoderConfig.decoder)
-                                        context.set(payloadResult: .success(payload), source: source, for: request.config)
+                                case ._remote(.derivedFromEntityType, _, _, _):
+                                    let payload = try E.ResultPayload(from: response.data,
+                                                                      endpoint: try E.unwrappedEndpoint(for: path),
+                                                                      decoder: response.jsonCoderConfig.decoder)
+                                    context.set(payloadResult: .success(payload), source: source, for: request.config)
 
-                                    case .local,
-                                            .localOr,
-                                            .localThen:
-                                        Logger.log(.error, "\(Self.self): Remote store should not be attempting to handle data source \(context.dataSource).", assert: true)
-                                        return
-                                    }
-
-                                } catch {
-                                    context.set(payloadResult: .failure(.deserialization(error)), source: source, for: request.config)
+                                case .local,
+                                        .localOr,
+                                        .localThen:
+                                    Logger.log(.error, "\(Self.self): Remote store should not be attempting to handle data source \(context.dataSource).", assert: true)
+                                    return
                                 }
                             }
                         } catch {
-                            Logger.log(.error, "\(RemoteStore.self) found error while enqueuing async task")
+                            Logger.log(.error, "\(RemoteStore.self) found error while enqueuing async task: \(error)")
+                            context.set(payloadResult: .failure(.deserialization(error)), source: source, for: request.config)
                         }
                     }
 
@@ -235,34 +231,31 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                     Task {
                         do {
                             try await self.decodingAsyncQueue.enqueue {
-                                do {
-                                    switch context.dataSource {
-                                    case ._remote(.request(_, let endpoint), _, _, _):
+                                switch context.dataSource {
+                                case ._remote(.request(_, let endpoint), _, _, _):
 
-                                        let payload = try E.ResultPayload(from: response.data,
-                                                                          endpoint: endpoint,
-                                                                          decoder: response.jsonCoderConfig.decoder)
-                                        context.set(payloadResult: .success(payload), source: source, for: request.config)
+                                    let payload = try E.ResultPayload(from: response.data,
+                                                                      endpoint: endpoint,
+                                                                      decoder: response.jsonCoderConfig.decoder)
+                                    context.set(payloadResult: .success(payload), source: source, for: request.config)
 
-                                    case ._remote(.derivedFromEntityType, _, _, _):
-                                        let path = RemotePath<E>.search(query)
-                                        let payload = try E.ResultPayload(from: response.data,
-                                                                          endpoint: try E.unwrappedEndpoint(for: path),
-                                                                          decoder: response.jsonCoderConfig.decoder)
-                                        context.set(payloadResult: .success(payload), source: source, for: request.config)
+                                case ._remote(.derivedFromEntityType, _, _, _):
+                                    let path = RemotePath<E>.search(query)
+                                    let payload = try E.ResultPayload(from: response.data,
+                                                                      endpoint: try E.unwrappedEndpoint(for: path),
+                                                                      decoder: response.jsonCoderConfig.decoder)
+                                    context.set(payloadResult: .success(payload), source: source, for: request.config)
 
-                                    case .local,
-                                            .localOr,
-                                            .localThen:
-                                        Logger.log(.error, "\(Self.self): Remote store should not be attempting to handle data source \(context.dataSource).", assert: true)
-                                        return
-                                    }
-                                } catch {
-                                    context.set(payloadResult: .failure(.deserialization(error)), source: source, for: request.config)
+                                case .local,
+                                        .localOr,
+                                        .localThen:
+                                    Logger.log(.error, "\(Self.self): Remote store should not be attempting to handle data source \(context.dataSource).", assert: true)
+                                    return
                                 }
                             }
                         } catch {
-                            Logger.log(.error, "\(RemoteStore.self) found error while enqueuing async task")
+                            Logger.log(.error, "\(RemoteStore.self) found error while enqueuing async task: \(error)")
+                            context.set(payloadResult: .failure(.deserialization(error)), source: source, for: request.config)
                         }
                     }
 

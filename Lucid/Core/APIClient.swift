@@ -1021,7 +1021,13 @@ extension APIRequestConfig.QueryValue {
 
     public static let allowedCharacterSet: CharacterSet = {
         // https://tools.ietf.org/html/rfc3986#section-2.2
-        let reservedCharacterSet = CharacterSet(charactersIn: ":/?#[]@!$&'()+,;")
+        let reservedCharacterSet: CharacterSet
+        if #available(iOS 17.0, *) {
+            // https://developer.apple.com/documentation/foundation/url/3126806-init
+            reservedCharacterSet = CharacterSet(charactersIn: ":/?#[]@!$&'()+,;")
+        } else {
+            reservedCharacterSet = CharacterSet(charactersIn: ":/?#[]@!$&'()+,;=")
+        }
         let urlQueryAllowedCharacterSet = CharacterSet.urlQueryAllowed
         return urlQueryAllowedCharacterSet.subtracting(reservedCharacterSet)
     }()

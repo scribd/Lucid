@@ -1021,7 +1021,7 @@ extension APIRequestConfig.QueryValue {
 
     public static let allowedCharacterSet: CharacterSet = {
         // https://tools.ietf.org/html/rfc3986#section-2.2
-        let reservedCharacterSet = CharacterSet(charactersIn: ":/?#[]@!$&'()+,;=")
+        let reservedCharacterSet = CharacterSet(charactersIn: ":/?#[]@!$&'()+,;")
         let urlQueryAllowedCharacterSet = CharacterSet.urlQueryAllowed
         return urlQueryAllowedCharacterSet.subtracting(reservedCharacterSet)
     }()

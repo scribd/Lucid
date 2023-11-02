@@ -22,7 +22,6 @@ final class APIClientQueueTests: XCTestCase {
 
     // MARK: - Doubles
 
-    private var uniquingCacheDataQueue: AsyncTaskQueue!
     private var uniquingFunction: ((APIClientQueueRequest) -> String)!
 
     // MARK: - Subject
@@ -39,16 +38,14 @@ final class APIClientQueueTests: XCTestCase {
         uniquingQueueOrderingCache = DiskCacheSpy()
         uniquingQueueValueCache = DiskCacheSpy()
         queueProcessor = APIClientQueueProcessorSpy()
-        uniquingCacheDataQueue = AsyncTaskQueue()
 
         defaultQueue = APIClientQueue(cache: .default(DiskQueue(diskCache: defaultQueueCache.caching)),
                                       processor: queueProcessor)
 
         uniquingFunction = { $0.wrapped.config.path.description + "_key" }
+        let uniquingCache = APIClientQueue.Cache.UniquingCache(orderingSetCache: uniquingQueueOrderingCache.caching, valueCache: uniquingQueueValueCache.caching)
 
-        uniquingQueue = APIClientQueue(cache: .uniquing(uniquingQueueOrderingCache.caching,
-                                                        uniquingQueueValueCache.caching,
-                                                        uniquingCacheDataQueue,
+        uniquingQueue = APIClientQueue(cache: .uniquing(uniquingCache,
                                                         uniquingFunction),
                                        processor: queueProcessor)
     }
@@ -85,9 +82,8 @@ extension APIClientQueueTests {
     func test_uniquing_queue_sets_itself_as_delegate_of_processor() {
 
         let localQueueProcessor = APIClientQueueProcessorSpy()
-        let localQueue = APIClientQueue(cache: .uniquing(uniquingQueueOrderingCache.caching,
-                                                         uniquingQueueValueCache.caching,
-                                                         uniquingCacheDataQueue,
+        let uniquingCache = APIClientQueue.Cache.UniquingCache(orderingSetCache: uniquingQueueOrderingCache.caching, valueCache: uniquingQueueValueCache.caching)
+        let localQueue = APIClientQueue(cache: .uniquing(uniquingCache,
                                                          uniquingFunction),
                                         processor: localQueueProcessor)
 
@@ -224,7 +220,7 @@ extension APIClientQueueTests {
 
         await uniquingQueue.append(request)
 //        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
-        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
+//        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 1)
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations[0].0, "APIClientQueue_uniquing_cache_key")
@@ -248,7 +244,7 @@ extension APIClientQueueTests {
 //        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
 //        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
 
-        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
+//        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 2)
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations[0].0, "APIClientQueue_uniquing_cache_key")
@@ -279,7 +275,7 @@ extension APIClientQueueTests {
 //        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
 //        queueProcessor.prepareRequestInvocations[2].completion(request2.wrapped.config)
 
-        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
+//        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
 
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations.count, 3)
         XCTAssertEqual(uniquingQueueOrderingCache.asyncSetInvocations[0].0, "APIClientQueue_uniquing_cache_key")
@@ -310,7 +306,7 @@ extension APIClientQueueTests {
         await uniquingQueue.append(request)
 //        queueProcessor.prepareRequestInvocations[0].completion(request.wrapped.config)
 
-        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
+//        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 1)
         XCTAssertEqual(queueProcessor.flushInvocations, 0)
@@ -327,7 +323,7 @@ extension APIClientQueueTests {
 //        queueProcessor.prepareRequestInvocations[0].completion(request0.wrapped.config)
 //        queueProcessor.prepareRequestInvocations[1].completion(request1.wrapped.config)
 
-        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
+//        try? await uniquingCacheDataQueue.enqueueBarrier { completion in completion() }
 
         XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 2)
         XCTAssertEqual(queueProcessor.flushInvocations, 0)

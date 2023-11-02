@@ -217,8 +217,18 @@ public final class APIClientQueue: NSObject {
     // MARK: Dependencies
 
     enum Cache {
+        actor UniquingCache {
+            var orderingSetCache: DiskCaching<OrderedSet<String>>
+            var valueCache: DiskCaching<APIClientQueueRequest>
+
+            init(orderingSetCache: DiskCaching<OrderedSet<String>>, valueCache: DiskCaching<APIClientQueueRequest>) {
+                self.orderingSetCache = orderingSetCache
+                self.valueCache = valueCache
+            }
+        }
+
         case `default`(DiskQueue<APIClientQueueRequest>)
-        case uniquing(DiskCaching<OrderedSet<String>>, DiskCaching<APIClientQueueRequest>, AsyncTaskQueue, UniquingFunction)
+        case uniquing(UniquingCache, UniquingFunction)
     }
 
     private let cache: Cache
@@ -233,15 +243,6 @@ public final class APIClientQueue: NSObject {
         self.processor = processor
         super.init()
         self.processor.delegate = self
-
-        switch cache {
-        case .default:
-            break
-        case .uniquing(_, _, let dataQueue, _):
-            if dataQueue === DispatchQueue.main {
-                Logger.log(.error, "\(APIClientQueue.self) should not assign the main queue as the data queue.", assert: true)
-            }
-        }
     }
 
     /// Create a new client queue the first time the identifier is used, then, returns the existing one.
@@ -280,10 +281,8 @@ public final class APIClientQueue: NSObject {
                                                                      codingContext: codingContext)
                         let valueCache = DiskCache<APIClientQueueRequest>(basePath: Constants.diskCacheBasePath(queueIdentifier + "_values"),
                                                                           codingContext: codingContext)
-                        let dataQueue = AsyncTaskQueue()
-                        return .uniquing(orderingSetCache.caching,
-                                         valueCache.caching,
-                                         dataQueue,
+                        let uniquingCache = Cache.UniquingCache(orderingSetCache: orderingSetCache.caching, valueCache: valueCache.caching)
+                        return .uniquing(uniquingCache,
                                          uniquingFunction)
                     }
                 }()
@@ -314,21 +313,19 @@ extension APIClientQueue: APIClientQueuing {
         case .default(let queue):
             queue.append(request)
             await self.processor.didEnqueueNewRequest()
-        case .uniquing(let orderingSetCache, let valueCache, let dataQueue, let uniquingFunction):
+        case .uniquing(let uniquingCache, let uniquingFunction):
             let key = uniquingFunction(request)
 
             let requestCopy = request
-            try? await dataQueue.enqueueBarrier { operationCompletion in
-                defer { operationCompletion() }
-                var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
-                orderingSet.append(key)
-                orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
-                if let existingRequest = valueCache[key] {
-                    await self.processor.abortRequest(existingRequest)
-                }
-                valueCache[key] = requestCopy
-                await self.processor.didEnqueueNewRequest()
+
+            var orderingSet = await uniquingCache.orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
+            orderingSet.append(key)
+            await uniquingCache.orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
+            if let existingRequest = await uniquingCache.valueCache[key] {
+                await self.processor.abortRequest(existingRequest)
             }
+            await uniquingCache.valueCache[key] = requestCopy
+            await self.processor.didEnqueueNewRequest()
         }
     }
 
@@ -348,27 +345,23 @@ extension APIClientQueue: APIClientQueuing {
         switch cache {
         case .default(let queue):
             queue.map(transform)
-        case .uniquing(let orderingSetCache, let valueCache, let dataQueue, let uniquingFunction):
-            try? await dataQueue.enqueueBarrier { operationCompletion in
-                defer { operationCompletion() }
+        case .uniquing(let uniquingCache, let uniquingFunction):
+            let orderingSet = await uniquingCache.orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
+            guard orderingSet.isEmpty == false else { return }
 
-                let orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
-                guard orderingSet.isEmpty == false else { return }
-
-                var newOrderingSet = OrderedSet<String>()
-                for key in orderingSet {
-                    guard let value = valueCache[key] else {
-                        Logger.log(.error, "\(APIClientQueue.self) found no cached value", assert: true)
-                        continue
-                    }
-                    valueCache[key] = nil
-                    let newValue = transform(value)
-                    let newKey = uniquingFunction(newValue)
-                    valueCache[newKey] = newValue
-                    newOrderingSet.append(newKey)
+            var newOrderingSet = OrderedSet<String>()
+            for key in orderingSet {
+                guard let value = await uniquingCache.valueCache[key] else {
+                    Logger.log(.error, "\(APIClientQueue.self) found no cached value", assert: true)
+                    continue
                 }
-                orderingSetCache[APIClientQueue.uniquingCacheKey] = newOrderingSet
+                await uniquingCache.valueCache[key] = nil
+                let newValue = transform(value)
+                let newKey = uniquingFunction(newValue)
+                await uniquingCache.valueCache[newKey] = newValue
+                newOrderingSet.append(newKey)
             }
+            await uniquingCache.orderingSetCache[APIClientQueue.uniquingCacheKey] = newOrderingSet
         }
     }
 }
@@ -385,22 +378,19 @@ extension APIClientQueue: APIClientPriorityQueuing {
         switch self.cache {
         case .default(let queue):
             queue.prepend(request)
-        case .uniquing(let orderingSetCache, let valueCache, let dataQueue, let uniquingFunction):
+        case .uniquing(let uniquingCache, let uniquingFunction):
             let key = uniquingFunction(request)
 
             let requestCopy = request
-            try? await dataQueue.enqueueBarrier { operationCompletion in
-                defer { operationCompletion() }
 
-                var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
-                guard orderingSet.contains(key) == false else {
-                    await self.processor.abortRequest(requestCopy)
-                    return
-                }
-                orderingSet.prepend(key)
-                orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
-                valueCache[key] = requestCopy
+            var orderingSet = await uniquingCache.orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
+            guard orderingSet.contains(key) == false else {
+                await self.processor.abortRequest(requestCopy)
+                return
             }
+            orderingSet.prepend(key)
+            await uniquingCache.orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
+            await uniquingCache.valueCache[key] = requestCopy
         }
     }
 
@@ -417,25 +407,18 @@ extension APIClientQueue: APIClientPriorityQueuing {
                     return true
                 }
             }
-        case .uniquing(let orderingSetCache, let valueCache, let dataQueue, _):
-            do {
-                removedElements = try await dataQueue.enqueueBarrier { operationCompletion in
-                    defer { operationCompletion() }
-                    var removedRequests: [APIClientQueueRequest] = []
-                    var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
-                    for key in orderingSet {
-                        guard let request = valueCache[key] else { continue }
-                        guard matching(request) else { continue }
-                        removedRequests.append(request)
-                        orderingSet.remove(key)
-                        valueCache[key] = nil
-                    }
-                    orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
-                    return removedRequests
-                }
-            } catch {
-                Logger.log(.error, "\(APIClientQueue.self) Error while enqueuing async task")
+        case .uniquing(let uniquingCache, _):
+            var removedRequests: [APIClientQueueRequest] = []
+            var orderingSet = await uniquingCache.orderingSetCache[APIClientQueue.uniquingCacheKey] ?? OrderedSet<String>()
+            for key in orderingSet {
+                guard let request = await uniquingCache.valueCache[key] else { continue }
+                guard matching(request) else { continue }
+                removedRequests.append(request)
+                orderingSet.remove(key)
+                await uniquingCache.valueCache[key] = nil
             }
+            await uniquingCache.orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
+            removedElements = removedRequests
         }
 
         return removedElements
@@ -459,21 +442,18 @@ extension APIClientQueue: APIClientQueueProcessorDelegate {
         switch cache {
         case .default(let queue):
             return queue.dropFirst()
-        case .uniquing(let orderingSetCache, let valueCache, let dataQueue, _):
-            return try? await dataQueue.enqueueBarrier { operationCompletion in
-                defer { operationCompletion() }
-                guard var orderingSet = orderingSetCache[APIClientQueue.uniquingCacheKey],
-                    let key = orderingSet.popFirst() else { return nil }
+        case .uniquing(let uniquingCache, _):
+            guard var orderingSet = await uniquingCache.orderingSetCache[APIClientQueue.uniquingCacheKey],
+                  let key = orderingSet.popFirst() else { return nil }
 
-                orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
+            await uniquingCache.orderingSetCache[APIClientQueue.uniquingCacheKey] = orderingSet
 
-                guard let value = valueCache[key] else {
-                    Logger.log(.error, "\(APIClientQueue.self) found no cached value", assert: true)
-                    return nil
-                }
-                valueCache[key] = nil
-                return value
+            guard let value = await uniquingCache.valueCache[key] else {
+                Logger.log(.error, "\(APIClientQueue.self) found no cached value", assert: true)
+                return nil
             }
+            await uniquingCache.valueCache[key] = nil
+            return value
         }
     }
 }

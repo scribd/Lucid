@@ -1008,6 +1008,10 @@ extension APIRequestConfig.QueryValue {
                 if #available(iOS 17.0, *) {
                     return encodedValues.map { "\(encodedKey)%5B%5D=\($0)" }.joined(separator: "&")
                 }
+            #elseif os(macOS)
+                if #available(macOS 14.0, *) {
+                    return encodedValues.map { "\(encodedKey)%5B%5D=\($0)" }.joined(separator: "&")
+                }
             #elseif os(watchOS)
                 if #available(watchOS 10.0, *) {
                     return encodedValues.map { "\(encodedKey)%5B%5D=\($0)" }.joined(separator: "&")
@@ -1256,6 +1260,10 @@ extension APIRequestConfig {
         var url: URL?
         #if os(iOS)
             if #available(iOS 17.0, *) {
+                url = URL(string: host + "/" + path.description + queryString, encodingInvalidCharacters: false)
+            }
+        #elseif os(macOS)
+            if #available(macOS 14.0, *) {
                 url = URL(string: host + "/" + path.description + queryString, encodingInvalidCharacters: false)
             }
         #elseif os(watchOS)

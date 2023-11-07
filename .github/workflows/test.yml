@@ -18,7 +18,7 @@ jobs:
 
   lucid_tests:
     name: Lucid-iOS Tests
-    runs-on: macos-12
+    runs-on: macos-13
     env:
       FASTLANE_LOGS: fastlane/test_output
       FASTLANE_FRAGILE_LOGS: fastlane/fragile_test_output

@@ -291,7 +291,8 @@ public extension StoreError {
              .invalidContext,
              .identifierNotSynced,
              .identifierNotFound,
-             .emptyResponse:
+             .emptyResponse,
+             .enqueueingError:
             return false
         }
     }
@@ -311,7 +312,8 @@ public extension StoreError {
              .coreData,
              .invalidContext,
              .identifierNotSynced,
-             .identifierNotFound:
+             .identifierNotFound,
+             .enqueueingError:
             return false
         }
     }

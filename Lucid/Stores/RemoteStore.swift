@@ -37,6 +37,8 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
     private let clientQueue: APIClientQueuing & APIClientQueueFlushing
 
+    private let processingQueue = AsyncTaskQueue()
+
     /// - Warning: This queue shall only be used for decoding computation.
     ///            It shall never be used for work deferring to other queues synchronously or it would
     ///            introduce a risk of thread pool starvation (no more threads available), leading to a crash.
@@ -51,7 +53,6 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
     // MARK: - API
 
     public func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
-
         Task {
             let result = await self.get(withQuery: query, in: context)
             completion(result)
@@ -59,6 +60,17 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
     }
 
     public func get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        do {
+            return try await processingQueue.enqueueBarrier { completion in
+                defer { completion() }
+                return await self._get(withQuery: query, in: context)
+            }
+        } catch {
+            return .failure(.enqueueingError)
+        }
+    }
+
+    private func _get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
         guard let identifier = query.identifier else {
             return .failure(.identifierNotFound)
         }
@@ -180,6 +192,57 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                     continuation.resume(returning: .failure(error))
                 }
             }
+        }
+    }
+
+    public func search(withQuery query: Query<E>,
+                       in context: ReadContext<E>,
+                       completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
+        Task {
+            let result = await self.search(withQuery: query, in: context)
+            completion(result)
+        }
+    }
+
+    public func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        do {
+            return try await processingQueue.enqueueBarrier { completion in
+                defer { completion() }
+                return await self._search(withQuery: query, in: context)
+            }
+        } catch {
+            return .failure(.enqueueingError)
+        }
+    }
+
+    private func _search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
+        // Some payloads need to filter out entities which aren't meant to be at their root level.
+        // This is due to the fact that payloads made of a tree structure get their data automatically flattened.
+        let result = await coreSearch(withQuery: query, in: context)
+        switch result {
+        case .success(let response):
+
+            guard let allItems = response.result.metadata?.allItems else {
+                return .success(response.result)
+            }
+
+            let rootIdentifiers = DualHashSet<E.Identifier>(allItems.lazy.compactMap { $0.entityIdentifier() })
+            guard rootIdentifiers.isEmpty == false else {
+                return .success(response.result)
+            }
+
+            guard response.isFromCache == false else {
+                return .success(response.result)
+            }
+
+            let filteredEntities = response.result.filter { rootIdentifiers.contains($0.identifier) }
+
+            return .success(QueryResult<E>(fromProcessedEntities: filteredEntities,
+                                           for: query,
+                                           metadata: response.result.metadata))
+
+        case .failure(let error):
+            return .failure(error)
         }
     }
 
@@ -312,47 +375,6 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
         }
     }
 
-    public func search(withQuery query: Query<E>,
-                       in context: ReadContext<E>,
-                       completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
-
-        Task {
-            let result = await self.search(withQuery: query, in: context)
-            completion(result)
-        }
-    }
-
-    public func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
-        // Some payloads need to filter out entities which aren't meant to be at their root level.
-        // This is due to the fact that payloads made of a tree structure get their data automatically flattened.
-        let result = await coreSearch(withQuery: query, in: context)
-        switch result {
-        case .success(let response):
-
-            guard let allItems = response.result.metadata?.allItems else {
-                return .success(response.result)
-            }
-
-            let rootIdentifiers = DualHashSet<E.Identifier>(allItems.lazy.compactMap { $0.entityIdentifier() })
-            guard rootIdentifiers.isEmpty == false else {
-                return .success(response.result)
-            }
-
-            guard response.isFromCache == false else {
-                return .success(response.result)
-            }
-
-            let filteredEntities = response.result.filter { rootIdentifiers.contains($0.identifier) }
-
-            return .success(QueryResult<E>(fromProcessedEntities: filteredEntities,
-                                           for: query,
-                                           metadata: response.result.metadata))
-
-        case .failure(let error):
-            return .failure(error)
-        }
-    }
-
     public func set<S>(_ entities: S, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void) where S: Sequence, S.Element == E {
         Task {
             let result = await set(entities, in: context)
@@ -361,6 +383,17 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
     }
 
     public func set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where S : Sequence, E == S.Element {
+        do {
+            return try await processingQueue.enqueueBarrier { completion in
+                defer { completion() }
+                return await self._set(entities, in: context)
+            }
+        } catch {
+            return .failure(.enqueueingError)
+        }
+    }
+
+    private func _set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where S : Sequence, E == S.Element {
         var countMismatch = false
 
         let requests: [APIClientQueueRequest]
@@ -431,6 +464,17 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
     }
 
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
+        do {
+            return try await processingQueue.enqueueBarrier { completion in
+                defer { completion() }
+                return await self._removeAll(withQuery: query, in: context)
+            }
+        } catch {
+            return .failure(.enqueueingError)
+        }
+    }
+
+    private func _removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
         let path = RemotePath<E>.removeAll(query)
         let identifiers = query.identifiers?.array ?? []
         let clientQueueRequest: APIClientQueueRequest
@@ -468,7 +512,6 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
     }
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
-
         Task {
             let result = await remove(identifiers, in: context)
             completion(result)
@@ -476,6 +519,17 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
     }
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
+        do {
+            return try await processingQueue.enqueueBarrier { completion in
+                defer { completion() }
+                return await self._remove(identifiers, in: context)
+            }
+        } catch {
+            return .failure(.enqueueingError)
+        }
+    }
+
+    private func _remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
         var countMismatch = false
         let requests = identifiers.compactMap { (identifier: E.Identifier) -> APIClientQueueRequest? in
 

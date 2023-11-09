@@ -499,9 +499,12 @@ private extension CoreManager {
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
             Task(priority: .high) {
                 do {
-                    completion()
-                    let result = try await self.get(withQuery: query, in: context)
-                    promise(.success(result))
+                    async let result = try await self.get(withQuery: query, in: context)
+                    Task(priority: .low) {
+                        try? await Task.sleep(nanoseconds: NSEC_PER_SEC / 10000) // 0.1 milliseconds
+                        completion()
+                    }
+                    try await promise(.success(result))
                 } catch let error as ManagerError {
                     promise(.failure(error))
                 }
@@ -835,9 +838,12 @@ private extension CoreManager {
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
             Task(priority: .high) {
                 do {
-                    completion()
-                    let result = try await self.set(entity, in: context)
-                    promise(.success(result))
+                    async let result = try await self.set(entity, in: context)
+                    Task(priority: .low) {
+                        try? await Task.sleep(nanoseconds: NSEC_PER_SEC / 10000) // 0.1 milliseconds
+                        completion()
+                    }
+                    try await promise(.success(result))
                 } catch let error as ManagerError {
                     promise(.failure(error))
                 }
@@ -914,9 +920,12 @@ private extension CoreManager {
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
             Task(priority: .high) {
                 do {
-                    completion()
-                    let result = try await self.set(entities, in: context)
-                    promise(.success(result))
+                    async let result = try await self.set(entities, in: context)
+                    Task(priority: .low) {
+                        try? await Task.sleep(nanoseconds: NSEC_PER_SEC / 10000) // 0.1 milliseconds
+                        completion()
+                    }
+                    try await promise(.success(result))
                 } catch let error as ManagerError {
                     promise(.failure(error))
                 }
@@ -1003,9 +1012,12 @@ private extension CoreManager {
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
             Task(priority: .high) {
                 do {
-                    completion()
-                    let result = try await self.removeAll(withQuery: query, in: context)
-                    promise(.success(result))
+                    async let result = try await self.removeAll(withQuery: query, in: context)
+                    Task(priority: .low) {
+                        try? await Task.sleep(nanoseconds: NSEC_PER_SEC / 10000) // 0.1 milliseconds
+                        completion()
+                    }
+                    try await promise(.success(result))
                 } catch let error as ManagerError {
                     promise(.failure(error))
                 }
@@ -1094,8 +1106,12 @@ private extension CoreManager {
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
             Task(priority: .high) {
                 do {
-                    completion()
-                    try await self.remove(atID: identifier, in: context)
+                    async let result: Void = try await self.remove(atID: identifier, in: context)
+                    Task(priority: .low) {
+                        try? await Task.sleep(nanoseconds: NSEC_PER_SEC / 10000) // 0.1 milliseconds
+                        completion()
+                    }
+                    try await result
                     promise(.success(()))
                 } catch let error as ManagerError {
                     promise(.failure(error))
@@ -1152,8 +1168,12 @@ private extension CoreManager {
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
             Task(priority: .high) {
                 do {
-                    completion()
-                    try await self.remove(identifiers, in: context)
+                    async let result: Void = try await self.remove(identifiers, in: context)
+                    Task(priority: .low) {
+                        try? await Task.sleep(nanoseconds: NSEC_PER_SEC / 10000) // 0.1 milliseconds
+                        completion()
+                    }
+                    try await result
                     promise(.success(()))
                 } catch let error as ManagerError {
                     promise(.failure(error))

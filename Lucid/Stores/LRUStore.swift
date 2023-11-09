@@ -35,9 +35,8 @@ public final class LRUStore<E>: StoringConvertible where E: LocalEntity {
     private var _elementsByID = DualHashDictionary<E.Identifier, LinkedListElement<E.Identifier>>()
     private var _identifiersListSentinel = LinkedListElement<E.Identifier>()
 
-    private lazy var identifiersDispatchQueue = DispatchQueue(label: "\(ObjectIdentifier(self))", attributes: .concurrent)
-
-    private lazy var identifiersAsyncQueue = AsyncTaskQueue()
+    private let identifiersDispatchQueue = DispatchQueue(label: "\(LRUStore<E>.self):identifiers_dispatch_queue", attributes: .concurrent)
+    private let identifiersAsyncQueue = AsyncTaskQueue()
 
     public let level: StoreLevel
 
@@ -162,7 +161,6 @@ public final class LRUStore<E>: StoringConvertible where E: LocalEntity {
             do {
                 return try await identifiersAsyncQueue.enqueueBarrier { operationCompletion in
                     defer { operationCompletion() }
-
                     let identifiersToRemove = self._push(successfulEntities.lazy.map { $0.identifier })
                     await self._remove(identifiersToRemove.any, in: context)
                     return result

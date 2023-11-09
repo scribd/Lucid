@@ -139,6 +139,11 @@ final class CoreManagerCombineProperty<E: Entity, Failure: Error>: Publisher {
             isFirstSubscriber.value = true
 
             operationQueue.run(title: "\(CoreManagerCombineProperty.self):perform_task") { completion in
+                guard Task.isCancelled == false else {
+                    completion()
+                    return
+                }
+
                 guard subscription.didCancel != nil else {
                     completion()
                     return

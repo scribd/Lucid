@@ -4413,23 +4413,23 @@ final class CoreManagerTests: XCTestCase {
             ))
         )
 
-        do {
-            let signals = try await manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
-
-            await Task {
+        await Task {
+            do {
+                let signals = try await manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
                 _ = signals.once
-
                 for await _ in signals.continuous {
                     continuousExpectation.fulfill()
                 }
-            }.storeAsync(in: asyncTasks)
+            } catch where error is CancellationError {
+                return // expected
+            } catch {
+                XCTFail("Unexpected error: \(error)")
+            }
+        }.storeAsync(in: asyncTasks)
 
-            await asyncTasks.cancel()
+        await asyncTasks.cancel()
 
-            wait(for: [continuousExpectation], timeout: 1)
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
+        await fulfillment(of: [continuousExpectation], timeout: 0.1)
     }
 
     func test_search_should_release_once_provider_as_soon_as_the_observer_is_disposed_async() async {
@@ -4452,21 +4452,21 @@ final class CoreManagerTests: XCTestCase {
             ))
         )
 
-        do {
-            let signals = try await manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
-
-            await Task {
+        await Task {
+            do {
+                let signals = try await manager.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil)))), in: context)
                 _ = signals.once
-
                 onceExpectation.fulfill()
-            }.storeAsync(in: asyncTasks)
+            } catch where error is CancellationError {
+                return // expected
+            } catch {
+                XCTFail("Unexpected error: \(error)")
+            }
+        }.storeAsync(in: asyncTasks)
 
-            await asyncTasks.cancel()
+        await asyncTasks.cancel()
 
-            wait(for: [onceExpectation], timeout: 1)
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
+        await fulfillment(of: [onceExpectation], timeout: 0.1)
     }
 
     func test_get_should_release_once_provider_as_soon_as_the_observer_is_disposed_async() async {

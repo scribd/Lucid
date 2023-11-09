@@ -567,19 +567,17 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             return .failure(.notSupported)
         }
 
-        Task {
+        return await withCheckedContinuation { continuation in
+            await self.completeOnClientQueueResponse(for: requests) { _ in
+                continuation.resume(returning: nil)
+            }
+
             await withTaskGroup(of: Void.self) { group in
                 for request in requests {
                     group.addTask {
                         await self.clientQueue.append(request)
                     }
                 }
-            }
-        }
-
-        return await withCheckedContinuation { continuation in
-            await self.completeOnClientQueueResponse(for: requests) { _ in
-                continuation.resume(returning: nil)
             }
         }
     }

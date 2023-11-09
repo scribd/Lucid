@@ -497,7 +497,7 @@ private extension CoreManager {
              in context: ReadContext<E>) -> AnyPublisher<QueryResult<E>, ManagerError> {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task {
+            Task(priority: .high) {
                 do {
                     completion()
                     let result = try await self.get(withQuery: query, in: context)
@@ -533,7 +533,7 @@ private extension CoreManager {
 
             if localResult.entity != nil {
                 if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
-                    Task {
+                    Task(priority: .high) {
                         _ = try? await self.get(withQuery: query, in: remoteContext)
                     }
                 }
@@ -683,7 +683,7 @@ private extension CoreManager {
 
             if hasAllIdentifiersLocally || hasResultsForComplexSearch {
                 if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
-                    Task {
+                    Task(priority: .high) {
                         _ = try await overwriteSearches(nil).once
                     }
                 }
@@ -739,7 +739,7 @@ private extension CoreManager {
                             let finalEntitiesToUpdate = entitiesToUpdate
                             await withTaskGroup(of: Void.self) { group in
                                 if finalEntitiesToUpdate.isEmpty == false {
-                                    group.addTask {
+                                    group.addTask(priority: .high) {
                                         let result = await self.localStore.set(finalEntitiesToUpdate, in: WriteContext(dataTarget: .local))
                                         if let error = result?.error {
                                             Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
@@ -748,7 +748,7 @@ private extension CoreManager {
                                 }
 
                                 if finalIdentifiersToDelete.isEmpty == false {
-                                    group.addTask {
+                                    group.addTask(priority: .high) {
                                         let result = await self.localStore.remove(finalIdentifiersToDelete, in: WriteContext(dataTarget: .local))
                                         if let error = result?.error {
                                             Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entities: \(error)", assert: true)
@@ -781,7 +781,7 @@ private extension CoreManager {
                             return remoteResults
                         }
                     } else {
-                        Task {
+                        Task(priority: .high) {
                             await property.update(with: remoteResults)
                         }
                         return remoteResults
@@ -808,7 +808,7 @@ private extension CoreManager {
         let continuous = AsyncStream<QueryResult<E>>() { continuation in
 
             let iterator = property.stream.makeAsyncIterator()
-            let task = Task {
+            let task = Task(priority: .high) {
                 for try await value in iterator {
                     guard let value = (value ?? nil) else { continue }
                     continuation.yield(value)
@@ -817,7 +817,7 @@ private extension CoreManager {
 
             continuation.onTermination = { _ in
                 task.cancel()
-                Task {
+                Task(priority: .high) {
                     await property.stream.cancelIterator(iterator)
                 }
             }
@@ -833,7 +833,7 @@ private extension CoreManager {
              in context: WriteContext<E>) -> AnyPublisher<E, ManagerError> {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task {
+            Task(priority: .high) {
                 do {
                     completion()
                     let result = try await self.set(entity, in: context)
@@ -912,7 +912,7 @@ private extension CoreManager {
         let entities = Array(entities)
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task {
+            Task(priority: .high) {
                 do {
                     completion()
                     let result = try await self.set(entities, in: context)
@@ -1001,7 +1001,7 @@ private extension CoreManager {
                    in context: WriteContext<E>) -> AnyPublisher<AnySequence<E.Identifier>, ManagerError> {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task {
+            Task(priority: .high) {
                 do {
                     completion()
                     let result = try await self.removeAll(withQuery: query, in: context)
@@ -1092,7 +1092,7 @@ private extension CoreManager {
                 in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task {
+            Task(priority: .high) {
                 do {
                     completion()
                     try await self.remove(atID: identifier, in: context)
@@ -1150,7 +1150,7 @@ private extension CoreManager {
                    in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> where S: Sequence, S.Element == E.Identifier {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task {
+            Task(priority: .high) {
                 do {
                     completion()
                     try await self.remove(identifiers, in: context)
@@ -1487,7 +1487,7 @@ private extension CoreManager {
 
         let results = results.materialized
 
-        Task {
+        Task(priority: .high) {
             do {
                 try await self.raiseEventsTaskQueue.enqueueBarrier { operationCompletion in
                     defer { operationCompletion() }
@@ -1559,7 +1559,7 @@ private extension CoreManager {
     }
 
     func raiseDeleteEvents(_ deletedIDs: DualHashSet<E.Identifier>) {
-        Task {
+        Task(priority: .high) {
             do {
                 try await self.raiseEventsTaskQueue.enqueueBarrier { operationCompletion in
                     defer { operationCompletion() }

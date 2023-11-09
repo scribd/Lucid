@@ -1224,12 +1224,33 @@ extension CoreManaging where E: MutableEntity {
             .eraseToAnyPublisher()
     }
 
+    public func setAndUpdateIdentifierInLocalStores(_ entity: E, originTimestamp: UInt64) async {
+        let context = WriteContext<E>(dataTarget: .local, remoteSyncState: .createResponse(originTimestamp))
+        do {
+            let storedResult = try await set(entity, in: context)
+            storedResult.merge(identifier: entity.identifier)
+            let mergeContext = WriteContext<E>(dataTarget: .local, remoteSyncState: .mergeIdentifier)
+            _ = try await self.set(storedResult, in: mergeContext)
+        } catch {
+            Logger.log(.error, "\(CoreManaging.self) failed to set and update entity identifier locally")
+        }
+    }
+
     public func removeFromLocalStores(_ identifier: E.Identifier, originTimestamp: UInt64) -> AnySafePublisher<Void> {
         let context = WriteContext<E>(dataTarget: .local, remoteSyncState: .createResponse(originTimestamp))
         return remove(atID: identifier, in: context)
             .map { _ in }
             .replaceError(with: ())
             .eraseToAnyPublisher()
+    }
+
+    public func removeFromLocalStores(_ identifier: E.Identifier, originTimestamp: UInt64) async {
+        let context = WriteContext<E>(dataTarget: .local, remoteSyncState: .createResponse(originTimestamp))
+        do {
+            _ = try await remove(atID: identifier, in: context)
+        } catch {
+            Logger.log(.error, "\(CoreManaging.self) failed to remove entity locally")
+        }
     }
 }
 

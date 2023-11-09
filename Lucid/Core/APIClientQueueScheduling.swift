@@ -10,13 +10,13 @@ import Foundation
 
 public protocol APIClientQueueScheduling: AnyObject {
 
-    func didEnqueueNewRequest()
+    func didEnqueueNewRequest() async
 
-    func flush()
+    func flush() async
 
-    func requestDidSucceed()
+    func requestDidSucceed() async
 
-    func requestDidFail()
+    func requestDidFail() async
 
     var delegate: APIClientQueueSchedulerDelegate? { get set }
 }
@@ -24,7 +24,7 @@ public protocol APIClientQueueScheduling: AnyObject {
 public protocol APIClientQueueSchedulerDelegate: AnyObject {
 
     @discardableResult
-    func processNext() -> APIClientQueueSchedulerProcessNextResult
+    func processNext() async -> APIClientQueueSchedulerProcessNextResult
 }
 
 public enum APIClientQueueSchedulerProcessNextResult {

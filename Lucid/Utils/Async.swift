@@ -106,24 +106,48 @@ extension AsyncSequence {
 public actor AsyncTaskQueue {
 
     public typealias OperationCompletion = () -> Void
-    public typealias AsyncOperation = (barrier: Bool, continuation: CheckedContinuation<Void, Error>)
+
+    class AsyncOperation {
+        private let barrier: Bool
+        private var continuation: CheckedContinuation<Void, Error>?
+
+        init(barrier: Bool) {
+            self.barrier = barrier
+        }
+
+        func setContinuation(continuation: CheckedContinuation<Void, Error>) {
+            self.continuation = continuation
+        }
+
+        func getContinuation() -> CheckedContinuation<Void, Error>? {
+            return continuation
+        }
+
+        func isBarrier() -> Bool {
+            return barrier
+        }
+
+        func isSetup() -> Bool {
+            return continuation != nil
+        }
+    }
 
     private let maxConcurrentTasks: Int
     private(set) var runningTasks: Int = 0
     private var queue = [AsyncOperation]()
 
     public var isLastBarrier: Bool {
-        return queue.last?.barrier ?? false
+        return queue.last?.isBarrier() ?? false
     }
 
     private var current: AsyncOperation?
 
     private var isCurrentBarrier: Bool {
-        return current?.barrier ?? false
+        return current?.isBarrier() ?? false
     }
 
     private var isNextBarrier: Bool {
-        return queue.first?.barrier ?? false
+        return queue.first?.isBarrier() ?? false
     }
 
     public init(maxConcurrentTasks: Int = 5) {
@@ -131,8 +155,8 @@ public actor AsyncTaskQueue {
     }
 
     deinit {
-        for continuation in queue.map({ $1 }) {
-            continuation.resume(throwing: CancellationError())
+        for continuation in queue.map({ $0.getContinuation() }) {
+            continuation?.resume(throwing: CancellationError())
         }
     }
 
@@ -140,8 +164,11 @@ public actor AsyncTaskQueue {
         do {
             try Task.checkCancellation()
 
+            let asyncOperation = AsyncOperation(barrier: false)
+            self.queue.append(asyncOperation)
+
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-                self.queue.append((false, continuation))
+                asyncOperation.setContinuation(continuation: continuation)
                 await self.tryRunEnqueued()
             }
 
@@ -165,8 +192,11 @@ public actor AsyncTaskQueue {
             }
         }
 
+        let asyncOperation = AsyncOperation(barrier: true)
+        self.queue.append(asyncOperation)
+
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            self.queue.append((true, continuation))
+            asyncOperation.setContinuation(continuation: continuation)
             await self.tryRunEnqueued()
         }
 
@@ -188,10 +218,15 @@ public actor AsyncTaskQueue {
             if isCurrentBarrier || isNextBarrier { return }
         }
 
+        guard queue[0].isSetup() else { return }
+
         runningTasks += 1
+
         let operation = queue.removeFirst()
         current = operation
-        operation.continuation.resume()
+
+        guard let continuation = operation.getContinuation() else { return }
+        continuation.resume()
 
         // Try to run as many operations in parallel as possible
         if isCurrentBarrier == false && isNextBarrier == false {

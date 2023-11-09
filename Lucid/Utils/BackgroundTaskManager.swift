@@ -42,7 +42,7 @@ final class BackgroundTaskManager: BackgroundTaskManaging {
     private let timeout: TimeInterval
 
     private var _taskID: UIBackgroundTaskIdentifier = .invalid
-    private let dispatchQueue = DispatchQueue(label: "\(BackgroundTaskManager.self):taskID")
+    private let asyncTaskQueue = DispatchQueue(label: "\(BackgroundTaskManager.self):taskID")
     private var _timeoutHandlers = [UUID: () -> Void]()
 
     init(_ coreManager: CoreBackgroundTaskManaging = UIApplication.shared,
@@ -53,7 +53,7 @@ final class BackgroundTaskManager: BackgroundTaskManaging {
 
     func start(_ timeoutHandler: @escaping () -> Void) -> UUID {
         let uuid = UUID()
-        dispatchQueue.async {
+        asyncTaskQueue.async {
             if self._timeoutHandlers.count == 0 {
                 self._start()
             }
@@ -63,7 +63,7 @@ final class BackgroundTaskManager: BackgroundTaskManaging {
     }
 
     func stop(_ taskID: UUID) -> Bool {
-        return dispatchQueue.sync {
+        return asyncTaskQueue.sync {
             let hasValue = self._timeoutHandlers[taskID] != nil
             self._timeoutHandlers[taskID] = nil
             return hasValue
@@ -78,7 +78,7 @@ final class BackgroundTaskManager: BackgroundTaskManaging {
 
         let timer = Timer(timeInterval: timeout, repeats: false) { timer in
             timer.invalidate()
-            self.dispatchQueue.async {
+            self.asyncTaskQueue.async {
                 if self._timeoutHandlers.count > 0 {
                     Logger.log(.debug, "\(BackgroundTaskManager.self): Been running for \(self.timeout)s, restarting: \(self._taskID)")
                     self._stop()
@@ -93,7 +93,7 @@ final class BackgroundTaskManager: BackgroundTaskManaging {
 
         _taskID = coreManager.beginBackgroundTask {
             timer.invalidate()
-            self.dispatchQueue.async {
+            self.asyncTaskQueue.async {
                 Logger.log(.warning, "\(BackgroundTaskManager.self): Background task timed out: \(self._taskID)")
                 for handler in self._timeoutHandlers.values {
                     handler()

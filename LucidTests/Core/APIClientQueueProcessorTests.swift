@@ -27,11 +27,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
     private var responseHandlerSpy: APIClientQueueProcessorResponseHandlerSpy!
 
-    private var processingQueue: DispatchQueue!
-
-    private var asyncOperationInternalQueue: DispatchQueue!
-
-    private var asyncOperationQueue: AsyncOperationQueue!
+    private var asyncOperationQueue: AsyncTaskQueue!
 
     // MARK: - Subject
 
@@ -48,16 +44,13 @@ final class APIClientQueueProcessorTests: XCTestCase {
         schedulerSpy = APIClientQueueSchedulerSpy()
         diskCacheSpy = DiskCacheSpy()
         responseHandlerSpy = APIClientQueueProcessorResponseHandlerSpy()
-        processingQueue = DispatchQueue(label: "test_processing_queue")
-        asyncOperationInternalQueue = DispatchQueue(label: "test_internal_operation_queue")
-        asyncOperationQueue = AsyncOperationQueue(dispatchQueue: asyncOperationInternalQueue)
+        asyncOperationQueue = AsyncTaskQueue()
 
         processor = APIClientQueueProcessor(client: clientSpy,
                                             backgroundTaskManager: backgroundTaskManagerSpy,
                                             scheduler: schedulerSpy,
                                             diskCache: diskCacheSpy.caching,
                                             responseHandlers: [responseHandlerSpy.handler],
-                                            processingQueue: processingQueue,
                                             operationQueue: asyncOperationQueue)
     }
 
@@ -71,24 +64,22 @@ final class APIClientQueueProcessorTests: XCTestCase {
         diskCacheSpy = nil
         responseHandlerSpy = nil
         processor = nil
-        processingQueue = nil
     }
 
     private var nsError: NSError {
         return NSError(domain: "test", code: 1, userInfo: nil)
     }
 
-    private func waitForAsyncQueues(_ completion: @escaping () -> Void) {
-        asyncOperationInternalQueue.async {
-            self.processingQueue.async {
-                completion()
-            }
+    private func waitForAsyncQueues(_ completion: @escaping () async -> Void) async {
+        try? await asyncOperationQueue.enqueueBarrier { operationCompletion in
+            await completion()
+            operationCompletion()
         }
     }
 
     // MARK: - Tests
 
-    func test_processor_with_existing_cached_operation_prepends_to_client_queue() {
+    func test_processor_with_existing_cached_operation_prepends_to_client_queue() async {
         let request = APIRequest<Data>(method: .post, path: .path("fake_path"))
         let mockQueueRequest = APIClientQueueRequest(wrapping: request)
         diskCacheSpy.values = ["APIClientQueueProcessorCacheKey": mockQueueRequest]
@@ -96,6 +87,8 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertTrue(processDelegateSpy.prependInvocations.isEmpty)
 
         processor.delegate = processDelegateSpy
+
+        try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
 
         XCTAssertEqual(processDelegateSpy.prependInvocations.count, 1)
         XCTAssertEqual(processDelegateSpy.prependInvocations.first, mockQueueRequest)
@@ -117,13 +110,13 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertTrue(schedulerSpy.delegate === processor)
     }
 
-    func test_processor_informs_scheduler_of_new_request() {
+    func test_processor_informs_scheduler_of_new_request() async {
         XCTAssertEqual(schedulerSpy.didEnqueueNewRequestCallCount, 0)
         XCTAssertEqual(schedulerSpy.flushCallCount, 0)
         XCTAssertEqual(schedulerSpy.requestDidSucceedCallCount, 0)
         XCTAssertEqual(schedulerSpy.requestDidFailCallCount, 0)
 
-        processor.didEnqueueNewRequest()
+        await processor.didEnqueueNewRequest()
 
         XCTAssertEqual(schedulerSpy.didEnqueueNewRequestCallCount, 1)
         XCTAssertEqual(schedulerSpy.flushCallCount, 0)
@@ -131,13 +124,13 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(schedulerSpy.requestDidFailCallCount, 0)
     }
 
-    func test_processor_informs_scheduler_of_flush() {
+    func test_processor_informs_scheduler_of_flush() async {
         XCTAssertEqual(schedulerSpy.didEnqueueNewRequestCallCount, 0)
         XCTAssertEqual(schedulerSpy.flushCallCount, 0)
         XCTAssertEqual(schedulerSpy.requestDidSucceedCallCount, 0)
         XCTAssertEqual(schedulerSpy.requestDidFailCallCount, 0)
 
-        processor.flush()
+        await processor.flush()
 
         XCTAssertEqual(schedulerSpy.didEnqueueNewRequestCallCount, 0)
         XCTAssertEqual(schedulerSpy.flushCallCount, 1)
@@ -145,20 +138,20 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(schedulerSpy.requestDidFailCallCount, 0)
     }
 
-    func test_processor_asks_delegate_for_next_request() {
+    func test_processor_asks_delegate_for_next_request() async {
         processor.delegate = processDelegateSpy
         XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 0)
-        processor.processNext()
+        await processor.processNext()
         XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 1)
     }
 
-    func test_processor_tells_scheduler_false_if_no_requests_are_pending() {
+    func test_processor_tells_scheduler_false_if_no_requests_are_pending() async {
         processor.delegate = processDelegateSpy
-        let didProcessNext = processor.processNext().didProcess
+        let didProcessNext = await processor.processNext().didProcess
         XCTAssertFalse(didProcessNext)
     }
 
-    func test_processor_tells_scheduler_true_if_there_is_a_pending_request() {
+    func test_processor_tells_scheduler_true_if_there_is_a_pending_request() async {
         let request = APIRequest<Data>(method: .post, path: .path("fake_path"))
         processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
         processor.delegate = processDelegateSpy
@@ -167,27 +160,23 @@ final class APIClientQueueProcessorTests: XCTestCase {
             APIClientResponse(data: Data(), cachedResponse: false)
         )
 
-        let didProcessNext = processor.processNext().didProcess
+        let didProcessNext = await processor.processNext().didProcess
         XCTAssertTrue(didProcessNext)
     }
 
-    func test_processor_does_nothing_if_no_requests_are_pending() {
+    func test_processor_does_nothing_if_no_requests_are_pending() async {
         processor.delegate = processDelegateSpy
 
         XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_calls_background_task_manager_function_begin_background_task_if_there_is_a_pending_post_request() {
+    func test_processor_calls_background_task_manager_function_begin_background_task_if_there_is_a_pending_post_request() async {
         let request = APIRequest<Data>(method: .post, path: .path("fake_path"))
         processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
         processor.delegate = processDelegateSpy
@@ -199,19 +188,15 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
         XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 0)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 1)
             XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 1)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_does_not_call_background_task_manager_function_begin_background_task_if_there_is_a_pending_get_request() {
+    func test_processor_does_not_call_background_task_manager_function_begin_background_task_if_there_is_a_pending_get_request() async {
         let request = APIRequest<Data>(method: .get, path: .path("fake_path"))
         processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
         processor.delegate = processDelegateSpy
@@ -223,19 +208,15 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
         XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 0)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
             XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 1)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_does_not_attempt_to_process_request_if_already_running_barrier_request() {
+    func test_processor_does_not_attempt_to_process_request_if_already_running_barrier_request() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
         let request = APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy)
         processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
@@ -249,16 +230,20 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(backgroundTaskManagerSpy.startInvocations.count, 0)
         XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 0)
 
-        processor.processNext()
-        processor.processNext()
-
-        processingQueue.sync { }
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask {
+                await self.processor.processNext()
+            }
+            group.addTask {
+                await self.processor.processNext()
+            }
+        }
 
         XCTAssertEqual(backgroundTaskManagerSpy.startInvocations.count, 1)
         XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 1)
     }
 
-    func test_processor_does_attempt_to_process_request_if_already_running_concurrent_request() {
+    func test_processor_does_attempt_to_process_request_if_already_running_concurrent_request() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .concurrent, retryPolicy: [])
         let request = APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy)
         processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
@@ -272,16 +257,20 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(backgroundTaskManagerSpy.startInvocations.count, 0)
         XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 0)
 
-        processor.processNext()
-        processor.processNext()
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask {
+                await self.processor.processNext()
+            }
+            group.addTask {
+                await self.processor.processNext()
+            }
+        }
 
-        processingQueue.sync { }
-
-        XCTAssertEqual(backgroundTaskManagerSpy.startInvocations.count, 1)
+        XCTAssertEqual(backgroundTaskManagerSpy.startInvocations.count, 2)
         XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 2)
     }
 
-    func test_processor_attempts_to_process_after_finished_running() {
+    func test_processor_attempts_to_process_after_finished_running() async {
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path1")))
         let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path2")))
         processor.delegate = processDelegateSpy
@@ -295,29 +284,25 @@ final class APIClientQueueProcessorTests: XCTestCase {
             )
         ]
 
-        let expectation = self.expectation(description: "processor")
-
         XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
         XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 0)
 
         processDelegateSpy.requestStub = request1
-        processor.processNext()
+        await processor.processNext()
 
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             self.processDelegateSpy.requestStub = request2
-            self.processor.processNext()
-
-            self.waitForAsyncQueues {
-                XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 2)
-                XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 2)
-                expectation.fulfill()
-            }
         }
 
-        wait(for: [expectation], timeout: 1)
+        await self.processor.processNext()
+
+        await waitForAsyncQueues {
+            XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 2)
+            XCTAssertEqual(self.processDelegateSpy.nextRequestInvocations, 2)
+        }
     }
 
-    func test_processor_calls_client_function_send_if_there_is_a_pending_request() {
+    func test_processor_calls_client_function_send_if_there_is_a_pending_request() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
@@ -328,18 +313,12 @@ final class APIClientQueueProcessorTests: XCTestCase {
             )
         ]
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
-            XCTAssertEqual(self.clientSpy.requestRecords.first as? APIRequest<Data>, request.wrapped)
-            expectation.fulfill()
-        }
-
-        wait(for: [expectation], timeout: 1)
+        XCTAssertEqual(self.clientSpy.requestRecords.first as? APIRequest<Data>, request.wrapped)
     }
 
-    func test_processor_tells_scheduler_request_succeeded_and_asks_for_next_request_for_result_success() {
+    func test_processor_tells_scheduler_request_succeeded_and_asks_for_next_request_for_result_success() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
@@ -353,10 +332,10 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
         XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
 
-        processor.processNext()
+        await processor.processNext()
 
         let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 1)
             XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
             expectation.fulfill()
@@ -365,7 +344,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
         wait(for: [expectation], timeout: 1)
     }
 
-    private func _testFailureStateWithAPIError(_ apiError: APIError) {
+    private func _testFailureStateWithAPIError(_ apiError: APIError) async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
@@ -378,48 +357,44 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
             XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
             XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_networkingProtocolIsNotHTTP() {
-        _testFailureStateWithAPIError(.networkingProtocolIsNotHTTP)
+    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_networkingProtocolIsNotHTTP() async {
+        await _testFailureStateWithAPIError(.networkingProtocolIsNotHTTP)
     }
 
-    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_network() {
-        _testFailureStateWithAPIError(.network(.other(nsError)))
+    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_network() async {
+        await _testFailureStateWithAPIError(.network(.other(nsError)))
     }
 
-    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_url() {
-        _testFailureStateWithAPIError(.url)
+    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_url() async {
+        await _testFailureStateWithAPIError(.url)
     }
 
-    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_deserialization() {
-        _testFailureStateWithAPIError(.deserialization(nsError))
+    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_deserialization() async {
+        await _testFailureStateWithAPIError(.deserialization(nsError))
     }
 
-    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_emptyBodyResponse() {
-        _testFailureStateWithAPIError(.other("fake error"))
+    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_emptyBodyResponse() async {
+        await _testFailureStateWithAPIError(.other("fake error"))
     }
 
-    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_api() {
-        _testFailureStateWithAPIError(.api(
+    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_api() async {
+        await _testFailureStateWithAPIError(.api(
             httpStatusCode: 1,
             errorPayload: APIErrorPayload(apiStatusCode: 5, message: "error"),
             response: APIClientResponse(data: Data(), cachedResponse: false)
         ))
     }
 
-    func test_processor_tells_scheduler_request_failed_and_prepends_request_for_failure_with_error_no_internet_connection() {
+    func test_processor_tells_scheduler_request_failed_and_prepends_request_for_failure_with_error_no_internet_connection() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
@@ -432,20 +407,16 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
             XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
             XCTAssertEqual(self.processDelegateSpy.prependInvocations.first, request)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_tells_scheduler_request_failed_and_prepends_request_for_failure_with_error_internet_connection_lost() {
+    func test_processor_tells_scheduler_request_failed_and_prepends_request_for_failure_with_error_internet_connection_lost() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
@@ -458,20 +429,16 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
             XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
             XCTAssertEqual(self.processDelegateSpy.prependInvocations.first, request)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_tells_scheduler_request_failed_and_prepends_request_for_failure_with_error_internet_connection_timed_out() {
+    func test_processor_tells_scheduler_request_failed_and_prepends_request_for_failure_with_error_internet_connection_timed_out() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
@@ -484,20 +451,16 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
             XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
             XCTAssertEqual(self.processDelegateSpy.prependInvocations.first, request)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_no_internet_connection_where_retry_is_set_to_false() {
+    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_no_internet_connection_where_retry_is_set_to_false() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
@@ -511,20 +474,16 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
             XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
             XCTAssertNil(self.processDelegateSpy.prependInvocations.first)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_network_connection_lost_where_retry_is_set_to_false() {
+    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_network_connection_lost_where_retry_is_set_to_false() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
@@ -538,20 +497,16 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
             XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
             XCTAssertNil(self.processDelegateSpy.prependInvocations.first)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_request_timed_out_where_retry_is_set_to_false() {
+    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_failure_with_error_request_timed_out_where_retry_is_set_to_false() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
@@ -565,20 +520,16 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
             XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
             XCTAssertNil(self.processDelegateSpy.prependInvocations.first)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_tells_scheduler_request_failed_and_prepends_request_for_background_session_expired() {
+    func test_processor_tells_scheduler_request_failed_and_prepends_request_for_background_session_expired() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
@@ -593,26 +544,23 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
 
         clientSpy.requestWillComplete = false
-        processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await processor.processNext()
+
+        await waitForAsyncQueues {
             // expire background session
             self.backgroundTaskManagerSpy.startInvocations.forEach { $0() }
-
-            self.waitForAsyncQueues {
-                XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 1)
-                XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
-                XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
-                XCTAssertEqual(self.processDelegateSpy.prependInvocations.first, request)
-                expectation.fulfill()
-            }
         }
 
-        wait(for: [expectation], timeout: 1)
+        await waitForAsyncQueues {
+            XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 1)
+            XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
+            XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 2)
+            XCTAssertEqual(self.processDelegateSpy.prependInvocations.first, request)
+        }
     }
 
-    func test_processor_does_not_tell_scheduler_request_failed_or_prepend_request_for_background_session_expired_if_request_is_already_processed() {
+    func test_processor_does_not_tell_scheduler_request_failed_or_prepend_request_for_background_session_expired_if_request_is_already_processed() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
@@ -630,23 +578,18 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
 
         clientSpy.requestWillComplete = true
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.backgroundTaskManagerSpy.stopInvocations.count, 1)
             XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 1)
             XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 1)
             XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
             XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
-
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_retry_when_returned_error_code_is_not_included_in_custom_list() {
+    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_retry_when_returned_error_code_is_not_included_in_custom_list() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [
             .onCustomErrorCodes([1008])
         ])
@@ -663,20 +606,16 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
             XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
             XCTAssertNil(self.processDelegateSpy.prependInvocations.first)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_tells_scheduler_request_failed_and_prepends_request_for_retry_when_returned_error_code_is_included_in_custom_list() {
+    func test_processor_tells_scheduler_request_failed_and_prepends_request_for_retry_when_returned_error_code_is_included_in_custom_list() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [
             .onCustomErrorCodes([1008])
         ])
@@ -693,21 +632,17 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 1)
             XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
             XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
             XCTAssertEqual(self.processDelegateSpy.prependInvocations.first, request)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_retry_when_returned_error_code_is_included_in_exception_list() {
+    func test_processor_tells_scheduler_request_failed_and_does_not_prepend_request_for_retry_when_returned_error_code_is_included_in_exception_list() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [
             .onAllErrorCodesExcept([1008])
         ])
@@ -724,20 +659,16 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
             XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
             XCTAssertNil(self.processDelegateSpy.prependInvocations.first)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_tells_scheduler_request_failed_and_prepends_request_for_retry_when_returned_error_code_is_not_included_in_exception_list() {
+    func test_processor_tells_scheduler_request_failed_and_prepends_request_for_retry_when_returned_error_code_is_not_included_in_exception_list() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [
             .onAllErrorCodesExcept([1008])
         ])
@@ -754,21 +685,17 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 0)
         XCTAssertTrue(self.processDelegateSpy.prependInvocations.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 1)
             XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
             XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 1)
             XCTAssertEqual(self.processDelegateSpy.prependInvocations.first, request)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_should_call_response_handlers_after_process_is_complete_with_success() {
+    func test_processor_should_call_response_handlers_after_process_is_complete_with_success() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
@@ -781,19 +708,15 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         XCTAssertTrue(self.responseHandlerSpy.resultRecords.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.responseHandlerSpy.resultRecords.first?.value?.data, Data())
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.first, request)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_should_call_response_handlers_after_process_is_complete_with_failure() {
+    func test_processor_should_call_response_handlers_after_process_is_complete_with_failure() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
         processor.delegate = processDelegateSpy
@@ -804,21 +727,17 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         XCTAssertTrue(self.responseHandlerSpy.resultRecords.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.responseHandlerSpy.resultRecords.first?.error, .url)
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.first, request)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
     // MARK: .networkConnectionFailure
 
-    func test_processor_should_not_call_response_handlers_after_process_is_complete_with_internet_connection_failure_for_request_with_retry_set_to_true() {
+    func test_processor_should_not_call_response_handlers_after_process_is_complete_with_internet_connection_failure_for_request_with_retry_set_to_true() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onNetworkInterrupt])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
@@ -830,18 +749,14 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         XCTAssertTrue(self.responseHandlerSpy.resultRecords.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertNil(self.responseHandlerSpy.requestRecords.first)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_calls_response_handlers_after_process_is_complete_with_internet_connection_failure_for_request_with_retry_set_to_false() {
+    func test_processor_calls_response_handlers_after_process_is_complete_with_internet_connection_failure_for_request_with_retry_set_to_false() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
@@ -853,19 +768,15 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         XCTAssertTrue(self.responseHandlerSpy.resultRecords.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.count, 1)
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.first, request)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_calls_response_handlers_after_process_is_complete_with_request_timed_out_for_request_with_retry_set_to_false() {
+    func test_processor_calls_response_handlers_after_process_is_complete_with_request_timed_out_for_request_with_retry_set_to_false() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
@@ -877,19 +788,15 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         XCTAssertTrue(self.responseHandlerSpy.resultRecords.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.count, 1)
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.first, request)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_does_not_call_response_handlers_after_process_is_complete_with_request_timed_out_for_request_with_retry_timeout_set_to_true() {
+    func test_processor_does_not_call_response_handlers_after_process_is_complete_with_request_timed_out_for_request_with_retry_timeout_set_to_true() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onRequestTimeout])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
@@ -901,18 +808,14 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         XCTAssertTrue(self.responseHandlerSpy.resultRecords.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertNil(self.responseHandlerSpy.requestRecords.first)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_calls_response_handlers_after_process_is_complete_with_internet_connection_failure_for_request_with_retry_timeout_set_to_true() {
+    func test_processor_calls_response_handlers_after_process_is_complete_with_internet_connection_failure_for_request_with_retry_timeout_set_to_true() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onRequestTimeout])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
@@ -924,21 +827,17 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         XCTAssertTrue(self.responseHandlerSpy.resultRecords.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.count, 1)
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.first, request)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
     // MARK: - Removing items from queue on network error
 
-    func test_processor_calls_all_response_handlers_for_requests_in_queue_after_internet_connection_failure_for_requests_with_retry_set_to_false() {
+    func test_processor_calls_all_response_handlers_for_requests_in_queue_after_internet_connection_failure_for_requests_with_retry_set_to_false() async {
         let queueingStrategy1 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onNetworkInterrupt])
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_1"), queueingStrategy: queueingStrategy1))
 
@@ -963,10 +862,9 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         XCTAssertTrue(self.responseHandlerSpy.resultRecords.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.processDelegateSpy.removeRequestsInvocations.count, 1)
             if let matchingFilter = self.processDelegateSpy.removeRequestsInvocations.first {
                 let calculatedResults = requestQueue.filter(matchingFilter)
@@ -978,13 +876,10 @@ final class APIClientQueueProcessorTests: XCTestCase {
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.count, 2)
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.first, request2)
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.last, request4)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_calls_all_response_handlers_for_requests_in_queue_for_barrier_request_complete_with_timeout_failure_for_requests_with_retry_set_to_false() {
+    func test_processor_calls_all_response_handlers_for_requests_in_queue_for_barrier_request_complete_with_timeout_failure_for_requests_with_retry_set_to_false() async {
         let queueingStrategy1 = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onRequestTimeout])
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_1"), queueingStrategy: queueingStrategy1))
 
@@ -1009,10 +904,9 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         XCTAssertTrue(self.responseHandlerSpy.resultRecords.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.processDelegateSpy.removeRequestsInvocations.count, 1)
             if let matchingFilter = self.processDelegateSpy.removeRequestsInvocations.first {
                 let calculatedResults = requestQueue.filter(matchingFilter)
@@ -1024,13 +918,10 @@ final class APIClientQueueProcessorTests: XCTestCase {
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.count, 2)
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.first, request2)
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.last, request3)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
 
-    func test_processor_does_not_call_all_response_handlers_for_requests_in_queue_for_concurrent_request_complete_with_timeout_failure_for_requests_with_retry_set_to_false() {
+    func test_processor_does_not_call_all_response_handlers_for_requests_in_queue_for_concurrent_request_complete_with_timeout_failure_for_requests_with_retry_set_to_false() async {
         let queueingStrategy1 = APIRequestConfig.QueueingStrategy(synchronization: .concurrent, retryPolicy: [.onRequestTimeout])
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path_1"), queueingStrategy: queueingStrategy1))
 
@@ -1053,16 +944,11 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         XCTAssertTrue(self.responseHandlerSpy.resultRecords.isEmpty)
 
-        processor.processNext()
+        await processor.processNext()
 
-        let expectation = self.expectation(description: "processor")
-        waitForAsyncQueues {
+        await waitForAsyncQueues {
             XCTAssertEqual(self.processDelegateSpy.removeRequestsInvocations.count, 0)
             XCTAssertEqual(self.responseHandlerSpy.requestRecords.count, 0)
-            expectation.fulfill()
         }
-
-        wait(for: [expectation], timeout: 1)
     }
-
 }

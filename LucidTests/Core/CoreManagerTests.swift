@@ -4498,7 +4498,7 @@ final class CoreManagerTests: XCTestCase {
 
         await asyncTasks.cancel()
 
-        wait(for: [onceExpectation], timeout: 1)
+        await fulfillment(of: [onceExpectation], timeout: 1)
     }
 
     func test_set_should_release_once_provider_as_soon_as_the_observer_is_disposed_async() async {
@@ -4521,7 +4521,7 @@ final class CoreManagerTests: XCTestCase {
 
         await asyncTasks.cancel()
 
-        wait(for: [onceExpectation], timeout: 1)
+        await fulfillment(of: [onceExpectation], timeout: 1)
     }
 
     // MARK: - Observer Ordering
@@ -6835,7 +6835,7 @@ final class CoreManagerTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
 
-        wait(for: [continuousExpectation], timeout: 1.0)
+        await fulfillment(of: [continuousExpectation], timeout: 1)
     }
 
     func test_user_access_validation_set_returns_remote_response_for_remote_access_level_async() async {

@@ -342,7 +342,7 @@ class StoreTests: XCTestCase {
             }
         }
 
-        await waitForExpectations(timeout: 1)
+        await fulfillment(of: [expectation], timeout: 1)
     }
 
     func test_store_should_delete_an_entity() {

@@ -176,7 +176,7 @@ final class RelationshipControllerTests: XCTestCase {
         streamContinuation?.yield(result)
         streamContinuation?.yield(result)
 
-        await waitForExpectations(timeout: 0.5)
+        await fulfillment(of: [expectation], timeout: 0.5)
     }
 
     func test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_once_signal() {
@@ -296,7 +296,7 @@ final class RelationshipControllerTests: XCTestCase {
         streamContinuation?.yield(result)
         streamContinuation?.yield(result)
 
-        await waitForExpectations(timeout: 0.5)
+        await fulfillment(of: [expectation], timeout: 0.5)
     }
 
     func test_relationship_controller_should_insert_one_relationship_entity_in_graph() {
@@ -645,7 +645,7 @@ final class RelationshipControllerTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
 
-        await waitForExpectations(timeout: 2)
+        await fulfillment(of: [expectation], timeout: 2)
     }
 
     func test_relationship_controller_should_use_filter_before_inserting_in_graph() {
@@ -750,7 +750,7 @@ final class RelationshipControllerTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
 
-        await waitForExpectations(timeout: 1.0)
+        await fulfillment(of: [expectation], timeout: 1)
     }
 
     func test_relationship_controller_should_ignore_relationship_with_fetcher() {
@@ -848,7 +848,7 @@ final class RelationshipControllerTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
 
-        await waitForExpectations(timeout: 1.0)
+        await fulfillment(of: [expectation], timeout: 1)
     }
 
     func test_relationship_controller_should_exclude_relationship_type() {

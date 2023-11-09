@@ -1730,7 +1730,7 @@ final class RemoteStoreTests: XCTestCase {
             XCTAssertEqual(queryResult.isEmpty, false)
 
             let query = Query<EntitySpy>(filter: .title == .string("fake_title"))
-            let secondResult = await self.store.search(withQuery: query, in: self.requestContext)
+            _ = await self.store.search(withQuery: query, in: self.requestContext)
             switch result {
             case .success(let entities):
                 XCTAssertEqual(entities.isEmpty, false)
@@ -1797,8 +1797,6 @@ final class RemoteStoreTests: XCTestCase {
     func test_two_searches_in_two_different_contexts_should_send_two_requests_to_the_client_using_request_endpoint_async() async {
 
         clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
-
-        let dispatchGroup = DispatchGroup()
 
         let requestContext1 = ReadContext<EntitySpy>(dataSource: .remoteOrLocal(
             endpoint: .request(requestConfig,

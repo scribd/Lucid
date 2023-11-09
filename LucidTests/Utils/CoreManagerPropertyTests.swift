@@ -176,6 +176,6 @@ final class CoreManagerPropertyTests: XCTestCase {
             await property.update(with: 20)
         }
 
-        wait(for: [delegateExpectation], timeout: 1)
+        await fulfillment(of: [delegateExpectation], timeout: 1)
     }
 }

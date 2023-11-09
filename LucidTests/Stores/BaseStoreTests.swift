@@ -32,7 +32,7 @@ class StoreTests: XCTestCase {
         context = ReadContext<EntitySpy>()
 
         let expectation = self.expectation(description: "set_up")
-        asyncSetup {
+        asyncSetUp {
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: 5)
@@ -53,7 +53,7 @@ class StoreTests: XCTestCase {
         EntitySpy.resetRecords()
     }
 
-    open func asyncSetup(_ completion: @escaping () -> Void) {
+    open func asyncSetUp(_ completion: @escaping () -> Void) {
         completion()
     }
 

@@ -18,7 +18,7 @@ final class AsyncTaskQueueTests: XCTestCase {
         let asyncTaskQueue = AsyncTaskQueue(maxConcurrentTasks: 1)
         let operation = BlockingOperation()
 
-        Task {
+        Task(priority: .first) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation.setUp()
@@ -52,7 +52,7 @@ final class AsyncTaskQueueTests: XCTestCase {
         let asyncTaskQueue = AsyncTaskQueue(maxConcurrentTasks: 1)
         let operation = BlockingOperation()
 
-        Task {
+        Task(priority: .first) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation.setUp()
@@ -98,7 +98,7 @@ final class AsyncTaskQueueTests: XCTestCase {
         let operation1 = BlockingOperation()
         let operation2 = BlockingOperation()
 
-        Task {
+        Task(priority: .first) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation1.setUp()
@@ -109,7 +109,7 @@ final class AsyncTaskQueueTests: XCTestCase {
             }
         }
 
-        Task {
+        Task(priority: .second) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation2.setUp()
@@ -149,7 +149,7 @@ final class AsyncTaskQueueTests: XCTestCase {
         let operation1 = BlockingOperation()
         let operation2 = BlockingOperation()
 
-        Task {
+        Task(priority: .first) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation1.setUp()
@@ -160,7 +160,7 @@ final class AsyncTaskQueueTests: XCTestCase {
             }
         }
 
-        Task {
+        Task(priority: .second) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation2.setUp()
@@ -202,7 +202,7 @@ final class AsyncTaskQueueTests: XCTestCase {
         let operation2 = BlockingOperation()
         let operation3 = BlockingOperation()
 
-        Task {
+        Task(priority: .first) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation1.setUp()
@@ -213,7 +213,7 @@ final class AsyncTaskQueueTests: XCTestCase {
             }
         }
 
-        Task {
+        Task(priority: .second) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation2.setUp()
@@ -224,7 +224,7 @@ final class AsyncTaskQueueTests: XCTestCase {
             }
         }
 
-        Task {
+        Task(priority: .third) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation3.setUp()
@@ -278,7 +278,7 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         let operation = BlockingOperation()
 
-        Task {
+        Task(priority: .first) {
             do {
                 try await asyncTaskQueue.enqueueBarrier(operation: { completion in
                     defer { completion() }
@@ -315,7 +315,7 @@ final class AsyncTaskQueueTests: XCTestCase {
         let operation1 = BlockingOperation()
         let operation2 = BlockingOperation()
 
-        Task {
+        Task(priority: .first) {
             do {
                 try await asyncTaskQueue.enqueueBarrier(operation: { completion in
                     defer { completion() }
@@ -328,7 +328,7 @@ final class AsyncTaskQueueTests: XCTestCase {
             }
         }
 
-        Task {
+        Task(priority: .second) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation2.setUp()
@@ -377,7 +377,7 @@ final class AsyncTaskQueueTests: XCTestCase {
         let operation2 = BlockingOperation()
         let operation3 = BlockingOperation()
 
-        Task {
+        Task(priority: .first) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation1.setUp()
@@ -388,7 +388,7 @@ final class AsyncTaskQueueTests: XCTestCase {
             }
         }
 
-        Task {
+        Task(priority: .second) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation2.setUp()
@@ -399,7 +399,7 @@ final class AsyncTaskQueueTests: XCTestCase {
             }
         }
 
-        Task {
+        Task(priority: .third) {
             do {
                 try await asyncTaskQueue.enqueueBarrier(operation: { completion in
                     defer { completion() }
@@ -464,7 +464,7 @@ final class AsyncTaskQueueTests: XCTestCase {
         let operation3 = BlockingOperation()
         let operation4 = BlockingOperation()
 
-        Task {
+        Task(priority: .first) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation1.setUp()
@@ -475,7 +475,7 @@ final class AsyncTaskQueueTests: XCTestCase {
             }
         }
 
-        Task {
+        Task(priority: .second) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation2.setUp()
@@ -486,7 +486,7 @@ final class AsyncTaskQueueTests: XCTestCase {
             }
         }
 
-        Task {
+        Task(priority: .third) {
             do {
                 try await asyncTaskQueue.enqueueBarrier(operation: { completion in
                     defer { completion() }
@@ -499,7 +499,7 @@ final class AsyncTaskQueueTests: XCTestCase {
             }
         }
 
-        Task {
+        Task(priority: .fourth) {
             do {
                 try await asyncTaskQueue.enqueue(operation: {
                     await operation4.setUp()
@@ -568,7 +568,7 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         let asyncTaskQueue = AsyncTaskQueue(maxConcurrentTasks: 1)
 
-        Task {
+        Task(priority: .first) {
             try? await asyncTaskQueue.enqueue(operation: {
                 throw TestError.someError
             })
@@ -576,7 +576,7 @@ final class AsyncTaskQueueTests: XCTestCase {
 
         let performExpectation = expectation(description: "perform_operation")
 
-        Task {
+        Task(priority: .second) {
             do {
                 try await Task.sleep(nanoseconds: NSEC_PER_SEC / 2)
                 try await asyncTaskQueue.enqueue(operation: {
@@ -636,4 +636,14 @@ private final actor BlockingOperation {
 
 private enum TestError: Error {
     case someError
+}
+
+// Ordering isn't clear, and some values are repeated, this is simpler for testing
+// Also, creating custom TaskPriority objects can throw an error
+private extension TaskPriority {
+
+    static var first: TaskPriority { return .high }
+    static var second: TaskPriority { return .medium }
+    static var third: TaskPriority { return .low }
+    static var fourth: TaskPriority { return .background }
 }

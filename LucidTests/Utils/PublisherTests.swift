@@ -254,15 +254,15 @@ final class PublisherTests: XCTestCase {
 
     func test_second_event_should_include_mutated_entities_and_deletions_when_deletions_are_included() {
         let initialEntities = (0...10).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "initial_\($0)") }
-        let newEntities =
-        (0..<5).map { EntitySpy(idValue: .remote($0, nil), title: "new_\($0)", subtitle: "new_\($0)") } +
-        (5...8).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "new_\($0)") }
+        let newEntities = (0..<5).map { EntitySpy(idValue: .remote($0, nil), title: "new_\($0)", subtitle: "new_\($0)") } +
+                          (5...8).map { EntitySpy(idValue: .remote($0, nil), title: "initial_\($0)", subtitle: "new_\($0)") }
 
         let subject = PassthroughSubject<[EntitySpy], Never>()
         let expectation = self.expectation(description: "update")
+        let dispatchQueue = DispatchQueue(label: "test_queue")
 
         subject
-            .when(updatingOneOf: [.title], entityRules: [.deletions])
+            .when(updatingOneOf: [.title], entityRules: [.deletions], on: dispatchQueue)
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .failure:
@@ -285,6 +285,8 @@ final class PublisherTests: XCTestCase {
 
         subject.send(initialEntities)
         subject.send(newEntities)
+
+        dispatchQueue.sync { }
 
         waitForExpectations(timeout: 0.2, handler: nil)
     }

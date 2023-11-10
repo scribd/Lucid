@@ -9,7 +9,7 @@
 import Foundation
 @testable import Lucid
 
-public final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
+public final actor APIClientQueueProcessorSpy: APIClientQueueProcessing {
 
     // MARK: - Records
 
@@ -17,8 +17,6 @@ public final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
 
     public private(set) var flushInvocations = 0
 
-    public private(set) var getDelegateInvocations = 0
-    
     public private(set) var setDelegateInvocations = [APIClientQueueProcessorDelegate?]()
 
     public private(set) var registerInvocations = [APIClientQueueProcessorResponseHandler]()
@@ -39,38 +37,30 @@ public final class APIClientQueueProcessorSpy: APIClientQueueProcessing {
         // no-op
     }
 
-    public var delegate: APIClientQueueProcessorDelegate? {
-        get {
-            getDelegateInvocations += 1
-            return nil
-        }
-        set {
-            setDelegateInvocations.append(newValue)
-        }
+    public func setDelegate(_ delegate: APIClientQueueProcessorDelegate?) async {
+        setDelegateInvocations.append(delegate)
     }
 
-    public func didEnqueueNewRequest() {
+    public func didEnqueueNewRequest() async {
         didEnqueueNewRequestInvocations += 1
     }
 
-    public func flush() {
+    public func flush() async {
         flushInvocations += 1
     }
 
-    public func register(_ handler: @escaping APIClientQueueProcessorResponseHandler) -> APIClientQueueResponseHandlerToken {
+    public func register(_ handler: @escaping APIClientQueueProcessorResponseHandler) async -> APIClientQueueResponseHandlerToken {
         registerInvocations.append(handler)
         return tokenStub
     }
 
-    public func unregister(_ token: APIClientQueueProcessorResponseHandlerToken) {
+    public func unregister(_ token: APIClientQueueProcessorResponseHandlerToken) async {
         unregisterInvocations.append(token)
     }
 
-    public func abortRequest(_ request: APIClientQueueRequest) {
+    public func abortRequest(_ request: APIClientQueueRequest) async {
         abortRequestInvocations.append(request)
     }
-
-    public var jsonCoderConfig = APIJSONCoderConfig()
 
     public func prepareRequest(_ requestConfig: APIRequestConfig) async -> APIRequestConfig {
         prepareRequestInvocations.append(requestConfig)

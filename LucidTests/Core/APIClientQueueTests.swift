@@ -64,14 +64,21 @@ final class APIClientQueueTests: XCTestCase {
 
 extension APIClientQueueTests {
 
-    func test_default_queue_sets_itself_as_delegate_of_processor() {
+    func test_queue_sets_itself_as_delegate_of_processor_on_append() async {
 
         let localQueueProcessor = APIClientQueueProcessorSpy()
         let localQueue = APIClientQueue(cache: .default(DiskQueue(diskCache: defaultQueueCache.caching)),
                                         processor: localQueueProcessor)
 
-        XCTAssertEqual(localQueueProcessor.setDelegateInvocations.count, 1)
-        XCTAssertTrue(localQueueProcessor.setDelegateInvocations[0] === localQueue)
+        let setDelegateInvocationsStart = await localQueueProcessor.setDelegateInvocations
+        XCTAssertEqual(setDelegateInvocationsStart.count, 0)
+
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
+        await localQueue.append(request)
+
+        let setDelegateInvocationsEnd = await localQueueProcessor.setDelegateInvocations
+        XCTAssertEqual(setDelegateInvocationsEnd.count, 1)
+        XCTAssertTrue((setDelegateInvocationsEnd.first as? APIClientQueueProcessorDelegate) === localQueue)
     }
 }
 
@@ -79,7 +86,7 @@ extension APIClientQueueTests {
 
 extension APIClientQueueTests {
 
-    func test_uniquing_queue_sets_itself_as_delegate_of_processor() {
+    func test_uniquing_queue_sets_itself_as_delegate_of_processor_on_append() async {
 
         let localQueueProcessor = APIClientQueueProcessorSpy()
         let uniquingCache = APIClientQueue.Cache.UniquingCache(orderingSetCache: uniquingQueueOrderingCache.caching, valueCache: uniquingQueueValueCache.caching)
@@ -87,8 +94,15 @@ extension APIClientQueueTests {
                                                          uniquingFunction),
                                         processor: localQueueProcessor)
 
-        XCTAssertEqual(localQueueProcessor.setDelegateInvocations.count, 1)
-        XCTAssertTrue(localQueueProcessor.setDelegateInvocations[0] === localQueue)
+        let setDelegateInvocationsStart = await localQueueProcessor.setDelegateInvocations
+        XCTAssertEqual(setDelegateInvocationsStart.count, 0)
+
+        let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
+        await localQueue.append(request)
+
+        let setDelegateInvocationsEnd = await localQueueProcessor.setDelegateInvocations
+        XCTAssertEqual(setDelegateInvocationsEnd.count, 1)
+        XCTAssertTrue((setDelegateInvocationsEnd.first as? APIClientQueueProcessorDelegate) === localQueue)
     }
 }
 // MARK: - append to default queue
@@ -126,13 +140,17 @@ extension APIClientQueueTests {
 
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
 
-        XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 0)
-        XCTAssertEqual(queueProcessor.flushInvocations, 0)
+        let didEnqueueNewRequestInvocationsStart = await queueProcessor.didEnqueueNewRequestInvocations
+        let flushInvocationsStart = await queueProcessor.flushInvocations
+        XCTAssertEqual(didEnqueueNewRequestInvocationsStart, 0)
+        XCTAssertEqual(flushInvocationsStart, 0)
 
         await defaultQueue.append(request)
 
-        XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 1)
-        XCTAssertEqual(queueProcessor.flushInvocations, 0)
+        let didEnqueueNewRequestInvocationsEnd = await queueProcessor.didEnqueueNewRequestInvocations
+        let flushInvocationsEnd = await queueProcessor.flushInvocations
+        XCTAssertEqual(didEnqueueNewRequestInvocationsEnd, 1)
+        XCTAssertEqual(flushInvocationsEnd, 0)
     }
 
     func test_calling_append_to_default_queue_twice_should_trigger_two_calls_to_the_processor() async {
@@ -143,8 +161,10 @@ extension APIClientQueueTests {
         await defaultQueue.append(request0)
         await defaultQueue.append(request1)
 
-        XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 2)
-        XCTAssertEqual(queueProcessor.flushInvocations, 0)
+        let didEnqueueNewRequestInvocations = await queueProcessor.didEnqueueNewRequestInvocations
+        let flushInvocations = await queueProcessor.flushInvocations
+        XCTAssertEqual(didEnqueueNewRequestInvocations, 2)
+        XCTAssertEqual(flushInvocations, 0)
     }
 }
 
@@ -187,8 +207,10 @@ extension APIClientQueueTests {
         await defaultQueue.prepend(request0)
         await defaultQueue.prepend(request1)
 
-        XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 0)
-        XCTAssertEqual(queueProcessor.flushInvocations, 0)
+        let didEnqueueNewRequestInvocations = await queueProcessor.didEnqueueNewRequestInvocations
+        let flushInvocations = await queueProcessor.flushInvocations
+        XCTAssertEqual(didEnqueueNewRequestInvocations, 0)
+        XCTAssertEqual(flushInvocations, 0)
     }
 }
 
@@ -265,20 +287,25 @@ extension APIClientQueueTests {
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations[2].0, "fake_path1_key")
         XCTAssertEqual(uniquingQueueValueCache.asyncSetInvocations[2].1, request2)
 
-        XCTAssertEqual(queueProcessor.abortRequestInvocations, [request0])
+        let abortRequestInvocations = await queueProcessor.abortRequestInvocations
+        XCTAssertEqual(abortRequestInvocations, [request0])
     }
 
     func test_append_to_empty_uniquing_queue_should_trigger_a_call_to_the_processor() async {
 
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .get, path: .path("fake_path")))
 
-        XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 0)
-        XCTAssertEqual(queueProcessor.flushInvocations, 0)
+        let didEnqueueNewRequestInvocationsStart = await queueProcessor.didEnqueueNewRequestInvocations
+        let flushInvocationsStart = await queueProcessor.flushInvocations
+        XCTAssertEqual(didEnqueueNewRequestInvocationsStart, 0)
+        XCTAssertEqual(flushInvocationsStart, 0)
 
         await uniquingQueue.append(request)
 
-        XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 1)
-        XCTAssertEqual(queueProcessor.flushInvocations, 0)
+        let didEnqueueNewRequestInvocationsEnd = await queueProcessor.didEnqueueNewRequestInvocations
+        let flushInvocationsEnd = await queueProcessor.flushInvocations
+        XCTAssertEqual(didEnqueueNewRequestInvocationsEnd, 1)
+        XCTAssertEqual(flushInvocationsEnd, 0)
     }
 
     func test_calling_append_to_uniquing_queue_twice_should_trigger_two_calls_to_the_processor() async {
@@ -289,8 +316,10 @@ extension APIClientQueueTests {
         await uniquingQueue.append(request0)
         await uniquingQueue.append(request1)
 
-        XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 2)
-        XCTAssertEqual(queueProcessor.flushInvocations, 0)
+        let didEnqueueNewRequestInvocations = await queueProcessor.didEnqueueNewRequestInvocations
+        let flushInvocations = await queueProcessor.flushInvocations
+        XCTAssertEqual(didEnqueueNewRequestInvocations, 2)
+        XCTAssertEqual(flushInvocations, 0)
     }
 }
 
@@ -372,8 +401,10 @@ extension APIClientQueueTests {
         await uniquingQueue.prepend(request0)
         await uniquingQueue.prepend(request1)
 
-        XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 0)
-        XCTAssertEqual(queueProcessor.flushInvocations, 0)
+        let didEnqueueNewRequestInvocations = await queueProcessor.didEnqueueNewRequestInvocations
+        let flushInvocations = await queueProcessor.flushInvocations
+        XCTAssertEqual(didEnqueueNewRequestInvocations, 0)
+        XCTAssertEqual(flushInvocations, 0)
     }
 }
 
@@ -393,8 +424,10 @@ extension APIClientQueueTests {
 
         await defaultQueue.flush()
 
-        XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 3)
-        XCTAssertEqual(queueProcessor.flushInvocations, 1)
+        let didEnqueueNewRequestInvocations = await queueProcessor.didEnqueueNewRequestInvocations
+        let flushInvocations = await queueProcessor.flushInvocations
+        XCTAssertEqual(didEnqueueNewRequestInvocations, 3)
+        XCTAssertEqual(flushInvocations, 1)
     }
 }
 
@@ -414,8 +447,10 @@ extension APIClientQueueTests {
 
         await uniquingQueue.flush()
 
-        XCTAssertEqual(queueProcessor.didEnqueueNewRequestInvocations, 3)
-        XCTAssertEqual(queueProcessor.flushInvocations, 1)
+        let didEnqueueNewRequestInvocations = await queueProcessor.didEnqueueNewRequestInvocations
+        let flushInvocations = await queueProcessor.flushInvocations
+        XCTAssertEqual(didEnqueueNewRequestInvocations, 3)
+        XCTAssertEqual(flushInvocations, 1)
     }
 }
 

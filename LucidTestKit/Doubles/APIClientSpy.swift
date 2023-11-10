@@ -25,7 +25,7 @@ public final class APIClientSpy: APIClient {
 
     public var requestWillComplete: Bool = true
 
-    public var completionDelay: TimeInterval?
+    public var completionDelayInMilliseconds: Int?
 
     public var willHandleResponse: Result<Void, APIError> = .success(())
 
@@ -67,8 +67,8 @@ public final class APIClientSpy: APIClient {
             return
         }
         if requestWillComplete {
-            if let completionDelay = completionDelay {
-                DispatchQueue.main.asyncAfter(deadline: .now() + completionDelay) {
+            if let completionDelayInMilliseconds {
+                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(completionDelayInMilliseconds)) {
                     completion(resultStub)
                 }
             } else {
@@ -84,13 +84,14 @@ public final class APIClientSpy: APIClient {
             return .failure(.api(httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)))
         }
         if requestWillComplete {
-            if let completionDelay = completionDelay {
-                try? await Task.sleep(nanoseconds: NSEC_PER_SEC * UInt64(completionDelay))
+            if let completionDelayInMilliseconds {
+                try? await Task.sleep(nanoseconds: NSEC_PER_MSEC * UInt64(completionDelayInMilliseconds))
                 return resultStub
             } else {
                 return resultStub
             }
         } else {
+            try? await Task.sleep(nanoseconds: NSEC_PER_SEC * 100000) // this should never complete
             return .failure(APIError.network(.cancelled))
         }
     }
@@ -103,8 +104,8 @@ public final class APIClientSpy: APIClient {
             return
         }
         if requestWillComplete {
-            if let completionDelay = completionDelay {
-                DispatchQueue.main.asyncAfter(deadline: .now() + completionDelay) {
+            if let completionDelayInMilliseconds = completionDelayInMilliseconds {
+                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(completionDelayInMilliseconds)) {
                     completion(resultStub)
                 }
             } else {
@@ -120,8 +121,8 @@ public final class APIClientSpy: APIClient {
             return .failure(.api(httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)))
         }
         if requestWillComplete {
-            if let completionDelay = completionDelay {
-                try? await Task.sleep(nanoseconds: NSEC_PER_SEC * UInt64(completionDelay))
+            if let completionDelayInMilliseconds {
+                try? await Task.sleep(nanoseconds: NSEC_PER_MSEC * UInt64(completionDelayInMilliseconds))
                 return resultStub
             } else {
                 return resultStub

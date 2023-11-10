@@ -242,7 +242,6 @@ public final class APIClientQueue: NSObject {
         self.cache = cache
         self.processor = processor
         super.init()
-        self.processor.delegate = self
     }
 
     /// Create a new client queue the first time the identifier is used, then, returns the existing one.
@@ -305,6 +304,7 @@ public final class APIClientQueue: NSObject {
 extension APIClientQueue: APIClientQueuing {
 
     public func append(_ request: APIClientQueueRequest) async {
+        await processor.setDelegate(self)
         let config = await processor.prepareRequest(request.wrapped.config)
         var request = request
         request.wrapped.config = config
@@ -466,7 +466,7 @@ extension APIClientQueue: APIClientQueueProcessorDelegate {
 /// - Warning:
 ///     - Make sure `APIClient`'s implementation handles `APIError.networkConnectionFailure`
 ///       correctly since it's used by the queueing retry strategy.
-protocol APIClientQueueProcessing: AnyObject {
+protocol APIClientQueueProcessing: AnyActor {
 
     func didEnqueueNewRequest() async
 
@@ -480,7 +480,7 @@ protocol APIClientQueueProcessing: AnyObject {
 
     func prepareRequest(_ requestConfig: APIRequestConfig) async -> APIRequestConfig
 
-    var delegate: APIClientQueueProcessorDelegate? { get set }
+    func setDelegate(_ delegate: APIClientQueueProcessorDelegate?) async
 }
 
 public typealias APIClientQueueProcessorResponseHandlerToken = UUID
@@ -494,7 +494,28 @@ protocol APIClientQueueProcessorDelegate: AnyObject, APIClientPriorityQueuing {
     func nextRequest() async -> APIClientQueueRequest?
 }
 
-final class APIClientQueueProcessor {
+private final actor APIClientQueueProcessorDiskCache {
+
+    private let diskCache: DiskCaching<APIClientQueueRequest>
+
+    init(diskCache: DiskCaching<APIClientQueueRequest>) {
+        self.diskCache = diskCache
+    }
+
+    func keys() -> [String] {
+        return diskCache.keys()
+    }
+
+    func value(for identifier: String) -> APIClientQueueRequest? {
+        return diskCache[identifier]
+    }
+
+    func setValue(_ value: APIClientQueueRequest?, for identifier: String) {
+        diskCache[identifier] = value
+    }
+}
+
+final actor APIClientQueueProcessor {
 
     actor ResponseHandlers {
 
@@ -519,36 +540,29 @@ final class APIClientQueueProcessor {
 
     private let client: APIClient
     private let scheduler: APIClientQueueScheduling
-    private let diskCache: DiskCaching<APIClientQueueRequest>
+    private let processorDiskCache: APIClientQueueProcessorDiskCache
+    private var keysAtInitialization: [String]?
 
     private var _responseHandlers: ResponseHandlers
 
     private let operationQueue: AsyncTaskQueue
 
-    private let lock = NSRecursiveLock(name: "\(APIClientQueueProcessor.self)")
-
     #if canImport(UIKit) && os(iOS)
     private let _backgroundTaskManager: BackgroundTaskManaging
     #endif
 
-    weak var delegate: APIClientQueueProcessorDelegate? {
-        didSet {
-            guard let delegate = delegate else { return }
-            lock.lock()
-            defer { lock.unlock() }
+    private weak var delegate: APIClientQueueProcessorDelegate?
 
-            let keys = diskCache.keys()
-            Task {
-                await withTaskGroup(of: Void.self) { group in
-                    for key in keys {
-                        guard let cachedRequest = diskCache[key] else { continue }
-                        group.addTask {
-                            await delegate.prepend(cachedRequest)
-                            self.diskCache[key] = nil
-                        }
-                    }
-                }
-            }
+    func setDelegate(_ delegate: APIClientQueueProcessorDelegate?) async {
+        if delegate === self.delegate { return }
+        self.delegate = delegate
+        guard let delegate = delegate else { return }
+
+        let keys = await processorDiskCache.keys()
+        for key in keys {
+            guard let cachedRequest = await processorDiskCache.value(for: key) else { continue }
+            await delegate.prepend(cachedRequest)
+            await self.processorDiskCache.setValue(nil, for: key)
         }
     }
 
@@ -564,7 +578,8 @@ final class APIClientQueueProcessor {
         self.client = client
         self._backgroundTaskManager = backgroundTaskManager
         self.scheduler = scheduler
-        self.diskCache = diskCache
+        self.keysAtInitialization = diskCache.keysAtInitialization()
+        self.processorDiskCache = APIClientQueueProcessorDiskCache(diskCache: diskCache)
         self._responseHandlers = ResponseHandlers(values: responseHandlers)
         self.operationQueue = operationQueue
         self.scheduler.delegate = self
@@ -678,11 +693,11 @@ extension APIClientQueueProcessor: APIClientQueueSchedulerDelegate {
             return .didNotProcess
         }
 
-        diskCache[request.token.uuidString] = request
+        await processorDiskCache.setValue(request, for: request.token.uuidString)
 
         let operation: () async -> Void = {
             await self._process(request)
-            self.diskCache[request.token.uuidString] = nil
+            await self.processorDiskCache.setValue(nil, for: request.token.uuidString)
         }
         if request.isBarrier {
             try? await operationQueue.enqueueBarrier { operationCompletion in
@@ -747,10 +762,6 @@ private extension APIClientQueueProcessor {
             Logger.log(.info, "\(APIClientQueueProcessor.self): Request \(requestDescription) failed: \(apiError)")
             await self._complete(.apiError(apiError, request))
         }
-    }
-
-    func cacheRequest(_ request: APIClientQueueRequest) {
-        diskCache[Constants.cacheKey] = request
     }
 
     private enum ProcessingResult {

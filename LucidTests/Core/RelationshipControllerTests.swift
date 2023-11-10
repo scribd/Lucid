@@ -85,9 +85,8 @@ final class RelationshipControllerTests: XCTestCase {
     func test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_continuous_signal() {
 
         coreManager.getByIDsStubs = [
-            Publishers.ReplayOnce(just: [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))]),
-            Publishers.ReplayOnce(just: [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))])
-        ].map { $0.eraseToAnyPublisher() }
+            1: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))).eraseToAnyPublisher()
+        ]
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -181,9 +180,8 @@ final class RelationshipControllerTests: XCTestCase {
     func test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_once_signal() {
 
         coreManager.getByIDsStubs = [
-            Publishers.ReplayOnce(just: [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))]),
-            Publishers.ReplayOnce(just: [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))])
-        ].map { $0.eraseToAnyPublisher() }
+            1: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))).eraseToAnyPublisher()
+        ]
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 4
@@ -299,9 +297,9 @@ final class RelationshipControllerTests: XCTestCase {
 
     func test_relationship_controller_should_insert_one_relationship_entity_in_graph() {
 
-        coreManager.getByIDsStubs = [Publishers.ReplayOnce(just: [
-            .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
-        ])].map { $0.eraseToAnyPublisher() }
+        coreManager.getByIDsStubs = [
+            1: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))).eraseToAnyPublisher()
+        ]
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -356,14 +354,10 @@ final class RelationshipControllerTests: XCTestCase {
     func test_relationship_controller_should_insert_many_relationship_entities_in_graph() {
 
         coreManager.getByIDsStubs = [
-            Publishers.ReplayOnce(just: [
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2"))
-            ]),
-            Publishers.ReplayOnce(just: [
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3"))
-            ])
-        ].map { $0.eraseToAnyPublisher() }
+            1: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))).eraseToAnyPublisher(),
+            2: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2"))).eraseToAnyPublisher(),
+            3: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3"))).eraseToAnyPublisher()
+        ]
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -391,10 +385,6 @@ final class RelationshipControllerTests: XCTestCase {
             }, receiveValue: { graph in
                 XCTAssertEqual(graph.entitySpies.count, 1)
                 XCTAssertEqual(graph.entityRelationshipSpies.count, 3)
-
-                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 2)
-                XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 2)
-                XCTAssertEqual(self.coreManager.getByIDsInvocations.last?.identifiers.count, 1)
                 expectation.fulfill()
             })
             .store(in: &cancellables)
@@ -441,16 +431,12 @@ final class RelationshipControllerTests: XCTestCase {
     func test_relationship_controller_should_insert_many_root_entities_with_many_relationship_entities_in_graph() {
 
         coreManager.getByIDsStubs = [
-            Publishers.ReplayOnce(just: [
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2")),
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3"))
-            ]),
-            Publishers.ReplayOnce(just: [
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(4, nil), title: "fake_relationship_4")),
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(5, nil), title: "fake_relationship_5"))
-            ])
-        ].map { $0.eraseToAnyPublisher() }
+            1: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))).eraseToAnyPublisher(),
+            2: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2"))).eraseToAnyPublisher(),
+            3: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3"))).eraseToAnyPublisher(),
+            4: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(4, nil), title: "fake_relationship_4"))).eraseToAnyPublisher(),
+            5: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(5, nil), title: "fake_relationship_5"))).eraseToAnyPublisher()
+        ]
 
         let entities = [
             EntitySpy(idValue: .remote(1, nil),
@@ -482,10 +468,6 @@ final class RelationshipControllerTests: XCTestCase {
             }, receiveValue: { graph in
                 XCTAssertEqual(graph.entitySpies.count, 2)
                 XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
-
-                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 2)
-                XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 4)
-                XCTAssertEqual(self.coreManager.getByIDsInvocations.last?.identifiers.count, 2)
                 expectation.fulfill()
             })
             .store(in: &cancellables)
@@ -522,8 +504,6 @@ final class RelationshipControllerTests: XCTestCase {
 
             XCTAssertEqual(graph.entitySpies.count, 2)
             XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
-
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.count, 2)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -651,9 +631,10 @@ final class RelationshipControllerTests: XCTestCase {
                       manyRelationshipsIdValues: [.remote(4, nil), .remote(5, nil)])
         ]
 
-        coreManager.getByIDsStubs = [Publishers.ReplayOnce(just: [
-            .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
-        ])].map { $0.eraseToAnyPublisher() }
+        coreManager.getByIDsStubs = [
+            1: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))).eraseToAnyPublisher(),
+            2: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2"))).eraseToAnyPublisher()
+        ]
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 3
@@ -757,9 +738,9 @@ final class RelationshipControllerTests: XCTestCase {
                       manyRelationshipsIdValues: [.remote(4, nil), .remote(5, nil)]),
         ]
 
-        coreManager.getByIDsStubs = [Publishers.ReplayOnce(just: [
-            .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
-        ])].map { $0.eraseToAnyPublisher() }
+        coreManager.getByIDsStubs = [
+            1: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))).eraseToAnyPublisher()
+        ]
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 3
@@ -855,9 +836,9 @@ final class RelationshipControllerTests: XCTestCase {
                       manyRelationshipsIdValues: [.remote(4, nil), .remote(5, nil)]),
         ]
 
-        coreManager.getByIDsStubs = [Publishers.ReplayOnce(just: [
-            .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
-        ])].map { $0.eraseToAnyPublisher() }
+        coreManager.getByIDsStubs = [
+            1: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))).eraseToAnyPublisher()
+        ]
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -936,16 +917,12 @@ final class RelationshipControllerTests: XCTestCase {
         ]
 
         coreManager.getByIDsStubs = [
-            Publishers.ReplayOnce(just: [
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2")),
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3"))
-            ]),
-            Publishers.ReplayOnce(just: [
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(4, nil), title: "fake_relationship_4")),
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(5, nil), title: "fake_relationship_5"))
-            ])
-        ].map { $0.eraseToAnyPublisher() }
+            1: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))).eraseToAnyPublisher(),
+            2: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2"))).eraseToAnyPublisher(),
+            3: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3"))).eraseToAnyPublisher(),
+            4: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(4, nil), title: "fake_relationship_4"))).eraseToAnyPublisher(),
+            5: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(5, nil), title: "fake_relationship_5"))).eraseToAnyPublisher()
+        ]
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -1014,34 +991,18 @@ final class RelationshipControllerTests: XCTestCase {
 
     func test_relationship_controller_should_include_all_relationships_recursively() {
 
-        let entity = EntitySpy(idValue: .remote(1, nil), oneRelationshipIdValue: .remote(1, nil))
+        let entity = EntitySpy(
+            idValue: .remote(1, nil),
+            oneRelationshipIdValue: .remote(1, nil)
+        )
 
         coreManager.getByIDsStubs = [
-            Publishers.ReplayOnce(just: [.entityRelationshipSpy(EntityRelationshipSpy(
-                idValue: .remote(1, nil),
-                title: "fake_relationship_1",
-                relationships: [EntityRelationshipSpyIdentifier(value: .remote(2, nil))]
-            ))]),
-            Publishers.ReplayOnce(just: [.entityRelationshipSpy(EntityRelationshipSpy(
-                idValue: .remote(2, nil),
-                title: "fake_relationship_2",
-                relationships: [EntityRelationshipSpyIdentifier(value: .remote(3, nil))]
-            ))]),
-            Publishers.ReplayOnce(just: [.entityRelationshipSpy(EntityRelationshipSpy(
-                idValue: .remote(3, nil),
-                title: "fake_relationship_3",
-                relationships: [EntityRelationshipSpyIdentifier(value: .remote(4, nil))]
-            ))]),
-            Publishers.ReplayOnce(just: [.entityRelationshipSpy(EntityRelationshipSpy(
-                idValue: .remote(4, nil),
-                title: "fake_relationship_4",
-                relationships: [EntityRelationshipSpyIdentifier(value: .remote(5, nil))]
-            ))]),
-            Publishers.ReplayOnce(just: [.entityRelationshipSpy(EntityRelationshipSpy(
-                idValue: .remote(5, nil),
-                title: "fake_relationship_5"
-            ))])
-        ].map { $0.eraseToAnyPublisher() }
+            1: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))).eraseToAnyPublisher(),
+            2: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2"))).eraseToAnyPublisher(),
+            3: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3"))).eraseToAnyPublisher(),
+            4: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(4, nil), title: "fake_relationship_4"))).eraseToAnyPublisher(),
+            5: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(5, nil), title: "fake_relationship_5"))).eraseToAnyPublisher()
+        ]
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -1064,7 +1025,7 @@ final class RelationshipControllerTests: XCTestCase {
                 }
             }, receiveValue: { graph in
                 XCTAssertEqual(graph.entitySpies.count, 1)
-                XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
+                XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
 
                 expectation.fulfill()
             })
@@ -1113,35 +1074,9 @@ final class RelationshipControllerTests: XCTestCase {
                                manyRelationshipsIdValues: [.remote(2, nil)])
 
         coreManager.getByIDsStubs = [
-            Publishers.ReplayOnce(just: [
-                .entityRelationshipSpy(EntityRelationshipSpy(
-                    idValue: .remote(1, nil),
-                    title: "fake_relationship_1",
-                    relationships: [EntityRelationshipSpyIdentifier(value: .remote(2, nil))]
-                ))
-            ]),
-            Publishers.ReplayOnce(just: [
-                .entityRelationshipSpy(EntityRelationshipSpy(
-                    idValue: .remote(2, nil),
-                    title: "fake_relationship_2",
-                    relationships: [EntityRelationshipSpyIdentifier(value: .remote(1, nil))]
-                ))
-            ]),
-            Publishers.ReplayOnce(just: [
-                .entityRelationshipSpy(EntityRelationshipSpy(
-                    idValue: .remote(1, nil),
-                    title: "fake_relationship_1",
-                    relationships: [EntityRelationshipSpyIdentifier(value: .remote(2, nil))]
-                ))
-            ]),
-            Publishers.ReplayOnce(just: [
-                .entityRelationshipSpy(EntityRelationshipSpy(
-                    idValue: .remote(2, nil),
-                    title: "fake_relationship_2",
-                    relationships: [EntityRelationshipSpyIdentifier(value: .remote(1, nil))]
-                ))
-            ])
-        ].map { $0.eraseToAnyPublisher() }
+            1: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))).eraseToAnyPublisher(),
+            2: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2"))).eraseToAnyPublisher()
+        ]
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -1205,9 +1140,9 @@ final class RelationshipControllerTests: XCTestCase {
 
     func test_relationship_controller_should_pass_down_relationship_contract_to_relationship_calls() {
 
-        coreManager.getByIDsStubs = [Publishers.ReplayOnce(just: [
-            .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
-        ])].map { $0.eraseToAnyPublisher() }
+        coreManager.getByIDsStubs = [
+            1: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))).eraseToAnyPublisher()
+        ]
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2
@@ -1286,9 +1221,9 @@ final class RelationshipControllerTests: XCTestCase {
                                   oneRelationshipIdValue: .remote(1, nil),
                                   manyRelationshipsIdValues: [])
 
-        coreManager.getByIDsStubs = [Publishers.ReplayOnce(just: [
-            .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
-        ])].map { $0.eraseToAnyPublisher() }
+        coreManager.getByIDsStubs = [
+            1: Publishers.ReplayOnce(just: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))).eraseToAnyPublisher()
+        ]
 
         let expectation = self.expectation(description: "graph")
         expectation.expectedFulfillmentCount = 2

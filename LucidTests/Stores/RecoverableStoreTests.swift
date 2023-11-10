@@ -39,6 +39,11 @@ final class RecoverableStoreTests: StoreTests {
             if success == false {
                 XCTFail("Did not clear database successfully.")
             }
+
+            self.innerMainStore = nil
+            self.innerRecoveryStore = nil
+            self.outerRecoverableStore = nil
+
             completion()
         }
     }

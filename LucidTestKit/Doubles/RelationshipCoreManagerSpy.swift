@@ -47,7 +47,8 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
         context: _ReadContext<EntityEndpointResultPayloadSpy>
     )]()
 
-    public var getByIDsAsyncStubs: [[AnyEntitySpy]] = []
+    // [EntityRelationshipSpyIdentifier.RemoteValue: AnyEntitySpy]
+    public var getByIDsAsyncStubs: [Int: AnyEntitySpy] = [:]
     public var getByIDsAsyncError: ManagerError? = nil
 
     public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
@@ -60,11 +61,8 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
             throw error
         }
 
-        guard getByIDsAsyncStubs.count >= getByIDsAsyncInvocations.count else {
-            XCTFail("Expected stub for call number \(getByIDsInvocations.count - 1)")
-            return [].any
-        }
-
-        return getByIDsAsyncStubs[getByIDsAsyncInvocations.count - 1].any
+        let relationshipIdentifiers: [EntityRelationshipSpyIdentifier] = identifiers.compactMap { $0.toRelationshipID() }
+        let remoteValues = relationshipIdentifiers.compactMap { $0.value.remoteValue }
+        return remoteValues.compactMap { getByIDsAsyncStubs[$0] }.any
     }
 }

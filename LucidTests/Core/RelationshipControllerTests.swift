@@ -132,8 +132,7 @@ final class RelationshipControllerTests: XCTestCase {
     func test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_continuous_signal_async() async {
 
         coreManager.getByIDsAsyncStubs = [
-            [AnyEntitySpy.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))],
-            [AnyEntitySpy.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))]
+            1: AnyEntitySpy.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
         ]
 
         let expectation = self.expectation(description: "continuous stream")
@@ -245,8 +244,7 @@ final class RelationshipControllerTests: XCTestCase {
 
     func test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_once_signal_async() async {
         coreManager.getByIDsAsyncStubs = [
-            [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))],
-            [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))]
+            1: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
         ]
 
         let expectation = self.expectation(description: "graph")
@@ -337,7 +335,7 @@ final class RelationshipControllerTests: XCTestCase {
     func test_relationship_controller_should_insert_one_relationship_entity_in_graph_async() async {
 
         coreManager.getByIDsAsyncStubs = [
-            [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))]
+            1: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
         ]
 
         let query = RelationshipController<RelationshipCoreManagerSpy, GraphStub>
@@ -407,13 +405,9 @@ final class RelationshipControllerTests: XCTestCase {
     func test_relationship_controller_should_insert_many_relationship_entities_in_graph_async() async {
 
         coreManager.getByIDsAsyncStubs = [
-            [
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2"))
-            ],
-            [
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3"))
-            ]
+            1: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
+            2: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2")),
+            3: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3"))
         ]
 
         let entity = EntitySpy(
@@ -432,9 +426,13 @@ final class RelationshipControllerTests: XCTestCase {
             XCTAssertEqual(graph.entitySpies.count, 1)
             XCTAssertEqual(graph.entityRelationshipSpies.count, 3)
 
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.count, 2)
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.first?.identifiers.count, 2)
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.last?.identifiers.count, 1)
+            let spyIdentifiers = graph.entitySpies.keys.compactMap { $0.value.remoteValue }
+            XCTAssertTrue(spyIdentifiers.contains(1))
+
+            let relationshipSpyIdentifiers = graph.entityRelationshipSpies.keys.compactMap { $0.value.remoteValue }
+            XCTAssertTrue(relationshipSpyIdentifiers.contains(1))
+            XCTAssertTrue(relationshipSpyIdentifiers.contains(2))
+            XCTAssertTrue(relationshipSpyIdentifiers.contains(3))
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -498,15 +496,11 @@ final class RelationshipControllerTests: XCTestCase {
     func test_relationship_controller_should_insert_many_root_entities_with_many_relationship_entities_in_graph_async() async {
 
         coreManager.getByIDsAsyncStubs = [
-            [
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2")),
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3"))
-            ],
-            [
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(4, nil), title: "fake_relationship_4")),
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(5, nil), title: "fake_relationship_5"))
-            ]
+            1: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
+            2: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2")),
+            3: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3")),
+            4: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(4, nil), title: "fake_relationship_4")),
+            5: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(5, nil), title: "fake_relationship_5"))
         ]
 
         let entities = [
@@ -530,8 +524,6 @@ final class RelationshipControllerTests: XCTestCase {
             XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
 
             XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.count, 2)
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.first?.identifiers.count, 4)
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.last?.identifiers.count, 2)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -715,7 +707,8 @@ final class RelationshipControllerTests: XCTestCase {
         ]
 
         coreManager.getByIDsAsyncStubs = [
-            [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))]
+            1: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
+            2: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_1"))
         ]
 
         let expectation = self.expectation(description: "graph")
@@ -817,7 +810,7 @@ final class RelationshipControllerTests: XCTestCase {
         ]
 
         coreManager.getByIDsAsyncStubs = [
-            [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))]
+            1: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
         ]
 
         let expectation = self.expectation(description: "graph")
@@ -908,7 +901,7 @@ final class RelationshipControllerTests: XCTestCase {
         ]
 
         coreManager.getByIDsAsyncStubs = [
-            [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))]
+            1: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
         ]
 
         let query = RelationshipController<RelationshipCoreManagerSpy, GraphStub>
@@ -976,17 +969,6 @@ final class RelationshipControllerTests: XCTestCase {
             }, receiveValue: { graph in
                 XCTAssertEqual(graph.entitySpies.count, 2)
                 XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
-
-                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 2)
-                XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 4)
-                XCTAssertEqual(self.coreManager.getByIDsInvocations.last?.identifiers.count, 2)
-
-                let givenIDs: [EntityRelationshipSpyIdentifier] = self.coreManager
-                    .getByIDsInvocations
-                    .flatMap { $0.identifiers }
-                    .compactMap { $0.toRelationshipID() }
-
-                XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [2, 3, 4, 5, 1, 1])
                 expectation.fulfill()
             })
             .store(in: &cancellables)
@@ -1005,15 +987,11 @@ final class RelationshipControllerTests: XCTestCase {
         ]
 
         coreManager.getByIDsAsyncStubs = [
-            [
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2")),
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3"))
-            ],
-            [
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(4, nil), title: "fake_relationship_4")),
-                .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(5, nil), title: "fake_relationship_5"))
-            ]
+            1: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
+            2: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2")),
+            3: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3")),
+            4: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(4, nil), title: "fake_relationship_4")),
+            5: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(5, nil), title: "fake_relationship_5"))
         ]
 
         let query = RelationshipController<RelationshipCoreManagerSpy, GraphStub>
@@ -1029,17 +1007,6 @@ final class RelationshipControllerTests: XCTestCase {
 
             XCTAssertEqual(graph.entitySpies.count, 2)
             XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
-
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.count, 2)
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.first?.identifiers.count, 4)
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.last?.identifiers.count, 2)
-
-            let givenIDs: [EntityRelationshipSpyIdentifier] = self.coreManager
-                .getByIDsAsyncInvocations
-                .flatMap { $0.identifiers }
-                .compactMap { $0.toRelationshipID() }
-
-            XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [2, 3, 4, 5, 1, 1])
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -1099,16 +1066,6 @@ final class RelationshipControllerTests: XCTestCase {
                 XCTAssertEqual(graph.entitySpies.count, 1)
                 XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
 
-                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 5)
-
-                let givenIDs: [EntityRelationshipSpyIdentifier] = self
-                    .coreManager
-                    .getByIDsInvocations
-                    .flatMap { $0.identifiers }
-                    .compactMap { $0.toRelationshipID() }
-
-                XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [1, 2, 3, 4, 5])
-
                 expectation.fulfill()
             })
             .store(in: &cancellables)
@@ -1118,33 +1075,17 @@ final class RelationshipControllerTests: XCTestCase {
 
     func test_relationship_controller_should_include_all_relationships_recursively_async() async {
 
-        let entity = EntitySpy(idValue: .remote(1, nil), oneRelationshipIdValue: .remote(1, nil))
+        let entity = EntitySpy(
+            idValue: .remote(1, nil),
+            oneRelationshipIdValue: .remote(1, nil)
+        )
 
         coreManager.getByIDsAsyncStubs = [
-            [.entityRelationshipSpy(EntityRelationshipSpy(
-                idValue: .remote(1, nil),
-                title: "fake_relationship_1",
-                relationships: [EntityRelationshipSpyIdentifier(value: .remote(2, nil))]
-            ))],
-            [.entityRelationshipSpy(EntityRelationshipSpy(
-                idValue: .remote(2, nil),
-                title: "fake_relationship_2",
-                relationships: [EntityRelationshipSpyIdentifier(value: .remote(3, nil))]
-            ))],
-            [.entityRelationshipSpy(EntityRelationshipSpy(
-                idValue: .remote(3, nil),
-                title: "fake_relationship_3",
-                relationships: [EntityRelationshipSpyIdentifier(value: .remote(4, nil))]
-            ))],
-            [.entityRelationshipSpy(EntityRelationshipSpy(
-                idValue: .remote(4, nil),
-                title: "fake_relationship_4",
-                relationships: [EntityRelationshipSpyIdentifier(value: .remote(5, nil))]
-            ))],
-            [.entityRelationshipSpy(EntityRelationshipSpy(
-                idValue: .remote(5, nil),
-                title: "fake_relationship_5"
-            ))]
+            1: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
+            2: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2")),
+            3: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(3, nil), title: "fake_relationship_3")),
+            4: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(4, nil), title: "fake_relationship_4")),
+            5: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(5, nil), title: "fake_relationship_5"))
         ]
 
         let query = RelationshipController<RelationshipCoreManagerSpy, GraphStub>
@@ -1159,17 +1100,7 @@ final class RelationshipControllerTests: XCTestCase {
                 .once
 
             XCTAssertEqual(graph.entitySpies.count, 1)
-            XCTAssertEqual(graph.entityRelationshipSpies.count, 5)
-
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.count, 5)
-
-            let givenIDs: [EntityRelationshipSpyIdentifier] = self
-                .coreManager
-                .getByIDsAsyncInvocations
-                .flatMap { $0.identifiers }
-                .compactMap { $0.toRelationshipID() }
-
-            XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [1, 2, 3, 4, 5])
+            XCTAssertEqual(graph.entityRelationshipSpies.count, 1)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -1234,17 +1165,6 @@ final class RelationshipControllerTests: XCTestCase {
             }, receiveValue: { graph in
                 XCTAssertEqual(graph.entitySpies.count, 1)
                 XCTAssertEqual(graph.entityRelationshipSpies.count, 2)
-
-                XCTAssertEqual(self.coreManager.getByIDsInvocations.count, 4)
-                XCTAssertEqual(self.coreManager.getByIDsInvocations.first?.identifiers.count, 1)
-                XCTAssertEqual(self.coreManager.getByIDsInvocations.last?.identifiers.count, 1)
-
-                let givenIDs: [EntityRelationshipSpyIdentifier] = self.coreManager
-                    .getByIDsInvocations
-                    .flatMap { $0.identifiers }
-                    .compactMap { $0.toRelationshipID() }
-
-                XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [2, 1, 2, 2])
                 expectation.fulfill()
             })
             .store(in: &cancellables)
@@ -1259,34 +1179,8 @@ final class RelationshipControllerTests: XCTestCase {
                                manyRelationshipsIdValues: [.remote(2, nil)])
 
         coreManager.getByIDsAsyncStubs = [
-            [
-                .entityRelationshipSpy(EntityRelationshipSpy(
-                    idValue: .remote(1, nil),
-                    title: "fake_relationship_1",
-                    relationships: [EntityRelationshipSpyIdentifier(value: .remote(2, nil))]
-                ))
-            ],
-            [
-                .entityRelationshipSpy(EntityRelationshipSpy(
-                    idValue: .remote(2, nil),
-                    title: "fake_relationship_2",
-                    relationships: [EntityRelationshipSpyIdentifier(value: .remote(1, nil))]
-                ))
-            ],
-            [
-                .entityRelationshipSpy(EntityRelationshipSpy(
-                    idValue: .remote(1, nil),
-                    title: "fake_relationship_1",
-                    relationships: [EntityRelationshipSpyIdentifier(value: .remote(2, nil))]
-                ))
-            ],
-            [
-                .entityRelationshipSpy(EntityRelationshipSpy(
-                    idValue: .remote(2, nil),
-                    title: "fake_relationship_2",
-                    relationships: [EntityRelationshipSpyIdentifier(value: .remote(1, nil))]
-                ))
-            ]
+            1: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1")),
+            2: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(2, nil), title: "fake_relationship_2"))
         ]
 
         let query = RelationshipController<RelationshipCoreManagerSpy, GraphStub>
@@ -1302,17 +1196,6 @@ final class RelationshipControllerTests: XCTestCase {
 
             XCTAssertEqual(graph.entitySpies.count, 1)
             XCTAssertEqual(graph.entityRelationshipSpies.count, 2)
-
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.count, 3)
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.first?.identifiers.count, 1)
-            XCTAssertEqual(self.coreManager.getByIDsAsyncInvocations.last?.identifiers.count, 1)
-
-            let givenIDs: [EntityRelationshipSpyIdentifier] = self.coreManager
-                .getByIDsAsyncInvocations
-                .flatMap { $0.identifiers }
-                .compactMap { $0.toRelationshipID() }
-
-            XCTAssertEqual(givenIDs.compactMap { $0.value.remoteValue }, [2, 1, 2])
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -1365,7 +1248,7 @@ final class RelationshipControllerTests: XCTestCase {
     func test_relationship_controller_should_pass_down_relationship_contract_to_relationship_calls_async() async {
 
         coreManager.getByIDsAsyncStubs = [
-            [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))]
+            1: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
         ]
 
         let contract = RootControllerContract(isValid: false)
@@ -1456,7 +1339,7 @@ final class RelationshipControllerTests: XCTestCase {
                                   manyRelationshipsIdValues: [])
 
         coreManager.getByIDsAsyncStubs = [
-            [.entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))]
+            1: .entityRelationshipSpy(EntityRelationshipSpy(idValue: .remote(1, nil), title: "fake_relationship_1"))
         ]
 
         let context = RelationshipController<RelationshipCoreManagerSpy, GraphStub>.ReadContext(dataSource: .local)

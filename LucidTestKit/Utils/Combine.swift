@@ -8,6 +8,7 @@
 
 import Combine
 import Foundation
+import Lucid
 
 public extension Publishers.ReplayOnce {
 

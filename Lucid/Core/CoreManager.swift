@@ -1449,8 +1449,9 @@ private extension ReadContext {
 
 private extension WriteContext {
 
-    func storeStack<E: Entity>(with stores: [Storing<E>], queues: StoreStackQueues<E>) -> StoreStack<E> {
-        var filteredStores: [Storing<E>]
+    func storeStack<T: Entity>(with stores: [Storing<T>], queues: StoreStackQueues<T>) -> StoreStack<T> {
+
+        var filteredStores: [Storing<T>]
         switch dataTarget {
         case .remote:
             filteredStores = stores.remote()

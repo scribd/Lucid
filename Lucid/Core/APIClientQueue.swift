@@ -592,10 +592,10 @@ final actor APIClientQueueProcessor {
     ///     - client: `APIClient` used to run the requests from the queue.
     ///     - scehduler: Scheduling object that tells the processor when to process the next request.
     ///     - responseHandlers: Custom handlers that can respond to a successful APIClientQueueRequest.
-    convenience init(identifier: String,
-                     client: APIClient,
-                     scheduler: APIClientQueueScheduling,
-                     responseHandlers: [APIClientQueueProcessorResponseHandler] = []) {
+    init(identifier: String,
+         client: APIClient,
+         scheduler: APIClientQueueScheduling,
+         responseHandlers: [APIClientQueueProcessorResponseHandler] = []) {
 
         let diskCache = DiskCache<APIClientQueueRequest>(basePath: Constants.diskCacheBasePath(identifier),
                                                          codingContext: .clientQueueRequest)

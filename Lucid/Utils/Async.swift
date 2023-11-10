@@ -57,10 +57,10 @@ public extension Task where Success == Void, Failure == any Error {
 // MARK: - Type Erasure
 
 struct AnyAsyncSequence<Element>: AsyncSequence {
-    typealias AsyncIterator = AnyAsyncIterator<Element>
+    typealias AsyncIterator = AnyAsyncIterator
     typealias Element = Element
 
-    let _makeAsyncIterator: () -> AnyAsyncIterator<Element>
+    let _makeAsyncIterator: () -> AnyAsyncIterator
 
     init<S: AsyncSequence>(seq: S) where S.Element == Element {
         _makeAsyncIterator = {
@@ -68,15 +68,14 @@ struct AnyAsyncSequence<Element>: AsyncSequence {
         }
     }
 
-    func makeAsyncIterator() -> AnyAsyncIterator<Element> {
+    func makeAsyncIterator() -> AnyAsyncIterator {
         return _makeAsyncIterator()
     }
 }
 
 extension AnyAsyncSequence {
 
-    struct AnyAsyncIterator<Element>: AsyncIteratorProtocol {
-        typealias Element = Element
+    struct AnyAsyncIterator: AsyncIteratorProtocol {
 
         private let _next: () async throws -> Element?
 

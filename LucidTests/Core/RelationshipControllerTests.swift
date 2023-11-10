@@ -1506,9 +1506,9 @@ private struct RootControllerContract: EntityGraphContract {
     }
 }
 
-private struct RelationshipControllerContract<Graph>: EntityGraphContract where Graph: MutableGraph {
+private struct RelationshipControllerContract<TestGraph>: EntityGraphContract where TestGraph: MutableGraph {
 
-    let path: [Graph.AnyEntity.IndexName]
+    let path: [TestGraph.AnyEntity.IndexName]
 
     let isValid: Bool
 

@@ -25,7 +25,7 @@ final class CoreManagerTests: XCTestCase {
 
     private var asyncTasks: AsyncTasks!
 
-    private var dispatchQueue: DispatchQueue!
+    private var combineQueue: DispatchQueue!
 
     override func setUp() {
         super.setUp()
@@ -41,22 +41,26 @@ final class CoreManagerTests: XCTestCase {
         cancellables = Set()
         asyncTasks = AsyncTasks()
 
-        dispatchQueue = DispatchQueue(label: "core_manager_tests_dispatch_queue")
+        combineQueue = DispatchQueue(label: "core_manager_tests_dispatch_queue")
 
-        manager = CoreManager(stores: [remoteStoreSpy.storing, memoryStoreSpy.storing], dispatchQueue: dispatchQueue).managing()
+        manager = CoreManager(stores: [remoteStoreSpy.storing, memoryStoreSpy.storing], dispatchQueue: combineQueue).managing()
     }
 
     override func tearDown() {
         defer { super.tearDown() }
 
-        dispatchQueue.sync { }
+        combineQueue.sync { }
 
         remoteStoreSpy = nil
         memoryStoreSpy = nil
         manager = nil
         cancellables = nil
         asyncTasks = nil
-        dispatchQueue = nil
+        combineQueue = nil
+    }
+
+    private func waitForCombineQueues() {
+        combineQueue.sync { }
     }
 
     // MARK: - get(byID:in:cacheStrategy:completion:)
@@ -93,6 +97,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -132,6 +138,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -168,6 +176,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -202,6 +212,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -240,6 +252,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -271,6 +285,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -301,6 +317,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -334,6 +352,8 @@ final class CoreManagerTests: XCTestCase {
                 XCTFail("Unexpected success.")
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -374,6 +394,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -413,6 +435,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -449,6 +473,8 @@ final class CoreManagerTests: XCTestCase {
                 }
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -490,6 +516,8 @@ final class CoreManagerTests: XCTestCase {
                 }
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -533,6 +561,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -572,6 +602,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -613,6 +645,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -662,6 +696,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [continuousExpectation], timeout: 1)
     }
 
@@ -704,6 +740,8 @@ final class CoreManagerTests: XCTestCase {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             waitExpectation.fulfill()
         }
+
+        waitForCombineQueues()
 
         wait(for: [continuousExpectation, waitExpectation], timeout: 1)
     }
@@ -1210,6 +1248,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -1251,6 +1291,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -1285,6 +1327,8 @@ final class CoreManagerTests: XCTestCase {
                 XCTFail("Unexpected success.")
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -1321,8 +1365,11 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
+
     func test_manager_should_get_entities_from_remote_store_when_strategy_is_remote_only() {
 
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil)), EntitySpy(idValue: .remote(42, nil))]))
@@ -1357,6 +1404,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -1397,6 +1446,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -1432,6 +1483,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -1465,6 +1518,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -1509,8 +1564,9 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
-        wait(for: [onceExpectation], timeout: 1)
+        waitForCombineQueues()
 
+        wait(for: [onceExpectation], timeout: 1)
     }
 
     func test_manager_should_ignore_empty_entities_from_memory_then_get_entities_from_remote_store_when_strategy_is_local_then_remote() {
@@ -1552,6 +1608,8 @@ final class CoreManagerTests: XCTestCase {
                 }
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -1875,8 +1933,9 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
-//        wait(for: [onceExpectation], timeout: 1)
     }
 
     func test_manager_should_send_entity_update_to_provider_when_entity_changed() {
@@ -1950,6 +2009,8 @@ final class CoreManagerTests: XCTestCase {
                 })
                 .store(in: &cancellables)
         }
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
     }
@@ -2031,6 +2092,8 @@ final class CoreManagerTests: XCTestCase {
             additionalSignalExpectation.fulfill()
         }
 
+        waitForCombineQueues()
+
         wait(for: [additionalSignalExpectation], timeout: 1.0)
     }
 
@@ -2109,6 +2172,8 @@ final class CoreManagerTests: XCTestCase {
                 .store(in: &cancellables)
         }
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
     }
 
@@ -2186,6 +2251,8 @@ final class CoreManagerTests: XCTestCase {
                 .store(in: &cancellables)
         }
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
     }
 
@@ -2251,6 +2318,8 @@ final class CoreManagerTests: XCTestCase {
                 continuousExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
     }
@@ -2331,6 +2400,8 @@ final class CoreManagerTests: XCTestCase {
                 .store(in: &cancellables)
         }
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
     }
 
@@ -2405,6 +2476,8 @@ final class CoreManagerTests: XCTestCase {
                 .store(in: &cancellables)
         }
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
     }
 
@@ -2432,54 +2505,54 @@ final class CoreManagerTests: XCTestCase {
 
         let publishers = manager.search(withQuery: .filter(.title ~= .string(".*fake_title")), in: context)
 
-        dispatchQueue.sync {
-            publishers
-                .once
-                .sink(receiveCompletion: { completion in
-                    switch completion {
-                    case .failure(let error):
-                        XCTFail("Unexpected error: \(error)")
-                    case .finished:
-                        onceExpectation.fulfill()
-                    }
-                }, receiveValue: { result in
+        publishers
+            .once
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    onceExpectation.fulfill()
+                }
+            }, receiveValue: { result in
+                XCTAssertEqual(result.first?.title, "fake_title")
+                XCTAssertEqual(result.count, 1)
+
+                let newDocument = EntitySpy(idValue: .remote(42, nil), title: "updated_fake_title")
+                self.memoryStoreSpy.setResultStub = .success([newDocument])
+                self.remoteStoreSpy.setResultStub = .success([newDocument])
+                self.remoteStoreSpy.asynchronousResult = .delay(millieconds: 100, queue: dispatchQueue)
+                self.manager
+                    .set(newDocument, in: WriteContext(dataTarget: .local))
+                    .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
+                    .store(in: &self.cancellables)
+                onceExpectation.fulfill()
+            })
+            .store(in: &cancellables)
+
+        publishers
+            .continuous
+            .sink(receiveCompletion: { completion in
+                switch completion {
+                case .failure(let error):
+                    XCTFail("Unexpected error: \(error)")
+                case .finished:
+                    Logger.log(.debug, "Did complete")
+                }
+            }, receiveValue: { result in
+                if continuousCallCount == 0 {
                     XCTAssertEqual(result.first?.title, "fake_title")
                     XCTAssertEqual(result.count, 1)
+                } else {
+                    XCTAssertEqual(result.first?.title, "updated_fake_title")
+                    XCTAssertEqual(result.count, 1)
+                }
+                continuousCallCount += 1
+                continuousExpectation.fulfill()
+            })
+            .store(in: &cancellables)
 
-                    let newDocument = EntitySpy(idValue: .remote(42, nil), title: "updated_fake_title")
-                    self.memoryStoreSpy.setResultStub = .success([newDocument])
-                    self.remoteStoreSpy.setResultStub = .success([newDocument])
-                    self.remoteStoreSpy.asynchronousResult = .standardDelay(queue: dispatchQueue)
-                    self.manager
-                        .set(newDocument, in: WriteContext(dataTarget: .local))
-                        .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
-                        .store(in: &self.cancellables)
-                    onceExpectation.fulfill()
-                })
-                .store(in: &cancellables)
-
-            publishers
-                .continuous
-                .sink(receiveCompletion: { completion in
-                    switch completion {
-                    case .failure(let error):
-                        XCTFail("Unexpected error: \(error)")
-                    case .finished:
-                        Logger.log(.debug, "Did complete")
-                    }
-                }, receiveValue: { result in
-                    if continuousCallCount == 0 {
-                        XCTAssertEqual(result.first?.title, "fake_title")
-                        XCTAssertEqual(result.count, 1)
-                    } else {
-                        XCTAssertEqual(result.first?.title, "updated_fake_title")
-                        XCTAssertEqual(result.count, 1)
-                    }
-                    continuousCallCount += 1
-                    continuousExpectation.fulfill()
-                })
-                .store(in: &cancellables)
-        }
+        waitForCombineQueues()
 
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
     }
@@ -3045,6 +3118,8 @@ final class CoreManagerTests: XCTestCase {
                 .store(in: &cancellables)
         }
 
+        waitForCombineQueues()
+
         wait(for: [continuousExpectation1], timeout: 1)
 
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
@@ -3067,6 +3142,8 @@ final class CoreManagerTests: XCTestCase {
                 .store(in: &cancellables)
         }
 
+        waitForCombineQueues()
+
         wait(for: [continuousExpectation2], timeout: 1)
 
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")]))
@@ -3088,6 +3165,8 @@ final class CoreManagerTests: XCTestCase {
                 .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
                 .store(in: &cancellables)
         }
+
+        waitForCombineQueues()
 
         wait(for: [continuousExpectation3], timeout: 1)
     }
@@ -3138,6 +3217,8 @@ final class CoreManagerTests: XCTestCase {
                 .store(in: &cancellables)
         }
 
+        waitForCombineQueues()
+
         wait(for: [continuousExpectation1], timeout: 1)
 
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
@@ -3160,6 +3241,8 @@ final class CoreManagerTests: XCTestCase {
                 .store(in: &cancellables)
         }
 
+        waitForCombineQueues()
+
         wait(for: [continuousExpectation2], timeout: 1)
 
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")]))
@@ -3181,6 +3264,8 @@ final class CoreManagerTests: XCTestCase {
                 .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
                 .store(in: &cancellables)
         }
+
+        waitForCombineQueues()
 
         wait(for: [continuousExpectation3], timeout: 1)
     }
@@ -3231,6 +3316,8 @@ final class CoreManagerTests: XCTestCase {
                 .store(in: &cancellables)
         }
 
+        waitForCombineQueues()
+
         wait(for: [continuousExpectation1], timeout: 1)
 
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(42, nil), title: "fake_title")]))
@@ -3257,6 +3344,8 @@ final class CoreManagerTests: XCTestCase {
                 .store(in: &cancellables)
         }
 
+        waitForCombineQueues()
+
         wait(for: [continuousExpectation2], timeout: 1)
 
         remoteStoreSpy.searchResultStub = .success(.entities([EntitySpy(idValue: .remote(43, nil), title: "another_fake_title")]))
@@ -3282,6 +3371,8 @@ final class CoreManagerTests: XCTestCase {
                 .sink(receiveCompletion: { _ in }, receiveValue: { _ in })
                 .store(in: &cancellables)
         }
+
+        waitForCombineQueues()
 
         wait(for: [continuousExpectation3], timeout: 1)
     }
@@ -4583,6 +4674,8 @@ final class CoreManagerTests: XCTestCase {
             }
         }
 
+        waitForCombineQueues()
+
         wait(for: [continuousExpectation], timeout: 60)
     }
 
@@ -4674,6 +4767,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -4700,6 +4795,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -4725,6 +4822,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -4816,6 +4915,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -4843,6 +4944,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -4869,6 +4972,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -4959,6 +5064,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -5007,6 +5114,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -5053,6 +5162,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -5152,6 +5263,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
 
         let additionalSignalExpectation = self.expectation(description: "additional")
@@ -5235,6 +5348,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
 
         let additionalSignalExpectation = self.expectation(description: "additional")
@@ -5317,6 +5432,8 @@ final class CoreManagerTests: XCTestCase {
                 continuousCount += 1
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
 
@@ -5403,6 +5520,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
     }
 
@@ -5479,6 +5598,8 @@ final class CoreManagerTests: XCTestCase {
                 continuousExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
     }
@@ -5812,6 +5933,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -5856,6 +5979,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -5893,6 +6018,8 @@ final class CoreManagerTests: XCTestCase {
                 XCTFail("Unexpected value.")
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -5955,6 +6082,8 @@ final class CoreManagerTests: XCTestCase {
                     continuousExpectation.fulfill()
                 })
                 .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
     }
@@ -6019,6 +6148,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation, continuousExpectation], timeout: 1)
     }
 
@@ -6075,6 +6206,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 5)
     }
 
@@ -6110,6 +6243,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -6147,6 +6282,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -6179,6 +6316,8 @@ final class CoreManagerTests: XCTestCase {
                 XCTFail("Unexpected value.")
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -6216,6 +6355,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -6252,6 +6393,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -6284,6 +6427,8 @@ final class CoreManagerTests: XCTestCase {
                 XCTFail("Unexpected value.")
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -6321,6 +6466,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -6357,6 +6504,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -6389,6 +6538,8 @@ final class CoreManagerTests: XCTestCase {
                 XCTFail("Unexpected value.")
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -6426,6 +6577,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -6462,6 +6615,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -6494,6 +6649,8 @@ final class CoreManagerTests: XCTestCase {
                 XCTFail("Unexpected value.")
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -6533,6 +6690,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -6571,6 +6730,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -6604,6 +6765,8 @@ final class CoreManagerTests: XCTestCase {
                 XCTFail("Unexpected value.")
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -7211,6 +7374,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -7278,6 +7443,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -7335,6 +7502,8 @@ final class CoreManagerTests: XCTestCase {
                 XCTFail("Unexpected value.")
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -7394,6 +7563,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -7452,6 +7623,8 @@ final class CoreManagerTests: XCTestCase {
                 XCTFail("Unexpected value.")
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -7761,6 +7934,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -7797,6 +7972,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -7835,6 +8012,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -7871,6 +8050,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -8015,6 +8196,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -8056,6 +8239,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -8095,6 +8280,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -8136,6 +8323,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -8174,6 +8363,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -8211,6 +8402,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }
@@ -8252,6 +8445,8 @@ final class CoreManagerTests: XCTestCase {
             })
             .store(in: &cancellables)
 
+        waitForCombineQueues()
+
         wait(for: [onceExpectation], timeout: 1)
     }
 
@@ -8291,6 +8486,8 @@ final class CoreManagerTests: XCTestCase {
                 onceExpectation.fulfill()
             })
             .store(in: &cancellables)
+
+        waitForCombineQueues()
 
         wait(for: [onceExpectation], timeout: 1)
     }

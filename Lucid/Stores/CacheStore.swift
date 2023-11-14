@@ -22,7 +22,14 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
 
     // MARK: - Inits
 
-    public init(keyValueStore: Storing<E>, persistentStore: Storing<E>, dispatchQueue: DispatchQueue = DispatchQueue(label: "\(CacheStore<E>.self):combine_operations")) {
+    convenience public init(keyValueStore: Storing<E>, persistentStore: Storing<E>) {
+        self.init(keyValueStore: keyValueStore,
+                  persistentStore: persistentStore,
+                  dispatchQueue: DispatchQueue(label: "\(CacheStore<E>.self):combine_operations"))
+    }
+
+    init(keyValueStore: Storing<E>, persistentStore: Storing<E>, dispatchQueue: DispatchQueue) {
+
         self.operationQueue = AsyncOperationQueue(dispatchQueue: dispatchQueue)
 
         if keyValueStore.level != .memory {

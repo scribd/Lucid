@@ -128,7 +128,6 @@ final class CoreManagerPropertyTests: XCTestCase {
         let delegateExpectation = self.expectation(description: "delegate_called_expectation")
         let asyncTasks = AsyncTasks()
 
-
         Task(priority: .high) {
             await property.setDidRemoveLastObserver {
                 delegateExpectation.fulfill()
@@ -168,7 +167,7 @@ final class CoreManagerPropertyTests: XCTestCase {
         }.store(in: asyncTasks)
 
         Task(priority: .background) {
-            try? await Task.sleep(nanoseconds: NSEC_PER_MSEC * 10)
+            try? await Task.sleep(nanoseconds: NSEC_PER_MSEC * 100)
             await property.update(with: 5)
             try? await Task.sleep(nanoseconds: NSEC_PER_MSEC)
             await property.update(with: 17)

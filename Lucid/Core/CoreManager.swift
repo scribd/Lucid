@@ -450,14 +450,19 @@ public final class CoreManager<E> where E: Entity {
 
     private let propertyCache = PropertyCache()
 
-    private let combineOperationQueue = AsyncOperationQueue()
+    private let combineOperationQueue: AsyncOperationQueue
     private let updatesMetadataQueue = DispatchQueue(label: "\(CoreManager.self):updates_metadata")
     private var _updatesMetadata = DualHashDictionary<E.Identifier, UpdateTime>()
 
     // MARK: - Inits
 
-    public init(stores: [Storing<E>]) {
+    convenience public init(stores: [Storing<E>]) {
+        self.init(stores: stores, dispatchQueue: DispatchQueue(label: "\(CoreManager<E>.self):combine_operations"))
+    }
+
+    init(stores: [Storing<E>], dispatchQueue: DispatchQueue) {
         self.stores = stores
+        self.combineOperationQueue = AsyncOperationQueue(dispatchQueue: dispatchQueue)
         localStore = StoreStack(stores: stores.local(), queues: storeStackQueues)
     }
 

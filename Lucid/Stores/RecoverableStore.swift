@@ -6,6 +6,8 @@
 //  Copyright © 2020 Scribd. All rights reserved.
 //
 
+import Foundation
+
 public final class RecoverableStore<E> where E: LocalEntity {
 
     private let mainStore: Storing<E>
@@ -13,12 +15,22 @@ public final class RecoverableStore<E> where E: LocalEntity {
 
     public let level: StoreLevel
 
-    private let operationQueue = AsyncOperationQueue()
+    private let operationQueue: AsyncOperationQueue
 
     private let asyncTaskQueue = AsyncTaskQueue()
 
+    convenience public init(mainStore: Storing<E>,
+                            recoveryStore: Storing<E>) {
+        self.init(mainStore: mainStore,
+                  recoveryStore: recoveryStore,
+                  dispatchQueue: DispatchQueue(label: "\(RecoverableStore<E>.self):combine_operations"))
+    }
+
     public init(mainStore: Storing<E>,
-                recoveryStore: Storing<E>) {
+                recoveryStore: Storing<E>,
+                dispatchQueue: DispatchQueue) {
+
+        self.operationQueue = AsyncOperationQueue(dispatchQueue: dispatchQueue)
 
         if mainStore.level != .disk {
             Logger.log(.error, "\(RecoverableStore.self) mainStore must be a disk store", assert: true)

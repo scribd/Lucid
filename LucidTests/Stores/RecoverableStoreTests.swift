@@ -14,8 +14,14 @@ import XCTest
 final class RecoverableStoreTests: StoreTests {
 
     private var innerMainStore: FakeStore<EntitySpy>!
+
     private var innerRecoveryStore: FakeStore<EntitySpy>!
+
     private var outerRecoverableStore: RecoverableStore<EntitySpy>!
+
+    private var combineQueue: DispatchQueue!
+
+    private var relationshipCombineQueue: DispatchQueue!
 
     override func setUp() {
         super.setUp()
@@ -23,14 +29,19 @@ final class RecoverableStoreTests: StoreTests {
         innerMainStore = FakeStore<EntitySpy>(level: .disk)
         innerRecoveryStore = FakeStore<EntitySpy>(level: .disk)
 
+        combineQueue = DispatchQueue(label: "recoverable_store_tests_dispatch_queue")
+        relationshipCombineQueue = DispatchQueue(label: "recoverable_store_tests_relationship_dispatch_queue")
+
         entityStore = RecoverableStore<EntitySpy>(
             mainStore: innerMainStore.storing,
-            recoveryStore: innerRecoveryStore.storing
+            recoveryStore: innerRecoveryStore.storing,
+            dispatchQueue: combineQueue
         ).storing
 
         entityRelationshipStore = RecoverableStore<EntityRelationshipSpy>(
             mainStore: FakeStore<EntityRelationshipSpy>(level: .disk).storing,
-            recoveryStore: FakeStore<EntityRelationshipSpy>(level: .disk).storing
+            recoveryStore: FakeStore<EntityRelationshipSpy>(level: .disk).storing,
+            dispatchQueue: relationshipCombineQueue
         ).storing
     }
 
@@ -40,12 +51,22 @@ final class RecoverableStoreTests: StoreTests {
                 XCTFail("Did not clear database successfully.")
             }
 
+            self.combineQueue.sync { }
+            self.relationshipCombineQueue.sync { }
+
             self.innerMainStore = nil
             self.innerRecoveryStore = nil
             self.outerRecoverableStore = nil
+            self.combineQueue = nil
+            self.relationshipCombineQueue = nil
 
             completion()
         }
+    }
+
+    func waitForCombineQueues() {
+        combineQueue.sync { }
+        relationshipCombineQueue.sync { }
     }
 
     override class var defaultTestSuite: XCTestSuite {
@@ -98,7 +119,9 @@ extension RecoverableStoreTests {
             }
         }
 
-        self.waitForExpectations(timeout: 1)
+        waitForCombineQueues()
+
+        waitForExpectations(timeout: 1)
     }
 
     func test_store_should_overwrite_an_empty_recovery_store_with_a_non_empty_main_store_at_init() {
@@ -144,7 +167,9 @@ extension RecoverableStoreTests {
             }
         }
 
-        self.waitForExpectations(timeout: 1)
+        waitForCombineQueues()
+
+        waitForExpectations(timeout: 1)
     }
 
     func test_store_should_overwrite_a_non_empty_recovery_store_with_a_non_empty_main_store_at_init() {
@@ -198,7 +223,9 @@ extension RecoverableStoreTests {
             }
         }
 
-        self.waitForExpectations(timeout: 1)
+        waitForCombineQueues()
+
+        waitForExpectations(timeout: 1)
     }
 
     func test_store_only_reflects_main_store_in_get_operations() {
@@ -244,7 +271,9 @@ extension RecoverableStoreTests {
             }
         }
 
-        self.waitForExpectations(timeout: 1)
+        waitForCombineQueues()
+
+        waitForExpectations(timeout: 1)
     }
 
     func test_store_affects_both_inner_stores_in_set_operations() {
@@ -282,7 +311,9 @@ extension RecoverableStoreTests {
             }
         }
 
-        self.waitForExpectations(timeout: 1)
+        waitForCombineQueues()
+
+        waitForExpectations(timeout: 1)
     }
 
     func test_store_affects_both_inner_stores_in_remove_all_operations() {
@@ -328,7 +359,9 @@ extension RecoverableStoreTests {
             }
         }
 
-        self.waitForExpectations(timeout: 1)
+        waitForCombineQueues()
+
+        waitForExpectations(timeout: 1)
     }
 
     func test_store_affects_both_inner_stores_in_remove_operations() {
@@ -371,7 +404,9 @@ extension RecoverableStoreTests {
             }
         }
 
-        self.waitForExpectations(timeout: 1)
+        waitForCombineQueues()
+
+        waitForExpectations(timeout: 1)
     }
 
     func test_store_only_reflects_main_store_in_search_operations() {
@@ -407,6 +442,8 @@ extension RecoverableStoreTests {
             }
         }
 
-        self.waitForExpectations(timeout: 1)
+        waitForCombineQueues()
+
+        waitForExpectations(timeout: 1)
     }
 }

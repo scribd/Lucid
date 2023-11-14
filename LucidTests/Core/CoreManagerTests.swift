@@ -25,6 +25,8 @@ final class CoreManagerTests: XCTestCase {
 
     private var asyncTasks: AsyncTasks!
 
+    private var dispatchQueue: DispatchQueue!
+
     override func setUp() {
         super.setUp()
 
@@ -39,17 +41,22 @@ final class CoreManagerTests: XCTestCase {
         cancellables = Set()
         asyncTasks = AsyncTasks()
 
-        manager = CoreManager(stores: [remoteStoreSpy.storing, memoryStoreSpy.storing]).managing()
+        dispatchQueue = DispatchQueue(label: "core_manager_tests_dispatch_queue")
+
+        manager = CoreManager(stores: [remoteStoreSpy.storing, memoryStoreSpy.storing], dispatchQueue: dispatchQueue).managing()
     }
 
     override func tearDown() {
         defer { super.tearDown() }
+
+        dispatchQueue.sync { }
 
         remoteStoreSpy = nil
         memoryStoreSpy = nil
         manager = nil
         cancellables = nil
         asyncTasks = nil
+        dispatchQueue = nil
     }
 
     // MARK: - get(byID:in:cacheStrategy:completion:)
@@ -357,7 +364,7 @@ final class CoreManagerTests: XCTestCase {
             }, receiveValue: { result in
                 XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
                     XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
@@ -398,7 +405,7 @@ final class CoreManagerTests: XCTestCase {
                 XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
                 XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
                     XCTAssertEqual(self.memoryStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
                     onceExpectation.fulfill()
@@ -436,7 +443,7 @@ final class CoreManagerTests: XCTestCase {
                 XCTAssertNil(result.entity)
                 XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 0)
                     onceExpectation.fulfill()
                 }
@@ -475,7 +482,7 @@ final class CoreManagerTests: XCTestCase {
                 XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
                 XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 
                     XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
                     XCTAssertEqual(self.memoryStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
@@ -511,7 +518,7 @@ final class CoreManagerTests: XCTestCase {
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
                     XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
 
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
 
                         XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 0)
                         onceExpectation.fulfill()
@@ -1492,7 +1499,7 @@ final class CoreManagerTests: XCTestCase {
                 XCTAssertEqual(result.array.last?.identifier.value.remoteValue, 42)
                 XCTAssertEqual(result.count, 2)
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     XCTAssertEqual(self.memoryStoreSpy.queryRecords.first?.filter, .identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil))))
                     XCTAssertEqual(self.memoryStoreSpy.queryRecords.count, 2)
                     XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 2)
@@ -1536,7 +1543,7 @@ final class CoreManagerTests: XCTestCase {
                 XCTAssertEqual(result.array.last?.identifier.value.remoteValue, 42)
                 XCTAssertEqual(result.count, 2)
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     XCTAssertEqual(self.memoryStoreSpy.queryRecords.first?.filter, .identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil))))
                     XCTAssertEqual(self.memoryStoreSpy.queryRecords.count, 2)
                     XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 2)
@@ -1836,7 +1843,7 @@ final class CoreManagerTests: XCTestCase {
                 XCTAssertEqual(result.first?.title, "fake_title")
                 XCTAssertEqual(result.count, 1)
 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     XCTAssertEqual(self.memoryStoreSpy.queryRecords.first?.filter, .identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil))))
                     XCTAssertEqual(self.memoryStoreSpy.queryRecords.count, 2)
                     XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)

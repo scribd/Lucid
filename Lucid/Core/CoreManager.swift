@@ -497,11 +497,11 @@ private extension CoreManager {
              in context: ReadContext<E>) -> AnyPublisher<QueryResult<E>, ManagerError> {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task(priority: .high) {
+            Task(priority: .low) {
                 do {
                     async let result = try await self.get(withQuery: query, in: context)
                     Task(priority: .low) {
-                        try? await Task.sleep(nanoseconds: NSEC_PER_SEC / 10000) // 0.1 milliseconds
+                        try? await Task.sleep(nanoseconds: NSEC_PER_MSEC / 10) // 0.1 milliseconds
                         completion()
                     }
                     try await promise(.success(result))
@@ -836,11 +836,11 @@ private extension CoreManager {
              in context: WriteContext<E>) -> AnyPublisher<E, ManagerError> {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task(priority: .high) {
+            Task(priority: .low) {
                 do {
                     async let result = try await self.set(entity, in: context)
                     Task(priority: .low) {
-                        try? await Task.sleep(nanoseconds: NSEC_PER_SEC / 10000) // 0.1 milliseconds
+                        try? await Task.sleep(nanoseconds: NSEC_PER_MSEC / 10) // 0.1 milliseconds
                         completion()
                     }
                     try await promise(.success(result))
@@ -918,11 +918,11 @@ private extension CoreManager {
         let entities = Array(entities)
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task(priority: .high) {
+            Task(priority: .low) {
                 do {
                     async let result = try await self.set(entities, in: context)
                     Task(priority: .low) {
-                        try? await Task.sleep(nanoseconds: NSEC_PER_SEC / 10000) // 0.1 milliseconds
+                        try? await Task.sleep(nanoseconds: NSEC_PER_MSEC / 10) // 0.1 milliseconds
                         completion()
                     }
                     try await promise(.success(result))
@@ -1010,11 +1010,11 @@ private extension CoreManager {
                    in context: WriteContext<E>) -> AnyPublisher<AnySequence<E.Identifier>, ManagerError> {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task(priority: .high) {
+            Task(priority: .low) {
                 do {
                     async let result = try await self.removeAll(withQuery: query, in: context)
                     Task(priority: .low) {
-                        try? await Task.sleep(nanoseconds: NSEC_PER_SEC / 10000) // 0.1 milliseconds
+                        try? await Task.sleep(nanoseconds: NSEC_PER_MSEC / 10) // 0.1 milliseconds
                         completion()
                     }
                     try await promise(.success(result))
@@ -1104,11 +1104,11 @@ private extension CoreManager {
                 in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task(priority: .high) {
+            Task(priority: .low) {
                 do {
                     async let result: Void = try await self.remove(atID: identifier, in: context)
                     Task(priority: .low) {
-                        try? await Task.sleep(nanoseconds: NSEC_PER_SEC / 10000) // 0.1 milliseconds
+                        try? await Task.sleep(nanoseconds: NSEC_PER_MSEC / 10) // 0.1 milliseconds
                         completion()
                     }
                     try await result
@@ -1166,11 +1166,11 @@ private extension CoreManager {
                    in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> where S: Sequence, S.Element == E.Identifier {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task(priority: .high) {
+            Task(priority: .low) {
                 do {
                     async let result: Void = try await self.remove(identifiers, in: context)
                     Task(priority: .low) {
-                        try? await Task.sleep(nanoseconds: NSEC_PER_SEC / 10000) // 0.1 milliseconds
+                        try? await Task.sleep(nanoseconds: NSEC_PER_MSEC / 10) // 0.1 milliseconds
                         completion()
                     }
                     try await result

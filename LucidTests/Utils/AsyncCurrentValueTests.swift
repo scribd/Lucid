@@ -68,7 +68,7 @@ final class AsyncCurrentValueTests: XCTestCase {
                 }
 
                 group.addTask(priority: .low) {
-                    try? await Task.sleep(nanoseconds: 100000)
+                    try? await Task.sleep(nanoseconds: NSEC_PER_MSEC)
                     await currentValue.update(with: 10)
                     await currentValue.update(with: 12)
                 }
@@ -131,7 +131,7 @@ final class AsyncCurrentValueTests: XCTestCase {
                 }
 
                 group.addTask(priority: .low) {
-                    try? await Task.sleep(nanoseconds: 100000)
+                    try? await Task.sleep(nanoseconds: NSEC_PER_MSEC)
                     await currentValue.update(with: 20)
                     await currentValue.update(with: 115)
                 }
@@ -193,7 +193,7 @@ final class AsyncCurrentValueTests: XCTestCase {
                 }
 
                 group.addTask(priority: .low) {
-                    try? await Task.sleep(nanoseconds: 100000)
+                    try? await Task.sleep(nanoseconds: NSEC_PER_MSEC)
                     await currentValue.update(with: 22)
                 }
 
@@ -214,7 +214,7 @@ final class AsyncCurrentValueTests: XCTestCase {
         let iterator2 = currentValue.makeAsyncIterator()
         let iterator3 = currentValue.makeAsyncIterator()
 
-        try? await Task.sleep(nanoseconds: 1000000)
+        try? await Task.sleep(nanoseconds: NSEC_PER_MSEC)
 
         await currentValue.cancelIterator(iterator1)
         await currentValue.cancelIterator(iterator2)

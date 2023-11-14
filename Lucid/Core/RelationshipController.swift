@@ -747,7 +747,7 @@ public extension RelationshipController {
             defer {
                 Task {
                     // Delay the completion call to allow `sink` before completion is called
-                    try? await Task.sleep(nanoseconds: 10000)
+                    try? await Task.sleep(nanoseconds: NSEC_PER_MSEC)
                     once.send(completion: .finished)
                     
                     do {

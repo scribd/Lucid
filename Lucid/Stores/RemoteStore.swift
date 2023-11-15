@@ -441,7 +441,12 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             entity.identifier.willBePushedToClientQueue()
         }
 
-        Task {
+        return await withCheckedContinuation { continuation in
+
+            await self.completeOnClientQueueResponse(for: requests) { _ in
+                continuation.resume(returning: nil)
+            }
+
             await withTaskGroup(of: Void.self) { group in
                 for request in requests {
                     group.addTask {
@@ -449,10 +454,6 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                     }
                 }
             }
-        }
-
-        return await withCheckedContinuation { continuation in
-            continuation.resume(returning: nil)
         }
     }
 
@@ -504,11 +505,14 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             return .failure(.notSupported)
         }
 
-        await completeOnClientQueueResponse(for: [clientQueueRequest]) { _ in }
+        return await withCheckedContinuation { continuation in
 
-        await clientQueue.append(clientQueueRequest)
+            await self.completeOnClientQueueResponse(for: [clientQueueRequest]) { _ in
+                continuation.resume(returning: nil)
+            }
 
-        return nil
+            await self.clientQueue.append(clientQueueRequest)
+        }
     }
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
@@ -568,6 +572,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
         }
 
         return await withCheckedContinuation { continuation in
+            
             await self.completeOnClientQueueResponse(for: requests) { _ in
                 continuation.resume(returning: nil)
             }

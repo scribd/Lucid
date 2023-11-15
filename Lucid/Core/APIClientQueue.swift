@@ -617,7 +617,7 @@ final actor APIClientQueueProcessor {
 
         self.client = client
         self.scheduler = scheduler
-        self.diskCache = diskCache
+        self.processorDiskCache = APIClientQueueProcessorDiskCache(diskCache: diskCache)
         self._responseHandlers = ResponseHandlers(values: responseHandlers)
         self.operationQueue = operationQueue
         self.scheduler.delegate = self

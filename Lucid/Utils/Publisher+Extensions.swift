@@ -153,9 +153,10 @@ public extension Publisher where Output: Sequence, Output.Element: Entity, Failu
         return when(updatingOneOf: nil, entityRules: .all)
     }
 
-    func when(updatingOneOf indices: [Output.Element.IndexName]?, entityRules: EntityMutationRule = .dataChangesOnly) -> AnySafePublisher<[(old: Output.Element?, new: Output.Element?)]> {
+    func when(updatingOneOf indices: [Output.Element.IndexName]?,
+              entityRules: EntityMutationRule = .dataChangesOnly,
+              on dispatchQueue: DispatchQueue = DispatchQueue(label: "\(Self.self):updates")) -> AnySafePublisher<[(old: Output.Element?, new: Output.Element?)]> {
         var _lastElements: DualHashDictionary<Output.Element.Identifier, Output.Element>?
-        let dispatchQueue = DispatchQueue(label: "\(Self.self):updates")
 
         return receive(on: dispatchQueue).compactMap { elements -> [(old: Output.Element?, new: Output.Element?)]? in
             defer { _lastElements = DualHashDictionary(elements.lazy.map { ($0.identifier, $0) }) }
@@ -291,7 +292,8 @@ public extension StoreError {
              .invalidContext,
              .identifierNotSynced,
              .identifierNotFound,
-             .emptyResponse:
+             .emptyResponse,
+             .enqueueingError:
             return false
         }
     }
@@ -311,7 +313,8 @@ public extension StoreError {
              .coreData,
              .invalidContext,
              .identifierNotSynced,
-             .identifierNotFound:
+             .identifierNotFound,
+             .enqueueingError:
             return false
         }
     }

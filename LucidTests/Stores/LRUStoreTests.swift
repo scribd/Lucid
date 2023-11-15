@@ -80,21 +80,20 @@ final class LRUStoreTests: XCTestCase {
 
         let entities = (0..<10).map { EntitySpy(idValue: .remote($0, nil)) }
 
-        await withTaskGroup(of: Void.self) { group in
+        await withCheckedContinuation { continuation in
             for entity in entities {
-                group.addTask {
-                    self.storeSpy.setResultStub = .success([entity])
-                    let result = await self.store.set(entity, in: WriteContext(dataTarget: .local))
-                    guard let result = result else {
-                        XCTFail("Unexpectedly received nil.")
-                        return
-                    }
+                self.storeSpy.setResultStub = .success([entity])
+                let result = await self.store.set(entity, in: WriteContext(dataTarget: .local))
+                guard let result = result else {
+                    XCTFail("Unexpectedly received nil.")
+                    return
+                }
 
-                    if case .failure(let error) = result {
-                        XCTFail("Unexpected error: \(error)")
-                    }
+                if case .failure(let error) = result {
+                    XCTFail("Unexpected error: \(error)")
                 }
             }
+            continuation.resume()
         }
 
         XCTAssertEqual(self.storeSpy.setCallCount, 10)
@@ -168,18 +167,17 @@ final class LRUStoreTests: XCTestCase {
         storeSpy.getResultStub = .success(QueryResult(from: EntitySpy()))
 
         let entities = (0..<10).map { EntitySpy(idValue: .remote($0, nil)) }
-        await withTaskGroup(of: Void.self) { group in
+        await withCheckedContinuation { continuation in
             for entity in entities {
-                group.addTask {
-                    self.storeSpy.setResultStub = .success([entity])
-                    let result = await self.store.set(entity, in: WriteContext(dataTarget: .local))
-                    if result == nil {
-                        XCTFail("Unexpectedly received nil.")
-                    } else if let error = result?.error {
-                        XCTFail("Unexpected error: \(error)")
-                    }
+                self.storeSpy.setResultStub = .success([entity])
+                let result = await self.store.set(entity, in: WriteContext(dataTarget: .local))
+                if result == nil {
+                    XCTFail("Unexpectedly received nil.")
+                } else if let error = result?.error {
+                    XCTFail("Unexpected error: \(error)")
                 }
             }
+            continuation.resume()
         }
 
         let result = await self.store.get(byID: EntitySpyIdentifier(value: .remote(5, nil)), in: self.context)
@@ -281,18 +279,17 @@ final class LRUStoreTests: XCTestCase {
 
         let entities = (0..<10).map { EntitySpy(idValue: .remote($0, nil)) }
 
-        await withTaskGroup(of: Void.self) { group in
+        await withCheckedContinuation { continuation in
             for entity in entities {
-                group.addTask {
-                    self.storeSpy.setResultStub = .success([entity])
-                    let result = await self.store.set(entity, in: WriteContext(dataTarget: .local))
-                    if result == nil {
-                        XCTFail("Unexpectedly received nil.")
-                    } else if let error = result?.error {
-                        XCTFail("Unexpected error: \(error)")
-                    }
+                self.storeSpy.setResultStub = .success([entity])
+                let result = await self.store.set(entity, in: WriteContext(dataTarget: .local))
+                if result == nil {
+                    XCTFail("Unexpectedly received nil.")
+                } else if let error = result?.error {
+                    XCTFail("Unexpected error: \(error)")
                 }
             }
+            continuation.resume()
         }
 
         let result = await self.store.get(byID: EntitySpyIdentifier(value: .remote(2, nil)), in: self.context)
@@ -375,31 +372,29 @@ final class LRUStoreTests: XCTestCase {
         storeSpy.getResultStub = .success(QueryResult(from: EntitySpy()))
 
         let entities = (0..<10).map { EntitySpy(idValue: .remote($0, nil)) }
-        await withTaskGroup(of: Void.self) { group in
+        await withCheckedContinuation { continuation in
             for entity in entities {
-                group.addTask {
-                    self.storeSpy.setResultStub = .success([entity])
-                    let result = await self.store.set(entity, in: WriteContext(dataTarget: .local))
-                    if result == nil {
-                        XCTFail("Unexpectedly received nil.")
-                    } else if let error = result?.error {
-                        XCTFail("Unexpected error: \(error)")
-                    }
+                self.storeSpy.setResultStub = .success([entity])
+                let result = await self.store.set(entity, in: WriteContext(dataTarget: .local))
+                if result == nil {
+                    XCTFail("Unexpectedly received nil.")
+                } else if let error = result?.error {
+                    XCTFail("Unexpected error: \(error)")
                 }
             }
+            continuation.resume()
         }
 
-        await withTaskGroup(of: Void.self) { group in
+        await withCheckedContinuation { continuation in
             for entity in entities {
-                group.addTask {
-                    let result = await self.store.remove(atID: entity.identifier, in: WriteContext(dataTarget: .local))
-                    if result == nil {
-                        XCTFail("Unexpectedly received nil.")
-                    } else if let error = result?.error {
-                        XCTFail("Unexpected error: \(error)")
-                    }
+                let result = await self.store.remove(atID: entity.identifier, in: WriteContext(dataTarget: .local))
+                if result == nil {
+                    XCTFail("Unexpectedly received nil.")
+                } else if let error = result?.error {
+                    XCTFail("Unexpected error: \(error)")
                 }
             }
+            continuation.resume()
         }
 
         XCTAssertEqual(self.storeSpy.removeCallCount, 10)

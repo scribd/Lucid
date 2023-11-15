@@ -22,6 +22,8 @@ class StoreTests: XCTestCase {
 
     var additionalWaitTime: TimeInterval? { return nil }
 
+    var dispatchQueue: DispatchQueue!
+
     override class var defaultTestSuite: XCTestSuite {
         return XCTestSuite(name: "StoreTests")
     }
@@ -30,30 +32,35 @@ class StoreTests: XCTestCase {
         super.setUp()
         LucidConfiguration.logger = LoggerMock()
         context = ReadContext<EntitySpy>()
+        dispatchQueue = DispatchQueue(label: "store_tests_queue")
 
         let expectation = self.expectation(description: "set_up")
-        asyncSetup {
+        asyncSetUp {
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: 5)
     }
 
     override func tearDown() {
-        defer { super.tearDown() }
-        context = nil
-        entityStore = nil
-        entityRelationshipStore = nil
-
         let expectation = self.expectation(description: "tear_down")
         asyncTearDown {
             expectation.fulfill()
         }
         wait(for: [expectation], timeout: 5)
+        
+        dispatchQueue.sync { }
+
+        context = nil
+        entityStore = nil
+        dispatchQueue = nil
+        entityRelationshipStore = nil
 
         EntitySpy.resetRecords()
+
+        super.tearDown()
     }
 
-    open func asyncSetup(_ completion: @escaping () -> Void) {
+    open func asyncSetUp(_ completion: @escaping () -> Void) {
         completion()
     }
 
@@ -342,7 +349,7 @@ class StoreTests: XCTestCase {
             }
         }
 
-        await waitForExpectations(timeout: 1)
+        await fulfillment(of: [expectation], timeout: 1)
     }
 
     func test_store_should_delete_an_entity() {

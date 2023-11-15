@@ -273,8 +273,9 @@ final class RemoteStoreTests: XCTestCase {
         }
 
         XCTAssertEqual(self.clientQueueSpy.appendInvocations.count, 2)
-        XCTAssertEqual(self.clientQueueSpy.appendInvocations.first?.wrapped.config, self.requestConfig)
-        XCTAssertEqual(self.clientQueueSpy.appendInvocations.last?.wrapped.config, requestConfig2)
+        let configInvocations = self.clientQueueSpy.appendInvocations.map { $0.wrapped.config }
+        XCTAssertTrue(configInvocations.contains(self.requestConfig))
+        XCTAssertTrue(configInvocations.contains(requestConfig2))
     }
 
     func test_two_gets_in_two_different_contexts_should_send_two_requests_to_the_client_using_endpoint_derived_from_entity_type() {
@@ -457,10 +458,7 @@ final class RemoteStoreTests: XCTestCase {
         store.remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: WriteContext(dataTarget: .localAndRemote(endpoint: .derivedFromEntityType))) { result in
             switch result {
             case .some(.success):
-                XCTAssertNotEqual(self.store.level, .remote)
-                XCTAssertEqual(EntitySpy.remotePathRecords.count, 1)
-                XCTAssertEqual(EntitySpy.remotePathRecords.first, .remove(EntitySpyIdentifier(value: .remote(42, nil))))
-                XCTAssertEqual(self.clientQueueSpy.appendInvocations.first?.wrapped.config.path, .path("fake_entity") / "42")
+                XCTFail("Unexpected value")
             case .some(.failure(let error)):
                 XCTFail("Unexpected error: \(error)")
             case .none:
@@ -1464,10 +1462,7 @@ final class RemoteStoreTests: XCTestCase {
         store.remove(atID: EntitySpyIdentifier(value: .remote(42, nil)), in: writeContext) { result in
             switch result {
             case .some(.success):
-                XCTAssertNotEqual(self.store.level, .remote)
-                XCTAssertEqual(EntitySpy.remotePathRecords.count, 1)
-                XCTAssertEqual(EntitySpy.remotePathRecords.first, .remove(EntitySpyIdentifier(value: .remote(42, nil))))
-                XCTAssertEqual(self.clientQueueSpy.appendInvocations.first?.wrapped.config.path, .path("fake_entity") / "42")
+                XCTFail("Unexpected value")
             case .some(.failure(let error)):
                 XCTFail("Unexpected error: \(error)")
             case .none:
@@ -1730,7 +1725,7 @@ final class RemoteStoreTests: XCTestCase {
             XCTAssertEqual(queryResult.isEmpty, false)
 
             let query = Query<EntitySpy>(filter: .title == .string("fake_title"))
-            let secondResult = await self.store.search(withQuery: query, in: self.requestContext)
+            _ = await self.store.search(withQuery: query, in: self.requestContext)
             switch result {
             case .success(let entities):
                 XCTAssertEqual(entities.isEmpty, false)
@@ -1797,8 +1792,6 @@ final class RemoteStoreTests: XCTestCase {
     func test_two_searches_in_two_different_contexts_should_send_two_requests_to_the_client_using_request_endpoint_async() async {
 
         clientQueueSpy.responseStubs[requestConfig] = APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))
-
-        let dispatchGroup = DispatchGroup()
 
         let requestContext1 = ReadContext<EntitySpy>(dataSource: .remoteOrLocal(
             endpoint: .request(requestConfig,

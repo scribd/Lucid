@@ -43,8 +43,8 @@ final class CoreManagerPropertyTests: XCTestCase {
         let property = await CoreManagerProperty<Int>()
 
         do {
-            Task {
-                try? await Task.sleep(nanoseconds: 10000000)
+            Task(priority: .low) {
+                try? await Task.sleep(nanoseconds: NSEC_PER_MSEC)
                 await property.update(with: 5)
             }
 
@@ -83,8 +83,8 @@ final class CoreManagerPropertyTests: XCTestCase {
         let property = await CoreManagerProperty<Int>()
 
         do {
-            Task {
-                try? await Task.sleep(nanoseconds: 100000)
+            Task(priority: .low) {
+                try? await Task.sleep(nanoseconds: NSEC_PER_MSEC)
                 await property.update(with: 5)
                 await property.update(with: 5)
                 await property.update(with: 17)
@@ -128,7 +128,6 @@ final class CoreManagerPropertyTests: XCTestCase {
         let delegateExpectation = self.expectation(description: "delegate_called_expectation")
         let asyncTasks = AsyncTasks()
 
-
         Task(priority: .high) {
             await property.setDidRemoveLastObserver {
                 delegateExpectation.fulfill()
@@ -167,15 +166,15 @@ final class CoreManagerPropertyTests: XCTestCase {
             }
         }.store(in: asyncTasks)
 
-        Task(priority: .low) {
-            try? await Task.sleep(nanoseconds: 100000)
+        Task(priority: .background) {
+            try? await Task.sleep(nanoseconds: NSEC_PER_MSEC * 100)
             await property.update(with: 5)
-            try? await Task.sleep(nanoseconds: 100000)
+            try? await Task.sleep(nanoseconds: NSEC_PER_MSEC)
             await property.update(with: 17)
-            try? await Task.sleep(nanoseconds: 100000)
+            try? await Task.sleep(nanoseconds: NSEC_PER_MSEC)
             await property.update(with: 20)
         }
 
-        wait(for: [delegateExpectation], timeout: 1)
+        await fulfillment(of: [delegateExpectation], timeout: 1)
     }
 }

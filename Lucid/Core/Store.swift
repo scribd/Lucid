@@ -24,6 +24,7 @@ public indirect enum StoreError: Error, Equatable {
     case identifierNotSynced
     case identifierNotFound
     case emptyResponse
+    case enqueueingError
 }
 
 // MARK: - StoreLevel

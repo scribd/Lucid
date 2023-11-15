@@ -16,9 +16,9 @@ public final class FakeStoreCounter {
 /**
  * This is just a simplified version of the InMemoryStore, altered to allow a fake StoreLevel.
  */
-public final class FakeStore<E>: StoringConvertible where E: LocalEntity {
+public final class FakeStore<E>: StoringConvertible where E: LocalEntity, E: RemoteEntity, E.Identifier.RemoteValueType == Int, E.Identifier.LocalValueType == String {
 
-    private var _cache = DualHashDictionary<E.Identifier, E>()
+    private var _cache = [FakeStoreKey: E]()
 
     public let level: StoreLevel
 
@@ -32,16 +32,16 @@ public final class FakeStore<E>: StoringConvertible where E: LocalEntity {
     }
 
     public func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
-        if let identifier = query.identifier {
-            completion(.success(QueryResult(from: self._cache[identifier])))
+        if let identifierValue = query.identifier?.identifierValue {
+            completion(.success(QueryResult(from: self._cache[identifierValue])))
         } else {
             completion(.failure(.identifierNotFound))
         }
     }
 
     public func get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
-        if let identifier = query.identifier {
-            return .success(QueryResult(from: self._cache[identifier]))
+        if let identifierValue = query.identifier?.identifierValue {
+            return .success(QueryResult(from: self._cache[identifierValue]))
         } else {
             return .failure(.identifierNotFound)
         }
@@ -59,10 +59,11 @@ public final class FakeStore<E>: StoringConvertible where E: LocalEntity {
         var mergedEntities: [E] = []
         for entity in entities {
             var mergedEntity = entity
-            if let existingEntity = self._cache[entity.identifier] {
+            let identifierValue = entity.identifier.identifierValue
+            if let existingEntity = self._cache[identifierValue] {
                 mergedEntity = existingEntity.merging(entity)
             }
-            self._cache[entity.identifier] = mergedEntity
+            self._cache[identifierValue] = mergedEntity
             mergedEntities.append(mergedEntity)
         }
         completion(.success(mergedEntities.any))
@@ -72,10 +73,11 @@ public final class FakeStore<E>: StoringConvertible where E: LocalEntity {
         var mergedEntities: [E] = []
         for entity in entities {
             var mergedEntity = entity
-            if let existingEntity = self._cache[entity.identifier] {
+            let identifierValue = entity.identifier.identifierValue
+            if let existingEntity = self._cache[identifierValue] {
                 mergedEntity = existingEntity.merging(entity)
             }
-            self._cache[entity.identifier] = mergedEntity
+            self._cache[identifierValue] = mergedEntity
             mergedEntities.append(mergedEntity)
         }
         return .success(mergedEntities.any)
@@ -112,14 +114,14 @@ public final class FakeStore<E>: StoringConvertible where E: LocalEntity {
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
         for identifier in identifiers {
-            self._cache[identifier] = nil
+            self._cache[identifier.identifierValue] = nil
         }
         completion(.success(()))
     }
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
         for identifier in identifiers {
-            self._cache[identifier] = nil
+            self._cache[identifier.identifierValue] = nil
         }
         return .success(())
     }
@@ -130,11 +132,99 @@ public final class FakeStore<E>: StoringConvertible where E: LocalEntity {
 private extension FakeStore {
 
     func _collectEntities(for query: Query<E>) -> QueryResult<E> {
-        guard let filter = query.filter else {
-            return QueryResult(from: _cache, for: query).materialized
+        var dualHashCache = DualHashDictionary<E.Identifier, E>()
+        for (fakeStoreKey, entity) in _cache {
+            if E.self == EntitySpy.self,
+               let entitySpyIdentifier = EntitySpyIdentifier(fakeStoreKey: fakeStoreKey) as? E.Identifier {
+                dualHashCache[entitySpyIdentifier] = entity
+            } else if E.self == EntityRelationshipSpy.self,
+                      let entityRelationshipSpyIdentifier = EntityRelationshipSpyIdentifier(fakeStoreKey: fakeStoreKey) as? E.Identifier {
+                dualHashCache[entityRelationshipSpyIdentifier] = entity
+            }
+
         }
-        return QueryResult(from: _cache.filter(with: filter),
+        guard let filter = query.filter else {
+            return QueryResult(from: dualHashCache, for: query).materialized
+        }
+        return QueryResult(from: dualHashCache.filter(with: filter),
                            for: query,
-                           entitiesByID: _cache).materialized
+                           entitiesByID: dualHashCache).materialized
+    }
+}
+
+private extension RemoteIdentifier where RemoteValueType == Int, LocalValueType == String {
+
+    var identifierValue: FakeStoreKey {
+        switch value {
+        case .remote(let remoteValue, let localValue):
+            if let localValue {
+                return .remoteAndLocal(remoteValue, localValue)
+            } else {
+                return .remote(remoteValue)
+            }
+        case .local(let localValue):
+            return .local(localValue)
+        }
+    }
+}
+
+// MARK: - Helpers
+
+private enum FakeStoreKey: Hashable {
+    case remoteAndLocal(Int, String)
+    case remote(Int)
+    case local(String)
+}
+
+private extension EntitySpyIdentifier {
+
+    convenience init(fakeStoreKey: FakeStoreKey) {
+        switch fakeStoreKey {
+        case .remoteAndLocal(let remoteValue, let localValue):
+            self.init(value: .remote(remoteValue, localValue))
+        case .remote(let remoteValue):
+            self.init(value: .remote(remoteValue, nil))
+        case .local(let localValue):
+            self.init(value: .local(localValue))
+        }
+    }
+}
+
+private extension EntityRelationshipSpyIdentifier {
+
+    convenience init(fakeStoreKey: FakeStoreKey) {
+        switch fakeStoreKey {
+        case .remoteAndLocal(let remoteValue, let localValue):
+            self.init(value: .remote(remoteValue, localValue))
+        case .remote(let remoteValue):
+            self.init(value: .remote(remoteValue, nil))
+        case .local(let localValue):
+            self.init(value: .local(localValue))
+        }
+    }
+}
+
+extension FakeStoreKey: Equatable {
+
+    static func == (lhs: FakeStoreKey, rhs: FakeStoreKey) -> Bool {
+        switch (lhs, rhs) {
+        case (.remoteAndLocal(let lhsRemoteValue, let lhsLocalValue), .remoteAndLocal(let rhsRemoteValue, let rhsLocalValue)):
+            return lhsRemoteValue == rhsRemoteValue
+                && lhsLocalValue == rhsLocalValue
+        case (.remote(let lhsRemoteValue), .remote(let rhsRemoteValue)):
+            return lhsRemoteValue == rhsRemoteValue
+        case (.local(let lhsLocalValue), .local(let rhsLocalValue)):
+            return lhsLocalValue == rhsLocalValue
+        case (.remoteAndLocal(_, let lhsLocalValue), .local(let rhsLocalValue)):
+            return lhsLocalValue == rhsLocalValue
+        case (.remoteAndLocal(let lhsRemoteValue, _), .remote(let rhsRemoteValue)):
+            return lhsRemoteValue == rhsRemoteValue
+        case (.local(let lhsLocalValue), .remoteAndLocal(_, let rhsLocalValue)):
+            return lhsLocalValue == rhsLocalValue
+        case (.remote(let lhsRemoteValue), .remoteAndLocal(let rhsRemoteValue, _)):
+            return lhsRemoteValue == rhsRemoteValue
+        default:
+            return false
+        }
     }
 }

@@ -16,13 +16,22 @@ public final class CacheStore<E>: StoringConvertible where E: LocalEntity {
 
     public let level: StoreLevel
 
-    private let operationQueue = AsyncOperationQueue()
+    private let operationQueue: AsyncOperationQueue
 
     private let asyncTaskQueue = AsyncTaskQueue()
 
     // MARK: - Inits
 
-    public init(keyValueStore: Storing<E>, persistentStore: Storing<E>) {
+    convenience public init(keyValueStore: Storing<E>, persistentStore: Storing<E>) {
+        self.init(keyValueStore: keyValueStore,
+                  persistentStore: persistentStore,
+                  dispatchQueue: DispatchQueue(label: "\(CacheStore<E>.self):combine_operations"))
+    }
+
+    init(keyValueStore: Storing<E>, persistentStore: Storing<E>, dispatchQueue: DispatchQueue) {
+
+        self.operationQueue = AsyncOperationQueue(dispatchQueue: dispatchQueue)
+
         if keyValueStore.level != .memory {
             Logger.log(.error, "\(CacheStore<E>.self) keyValueStore must be a memory store", assert: true)
         }

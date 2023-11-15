@@ -1002,6 +1002,21 @@ extension APIRequestConfig.QueryValue {
                     throw URLEncodingError.missingIdentifier
                 }
             }
+
+            // https://developer.apple.com/documentation/foundation/url/3126806-init
+            #if os(iOS)
+                if #available(iOS 17.0, *) {
+                    return encodedValues.map { "\(encodedKey)%5B%5D=\($0)" }.joined(separator: "&")
+                }
+            #elseif os(macOS)
+                if #available(macOS 14.0, *) {
+                    return encodedValues.map { "\(encodedKey)%5B%5D=\($0)" }.joined(separator: "&")
+                }
+            #elseif os(watchOS)
+                if #available(watchOS 10.0, *) {
+                    return encodedValues.map { "\(encodedKey)%5B%5D=\($0)" }.joined(separator: "&")
+                }
+            #endif
             return encodedValues.map { "\(encodedKey)[]=\($0)" }.joined(separator: "&")
         }
     }
@@ -1021,13 +1036,7 @@ extension APIRequestConfig.QueryValue {
 
     public static let allowedCharacterSet: CharacterSet = {
         // https://tools.ietf.org/html/rfc3986#section-2.2
-        let reservedCharacterSet: CharacterSet
-        if #available(iOS 17.0, *) {
-            // https://developer.apple.com/documentation/foundation/url/3126806-init
-            reservedCharacterSet = CharacterSet(charactersIn: ":/?#[]@!$&'()+,;")
-        } else {
-            reservedCharacterSet = CharacterSet(charactersIn: ":/?#[]@!$&'()+,;=")
-        }
+        let reservedCharacterSet = CharacterSet(charactersIn: ":/?#[]@!$&'()+,;=")
         let urlQueryAllowedCharacterSet = CharacterSet.urlQueryAllowed
         return urlQueryAllowedCharacterSet.subtracting(reservedCharacterSet)
     }()
@@ -1246,9 +1255,29 @@ extension APIRequestConfig {
         if !queryString.isEmpty {
             queryString = "?" + queryString
         }
-        guard let url = URL(string: host + "/" + path.description + queryString) else {
+
+        // https://developer.apple.com/documentation/foundation/url/3126806-init
+        var url: URL?
+        #if os(iOS)
+            if #available(iOS 17.0, *) {
+                url = URL(string: host + "/" + path.description + queryString, encodingInvalidCharacters: false)
+            }
+        #elseif os(macOS)
+            if #available(macOS 14.0, *) {
+                url = URL(string: host + "/" + path.description + queryString, encodingInvalidCharacters: false)
+            }
+        #elseif os(watchOS)
+            if #available(watchOS 10.0, *) {
+                url = URL(string: host + "/" + path.description + queryString, encodingInvalidCharacters: false)
+            }
+        #endif
+        if url == nil {
+            url = URL(string: host + "/" + path.description + queryString)
+        }
+        guard let url else {
             return nil
         }
+
         var urlRequest = URLRequest(url: url, cachePolicy: urlCachePolicy)
         for (key, value) in headers.orderedKeyValues {
             urlRequest.setValue("\(value)", forHTTPHeaderField: key)

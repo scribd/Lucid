@@ -450,14 +450,19 @@ public final class CoreManager<E> where E: Entity {
 
     private let propertyCache = PropertyCache()
 
-    private let combineOperationQueue = AsyncOperationQueue()
+    private let combineOperationQueue: AsyncOperationQueue
     private let updatesMetadataQueue = DispatchQueue(label: "\(CoreManager.self):updates_metadata")
     private var _updatesMetadata = DualHashDictionary<E.Identifier, UpdateTime>()
 
     // MARK: - Inits
 
-    public init(stores: [Storing<E>]) {
+    convenience public init(stores: [Storing<E>]) {
+        self.init(stores: stores, dispatchQueue: DispatchQueue(label: "\(CoreManager<E>.self):combine_operations"))
+    }
+
+    init(stores: [Storing<E>], dispatchQueue: DispatchQueue) {
         self.stores = stores
+        self.combineOperationQueue = AsyncOperationQueue(dispatchQueue: dispatchQueue)
         localStore = StoreStack(stores: stores.local(), queues: storeStackQueues)
     }
 
@@ -497,11 +502,14 @@ private extension CoreManager {
              in context: ReadContext<E>) -> AnyPublisher<QueryResult<E>, ManagerError> {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task {
+            Task(priority: .low) {
                 do {
-                    completion()
-                    let result = try await self.get(withQuery: query, in: context)
-                    promise(.success(result))
+                    async let result = try await self.get(withQuery: query, in: context)
+                    Task(priority: .low) {
+                        try? await Task.sleep(nanoseconds: NSEC_PER_MSEC / 10) // 0.1 milliseconds
+                        completion()
+                    }
+                    try await promise(.success(result))
                 } catch let error as ManagerError {
                     promise(.failure(error))
                 }
@@ -533,7 +541,7 @@ private extension CoreManager {
 
             if localResult.entity != nil {
                 if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
-                    Task {
+                    Task(priority: .high) {
                         _ = try? await self.get(withQuery: query, in: remoteContext)
                     }
                 }
@@ -683,7 +691,7 @@ private extension CoreManager {
 
             if hasAllIdentifiersLocally || hasResultsForComplexSearch {
                 if context.shouldFetchFromRemoteWhileFetchingFromLocalStore {
-                    Task {
+                    Task(priority: .high) {
                         _ = try await overwriteSearches(nil).once
                     }
                 }
@@ -739,7 +747,7 @@ private extension CoreManager {
                             let finalEntitiesToUpdate = entitiesToUpdate
                             await withTaskGroup(of: Void.self) { group in
                                 if finalEntitiesToUpdate.isEmpty == false {
-                                    group.addTask {
+                                    group.addTask(priority: .high) {
                                         let result = await self.localStore.set(finalEntitiesToUpdate, in: WriteContext(dataTarget: .local))
                                         if let error = result?.error {
                                             Logger.log(.error, "\(CoreManager.self): An error occurred while writing entities: \(error)", assert: true)
@@ -748,7 +756,7 @@ private extension CoreManager {
                                 }
 
                                 if finalIdentifiersToDelete.isEmpty == false {
-                                    group.addTask {
+                                    group.addTask(priority: .high) {
                                         let result = await self.localStore.remove(finalIdentifiersToDelete, in: WriteContext(dataTarget: .local))
                                         if let error = result?.error {
                                             Logger.log(.error, "\(CoreManager.self): An error occurred while deleting entities: \(error)", assert: true)
@@ -781,7 +789,7 @@ private extension CoreManager {
                             return remoteResults
                         }
                     } else {
-                        Task {
+                        Task(priority: .high) {
                             await property.update(with: remoteResults)
                         }
                         return remoteResults
@@ -808,7 +816,7 @@ private extension CoreManager {
         let continuous = AsyncStream<QueryResult<E>>() { continuation in
 
             let iterator = property.stream.makeAsyncIterator()
-            let task = Task {
+            let task = Task(priority: .high) {
                 for try await value in iterator {
                     guard let value = (value ?? nil) else { continue }
                     continuation.yield(value)
@@ -817,7 +825,7 @@ private extension CoreManager {
 
             continuation.onTermination = { _ in
                 task.cancel()
-                Task {
+                Task(priority: .high) {
                     await property.stream.cancelIterator(iterator)
                 }
             }
@@ -833,11 +841,14 @@ private extension CoreManager {
              in context: WriteContext<E>) -> AnyPublisher<E, ManagerError> {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task {
+            Task(priority: .low) {
                 do {
-                    completion()
-                    let result = try await self.set(entity, in: context)
-                    promise(.success(result))
+                    async let result = try await self.set(entity, in: context)
+                    Task(priority: .low) {
+                        try? await Task.sleep(nanoseconds: NSEC_PER_MSEC / 10) // 0.1 milliseconds
+                        completion()
+                    }
+                    try await promise(.success(result))
                 } catch let error as ManagerError {
                     promise(.failure(error))
                 }
@@ -912,11 +923,14 @@ private extension CoreManager {
         let entities = Array(entities)
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task {
+            Task(priority: .low) {
                 do {
-                    completion()
-                    let result = try await self.set(entities, in: context)
-                    promise(.success(result))
+                    async let result = try await self.set(entities, in: context)
+                    Task(priority: .low) {
+                        try? await Task.sleep(nanoseconds: NSEC_PER_MSEC / 10) // 0.1 milliseconds
+                        completion()
+                    }
+                    try await promise(.success(result))
                 } catch let error as ManagerError {
                     promise(.failure(error))
                 }
@@ -1001,11 +1015,14 @@ private extension CoreManager {
                    in context: WriteContext<E>) -> AnyPublisher<AnySequence<E.Identifier>, ManagerError> {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task {
+            Task(priority: .low) {
                 do {
-                    completion()
-                    let result = try await self.removeAll(withQuery: query, in: context)
-                    promise(.success(result))
+                    async let result = try await self.removeAll(withQuery: query, in: context)
+                    Task(priority: .low) {
+                        try? await Task.sleep(nanoseconds: NSEC_PER_MSEC / 10) // 0.1 milliseconds
+                        completion()
+                    }
+                    try await promise(.success(result))
                 } catch let error as ManagerError {
                     promise(.failure(error))
                 }
@@ -1092,10 +1109,14 @@ private extension CoreManager {
                 in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task {
+            Task(priority: .low) {
                 do {
-                    completion()
-                    try await self.remove(atID: identifier, in: context)
+                    async let result: Void = try await self.remove(atID: identifier, in: context)
+                    Task(priority: .low) {
+                        try? await Task.sleep(nanoseconds: NSEC_PER_MSEC / 10) // 0.1 milliseconds
+                        completion()
+                    }
+                    try await result
                     promise(.success(()))
                 } catch let error as ManagerError {
                     promise(.failure(error))
@@ -1150,10 +1171,14 @@ private extension CoreManager {
                    in context: WriteContext<E>) -> AnyPublisher<Void, ManagerError> where S: Sequence, S.Element == E.Identifier {
 
         return Publishers.QueuedReplayOnce(combineOperationQueue) { promise, completion in
-            Task {
+            Task(priority: .low) {
                 do {
-                    completion()
-                    try await self.remove(identifiers, in: context)
+                    async let result: Void = try await self.remove(identifiers, in: context)
+                    Task(priority: .low) {
+                        try? await Task.sleep(nanoseconds: NSEC_PER_MSEC / 10) // 0.1 milliseconds
+                        completion()
+                    }
+                    try await result
                     promise(.success(()))
                 } catch let error as ManagerError {
                     promise(.failure(error))
@@ -1429,8 +1454,9 @@ private extension ReadContext {
 
 private extension WriteContext {
 
-    func storeStack<E: Entity>(with stores: [Storing<E>], queues: StoreStackQueues<E>) -> StoreStack<E> {
-        var filteredStores: [Storing<E>]
+    func storeStack<T: Entity>(with stores: [Storing<T>], queues: StoreStackQueues<T>) -> StoreStack<T> {
+
+        var filteredStores: [Storing<T>]
         switch dataTarget {
         case .remote:
             filteredStores = stores.remote()
@@ -1487,7 +1513,7 @@ private extension CoreManager {
 
         let results = results.materialized
 
-        Task {
+        Task(priority: .high) {
             do {
                 try await self.raiseEventsTaskQueue.enqueueBarrier { operationCompletion in
                     defer { operationCompletion() }
@@ -1559,7 +1585,7 @@ private extension CoreManager {
     }
 
     func raiseDeleteEvents(_ deletedIDs: DualHashSet<E.Identifier>) {
-        Task {
+        Task(priority: .high) {
             do {
                 try await self.raiseEventsTaskQueue.enqueueBarrier { operationCompletion in
                     defer { operationCompletion() }

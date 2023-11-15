@@ -118,7 +118,7 @@ final class CoreManagerCombineProperty<E: Entity, Failure: Error>: Publisher {
 
         let subscription = CoreManagerSubscription<S>(subscriber) { [weak self] in
             guard let self = self else { return }
-            Task {
+            Task(priority: .high) {
                 await self.asyncTasks.cancel()
             }
         }
@@ -139,6 +139,11 @@ final class CoreManagerCombineProperty<E: Entity, Failure: Error>: Publisher {
             isFirstSubscriber.value = true
 
             operationQueue.run(title: "\(CoreManagerCombineProperty.self):perform_task") { completion in
+                guard Task.isCancelled == false else {
+                    completion()
+                    return
+                }
+
                 guard subscription.didCancel != nil else {
                     completion()
                     return
@@ -146,7 +151,7 @@ final class CoreManagerCombineProperty<E: Entity, Failure: Error>: Publisher {
 
                 switch self.type {
                 case .once:
-                    Task {
+                    Task(priority: .medium) {
                         do {
                             let result = try await self.signals().once
                             completion()

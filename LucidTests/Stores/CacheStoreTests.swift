@@ -14,6 +14,8 @@ import XCTest
 
 final class CacheStoreTests: StoreTests {
 
+    private var relationshipDispatchQueue: DispatchQueue!
+
     override var additionalWaitTime: TimeInterval? {
         return 0.1
     }
@@ -26,19 +28,26 @@ final class CacheStoreTests: StoreTests {
                 store: InMemoryStore().storing,
                 limit: 10
             ).storing,
-            persistentStore: CoreDataStore(coreDataManager: StubCoreDataManagerFactory.shared).storing
+            persistentStore: CoreDataStore(coreDataManager: StubCoreDataManagerFactory.shared).storing,
+            dispatchQueue: dispatchQueue
         ).storing
+
+        relationshipDispatchQueue = DispatchQueue(label: "\(CacheStoreTests.self):relatonship_store_test_queue")
 
         entityRelationshipStore = CacheStore<EntityRelationshipSpy>(
             keyValueStore: LRUStore(
                 store: InMemoryStore().storing,
                 limit: 10
             ).storing,
-            persistentStore: CoreDataStore(coreDataManager: StubCoreDataManagerFactory.shared).storing
+            persistentStore: CoreDataStore(coreDataManager: StubCoreDataManagerFactory.shared).storing,
+            dispatchQueue: relationshipDispatchQueue
         ).storing
     }
 
     override func asyncTearDown(_ completion: @escaping () -> Void) {
+        relationshipDispatchQueue.sync { }
+        relationshipDispatchQueue = nil
+
         StubCoreDataManagerFactory.shared.clearDatabase { success in
             if success == false {
                 XCTFail("Did not clear database successfully.")
@@ -303,7 +312,8 @@ final class CacheStoreTests: StoreTests {
 
         let entityStore = CacheStore<CacheStoreEntitySpy>(
             keyValueStore: memoryStoreSpy.storing,
-            persistentStore: diskStoreSpy.storing
+            persistentStore: diskStoreSpy.storing,
+            dispatchQueue: dispatchQueue
         ).storing
 
         let localEntity = CacheStoreEntitySpy(additionalValue: false)
@@ -339,7 +349,8 @@ final class CacheStoreTests: StoreTests {
 
         let entityStore = CacheStore<CacheStoreEntitySpy>(
             keyValueStore: memoryStoreSpy.storing,
-            persistentStore: diskStoreSpy.storing
+            persistentStore: diskStoreSpy.storing,
+            dispatchQueue: dispatchQueue
         ).storing
 
         let localEntity = CacheStoreEntitySpy(additionalValue: false)
@@ -369,7 +380,8 @@ final class CacheStoreTests: StoreTests {
 
         let entityStore = CacheStore<CacheStoreEntitySpy>(
             keyValueStore: memoryStoreSpy.storing,
-            persistentStore: diskStoreSpy.storing
+            persistentStore: diskStoreSpy.storing,
+            dispatchQueue: dispatchQueue
         ).storing
 
         let localEntity = CacheStoreEntitySpy(additionalValue: false)
@@ -407,7 +419,8 @@ final class CacheStoreTests: StoreTests {
 
         let entityStore = CacheStore<CacheStoreEntitySpy>(
             keyValueStore: memoryStoreSpy.storing,
-            persistentStore: diskStoreSpy.storing
+            persistentStore: diskStoreSpy.storing,
+            dispatchQueue: dispatchQueue
         ).storing
 
         let localEntity = CacheStoreEntitySpy(additionalValue: false)
@@ -439,7 +452,8 @@ final class CacheStoreTests: StoreTests {
 
         let entityStore = CacheStore<EntitySpy>(
             keyValueStore: memoryStoreSpy.storing,
-            persistentStore: diskStoreSpy.storing
+            persistentStore: diskStoreSpy.storing,
+            dispatchQueue: dispatchQueue
         ).storing
 
         let localEntity = EntitySpy(idValue: .remote(42, nil), title: "test")
@@ -475,7 +489,8 @@ final class CacheStoreTests: StoreTests {
 
         let entityStore = CacheStore<EntitySpy>(
             keyValueStore: memoryStoreSpy.storing,
-            persistentStore: diskStoreSpy.storing
+            persistentStore: diskStoreSpy.storing,
+            dispatchQueue: dispatchQueue
         ).storing
 
         let localEntity = EntitySpy(idValue: .remote(42, nil), title: "test")
@@ -505,7 +520,8 @@ final class CacheStoreTests: StoreTests {
 
         let entityStore = CacheStore<EntitySpy>(
             keyValueStore: memoryStoreSpy.storing,
-            persistentStore: diskStoreSpy.storing
+            persistentStore: diskStoreSpy.storing,
+            dispatchQueue: dispatchQueue
         ).storing
 
         let localEntity = EntitySpy(idValue: .remote(42, nil), title: "test")
@@ -543,7 +559,8 @@ final class CacheStoreTests: StoreTests {
 
         let entityStore = CacheStore<EntitySpy>(
             keyValueStore: memoryStoreSpy.storing,
-            persistentStore: diskStoreSpy.storing
+            persistentStore: diskStoreSpy.storing,
+            dispatchQueue: dispatchQueue
         ).storing
 
         let localEntity = EntitySpy(idValue: .remote(42, nil), title: "test")

@@ -86,7 +86,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         XCTAssertTrue(processDelegateSpy.prependInvocations.isEmpty)
 
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
 
@@ -94,19 +94,19 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(processDelegateSpy.prependInvocations.first, mockQueueRequest)
     }
 
-    func test_processor_with_existing_cached_operation_does_not_process_at_setup() {
+    func test_processor_with_existing_cached_operation_does_not_process_at_setup() async {
         let request = APIRequest<Data>(method: .post, path: .path("fake_path"))
         let mockQueueRequest = APIClientQueueRequest(wrapping: request)
         diskCacheSpy.values = ["APIClientQueueProcessorCacheKey": mockQueueRequest]
 
         XCTAssertEqual(schedulerSpy.didEnqueueNewRequestCallCount, 0)
 
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         XCTAssertEqual(schedulerSpy.didEnqueueNewRequestCallCount, 0)
     }
 
-    func test_processor_sets_up_scheduler_as_delegate() {
+    func test_processor_sets_up_scheduler_as_delegate() async {
         XCTAssertTrue(schedulerSpy.delegate === processor)
     }
 
@@ -139,14 +139,14 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_asks_delegate_for_next_request() async {
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
         XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 0)
         await processor.processNext()
         XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 1)
     }
 
     func test_processor_tells_scheduler_false_if_no_requests_are_pending() async {
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
         let didProcessNext = await processor.processNext().didProcess
         XCTAssertFalse(didProcessNext)
     }
@@ -154,7 +154,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     func test_processor_tells_scheduler_true_if_there_is_a_pending_request() async {
         let request = APIRequest<Data>(method: .post, path: .path("fake_path"))
         processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs[request.config] = Result<APIClientResponse<Data>, APIError>.success(
             APIClientResponse(data: Data(), cachedResponse: false)
@@ -165,7 +165,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     }
 
     func test_processor_does_nothing_if_no_requests_are_pending() async {
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 0)
 
@@ -179,7 +179,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     func test_processor_calls_background_task_manager_function_begin_background_task_if_there_is_a_pending_post_request() async {
         let request = APIRequest<Data>(method: .post, path: .path("fake_path"))
         processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs[request.config] = Result<APIClientResponse<Data>, APIError>.success(
             APIClientResponse(data: Data(), cachedResponse: false)
@@ -199,7 +199,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     func test_processor_does_not_call_background_task_manager_function_begin_background_task_if_there_is_a_pending_get_request() async {
         let request = APIRequest<Data>(method: .get, path: .path("fake_path"))
         processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs[request.config] = Result<APIClientResponse<Data>, APIError>.success(
             APIClientResponse(data: Data(), cachedResponse: false)
@@ -220,9 +220,9 @@ final class APIClientQueueProcessorTests: XCTestCase {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
         let request = APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy)
         processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
-        clientSpy.completionDelay = 0.05
+        clientSpy.completionDelayInMilliseconds = 500
         clientSpy.resultStubs[request.config] = Result<APIClientResponse<Data>, APIError>.success(
             APIClientResponse(data: Data(), cachedResponse: false)
         )
@@ -230,26 +230,40 @@ final class APIClientQueueProcessorTests: XCTestCase {
         XCTAssertEqual(backgroundTaskManagerSpy.startInvocations.count, 0)
         XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 0)
 
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask {
-                await self.processor.processNext()
-            }
-            group.addTask {
-                await self.processor.processNext()
+        let asyncTasks = AsyncTasks()
+
+        await Task {
+            await self.processor.processNext()
+        }.storeAsync(in: asyncTasks)
+
+        await Task {
+            try? await Task.sleep(nanoseconds: NSEC_PER_MSEC * 100)
+            XCTAssertEqual(schedulerSpy.requestDidFailCallCount, 0)
+            XCTAssertEqual(schedulerSpy.requestDidSucceedCallCount, 0)
+            await self.processor.processNext()
+        }.storeAsync(in: asyncTasks)
+
+        await withCheckedContinuation { continuation in
+            Task {
+                try? await Task.sleep(nanoseconds: NSEC_PER_MSEC * 200)
+
+                XCTAssertEqual(backgroundTaskManagerSpy.startInvocations.count, 1)
+                XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 2)
+
+                continuation.resume()
             }
         }
 
-        XCTAssertEqual(backgroundTaskManagerSpy.startInvocations.count, 1)
-        XCTAssertEqual(processDelegateSpy.nextRequestInvocations, 1)
+        await asyncTasks.cancel()
     }
 
     func test_processor_does_attempt_to_process_request_if_already_running_concurrent_request() async {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .concurrent, retryPolicy: [])
         let request = APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy)
         processDelegateSpy.requestStub = APIClientQueueRequest(wrapping: request)
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
-        clientSpy.completionDelay = 0.05
+        clientSpy.completionDelayInMilliseconds = 50
         clientSpy.resultStubs[request.config] = Result<APIClientResponse<Data>, APIError>.success(
             APIClientResponse(data: Data(), cachedResponse: false)
         )
@@ -273,7 +287,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     func test_processor_attempts_to_process_after_finished_running() async {
         let request1 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path1")))
         let request2 = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path2")))
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request1.wrapped.config: Result<APIClientResponse<Data>, APIError>.success(
@@ -305,7 +319,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     func test_processor_calls_client_function_send_if_there_is_a_pending_request() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.success(
@@ -321,7 +335,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     func test_processor_tells_scheduler_request_succeeded_and_asks_for_next_request_for_result_success() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.success(
@@ -341,13 +355,13 @@ final class APIClientQueueProcessorTests: XCTestCase {
             expectation.fulfill()
         }
 
-        wait(for: [expectation], timeout: 1)
+        await fulfillment(of: [expectation], timeout: 1)
     }
 
     private func _testFailureStateWithAPIError(_ apiError: APIError) async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(apiError)
@@ -397,7 +411,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     func test_processor_tells_scheduler_request_failed_and_prepends_request_for_failure_with_error_no_internet_connection() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.notConnectedToInternet)))
@@ -419,7 +433,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     func test_processor_tells_scheduler_request_failed_and_prepends_request_for_failure_with_error_internet_connection_lost() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.networkConnectionLost)))
@@ -441,7 +455,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     func test_processor_tells_scheduler_request_failed_and_prepends_request_for_failure_with_error_internet_connection_timed_out() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.requestTimedOut)))
@@ -464,7 +478,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.notConnectedToInternet)))
@@ -487,7 +501,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.networkConnectionLost)))
@@ -510,7 +524,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.requestTimedOut)))
@@ -532,7 +546,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     func test_processor_tells_scheduler_request_failed_and_prepends_request_for_background_session_expired() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.networkConnectionLost)))
@@ -545,25 +559,38 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         clientSpy.requestWillComplete = false
 
-        await processor.processNext()
+        Task {
+            await processor.processNext()
+        }
 
-        await waitForAsyncQueues {
+        Task {
+            try? await Task.sleep(nanoseconds: NSEC_PER_MSEC * 10)
+            // expire background session
+            self.backgroundTaskManagerSpy.startInvocations.forEach { $0() }
+
+            try? await Task.sleep(nanoseconds: NSEC_PER_MSEC * 10)
             // expire background session
             self.backgroundTaskManagerSpy.startInvocations.forEach { $0() }
         }
 
-        await waitForAsyncQueues {
-            XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 1)
-            XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
-            XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 2)
-            XCTAssertEqual(self.processDelegateSpy.prependInvocations.first, request)
+        await withCheckedContinuation { continuation in
+            Task {
+                try? await Task.sleep(nanoseconds: NSEC_PER_MSEC * 100)
+
+                XCTAssertEqual(self.backgroundTaskManagerSpy.startInvocations.count, 1)
+                XCTAssertEqual(self.schedulerSpy.requestDidSucceedCallCount, 0)
+                XCTAssertEqual(self.schedulerSpy.requestDidFailCallCount, 2)
+                XCTAssertEqual(self.processDelegateSpy.prependInvocations.first, request)
+
+                continuation.resume()
+            }
         }
     }
 
     func test_processor_does_not_tell_scheduler_request_failed_or_prepend_request_for_background_session_expired_if_request_is_already_processed() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.success(
@@ -595,7 +622,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
         ])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         let error = NSError(domain: "test", code: 550)
         clientSpy.resultStubs = [
@@ -621,7 +648,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
         ])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         let error = NSError(domain: "test", code: 1008)
         clientSpy.resultStubs = [
@@ -648,7 +675,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
         ])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         let error = NSError(domain: "test", code: 1008)
         clientSpy.resultStubs = [
@@ -674,7 +701,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
         ])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         let error = NSError(domain: "test", code: 408)
         clientSpy.resultStubs = [
@@ -698,7 +725,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     func test_processor_should_call_response_handlers_after_process_is_complete_with_success() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.success(
@@ -719,7 +746,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
     func test_processor_should_call_response_handlers_after_process_is_complete_with_failure() async {
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path")))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.url)
@@ -741,7 +768,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onNetworkInterrupt])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.networkConnectionLost)))
@@ -760,7 +787,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.networkConnectionLost)))
@@ -780,7 +807,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.requestTimedOut)))
@@ -800,7 +827,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onRequestTimeout])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.requestTimedOut)))
@@ -819,7 +846,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
         let queueingStrategy = APIRequestConfig.QueueingStrategy(synchronization: .barrier, retryPolicy: [.onRequestTimeout])
         let request = APIClientQueueRequest(wrapping: APIRequest<Data>(method: .post, path: .path("fake_path"), queueingStrategy: queueingStrategy))
         processDelegateSpy.requestStub = request
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.networkConnectionLost)))
@@ -854,7 +881,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         processDelegateSpy.requestStub = request1
         processDelegateSpy.removeRequestsStub = [request2, request4]
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request1.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.networkConnectionLost)))
@@ -896,7 +923,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         processDelegateSpy.requestStub = request1
         processDelegateSpy.removeRequestsStub = [request2, request3]
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request1.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.requestTimedOut)))
@@ -936,7 +963,7 @@ final class APIClientQueueProcessorTests: XCTestCase {
 
         processDelegateSpy.requestStub = request1
         processDelegateSpy.removeRequestsStub = [request2, request3, request4]
-        processor.delegate = processDelegateSpy
+        await processor.setDelegate(processDelegateSpy)
 
         clientSpy.resultStubs = [
             request1.wrapped.config: Result<APIClientResponse<Data>, APIError>.failure(.network(.networkConnectionFailure(.requestTimedOut)))

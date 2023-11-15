@@ -23,7 +23,8 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
         context: _ReadContext<EntityEndpointResultPayloadSpy>
     )]()
 
-    public var getByIDsStubs: [AnyPublisher<[AnyEntitySpy], ManagerError>] = [Publishers.ReplayOnce(just: []).eraseToAnyPublisher()]
+    // [EntityRelationshipSpyIdentifier.RemoteValue: AnyEntitySpy]
+    public var getByIDsStubs: [Int: AnyPublisher<AnyEntitySpy, ManagerError>] = [:]
 
     public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
                     entityType: String,
@@ -31,14 +32,10 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
 
         getByIDsInvocations.append((identifiers.array, entityType, context))
 
-        guard getByIDsStubs.count >= getByIDsInvocations.count else {
-            XCTFail("Expected stub for call number \(getByIDsInvocations.count - 1)")
-            return Just([].any)
-                .setFailureType(to: ManagerError.self)
-                .eraseToAnyPublisher()
-        }
-
-        return getByIDsStubs[getByIDsInvocations.count - 1].map { $0.any }.eraseToAnyPublisher()
+        let relationshipIdentifiers: [EntityRelationshipSpyIdentifier] = identifiers.compactMap { $0.toRelationshipID() }
+        let remoteValues: [Int] = relationshipIdentifiers.compactMap { $0.value.remoteValue }
+        let publishers: [AnyPublisher<AnyEntitySpy, ManagerError>] = remoteValues.compactMap { getByIDsStubs[$0] }
+        return Publishers.MergeMany(publishers).collect().map { $0.any }.eraseToAnyPublisher()
     }
 
     public private(set) var getByIDsAsyncInvocations = [(
@@ -47,7 +44,8 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
         context: _ReadContext<EntityEndpointResultPayloadSpy>
     )]()
 
-    public var getByIDsAsyncStubs: [[AnyEntitySpy]] = []
+    // [EntityRelationshipSpyIdentifier.RemoteValue: AnyEntitySpy]
+    public var getByIDsAsyncStubs: [Int: AnyEntitySpy] = [:]
     public var getByIDsAsyncError: ManagerError? = nil
 
     public func get(byIDs identifiers: AnySequence<AnyRelationshipIdentifierConvertible>,
@@ -60,11 +58,8 @@ public final class RelationshipCoreManagerSpy: RelationshipCoreManaging {
             throw error
         }
 
-        guard getByIDsAsyncStubs.count >= getByIDsAsyncInvocations.count else {
-            XCTFail("Expected stub for call number \(getByIDsInvocations.count - 1)")
-            return [].any
-        }
-
-        return getByIDsAsyncStubs[getByIDsAsyncInvocations.count - 1].any
+        let relationshipIdentifiers: [EntityRelationshipSpyIdentifier] = identifiers.compactMap { $0.toRelationshipID() }
+        let remoteValues: [Int] = relationshipIdentifiers.compactMap { $0.value.remoteValue }
+        return remoteValues.compactMap { getByIDsAsyncStubs[$0] }.any
     }
 }

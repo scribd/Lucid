@@ -18,7 +18,15 @@ public final class FakeStoreCounter {
  */
 public final class FakeStore<E>: StoringConvertible where E: LocalEntity, E: RemoteEntity, E.Identifier.RemoteValueType == Int, E.Identifier.LocalValueType == String {
 
-    private var _cache = [FakeStoreKey: E]()
+    private actor FakeStoreCache {
+        var value = [FakeStoreKey: E]()
+
+        func set(value: E?, forKey key: FakeStoreKey) {
+            self.value[key] = value
+        }
+    }
+
+    private let _cache: FakeStoreCache = FakeStoreCache()
 
     public let level: StoreLevel
 
@@ -33,7 +41,10 @@ public final class FakeStore<E>: StoringConvertible where E: LocalEntity, E: Rem
 
     public func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
         if let identifierValue = query.identifier?.identifierValue {
-            completion(.success(QueryResult(from: self._cache[identifierValue])))
+            Task {
+                let cacheValue = await self._cache.value[identifierValue]
+                completion(.success(QueryResult(from: cacheValue)))
+            }
         } else {
             completion(.failure(.identifierNotFound))
         }
@@ -41,32 +52,38 @@ public final class FakeStore<E>: StoringConvertible where E: LocalEntity, E: Rem
 
     public func get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
         if let identifierValue = query.identifier?.identifierValue {
-            return .success(QueryResult(from: self._cache[identifierValue]))
+            let cacheValue = await self._cache.value[identifierValue]
+            return .success(QueryResult(from: cacheValue))
         } else {
             return .failure(.identifierNotFound)
         }
     }
 
     public func search(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
-        completion(.success(self._collectEntities(for: query)))
+        Task {
+            completion(.success(await self._collectEntities(for: query)))
+        }
     }
 
     public func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
-        return .success(self._collectEntities(for: query))
+        return .success(await self._collectEntities(for: query))
     }
 
     public func set<S>(_ entities: S, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void) where S: Sequence, S.Element == E {
-        var mergedEntities: [E] = []
-        for entity in entities {
-            var mergedEntity = entity
-            let identifierValue = entity.identifier.identifierValue
-            if let existingEntity = self._cache[identifierValue] {
-                mergedEntity = existingEntity.merging(entity)
+        Task {
+            var mergedEntities: [E] = []
+            for entity in entities {
+                var mergedEntity = entity
+                let identifierValue = entity.identifier.identifierValue
+
+                if let existingEntity = await self._cache.value[identifierValue] {
+                    mergedEntity = existingEntity.merging(entity)
+                }
+                await self._cache.set(value: mergedEntity, forKey: identifierValue)
+                mergedEntities.append(mergedEntity)
             }
-            self._cache[identifierValue] = mergedEntity
-            mergedEntities.append(mergedEntity)
+            completion(.success(mergedEntities.any))
         }
-        completion(.success(mergedEntities.any))
     }
 
     public func set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where S: Sequence, S.Element == E {
@@ -74,32 +91,34 @@ public final class FakeStore<E>: StoringConvertible where E: LocalEntity, E: Rem
         for entity in entities {
             var mergedEntity = entity
             let identifierValue = entity.identifier.identifierValue
-            if let existingEntity = self._cache[identifierValue] {
+            if let existingEntity = await self._cache.value[identifierValue] {
                 mergedEntity = existingEntity.merging(entity)
             }
-            self._cache[identifierValue] = mergedEntity
+            await self._cache.set(value: mergedEntity, forKey: identifierValue)
             mergedEntities.append(mergedEntity)
         }
         return .success(mergedEntities.any)
     }
 
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void) {
-        let results = self._collectEntities(for: query)
-        let identifiers = results.any.lazy.map { $0.identifier }
-        self.remove(identifiers, in: context) { result in
-            switch result {
-            case .some(.success):
-                completion(.success(identifiers.any))
-            case .some(.failure(let error)):
-                completion(.failure(error))
-            case .none:
-                completion(.failure(.notSupported))
+        Task {
+            let results = await self._collectEntities(for: query)
+            let identifiers = results.any.lazy.map { $0.identifier }
+            self.remove(identifiers, in: context) { result in
+                switch result {
+                case .some(.success):
+                    completion(.success(identifiers.any))
+                case .some(.failure(let error)):
+                    completion(.failure(error))
+                case .none:
+                    completion(.failure(.notSupported))
+                }
             }
         }
     }
 
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
-        let results = self._collectEntities(for: query)
+        let results = await self._collectEntities(for: query)
         let identifiers = results.any.lazy.map { $0.identifier }
         let result = await self.remove(identifiers, in: context)
         switch result {
@@ -113,15 +132,17 @@ public final class FakeStore<E>: StoringConvertible where E: LocalEntity, E: Rem
     }
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
-        for identifier in identifiers {
-            self._cache[identifier.identifierValue] = nil
+        Task {
+            for identifier in identifiers {
+                await self._cache.set(value: nil, forKey: identifier.identifierValue)
+            }
+            completion(.success(()))
         }
-        completion(.success(()))
     }
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
-        for identifier in identifiers {
-            self._cache[identifier.identifierValue] = nil
+        await identifiers.asyncForEach { identifier in
+            await self._cache.set(value: nil, forKey: identifier.identifierValue)
         }
         return .success(())
     }
@@ -131,9 +152,9 @@ public final class FakeStore<E>: StoringConvertible where E: LocalEntity, E: Rem
 
 private extension FakeStore {
 
-    func _collectEntities(for query: Query<E>) -> QueryResult<E> {
+    func _collectEntities(for query: Query<E>) async -> QueryResult<E> {
         var dualHashCache = DualHashDictionary<E.Identifier, E>()
-        for (fakeStoreKey, entity) in _cache {
+        for (fakeStoreKey, entity) in await _cache.value {
             if E.self == EntitySpy.self,
                let entitySpyIdentifier = EntitySpyIdentifier(fakeStoreKey: fakeStoreKey) as? E.Identifier {
                 dualHashCache[entitySpyIdentifier] = entity

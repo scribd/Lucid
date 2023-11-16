@@ -28,15 +28,8 @@ public final class StubCoreDataManagerFactory {
             }
             return URL(fileURLWithPath: "\(appSupportDirectory)/\(modelName).sqlite")
         }
-
-        static var stubDispatchQueue: DispatchQueue {
-            return DispatchQueue(label: "\(StubCoreDataManagerFactory.self)")
-        }
     }
 
-    public static let stubDispatchQueue: DispatchQueue = Defaults.stubDispatchQueue
-
     public static let shared: CoreDataManager = CoreDataManager(modelURL: Defaults.modelURL,
-                                                                persistentStoreURL: Defaults.persistentStoreURL,
-                                                                dispatchQueue: stubDispatchQueue)
+                                                                persistentStoreURL: Defaults.persistentStoreURL)
 }

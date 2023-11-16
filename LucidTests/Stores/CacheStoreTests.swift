@@ -48,7 +48,8 @@ final class CacheStoreTests: StoreTests {
         relationshipDispatchQueue.sync { }
         relationshipDispatchQueue = nil
 
-        StubCoreDataManagerFactory.shared.clearDatabase { success in
+        Task {
+            let success = await StubCoreDataManagerFactory.shared.clearDatabase()
             if success == false {
                 XCTFail("Did not clear database successfully.")
             }

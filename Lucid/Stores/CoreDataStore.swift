@@ -225,6 +225,34 @@ public final class CoreDataManager: NSObject {
         }
     }
 
+    fileprivate func clearDatabase(_ descriptions: [NSEntityDescription]) async throws -> Bool {
+        _ = await makeContext()
+        guard let (_, context) = self._state.loadedValues else {
+            return false
+        }
+
+        let entityNames = descriptions.compactMap { $0.name }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            context.perform {
+                do {
+                    for name in entityNames {
+                        let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: name)
+                        let request = NSBatchDeleteRequest(fetchRequest: fetch)
+                        try context.execute(request)
+                    }
+
+                    try context.save()
+                    Logger.log(.info, "\(CoreDataManager.self): The database is now cleared.")
+                    continuation.resume(returning: true)
+                } catch {
+                    Logger.log(.error, "\(CoreDataManager.self): Could not clear database: \(error)", assert: true)
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
     public func clearDatabase(_ completion: @escaping (Bool) -> Void) {
         makeContext { _ in
             guard let (persistentContainer, _) = self._state.loadedValues else {
@@ -240,6 +268,24 @@ public final class CoreDataManager: NSObject {
             self.clearDatabase(entityDescriptions, { success, _ in
                 completion(success)
             })
+        }
+    }
+
+    public func clearDatabase() async -> Bool {
+        _ = await makeContext()
+        guard let (persistentContainer, _) = self._state.loadedValues else {
+            return false
+        }
+
+        let entityDescriptions = persistentContainer
+            .persistentStoreCoordinator
+            .managedObjectModel
+            .entities
+
+        do {
+            return try await self.clearDatabase(entityDescriptions)
+        } catch {
+            return false
         }
     }
 

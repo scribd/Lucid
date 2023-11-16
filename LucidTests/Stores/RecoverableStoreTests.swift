@@ -45,23 +45,22 @@ final class RecoverableStoreTests: StoreTests {
         ).storing
     }
 
-    override func asyncTearDown(_ completion: @escaping () -> Void) {
-        StubCoreDataManagerFactory.shared.clearDatabase { success in
-            if success == false {
-                XCTFail("Did not clear database successfully.")
-            }
-
-            self.combineQueue.sync { }
-            self.relationshipCombineQueue.sync { }
-
-            self.innerMainStore = nil
-            self.innerRecoveryStore = nil
-            self.outerRecoverableStore = nil
-            self.combineQueue = nil
-            self.relationshipCombineQueue = nil
-
-            completion()
+    override func tearDown() async throws {
+        let success = await StubCoreDataManagerFactory.shared.clearDatabase()
+        if success == false {
+            XCTFail("Did not clear database successfully.")
         }
+
+        self.combineQueue.sync { }
+        self.relationshipCombineQueue.sync { }
+
+        self.innerMainStore = nil
+        self.innerRecoveryStore = nil
+        self.outerRecoverableStore = nil
+        self.combineQueue = nil
+        self.relationshipCombineQueue = nil
+
+        try await super.tearDown()
     }
 
     func waitForCombineQueues() {
@@ -276,6 +275,43 @@ extension RecoverableStoreTests {
         waitForExpectations(timeout: 1)
     }
 
+    func test_store_only_reflects_main_store_in_get_operations_async() async {
+
+        let mainEntities: [EntitySpy] = [
+            EntitySpy(idValue: .remote(123, nil), title: "entity_one"),
+        ]
+
+        let recoveryEntities: [EntitySpy] = [
+            EntitySpy(idValue: .remote(456, nil), title: "entity_two"),
+        ]
+
+        let mainSetResult = await innerMainStore.set(mainEntities, in: WriteContext(dataTarget: .local))
+        XCTAssertNotNil(mainSetResult)
+        XCTAssertNil(mainSetResult?.error)
+
+        let recoverySetResult = await self.innerRecoveryStore.set(recoveryEntities, in: WriteContext(dataTarget: .local))
+        XCTAssertNotNil(recoverySetResult)
+        XCTAssertNil(recoverySetResult?.error)
+
+        let entityResult = await self.entityStore.get(byID: EntitySpyIdentifier(value: .remote(123, nil)), in: ReadContext<EntitySpy>())
+
+        switch entityResult {
+        case .success(let queryResult):
+            XCTAssertEqual(queryResult.array.count, 1)
+
+            let secondEntityResult = await self.entityStore.get(byID: EntitySpyIdentifier(value: .remote(456, nil)), in: ReadContext<EntitySpy>())
+            switch secondEntityResult {
+            case .success(let queryResult):
+                XCTAssertEqual(queryResult.array.count, 0)
+            case .failure:
+                XCTFail("getting second ID from outer store failed")
+            }
+
+        case .failure:
+            XCTFail("getting first ID from outer store failed")
+        }
+    }
+
     func test_store_affects_both_inner_stores_in_set_operations() {
 
         let expectation = self.expectation(description: "expectation")
@@ -314,6 +350,36 @@ extension RecoverableStoreTests {
         waitForCombineQueues()
 
         waitForExpectations(timeout: 1)
+    }
+
+    func test_store_affects_both_inner_stores_in_set_operations_async() async {
+
+        let entities: [EntitySpy] = [
+            EntitySpy(idValue: .remote(789, nil), title: "entity_one"),
+        ]
+
+        let setResult = await entityStore.set(entities, in: WriteContext(dataTarget: .local))
+
+        XCTAssertNotNil(setResult)
+        XCTAssertNil(setResult?.error)
+
+        let mainResult = await self.innerMainStore.search(withQuery: .all, in: ReadContext<EntitySpy>())
+
+        switch mainResult {
+        case .success(let queryResult):
+            XCTAssertEqual(queryResult.array.first?.identifier.value.remoteValue, 789)
+
+            let recoveryResult = await self.innerRecoveryStore.search(withQuery: .all, in: ReadContext<EntitySpy>())
+            switch recoveryResult {
+            case .success(let queryResult):
+                XCTAssertEqual(queryResult.array.first?.identifier.value.remoteValue, 789)
+            case .failure:
+                XCTFail("searching recovery store failed")
+            }
+
+        case .failure:
+            XCTFail("searching main store failed")
+        }
     }
 
     func test_store_affects_both_inner_stores_in_remove_all_operations() {
@@ -364,6 +430,43 @@ extension RecoverableStoreTests {
         waitForExpectations(timeout: 1)
     }
 
+    func test_store_affects_both_inner_stores_in_remove_all_operations_async() async {
+
+        let entities: [EntitySpy] = [
+            EntitySpy(idValue: .remote(0, nil), title: "entity_one"),
+            EntitySpy(idValue: .remote(1, nil), title: "entity_two"),
+            EntitySpy(idValue: .remote(2, nil), title: "entity_three"),
+            EntitySpy(idValue: .remote(3, nil), title: "entity_four")
+        ]
+
+        let setResult = await entityStore.set(entities, in: WriteContext(dataTarget: .local))
+        XCTAssertNotNil(setResult)
+        XCTAssertNil(setResult?.error)
+
+        let removeResult = await self.entityStore.removeAll(withQuery: .all, in: WriteContext(dataTarget: .local))
+
+        XCTAssertNotNil(removeResult)
+        XCTAssertNil(removeResult?.error)
+
+        let innerResult = await self.innerMainStore.search(withQuery: .all, in: ReadContext<EntitySpy>())
+        switch innerResult {
+        case .success(let queryResult):
+
+            XCTAssertEqual(queryResult.array.count, 0)
+
+            let recoveryResult = await self.innerRecoveryStore.search(withQuery: .all, in: ReadContext<EntitySpy>())
+            switch recoveryResult {
+            case .success(let queryResult):
+                XCTAssertEqual(queryResult.array.count, 0)
+            case .failure:
+                XCTFail("searching recovery store failed")
+            }
+
+        case .failure:
+            XCTFail("searching main store failed")
+        }
+    }
+
     func test_store_affects_both_inner_stores_in_remove_operations() {
 
         let expectation = self.expectation(description: "expectation")
@@ -409,6 +512,40 @@ extension RecoverableStoreTests {
         waitForExpectations(timeout: 1)
     }
 
+    func test_store_affects_both_inner_stores_in_remove_operations_async() async {
+
+        let entities: [EntitySpy] = [
+            EntitySpy(idValue: .remote(123, nil), title: "entity_one"),
+        ]
+
+        let setResult = await entityStore.set(entities, in: WriteContext(dataTarget: .local))
+        XCTAssertNotNil(setResult)
+        XCTAssertNil(setResult?.error)
+
+        let removeResult = await self.entityStore.remove(entities.map { $0.identifier }, in: WriteContext(dataTarget: .local))
+
+        XCTAssertNotNil(removeResult)
+        XCTAssertNil(removeResult?.error)
+
+        let innerResult = await self.innerMainStore.search(withQuery: .all, in: ReadContext<EntitySpy>())
+        switch innerResult {
+        case .success(let queryResult):
+
+            XCTAssertEqual(queryResult.array.count, 0)
+
+            let recoveryResult = await self.innerRecoveryStore.search(withQuery: .all, in: ReadContext<EntitySpy>())
+            switch recoveryResult {
+            case .success(let queryResult):
+                XCTAssertEqual(queryResult.array.count, 0)
+            case .failure:
+                XCTFail("searching main store failed")
+            }
+
+        case .failure:
+            XCTFail("searching main store failed")
+        }
+    }
+
     func test_store_only_reflects_main_store_in_search_operations() {
 
         let expectation = self.expectation(description: "expectation")
@@ -445,5 +582,33 @@ extension RecoverableStoreTests {
         waitForCombineQueues()
 
         waitForExpectations(timeout: 1)
+    }
+
+    func test_store_only_reflects_main_store_in_search_operations_async() async {
+
+        let mainEntities: [EntitySpy] = [
+            EntitySpy(idValue: .remote(123, nil), title: "entity_one"),
+        ]
+
+        let recoveryEntities: [EntitySpy] = [
+            EntitySpy(idValue: .remote(456, nil), title: "entity_two"),
+        ]
+
+        let setResult = await innerMainStore.set(mainEntities, in: WriteContext(dataTarget: .local))
+        XCTAssertNotNil(setResult)
+        XCTAssertNil(setResult?.error)
+
+        let recoverySetResult = await self.innerRecoveryStore.set(recoveryEntities, in: WriteContext(dataTarget: .local))
+        XCTAssertNotNil(recoverySetResult)
+        XCTAssertNil(recoverySetResult?.error)
+
+        let entityResult = await self.entityStore.search(withQuery: .all, in: ReadContext<EntitySpy>())
+
+        switch entityResult {
+        case .success(let queryResult):
+            XCTAssertEqual(queryResult.array.first?.identifier.value.remoteValue, 123)
+        case .failure:
+            XCTFail("searching outer store failed")
+        }
     }
 }

@@ -792,10 +792,12 @@ private extension APIClientQueueProcessor {
             didSucceed = false
         }
 
-        if didSucceed {
-            await self.scheduler.requestDidSucceed()
-        } else {
-            await self.scheduler.requestDidFail()
+        Task {
+            if didSucceed {
+                await self.scheduler.requestDidSucceed()
+            } else {
+                await self.scheduler.requestDidFail()
+            }
         }
     }
 

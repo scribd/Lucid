@@ -720,8 +720,6 @@ struct MetaEntity {
         let identifierValue: VariableValue? = {
             if entity.hasVoidIdentifier {
                 return nil
-            } else if entity.identifier == .none {
-                return entity.identifierTypeID().reference | .call()
             } else {
                 
                 return .try | .named("coreDataEntity") + .named("identifierValueType") | .call(Tuple()

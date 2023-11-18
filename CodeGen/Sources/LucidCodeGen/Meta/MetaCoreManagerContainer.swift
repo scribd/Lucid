@@ -220,7 +220,10 @@ struct MetaCoreManagerContainer {
                 .adding(member:
                     PlainCode(code: """
                     if let responseHandler = _responseHandler {
-                        clientQueues.forEach { $0.register(responseHandler) }
+                        let clientQueues = clientQueues
+                        Task {
+                            await clientQueues.asyncForEach { await $0.register(responseHandler) }
+                        }
                     }
                     self.clientQueues = clientQueues
                     self.mainClientQueue = mainClientQueue

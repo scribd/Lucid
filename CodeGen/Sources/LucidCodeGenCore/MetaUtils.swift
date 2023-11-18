@@ -1362,7 +1362,7 @@ public extension EntityRelationship {
 
         var valueTypeID = idOnly ? entity.identifierTypeID() : entity.defaultEndpointPayloadTypeID
 
-        if idOnly == false && entity.identifier.isRelationship == false && !(entity.identifier == .none) {
+        if idOnly == false && entity.identifier.isRelationship == false {
             valueTypeID = .payloadRelationship(of: valueTypeID)
         }
         

@@ -146,7 +146,7 @@ struct MetaExportSQLiteFileTest {
                             try await self.coreDataManager.backupPersistentStore(to: sqliteFileURL)
 
                             if FileManager.default.createFile(atPath: descriptionsHashFileURL.path, contents: descriptionsHash, attributes: nil) == false {
-                                XCTFail("Could not store descriptions hash file at \(descriptionsHashFileURL.path).")
+                                XCTFail("Could not store descriptions hash file at \\(descriptionsHashFileURL.path).")
                             }
 
                             expectation.fulfill()
@@ -158,7 +158,7 @@ struct MetaExportSQLiteFileTest {
                     }
                 }
 
-                waitForExpectations(timeout: 10)
+                await fulfillment(of: [expectation], timeout: 10)
             }
             """))
     }

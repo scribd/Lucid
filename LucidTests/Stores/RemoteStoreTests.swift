@@ -148,41 +148,40 @@ final class RemoteStoreTests: XCTestCase {
         }
         wait(for: [spyExpectation], timeout: 1)
 
-        let dispatchGroup = DispatchGroup()
-
-        dispatchGroup.enter()
-        store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: derivedFromEntityTypeContext) { result in
-            switch result {
-            case .success(let result):
-                XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
-        dispatchGroup.enter()
-        store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: derivedFromEntityTypeContext) { result in
-            switch result {
-            case .success(let result):
-                XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
         let expectation = self.expectation(description: "entity")
-        dispatchGroup.notify(queue: .main) {
-            Task {
-                let appendInvocations = await self.clientQueueSpy.appendInvocations
-                XCTAssertEqual(appendInvocations.count, 1)
-                XCTAssertEqual(appendInvocations.first?.wrapped.config, self.requestConfig)
-                expectation.fulfill()
+
+        store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: derivedFromEntityTypeContext) { result in
+            switch result {
+            case .success(let result):
+                XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
+
+                self.store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: self.derivedFromEntityTypeContext) { result in
+                    switch result {
+                    case .success(let result):
+                        XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
+                        expectation.fulfill()
+                    case .failure(let error):
+                        XCTFail("Unexpected error: \(error)")
+                    }
+                }
+
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error)")
             }
         }
 
         wait(for: [expectation], timeout: 1)
+
+        let appendExpectation = self.expectation(description: "append_invocations")
+
+        Task {
+            let appendInvocations = await self.clientQueueSpy.appendInvocations
+            XCTAssertEqual(appendInvocations.count, 1)
+            XCTAssertEqual(appendInvocations.first?.wrapped.config, self.requestConfig)
+            appendExpectation.fulfill()
+        }
+
+        wait(for: [appendExpectation], timeout: 1)
     }
 
     func test_two_gets_should_only_send_one_request_to_the_client_using_endpoint_derived_from_entity_type_async() async {
@@ -190,26 +189,20 @@ final class RemoteStoreTests: XCTestCase {
         let responseStub: [APIRequestConfig: APIClientQueueResult<Data, APIError>] = [requestConfig: APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))]
         await clientQueueSpy.setResponseStubs(responseStub)
 
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask {
-                let result = await self.store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: self.derivedFromEntityTypeContext)
-                switch result {
-                case .success(let result):
-                    XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
-                case .failure(let error):
-                    XCTFail("Unexpected error: \(error)")
-                }
-            }
+        let result = await self.store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: self.derivedFromEntityTypeContext)
+        switch result {
+        case .success(let result):
+            XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
 
-            group.addTask {
-                let result = await self.store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: self.derivedFromEntityTypeContext)
-                switch result {
-                case .success(let result):
-                    XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
-                case .failure(let error):
-                    XCTFail("Unexpected error: \(error)")
-                }
+            let result = await self.store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: self.derivedFromEntityTypeContext)
+            switch result {
+            case .success(let result):
+                XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error)")
             }
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error)")
         }
 
         let appendInvocations = await clientQueueSpy.appendInvocations
@@ -231,42 +224,41 @@ final class RemoteStoreTests: XCTestCase {
         }
         wait(for: [spyExpectation], timeout: 1)
 
-        let dispatchGroup = DispatchGroup()
+        let expectation = self.expectation(description: "entity")
 
-        dispatchGroup.enter()
         store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: ReadContext<EntitySpy>(dataSource: .remote(endpoint: .derivedFromEntityType))) { result in
             switch result {
             case .success(let result):
                 XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
+
+                self.store.get(byID: EntitySpyIdentifier(value: .remote(24, nil)), in: ReadContext<EntitySpy>(dataSource: .remote(endpoint: .derivedFromEntityType))) { result in
+                    switch result {
+                    case .success(let result):
+                        XCTAssertEqual(result.entity?.identifier.value.remoteValue, 24)
+                        expectation.fulfill()
+                    case .failure(let error):
+                        XCTFail("Unexpected error: \(error)")
+                    }
+                }
+
             case .failure(let error):
                 XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
-        dispatchGroup.enter()
-        store.get(byID: EntitySpyIdentifier(value: .remote(24, nil)), in: ReadContext<EntitySpy>(dataSource: .remote(endpoint: .derivedFromEntityType))) { result in
-            switch result {
-            case .success(let result):
-                XCTAssertEqual(result.entity?.identifier.value.remoteValue, 24)
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
-        let expectation = self.expectation(description: "entity")
-        dispatchGroup.notify(queue: .main) {
-            Task {
-                let appendInvocations = await self.clientQueueSpy.appendInvocations
-                XCTAssertEqual(appendInvocations.count, 2)
-                XCTAssertEqual(appendInvocations.first?.wrapped.config, self.requestConfig)
-                XCTAssertEqual(appendInvocations.last?.wrapped.config, requestConfig2)
-                expectation.fulfill()
             }
         }
 
         wait(for: [expectation], timeout: 1)
+
+        let appendExpectation = self.expectation(description: "append_invocations")
+
+        Task {
+            let appendInvocations = await self.clientQueueSpy.appendInvocations
+            XCTAssertEqual(appendInvocations.count, 2)
+            XCTAssertEqual(appendInvocations.first?.wrapped.config, self.requestConfig)
+            XCTAssertEqual(appendInvocations.last?.wrapped.config, requestConfig2)
+            appendExpectation.fulfill()
+        }
+
+        wait(for: [appendExpectation], timeout: 1)
     }
 
     func test_two_different_gets_should_send_two_requests_to_the_client_using_endpoint_derived_from_entity_type_async() async {
@@ -720,40 +712,39 @@ final class RemoteStoreTests: XCTestCase {
         }
         wait(for: [spyExpectation], timeout: 1)
 
-        let dispatchGroup = DispatchGroup()
-
-        dispatchGroup.enter()
-        store.search(withQuery: .filter(.title == .string("fake_title")), in: derivedFromEntityTypeContext) { result in
-            switch result {
-            case .success(let entities):
-                XCTAssertEqual(entities.isEmpty, false)
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
-        dispatchGroup.enter()
-        store.search(withQuery: .filter(.title == .string("fake_title")), in: derivedFromEntityTypeContext) { result in
-            switch result {
-            case .success(let entities):
-                XCTAssertEqual(entities.isEmpty, false)
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
         let expectation = self.expectation(description: "entity")
-        dispatchGroup.notify(queue: .main) {
-            Task {
-                let appendInvocations = await self.clientQueueSpy.appendInvocations
-                XCTAssertEqual(appendInvocations.count, 1)
-                expectation.fulfill()
+
+        store.search(withQuery: .filter(.title == .string("fake_title")), in: derivedFromEntityTypeContext) { result in
+            switch result {
+            case .success(let entities):
+                XCTAssertEqual(entities.isEmpty, false)
+
+                self.store.search(withQuery: .filter(.title == .string("fake_title")), in: self.derivedFromEntityTypeContext) { result in
+                    switch result {
+                    case .success(let entities):
+                        XCTAssertEqual(entities.isEmpty, false)
+                        expectation.fulfill()
+                    case .failure(let error):
+                        XCTFail("Unexpected error: \(error)")
+                    }
+                }
+
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error)")
             }
         }
 
         wait(for: [expectation], timeout: 1)
+
+        let appendExpectation = self.expectation(description: "append_invocations")
+
+        Task {
+            let appendInvocations = await self.clientQueueSpy.appendInvocations
+            XCTAssertEqual(appendInvocations.count, 1)
+            appendExpectation.fulfill()
+        }
+
+        wait(for: [appendExpectation], timeout: 1)
     }
 
     func test_two_searches_should_only_send_one_request_to_the_client_by_inferring_the_same_api_request_using_endpoint_derived_from_entity_type_async() async {
@@ -762,26 +753,21 @@ final class RemoteStoreTests: XCTestCase {
         let responseStub: [APIRequestConfig: APIClientQueueResult<Data, APIError>] = [requestConfig: APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))]
         await clientQueueSpy.setResponseStubs(responseStub)
 
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask {
-                let result = await self.store.search(withQuery: .filter(.title == .string("fake_title")), in: self.derivedFromEntityTypeContext)
-                switch result {
-                case .success(let entities):
-                    XCTAssertEqual(entities.isEmpty, false)
-                case .failure(let error):
-                    XCTFail("Unexpected error: \(error)")
-                }
+        let result = await self.store.search(withQuery: .filter(.title == .string("fake_title")), in: self.derivedFromEntityTypeContext)
+        switch result {
+        case .success(let entities):
+            XCTAssertEqual(entities.isEmpty, false)
+
+            let result = await self.store.search(withQuery: .filter(.title == .string("fake_title")), in: self.derivedFromEntityTypeContext)
+            switch result {
+            case .success(let entities):
+                XCTAssertEqual(entities.isEmpty, false)
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error)")
             }
 
-            group.addTask {
-                let result = await self.store.search(withQuery: .filter(.title == .string("fake_title")), in: self.derivedFromEntityTypeContext)
-                switch result {
-                case .success(let entities):
-                    XCTAssertEqual(entities.isEmpty, false)
-                case .failure(let error):
-                    XCTFail("Unexpected error: \(error)")
-                }
-            }
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error)")
         }
 
         let appendInvocations = await clientQueueSpy.appendInvocations
@@ -944,40 +930,39 @@ final class RemoteStoreTests: XCTestCase {
         }
         wait(for: [spyExpectation], timeout: 1)
 
-        let dispatchGroup = DispatchGroup()
+        let expectation = self.expectation(description: "entity")
 
-        dispatchGroup.enter()
         store.search(withQuery: .filter(.title == .string("fake_title")), in: derivedFromEntityTypeContext) { result in
             switch result {
             case .success(let entities):
                 XCTAssertEqual(entities.isEmpty, false)
+
+                self.store.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(24, nil)))), in: self.derivedFromEntityTypeContext) { result in
+                    switch result {
+                    case .success(let entities):
+                        XCTAssertEqual(entities.isEmpty, false)
+                        expectation.fulfill()
+                    case .failure(let error):
+                        XCTFail("Unexpected error: \(error)")
+                    }
+                }
+
             case .failure(let error):
                 XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
-        dispatchGroup.enter()
-        store.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(24, nil)))), in: derivedFromEntityTypeContext) { result in
-            switch result {
-            case .success(let entities):
-                XCTAssertEqual(entities.isEmpty, false)
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
-        let expectation = self.expectation(description: "entity")
-        dispatchGroup.notify(queue: .main) {
-            Task {
-                let appendInvocations = await self.clientQueueSpy.appendInvocations
-                XCTAssertEqual(appendInvocations.count, 1)
-                expectation.fulfill()
             }
         }
 
         wait(for: [expectation], timeout: 1)
+
+        let appendExpectation = self.expectation(description: "append_invocations")
+
+        Task {
+            let appendInvocations = await self.clientQueueSpy.appendInvocations
+            XCTAssertEqual(appendInvocations.count, 1)
+            appendExpectation.fulfill()
+        }
+
+        wait(for: [appendExpectation], timeout: 1)
     }
 
     func test_two_different_searches_should_send_two_requests_to_the_client_using_endpoint_derived_from_entity_type_async() async {
@@ -986,26 +971,20 @@ final class RemoteStoreTests: XCTestCase {
         let responseStub: [APIRequestConfig: APIClientQueueResult<Data, APIError>] = [requestConfig: APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))]
         await clientQueueSpy.setResponseStubs(responseStub)
 
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask {
-                let result = await self.store.search(withQuery: .filter(.title == .string("fake_title")), in: self.derivedFromEntityTypeContext)
-                switch result {
-                case .success(let entities):
-                    XCTAssertEqual(entities.isEmpty, false)
-                case .failure(let error):
-                    XCTFail("Unexpected error: \(error)")
-                }
+        let result = await self.store.search(withQuery: .filter(.title == .string("fake_title")), in: self.derivedFromEntityTypeContext)
+        switch result {
+        case .success(let entities):
+            XCTAssertEqual(entities.isEmpty, false)
+            let result = await self.store.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(24, nil)))), in: self.derivedFromEntityTypeContext)
+            switch result {
+            case .success(let entities):
+                XCTAssertEqual(entities.isEmpty, false)
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error)")
             }
 
-            group.addTask {
-                let result = await self.store.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(24, nil)))), in: self.derivedFromEntityTypeContext)
-                switch result {
-                case .success(let entities):
-                    XCTAssertEqual(entities.isEmpty, false)
-                case .failure(let error):
-                    XCTFail("Unexpected error: \(error)")
-                }
-            }
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error)")
         }
 
         let appendInvocations = await clientQueueSpy.appendInvocations
@@ -1169,40 +1148,39 @@ final class RemoteStoreTests: XCTestCase {
         }
         wait(for: [spyExpectation], timeout: 1)
 
-        let dispatchGroup = DispatchGroup()
-
-        dispatchGroup.enter()
-        store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: requestContext) { result in
-            switch result {
-            case .success(let result):
-                XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
-        dispatchGroup.enter()
-        store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: requestContext) { result in
-            switch result {
-            case .success(let result):
-                XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
         let expectation = self.expectation(description: "entity")
-        dispatchGroup.notify(queue: .main) {
-            Task {
-                let appendInvocations = await self.clientQueueSpy.appendInvocations
-                XCTAssertEqual(appendInvocations.count, 1)
-                expectation.fulfill()
+
+        store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: requestContext) { result in
+            switch result {
+            case .success(let result):
+                XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
+
+                self.store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: self.requestContext) { result in
+                    switch result {
+                    case .success(let result):
+                        XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
+                        expectation.fulfill()
+                    case .failure(let error):
+                        XCTFail("Unexpected error: \(error)")
+                    }
+                }
+
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error)")
             }
         }
 
         wait(for: [expectation], timeout: 1)
+
+        let appendExpectation = self.expectation(description: "append_invocations")
+        
+        Task {
+            let appendInvocations = await self.clientQueueSpy.appendInvocations
+            XCTAssertEqual(appendInvocations.count, 1)
+            appendExpectation.fulfill()
+        }
+
+        wait(for: [appendExpectation], timeout: 1)
     }
 
     func test_two_gets_should_only_send_one_request_to_the_client_using_request_endpoint_async() async {
@@ -1210,26 +1188,21 @@ final class RemoteStoreTests: XCTestCase {
         let responseStub: [APIRequestConfig: APIClientQueueResult<Data, APIError>] = [requestConfig: APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))]
         await clientQueueSpy.setResponseStubs(responseStub)
 
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask {
-                let result = await self.store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: self.requestContext)
-                switch result {
-                case .success(let result):
-                    XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
-                case .failure(let error):
-                    XCTFail("Unexpected error: \(error)")
-                }
+        let result = await self.store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: self.requestContext)
+        switch result {
+        case .success(let result):
+            XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
+
+            let result = await self.store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: self.requestContext)
+            switch result {
+            case .success(let result):
+                XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error)")
             }
 
-            group.addTask {
-                let result = await self.store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: self.requestContext)
-                switch result {
-                case .success(let result):
-                    XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
-                case .failure(let error):
-                    XCTFail("Unexpected error: \(error)")
-                }
-            }
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error)")
         }
 
         let appendInvocations = await clientQueueSpy.appendInvocations
@@ -1250,40 +1223,39 @@ final class RemoteStoreTests: XCTestCase {
         }
         wait(for: [spyExpectation], timeout: 1)
 
-        let dispatchGroup = DispatchGroup()
+        let expectation = self.expectation(description: "entity")
 
-        dispatchGroup.enter()
         store.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: requestContext) { result in
             switch result {
             case .success(let result):
                 XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
+
+                self.store.get(byID: EntitySpyIdentifier(value: .remote(24, nil)), in: self.requestContext) { result in
+                    switch result {
+                    case .success(let result):
+                        XCTAssertEqual(result.entity?.identifier.value.remoteValue, 24)
+                        expectation.fulfill()
+                    case .failure(let error):
+                        XCTFail("Unexpected error: \(error)")
+                    }
+                }
+
             case .failure(let error):
                 XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
-        dispatchGroup.enter()
-        store.get(byID: EntitySpyIdentifier(value: .remote(24, nil)), in: requestContext) { result in
-            switch result {
-            case .success(let result):
-                XCTAssertEqual(result.entity?.identifier.value.remoteValue, 24)
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
-        let expectation = self.expectation(description: "entity")
-        dispatchGroup.notify(queue: .main) {
-            Task {
-                let appendInvocations = await self.clientQueueSpy.appendInvocations
-                XCTAssertEqual(appendInvocations.count, 1)
-                expectation.fulfill()
             }
         }
 
         wait(for: [expectation], timeout: 1)
+
+        let appendExpectation = self.expectation(description: "append_invocations")
+
+        Task {
+            let appendInvocations = await self.clientQueueSpy.appendInvocations
+            XCTAssertEqual(appendInvocations.count, 1)
+            appendExpectation.fulfill()
+        }
+
+        wait(for: [appendExpectation], timeout: 1)
     }
 
     func test_two_different_gets_should_send_two_requests_to_the_client_using_request_endpoint_async() async {
@@ -1307,6 +1279,7 @@ final class RemoteStoreTests: XCTestCase {
             }
 
             group.addTask {
+                try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
                 let result = await self.store.get(byID: EntitySpyIdentifier(value: .remote(24, nil)), in: self.requestContext)
                 switch result {
                 case .success(let result):
@@ -1315,6 +1288,8 @@ final class RemoteStoreTests: XCTestCase {
                     XCTFail("Unexpected error: \(error)")
                 }
             }
+
+            await group.waitForAll()
         }
 
         let appendInvocations = await clientQueueSpy.appendInvocations
@@ -1863,40 +1838,39 @@ final class RemoteStoreTests: XCTestCase {
         }
         wait(for: [spyExpectation], timeout: 1)
 
-        let dispatchGroup = DispatchGroup()
-
-        dispatchGroup.enter()
-        store.search(withQuery: .filter(.title == .string("fake_title")), in: requestContext) { result in
-            switch result {
-            case .success(let entities):
-                XCTAssertEqual(entities.isEmpty, false)
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
-        dispatchGroup.enter()
-        store.search(withQuery: .filter(.title == .string("fake_title")), in: requestContext) { result in
-            switch result {
-            case .success(let entities):
-                XCTAssertEqual(entities.isEmpty, false)
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
         let expectation = self.expectation(description: "entity")
-        dispatchGroup.notify(queue: .main) {
-            Task {
-                let appendInvocations = await self.clientQueueSpy.appendInvocations
-                XCTAssertEqual(appendInvocations.count, 1)
-                expectation.fulfill()
+
+        store.search(withQuery: .filter(.title == .string("fake_title")), in: requestContext) { result in
+            switch result {
+            case .success(let entities):
+                XCTAssertEqual(entities.isEmpty, false)
+
+                self.store.search(withQuery: .filter(.title == .string("fake_title")), in: self.requestContext) { result in
+                    switch result {
+                    case .success(let entities):
+                        XCTAssertEqual(entities.isEmpty, false)
+                        expectation.fulfill()
+                    case .failure(let error):
+                        XCTFail("Unexpected error: \(error)")
+                    }
+                }
+
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error)")
             }
         }
 
         wait(for: [expectation], timeout: 1)
+
+        let appendExpectation = self.expectation(description: "append_invocations")
+
+        Task {
+            let appendInvocations = await self.clientQueueSpy.appendInvocations
+            XCTAssertEqual(appendInvocations.count, 1)
+            appendExpectation.fulfill()
+        }
+
+        wait(for: [appendExpectation], timeout: 1)
     }
 
     func test_two_searches_should_only_send_one_request_to_the_client_by_inferring_the_same_api_request_using_request_endpoint_async() async {
@@ -1904,26 +1878,21 @@ final class RemoteStoreTests: XCTestCase {
         let responseStub: [APIRequestConfig: APIClientQueueResult<Data, APIError>] = [requestConfig: APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))]
         await clientQueueSpy.setResponseStubs(responseStub)
 
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask {
-                let result = await self.store.search(withQuery: .filter(.title == .string("fake_title")), in: self.requestContext)
-                switch result {
-                case .success(let entities):
-                    XCTAssertEqual(entities.isEmpty, false)
-                case .failure(let error):
-                    XCTFail("Unexpected error: \(error)")
-                }
+        let result = await self.store.search(withQuery: .filter(.title == .string("fake_title")), in: self.requestContext)
+        switch result {
+        case .success(let entities):
+            XCTAssertEqual(entities.isEmpty, false)
+
+            let result = await self.store.search(withQuery: .filter(.title == .string("fake_title")), in: self.requestContext)
+            switch result {
+            case .success(let entities):
+                XCTAssertEqual(entities.isEmpty, false)
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error)")
             }
 
-            group.addTask {
-                let result = await self.store.search(withQuery: .filter(.title == .string("fake_title")), in: self.requestContext)
-                switch result {
-                case .success(let entities):
-                    XCTAssertEqual(entities.isEmpty, false)
-                case .failure(let error):
-                    XCTFail("Unexpected error: \(error)")
-                }
-            }
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error)")
         }
 
         let appendInvocations = await self.clientQueueSpy.appendInvocations
@@ -2105,42 +2074,42 @@ final class RemoteStoreTests: XCTestCase {
             await clientQueueSpy.setResponseStubs(responseStub)
             spyExpectation.fulfill()
         }
+
         wait(for: [spyExpectation], timeout: 1)
 
-        let dispatchGroup = DispatchGroup()
+        let expectation = self.expectation(description: "entity")
 
-        dispatchGroup.enter()
         store.search(withQuery: .filter(.title == .string("fake_title")), in: requestContext) { result in
             switch result {
             case .success(let entities):
                 XCTAssertEqual(entities.isEmpty, false)
+
+                self.store.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(24, nil)))), in: self.requestContext) { result in
+                    switch result {
+                    case .success(let entities):
+                        XCTAssertEqual(entities.isEmpty, false)
+                        expectation.fulfill()
+                    case .failure(let error):
+                        XCTFail("Unexpected error: \(error)")
+                    }
+                }
+
             case .failure(let error):
                 XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
-        dispatchGroup.enter()
-        store.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(24, nil)))), in: requestContext) { result in
-            switch result {
-            case .success(let entities):
-                XCTAssertEqual(entities.isEmpty, false)
-            case .failure(let error):
-                XCTFail("Unexpected error: \(error)")
-            }
-            dispatchGroup.leave()
-        }
-
-        let expectation = self.expectation(description: "entity")
-        dispatchGroup.notify(queue: .main) {
-            Task {
-                let appendInvocations = await self.clientQueueSpy.appendInvocations
-                XCTAssertEqual(appendInvocations.count, 1)
-                expectation.fulfill()
             }
         }
 
         wait(for: [expectation], timeout: 1)
+
+        let appendExpectation = self.expectation(description: "append_invocations")
+
+        Task {
+            let appendInvocations = await self.clientQueueSpy.appendInvocations
+            XCTAssertEqual(appendInvocations.count, 1)
+            appendExpectation.fulfill()
+        }
+
+        wait(for: [appendExpectation], timeout: 1)
     }
 
     func test_two_different_searches_should_send_two_requests_to_the_client_using_request_endpoint_async() async {
@@ -2148,26 +2117,21 @@ final class RemoteStoreTests: XCTestCase {
         let responseStub: [APIRequestConfig: APIClientQueueResult<Data, APIError>] = [requestConfig: APIClientQueueResult<Data, APIError>.success(APIClientResponse(data: payloadStubData, cachedResponse: false))]
         await clientQueueSpy.setResponseStubs(responseStub)
 
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask {
-                let result = await self.store.search(withQuery: .filter(.title == .string("fake_title")), in: self.requestContext)
-                switch result {
-                case .success(let entities):
-                    XCTAssertEqual(entities.isEmpty, false)
-                case .failure(let error):
-                    XCTFail("Unexpected error: \(error)")
-                }
+        let result = await self.store.search(withQuery: .filter(.title == .string("fake_title")), in: self.requestContext)
+        switch result {
+        case .success(let entities):
+            XCTAssertEqual(entities.isEmpty, false)
+
+            let result = await self.store.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(24, nil)))), in: self.requestContext)
+            switch result {
+            case .success(let entities):
+                XCTAssertEqual(entities.isEmpty, false)
+            case .failure(let error):
+                XCTFail("Unexpected error: \(error)")
             }
 
-            group.addTask {
-                let result = await self.store.search(withQuery: .filter(.identifier == .identifier(EntitySpyIdentifier(value: .remote(24, nil)))), in: self.requestContext)
-                switch result {
-                case .success(let entities):
-                    XCTAssertEqual(entities.isEmpty, false)
-                case .failure(let error):
-                    XCTFail("Unexpected error: \(error)")
-                }
-            }
+        case .failure(let error):
+            XCTFail("Unexpected error: \(error)")
         }
 
         let appendInvocations = await self.clientQueueSpy.appendInvocations

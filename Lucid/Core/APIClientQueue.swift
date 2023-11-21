@@ -430,6 +430,7 @@ extension APIClientQueue: APIClientPriorityQueuing {
 extension APIClientQueue: APIClientQueueFlushing {
 
     public func flush() async {
+        await processor.setDelegate(self)
         await self.processor.flush()
     }
 }

@@ -80,6 +80,22 @@ extension APIClientQueueTests {
         XCTAssertEqual(setDelegateInvocationsEnd.count, 1)
         XCTAssertTrue((setDelegateInvocationsEnd.first as? APIClientQueueProcessorDelegate) === localQueue)
     }
+
+    func test_queue_sets_itself_as_delegate_of_processor_on_flush() async {
+
+        let localQueueProcessor = APIClientQueueProcessorSpy()
+        let localQueue = APIClientQueue(cache: .default(DiskQueue(diskCache: defaultQueueCache.caching)),
+                                        processor: localQueueProcessor)
+
+        let setDelegateInvocationsStart = await localQueueProcessor.setDelegateInvocations
+        XCTAssertEqual(setDelegateInvocationsStart.count, 0)
+
+        await localQueue.flush()
+
+        let setDelegateInvocationsEnd = await localQueueProcessor.setDelegateInvocations
+        XCTAssertEqual(setDelegateInvocationsEnd.count, 1)
+        XCTAssertTrue((setDelegateInvocationsEnd.first as? APIClientQueueProcessorDelegate) === localQueue)
+    }
 }
 
 // MARK: - initialising uniquing queue

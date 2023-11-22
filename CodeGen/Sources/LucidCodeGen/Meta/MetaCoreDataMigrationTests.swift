@@ -207,7 +207,8 @@ struct MetaCoreDataMigrationTests {
                         try! self.fileManager.removeItem(at: destinationURL)
                     }
                     let expectation = self.expectation(description: "database_cleanup")
-                    coreDataManager.clearDatabase { (_) in
+                    Task {
+                        _ = await coreDataManager.clearDatabase
                         expectation.fulfill()
                     }
                     self.waitForExpectations(timeout: 1, handler: nil)

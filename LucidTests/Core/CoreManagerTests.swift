@@ -8707,7 +8707,7 @@ final class CoreManagerTests: XCTestCase {
 
     // MARK: - Continuous Observation Race Condition Test
 
-    func test_continuous_observation_of_record_counts_after_a_slight_delay_to_make_sure_data_is_still_received() {
+    func test_continuous_observation_of_record_counts_after_a_slight_delay_to_make_sure_data_is_still_received() async {
 
         // Set Up Data
 
@@ -8728,7 +8728,7 @@ final class CoreManagerTests: XCTestCase {
         coreDataStore.set(entities, in: WriteContext(dataTarget: .local, accessValidator: nil)) { _ in
             setExpectation.fulfill()
         }
-        wait(for: [setExpectation], timeout: 1)
+        await fulfillment(of: [setExpectation], timeout: 1)
 
         // Continuous Observation
 
@@ -8750,20 +8750,14 @@ final class CoreManagerTests: XCTestCase {
                 }
                 .store(in: &self.cancellables)
         }
-
-        wait(for: [continuousExpectation], timeout: 1)
+        await fulfillment(of: [continuousExpectation], timeout: 1)
 
         // Clean Up CoreData
 
-        let expectation = self.expectation(description: "tear_down")
-        StubCoreDataManagerFactory.shared.clearDatabase { success in
-            if success == false {
-                XCTFail("Did not clear database successfully.")
-            }
-            expectation.fulfill()
+        let success = await StubCoreDataManagerFactory.shared.clearDatabase()
+        if success == false {
+            XCTFail("Did not clear database successfully.")
         }
-        wait(for: [expectation], timeout: 5)
-
     }
 
     // MARK: - Test that separate calls do not block each other

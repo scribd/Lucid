@@ -60,17 +60,6 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
     }
 
     public func get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
-        do {
-            return try await processingQueue.enqueueBarrier { completion in
-                defer { completion() }
-                return await self._get(withQuery: query, in: context)
-            }
-        } catch {
-            return .failure(.enqueueingError)
-        }
-    }
-
-    private func _get(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
         guard let identifier = query.identifier else {
             return .failure(.identifierNotFound)
         }
@@ -205,17 +194,6 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
     }
 
     public func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
-        do {
-            return try await processingQueue.enqueueBarrier { completion in
-                defer { completion() }
-                return await self._search(withQuery: query, in: context)
-            }
-        } catch {
-            return .failure(.enqueueingError)
-        }
-    }
-
-    private func _search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
         // Some payloads need to filter out entities which aren't meant to be at their root level.
         // This is due to the fact that payloads made of a tree structure get their data automatically flattened.
         let result = await coreSearch(withQuery: query, in: context)
@@ -383,17 +361,6 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
     }
 
     public func set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where S : Sequence, E == S.Element {
-        do {
-            return try await processingQueue.enqueueBarrier { completion in
-                defer { completion() }
-                return await self._set(entities, in: context)
-            }
-        } catch {
-            return .failure(.enqueueingError)
-        }
-    }
-
-    private func _set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where S : Sequence, E == S.Element {
         var countMismatch = false
 
         let requests: [APIClientQueueRequest]
@@ -441,7 +408,12 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             entity.identifier.willBePushedToClientQueue()
         }
 
-        Task {
+        return await withCheckedContinuation { continuation in
+
+            await self.completeOnClientQueueResponse(for: requests) { _ in
+                continuation.resume(returning: nil)
+            }
+
             await withTaskGroup(of: Void.self) { group in
                 for request in requests {
                     group.addTask {
@@ -449,10 +421,6 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
                     }
                 }
             }
-        }
-
-        return await withCheckedContinuation { continuation in
-            continuation.resume(returning: nil)
         }
     }
 
@@ -464,17 +432,6 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
     }
 
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
-        do {
-            return try await processingQueue.enqueueBarrier { completion in
-                defer { completion() }
-                return await self._removeAll(withQuery: query, in: context)
-            }
-        } catch {
-            return .failure(.enqueueingError)
-        }
-    }
-
-    private func _removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
         let path = RemotePath<E>.removeAll(query)
         let identifiers = query.identifiers?.array ?? []
         let clientQueueRequest: APIClientQueueRequest
@@ -504,11 +461,14 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
             return .failure(.notSupported)
         }
 
-        await completeOnClientQueueResponse(for: [clientQueueRequest]) { _ in }
+        return await withCheckedContinuation { continuation in
 
-        await clientQueue.append(clientQueueRequest)
+            await self.completeOnClientQueueResponse(for: [clientQueueRequest]) { _ in
+                continuation.resume(returning: nil)
+            }
 
-        return nil
+            await self.clientQueue.append(clientQueueRequest)
+        }
     }
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
@@ -568,6 +528,7 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
         }
 
         return await withCheckedContinuation { continuation in
+            
             await self.completeOnClientQueueResponse(for: requests) { _ in
                 continuation.resume(returning: nil)
             }

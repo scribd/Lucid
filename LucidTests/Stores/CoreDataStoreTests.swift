@@ -22,7 +22,8 @@ final class CoreDataStoreTests: StoreTests {
     }
 
     override func asyncTearDown(_ completion: @escaping () -> Void) {
-        StubCoreDataManagerFactory.shared.clearDatabase { success in
+        Task {
+            let success = await StubCoreDataManagerFactory.shared.clearDatabase()
             if success == false {
                 XCTFail("Did not clear database successfully.")
             }
@@ -41,7 +42,7 @@ final class CoreDataStoreTests: StoreTests {
 
         let documents = (0..<10).map { EntitySpy(idValue: .remote($0, nil)) }
         write(documents) {
-            self.entityStore.search(withQuery: .filter((.identifier == .identifier(EntitySpyIdentifier(value: .remote(5, nil)))) == (.identifier == .identifier(EntitySpyIdentifier(value: .remote(5, nil))))),
+            self.entityStore.search(withQuery: .filter((.identifier == .identifier(EntitySpyIdentifier(value: .remote(5, nil)))) == (.identifier == .identifier(EntitySpyIdentifier(value: .remote(5, nil))))), 
                                     in: self.context) { result in
                 switch result {
                 case .failure(.notSupported):

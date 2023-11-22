@@ -47,18 +47,22 @@ public final class APIClientQueueSchedulerSpy: APIClientQueueScheduling {
     }
 }
 
-public final class APIClientQueueSchedulerDelegateSpy: APIClientQueueSchedulerDelegate {
+public final actor APIClientQueueSchedulerDelegateSpy: APIClientQueueSchedulerDelegate {
 
     public init() {
         // no-op
     }
 
-    public var processNextStubs: [APIClientQueueSchedulerProcessNextResult] = []
+    public private(set) var processNextStubs: [APIClientQueueSchedulerProcessNextResult] = []
+
+    public func setProcessNextStubs(_ stubs: [APIClientQueueSchedulerProcessNextResult]) async {
+        self.processNextStubs = stubs
+    }
 
     public private(set) var processNextInvocations: [Void] = [Void]()
 
     @discardableResult
-    public func processNext() -> APIClientQueueSchedulerProcessNextResult {
+    public func processNext() async -> APIClientQueueSchedulerProcessNextResult {
         processNextInvocations.append(())
         defer { processNextStubs = processNextStubs.dropFirst().array }
         return processNextStubs.first ?? .didNotProcess

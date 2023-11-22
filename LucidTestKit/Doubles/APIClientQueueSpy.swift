@@ -9,7 +9,7 @@
 import Foundation
 import Lucid
 
-public final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
+public final actor APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
 
     // MARK: - Records
 
@@ -27,7 +27,11 @@ public final class APIClientQueueSpy: APIClientQueuing, APIClientQueueFlushing {
 
     public var tokenStub = UUID()
 
-    public var responseStubs: [APIRequestConfig: APIClientQueueResult<Data, APIError>] = [:]
+    public private(set) var responseStubs: [APIRequestConfig: APIClientQueueResult<Data, APIError>] = [:]
+
+    public func setResponseStubs(_ stubs: [APIRequestConfig: APIClientQueueResult<Data, APIError>]) async {
+        self.responseStubs = stubs
+    }
 
     // MARK: - API
 

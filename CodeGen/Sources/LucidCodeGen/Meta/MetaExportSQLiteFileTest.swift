@@ -64,8 +64,8 @@ struct MetaExportSQLiteFileTest {
                 LucidConfiguration.logger = nil
             }
                 
-            func test_populate_database_and_export_sqlite_file() throws {
-                
+            func test_populate_database_and_export_sqlite_file() async throws {
+
                 let destinationDirectory = "\(appTestsOutputPath)/SQLite/"
                 let sqliteFileURL = URL(fileURLWithPath: "\\(destinationDirectory)/\(sqliteFileName).sqlite")
                 let descriptionsHashFileURL = URL(fileURLWithPath: "\\(destinationDirectory)/\(sqliteFileName).sha256")
@@ -85,16 +85,16 @@ struct MetaExportSQLiteFileTest {
                 }
                 
                 let expectation = self.expectation(description: "expectation")
-                coreDataManager.clearDatabase { success in
-                    if success == false {
-                        XCTFail("Could not clear database.")
-                        expectation.fulfill()
-                        return
-                    }
-                
-                    var didErrorOccur = false
-                    let dispatchGroup = DispatchGroup()
-            \(MetaCode(indentation: 2, meta: descriptions.entities.filter { $0.persist }.flatMap { entity -> [FunctionBodyMember] in
+                let success = await coreDataManager.clearDatabase()
+                if success == false {
+                    XCTFail("Could not clear database.")
+                    expectation.fulfill()
+                    return
+                }
+
+                var didErrorOccur = false
+                let dispatchGroup = DispatchGroup()
+            \(MetaCode(indentation: 1, meta: descriptions.entities.filter { $0.persist }.flatMap { entity -> [FunctionBodyMember] in
                 [
                     EmptyLine(),
                     Comment.comment(entity.transformedName),
@@ -132,30 +132,33 @@ struct MetaExportSQLiteFileTest {
                 ]
             }))
                 
-                    dispatchGroup.notify(queue: .main) {
-                        let errorMessage = "Something wrong happened. SQLite file wasn't exported successfully."
-                
-                        guard didErrorOccur == false else {
+                dispatchGroup.notify(queue: .main) {
+                    let errorMessage = "Something wrong happened. SQLite file wasn't exported successfully."
+
+                    guard didErrorOccur == false else {
+                        expectation.fulfill()
+                        XCTFail(errorMessage)
+                        return
+                    }
+
+                    Task {
+                        do {
+                            try await self.coreDataManager.backupPersistentStore(to: sqliteFileURL)
+
+                            if FileManager.default.createFile(atPath: descriptionsHashFileURL.path, contents: descriptionsHash, attributes: nil) == false {
+                                XCTFail("Could not store descriptions hash file at \\(descriptionsHashFileURL.path).")
+                            }
+
+                            expectation.fulfill()
+                        } catch {
                             expectation.fulfill()
                             XCTFail(errorMessage)
                             return
                         }
-                
-                        self.coreDataManager.backupPersistentStore(to: sqliteFileURL) { success in
-                            if success == false {
-                                XCTFail(errorMessage)
-                            }
-                
-                            if FileManager.default.createFile(atPath: descriptionsHashFileURL.path, contents: descriptionsHash, attributes: nil) == false {
-                                XCTFail("Could not store descriptions hash file at \\(descriptionsHashFileURL.path).")
-                            }
-                
-                            expectation.fulfill()
-                        }
                     }
                 }
-                
-                waitForExpectations(timeout: 10)
+
+                await fulfillment(of: [expectation], timeout: 10)
             }
             """))
     }

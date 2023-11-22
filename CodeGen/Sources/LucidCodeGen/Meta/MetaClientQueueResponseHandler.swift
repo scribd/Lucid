@@ -111,18 +111,9 @@ struct MetaClientQueueResponseHandler {
                               didReceiveResponse result: APIClientQueueResult<Data, APIError>,
                               for request: APIClientQueueRequest) {
 
-            mergeIdentifiers(clientQueue: clientQueue,
-                             result: result,
-                             request: request)
-                .sink(receiveCompletion: { completion in
-                    switch completion {
-                    case .failure(let error):
-                    Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Identifier merge failed with error \\(error) for request \\(request) with result \\(result).\")
-                    case .finished:
-                        break
-                    }
-                }, receiveValue: { _ in })
-                .store(in: cancellable)
+            Task {
+                await mergeIdentifiers(clientQueue: clientQueue, result: result, request: request)
+            }
         }
         """)
     }
@@ -131,22 +122,18 @@ struct MetaClientQueueResponseHandler {
 
         return Function(kind: .named("mergeIdentifiers"))
             .with(accessLevel: .private)
+            .with(async: true)
             .adding(parameters: [
                 FunctionParameter(name: "clientQueue", type: TypeIdentifier(name: "APIClientQueuing")),
                 FunctionParameter(name: "result", type: TypeIdentifier(name: "APIClientQueueResult<Data, APIError>")),
                 FunctionParameter(name: "request", type: TypeIdentifier(name: "APIClientQueueRequest"))
             ])
-            .with(resultType: TypeIdentifier(name: "AnyPublisher<Void, Never>"))
             .adding(members: [
                 EmptyLine(),
                 Guard(assignment: Assignment(
                     variable: Variable(name: "managers"),
                     value: Reference.named("managers")
-                )).adding(member:
-                    Return(value: Reference.named("Just<Void>") | .call(Tuple()
-                        .adding(parameter: TupleParameter(value: Reference.named("()")))) +
-                            Reference.named("eraseToAnyPublisher") | .call(Tuple())
-                    )
+                )).adding(member: Reference.named("return")
                 ),
                 EmptyLine(),
                 PlainCode(code: """
@@ -160,11 +147,11 @@ struct MetaClientQueueResponseHandler {
 
                     return """
                     case ("\(endpoint.normalizedPathName)", .\(httpMethod.rawValue)):
-                        return merge\(endpoint.transformedName)Identifiers(clientQueue: clientQueue, result: result, request: request, coreManager: managers.\(managerName))
+                        await merge\(endpoint.transformedName)Identifiers(clientQueue: clientQueue, result: result, request: request, coreManager: managers.\(managerName))
                     """
                 }.joined(separator: "\n"))
                 default:
-                    return Just<Void>(()).eraseToAnyPublisher()
+                    return
                 }
                 """)
             ])
@@ -180,18 +167,18 @@ struct MetaClientQueueResponseHandler {
 
         return Function(kind: .named("merge\(endpoint.transformedName)Identifiers"))
             .with(accessLevel: .private)
+            .with(async: true)
             .adding(parameter: FunctionParameter(name: "clientQueue", type: TypeIdentifier(name: "APIClientQueuing")))
             .adding(parameter: FunctionParameter(name: "result", type: TypeIdentifier(name: "APIClientQueueResult<Data, APIError>")))
             .adding(parameter: FunctionParameter(name: "request", type: TypeIdentifier(name: "APIClientQueueRequest")))
             .adding(parameter: FunctionParameter(name: "coreManager", type: TypeIdentifier(name: "CoreManaging<\(entity.typeID().swiftString), AppAnyEntity>")))
-            .with(resultType: TypeIdentifier(name: "AnyPublisher<Void, Never>"))
             .adding(member:
                 PlainCode(code: """
 
                 guard let identifiersData = request.identifiers,
                       let localIdentifiers = try? RootClientQueueResponseHandler.identifierDecoder.decode([\(entity.identifierTypeID().swiftString)].self, from: identifiersData) else {
                         Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Expected a \(entity.name.camelCased().variableCased()) identifier to be stored in \\(request).\", assert: true)
-                        return Just<Void>(()).eraseToAnyPublisher()
+                        return
                 }
 
                 switch result {
@@ -199,26 +186,22 @@ struct MetaClientQueueResponseHandler {
                     let payloadDecoder = response.jsonCoderConfig.decoder
                     do {
                         let writePayload = try payloadDecoder.decode(\(try endpoint.typeID(for: writePayload).swiftString).self, from: response.data)
-                        let publishers: [AnyPublisher<Void, Never>] = writePayload.\(entity.name.camelCased().variableCased().pluralName).enumerated().map { index, \(entity.name.camelCased().variableCased()) in
+                        await writePayload.\(entity.name.camelCased().variableCased().pluralName).enumerated().concurrentForEach { index, \(entity.name.camelCased().variableCased()) in
                             Logger.log(.debug, \"\\(RootClientQueueResponseHandler.self): Set \(entity.name.camelCased().variableCased()): \\(\(entity.name.camelCased().variableCased()).identifier)\")
                             \(entity.name.camelCased().variableCased()).merge(identifier: localIdentifiers[index])
-                            clientQueue.merge(with: \(entity.name.camelCased().variableCased()).identifier)
-                            return coreManager.setAndUpdateIdentifierInLocalStores(\(entity.name.camelCased().variableCased()), originTimestamp: request.timestamp)
+                            await clientQueue.merge(with: \(entity.name.camelCased().variableCased()).identifier)
+                            await coreManager.setAndUpdateIdentifierInLocalStores(\(entity.name.camelCased().variableCased()), originTimestamp: request.timestamp)
                         }
-                        return Publishers.MergeMany(publishers).eraseToAnyPublisher()
                     } catch {
                         Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Failed to deserialize \\(\(try endpoint.typeID(for: writePayload).swiftString).self): \\(error)\", assert: true)
-                        return Just<Void>(()).eraseToAnyPublisher()
                     }
                 case .aborted:
                     Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Create \(entity.name.camelCased().variableCased()) aborted.\")
-                    return Just<Void>(()).eraseToAnyPublisher()
                 case .failure(let error):
                     Logger.log(.error, \"\\(RootClientQueueResponseHandler.self): Failed to create \(entity.name.camelCased().variableCased()): \\(error).\")
-                    let publishers: [AnyPublisher<Void, Never>] = localIdentifiers.map { localIdentifier in
-                        return coreManager.removeFromLocalStores(localIdentifier, originTimestamp: request.timestamp)
+                    await localIdentifiers.concurrentForEach { localIdentifier in
+                        await coreManager.removeFromLocalStores(localIdentifier, originTimestamp: request.timestamp)
                     }
-                    return Publishers.MergeMany(publishers).eraseToAnyPublisher()
                 }
                 """)
             )

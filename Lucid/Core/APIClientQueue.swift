@@ -430,6 +430,7 @@ extension APIClientQueue: APIClientPriorityQueuing {
 extension APIClientQueue: APIClientQueueFlushing {
 
     public func flush() async {
+        await processor.setDelegate(self)
         await self.processor.flush()
     }
 }
@@ -792,10 +793,12 @@ private extension APIClientQueueProcessor {
             didSucceed = false
         }
 
-        if didSucceed {
-            await self.scheduler.requestDidSucceed()
-        } else {
-            await self.scheduler.requestDidFail()
+        Task {
+            if didSucceed {
+                await self.scheduler.requestDidSucceed()
+            } else {
+                await self.scheduler.requestDidFail()
+            }
         }
     }
 

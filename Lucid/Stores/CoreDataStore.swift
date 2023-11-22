@@ -13,16 +13,171 @@ import CoreData
 
 public final class CoreDataManager: NSObject {
 
-    // MARK: - State
-
-    fileprivate enum State {
-        case unloaded
-        case loaded(NSPersistentContainer, NSManagedObjectContext)
-        case loading([() -> Void])
-        case failed(NSError?)
+    enum CoreDataManagerError: Error {
+        case failedToBackupPersistentStore
     }
 
-    // MARK: - Migration
+    // MARK: - State
+
+    private let persistentContainerManager: PersistentContainerManager
+
+    // MARK: - Configuration
+
+    public enum Configuration {
+        public static let modelName = "Lucid"
+        public static let bundle = Bundle(for: CoreDataManager.self)
+        public static let forceMigration = false
+        public static let storeType: PersistentContainerManager.StoreType = .sqlite
+
+        public static var isTestTarget: Bool {
+            return NSClassFromString("XCTest") != nil
+        }
+    }
+
+    // MARK: - Dependencies
+
+    private let stateAsyncQueue: AsyncTaskQueue = AsyncTaskQueue(maxConcurrentTasks: 1)
+
+    public init(modelURL: URL,
+                persistentStoreURL: URL,
+                migrations: [PersistentContainerManager.Migration] = [],
+                storeType: PersistentContainerManager.StoreType = Configuration.storeType,
+                forceMigration: Bool = Configuration.forceMigration,
+                userDefaults: UserDefaults = .standard) {
+
+        self.persistentContainerManager = PersistentContainerManager(storeType: storeType,
+                                                                     modelURL: modelURL,
+                                                                     persistentStoreURL: persistentStoreURL,
+                                                                     migrations: migrations,
+                                                                     forceMigration: forceMigration,
+                                                                     userDefaults: userDefaults)
+    }
+
+    public convenience init(modelName: String,
+                            in bundle: Bundle,
+                            migrations: [PersistentContainerManager.Migration] = [],
+                            storeType: PersistentContainerManager.StoreType = .sqlite) {
+
+        let modelURL: URL = {
+            guard let modelURL = bundle.url(forResource: modelName, withExtension: "momd") else {
+                Logger.log(.error, "\(CoreDataManager.self): Could not find model named \(modelName) in bundle.", assert: true)
+                return URL(fileURLWithPath: "")
+            }
+            return modelURL
+        }()
+
+        let persistentStoreURL: URL = {
+            guard let appSupportDirectory = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory, .userDomainMask, true).first else {
+                Logger.log(.error, "\(CoreDataManager.self): Could not find app support directory URL.", assert: true)
+                return URL(fileURLWithPath: "")
+            }
+            return URL(fileURLWithPath: "\(appSupportDirectory)/\(modelName).sqlite")
+        }()
+
+        self.init(modelURL: modelURL, persistentStoreURL: persistentStoreURL, migrations: migrations, storeType: storeType)
+    }
+
+    func persistentData() async throws -> PersistentContainerManager.Data {
+        return try await stateAsyncQueue.enqueue {
+            return try await self.persistentContainerManager.data()
+        }
+    }
+
+    // MARK: - API
+
+    public func backupPersistentStore(to destinationURL: URL) async throws {
+        let data = try await persistentData()
+
+        let success = data.container.persistentStoreCoordinator.backupPersistentStore(to: destinationURL)
+        if success {
+            Logger.log(.info, "\(CoreDataManager.self): Persistent store was successfully exported to: \(destinationURL.path).")
+        } else {
+            throw CoreDataManagerError.failedToBackupPersistentStore
+        }
+    }
+
+    fileprivate func clearDatabase(_ descriptions: [NSEntityDescription], in context: NSManagedObjectContext) -> (Bool, NSError?) {
+        let entityNames = descriptions.compactMap { $0.name }
+
+        var success = false
+        var nsError: NSError?
+        context.performAndWait {
+            do {
+                for name in entityNames {
+                    let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: name)
+                    let request = NSBatchDeleteRequest(fetchRequest: fetch)
+                    try context.execute(request)
+                }
+
+                try context.save()
+                Logger.log(.info, "\(CoreDataManager.self): The database is now cleared.")
+                success = true
+            } catch {
+                Logger.log(.error, "\(CoreDataManager.self): Could not clear database: \(error)", assert: true)
+                nsError = error as NSError
+            }
+        }
+        return (success, nsError)
+    }
+
+    fileprivate func clearDatabase(_ descriptions: [NSEntityDescription]) async throws -> Bool {
+        let context = try await persistentData().context
+        return try await withCheckedThrowingContinuation { continuation in
+            let (success, error) = self.clearDatabase(descriptions, in: context)
+            if let error {
+                continuation.resume(throwing: error)
+            } else {
+                continuation.resume(returning: success)
+            }
+        }
+    }
+
+    public func clearDatabase() async -> Bool {
+        guard let data = try? await persistentData() else {
+            return false
+        }
+
+        let entityDescriptions = data.container
+            .persistentStoreCoordinator
+            .managedObjectModel
+            .entities
+
+        do {
+            return try await self.clearDatabase(entityDescriptions)
+        } catch {
+            return false
+        }
+    }
+}
+
+// MARK: - PersistentStore
+
+public final actor PersistentContainerManager {
+
+    struct Data {
+        let container: NSPersistentContainer
+        let context: NSManagedObjectContext
+    }
+
+    enum PersistentContainerManagerError: Error {
+        case couldNotLoadManagedObjectModel
+    }
+
+    // Setup
+
+    public enum StoreType {
+        case sqlite
+        case memory
+
+        var descriptionType: String {
+            switch self {
+            case .sqlite:
+                return NSSQLiteStoreType
+            case .memory:
+                return NSInMemoryStoreType
+            }
+        }
+    }
 
     public enum MigrationVersion {
         case legacy(Int)
@@ -51,40 +206,19 @@ public final class CoreDataManager: NSObject {
         }
     }
 
-    // MARK: - Configuration
+    let storeType: StoreType
 
-    public enum Configuration {
-        public static let modelName = "Lucid"
-        public static let bundle = Bundle(for: CoreDataManager.self)
-        public static let forceMigration = false
-        public static let storeType: StoreType = .sqlite
+    let modelURL: URL
 
-        public static var stateDispatchQueue: DispatchQueue {
-            return DispatchQueue(label: "\(CoreDataManager.self)")
-        }
+    let persistentStoreURL: URL
 
-        public static var isTestTarget: Bool {
-            return NSClassFromString("XCTest") != nil
-        }
-    }
+    let migrations: [Migration]
 
-    // MARK: - StoreType
+    let forceMigration: Bool
 
-    public enum StoreType {
-        case sqlite
-        case memory
+    private let userDefaults: UserDefaults
 
-        var descriptionType: String {
-            switch self {
-            case .sqlite:
-                return NSSQLiteStoreType
-            case .memory:
-                return NSInMemoryStoreType
-            }
-        }
-    }
-
-    // MARK: - Testing
+    // Testing
 
     /// CoreData quietly holds a reference to every NSManagedObjectModel loaded. So if multiple tests are creating their
     /// own CoreDataManagers, we keep creating more and more models in memory and it adds a lot of logging as loading an
@@ -92,235 +226,197 @@ public final class CoreDataManager: NSObject {
     /// Solved using: https://stackoverflow.com/questions/51851485/multiple-nsentitydescriptions-claim-nsmanagedobject-subclass
     private static var _testingManagedObjectModel: NSManagedObjectModel?
 
-    // MARK: - Dependencies
+    // State
+
+    enum State {
+        case unloaded
+        case loading
+        case loaded(Data)
+        case failed(NSError)
+    }
 
     private var _state: State = .unloaded
-    private let stateDispatchQueue: DispatchQueue
-    private let stateAsyncQueue: AsyncTaskQueue = AsyncTaskQueue()
-    private let forceMigration: Bool
-    private let userDefaults: UserDefaults
 
-    public let modelURL: URL
-    public let persistentStoreURL: URL
-    private let migrations: [Migration]
-    private let storeType: StoreType
+    // Internal
 
-    public init(modelURL: URL,
-                persistentStoreURL: URL,
-                migrations: [Migration] = [],
-                storeType: StoreType = Configuration.storeType,
-                dispatchQueue: DispatchQueue = Configuration.stateDispatchQueue,
-                forceMigration: Bool = Configuration.forceMigration,
-                userDefaults: UserDefaults = .standard) {
+    fileprivate var completionOrder: [UUID] = []
 
+    fileprivate var completionBlocks: [UUID: (Result<PersistentContainerManager.Data, NSError>) async -> Void] = [:]
+
+    private let asyncTaskQueue = AsyncTaskQueue(maxConcurrentTasks: 1)
+
+    // Init
+
+    deinit {
+        // unload persistent store on deallocation
+        switch _state {
+        case .loaded(let data):
+            data.container.persistentStoreDescriptions = []
+        case .unloaded,
+             .loading,
+             .failed:
+            break
+        }
+    }
+
+    init(storeType: StoreType,
+         modelURL: URL,
+         persistentStoreURL: URL,
+         migrations: [Migration],
+         forceMigration: Bool,
+         userDefaults: UserDefaults) {
+        self.storeType = storeType
         self.modelURL = modelURL
         self.persistentStoreURL = persistentStoreURL
         self.migrations = migrations
-        self.storeType = storeType
-        self.userDefaults = userDefaults
-        self.stateDispatchQueue = dispatchQueue
         self.forceMigration = forceMigration
+        self.userDefaults = userDefaults
     }
 
-    public convenience init(modelName: String,
-                            in bundle: Bundle,
-                            migrations: [Migration] = [],
-                            storeType: StoreType = .sqlite) {
+    // Accessors
 
-        let modelURL: URL = {
-            guard let modelURL = bundle.url(forResource: modelName, withExtension: "momd") else {
-                Logger.log(.error, "\(CoreDataManager.self): Could not find model named \(modelName) in bundle.", assert: true)
-                return URL(fileURLWithPath: "")
-            }
-            return modelURL
-        }()
+    func setState(_ state: State) async {
+        self._state = state
 
-        let persistentStoreURL: URL = {
-            guard let appSupportDirectory = NSSearchPathForDirectoriesInDomains(.applicationSupportDirectory, .userDomainMask, true).first else {
-                Logger.log(.error, "\(CoreDataManager.self): Could not find app support directory URL.", assert: true)
-                return URL(fileURLWithPath: "")
-            }
-            return URL(fileURLWithPath: "\(appSupportDirectory)/\(modelName).sqlite")
-        }()
-
-        self.init(modelURL: modelURL, persistentStoreURL: persistentStoreURL, migrations: migrations, storeType: storeType)
-    }
-
-    deinit {
-        unloadPersistentStore(sync: true)
-    }
-
-    // MARK: - API
-
-    private var modelName: String {
-        return modelURL.lastPathComponent
-            .replacingOccurrences(of: ".momd", with: "")
-            .replacingOccurrences(of: ".mom", with: "")
-    }
-
-    public func backupPersistentStore(to destinationURL: URL, completion: @escaping (Bool) -> Void) {
-        stateDispatchQueue.async {
-            self._persistentContainer {
-                guard let (persistentContainer, _) = self._state.loadedValues else {
-                    completion(false)
-                    return
-                }
-
-                let success = persistentContainer.persistentStoreCoordinator.backupPersistentStore(to: destinationURL)
-                if success {
-                    Logger.log(.info, "\(CoreDataManager.self): Persistent store was successfully exported to: \(destinationURL.path).")
-                }
-                completion(success)
-            }
-        }
-    }
-
-    func makeContext(_ completion: @escaping (NSManagedObjectContext?) -> Void) {
-        stateDispatchQueue.async {
-            self._persistentContainer {
-                completion(self._state.loadedValues?.context)
-            }
-        }
-    }
-
-    func makeContext() async -> NSManagedObjectContext? {
-        do {
-            return try await stateAsyncQueue.enqueue {
-                return await withCheckedContinuation { continuation in
-                    self._persistentContainer {
-                        continuation.resume(returning: self._state.loadedValues?.context)
-                    }
+        let processResult: (Result<PersistentContainerManager.Data, NSError>) async -> Void = { result in
+            for uuid in self.completionOrder {
+                guard let completionBlock = self.completionBlocks[uuid] else { continue }
+                try? await self.asyncTaskQueue.enqueue {
+                    await completionBlock(result)
                 }
             }
-        } catch {
-            return nil
+
+            self.completionOrder = []
+            self.completionBlocks = [:]
+        }
+
+        switch state {
+        case .unloaded,
+             .loading:
+            return
+        case .loaded(let data):
+            await processResult(.success(data))
+        case .failed(let error):
+            await processResult(.failure(error))
         }
     }
 
-    fileprivate func clearDatabase(_ descriptions: [NSEntityDescription], _ completion: @escaping (Bool, NSError?) -> Void) {
-        makeContext { _ in
-            guard let (_, context) = self._state.loadedValues else {
-                completion(false, nil)
-                return
-            }
-
-            let entityNames = descriptions.compactMap { $0.name }
-
-            context.perform {
-                do {
-                    for name in entityNames {
-                        let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: name)
-                        let request = NSBatchDeleteRequest(fetchRequest: fetch)
-                        try context.execute(request)
-                    }
-
-                    try context.save()
-                    Logger.log(.info, "\(CoreDataManager.self): The database is now cleared.")
-                    completion(true, nil)
-                } catch {
-                    Logger.log(.error, "\(CoreDataManager.self): Could not clear database: \(error)", assert: true)
-                    completion(false, error as NSError)
-                }
-            }
-        }
-    }
-
-    fileprivate func clearDatabase(_ descriptions: [NSEntityDescription]) async throws -> Bool {
-        _ = await makeContext()
-        guard let (_, context) = self._state.loadedValues else {
-            return false
-        }
-
-        let entityNames = descriptions.compactMap { $0.name }
-
-        return try await withCheckedThrowingContinuation { continuation in
-            context.perform {
-                do {
-                    for name in entityNames {
-                        let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: name)
-                        let request = NSBatchDeleteRequest(fetchRequest: fetch)
-                        try context.execute(request)
-                    }
-
-                    try context.save()
-                    Logger.log(.info, "\(CoreDataManager.self): The database is now cleared.")
-                    continuation.resume(returning: true)
-                } catch {
-                    Logger.log(.error, "\(CoreDataManager.self): Could not clear database: \(error)", assert: true)
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-    }
-
-    public func clearDatabase(_ completion: @escaping (Bool) -> Void) {
-        makeContext { _ in
-            guard let (persistentContainer, _) = self._state.loadedValues else {
-                completion(false)
-                return
-            }
-
-            let entityDescriptions = persistentContainer
-                .persistentStoreCoordinator
-                .managedObjectModel
-                .entities
-
-            self.clearDatabase(entityDescriptions, { success, _ in
-                completion(success)
-            })
-        }
-    }
-
-    public func clearDatabase() async -> Bool {
-        _ = await makeContext()
-        guard let (persistentContainer, _) = self._state.loadedValues else {
-            return false
-        }
-
-        let entityDescriptions = persistentContainer
-            .persistentStoreCoordinator
-            .managedObjectModel
-            .entities
-
-        do {
-            return try await self.clearDatabase(entityDescriptions)
-        } catch {
-            return false
-        }
-    }
-
-    private func unloadPersistentStore(sync: Bool = false) {
-        let action = {
-            self._state.loadedValues?.containter.persistentStoreDescriptions = []
-            self._state = .unloaded
-        }
-
-        sync ? stateDispatchQueue.sync(execute: action) : stateDispatchQueue.async(execute: action)
-    }
-
-    private func _persistentContainer(_ completion: @escaping () -> Void) {
+    func data() async throws -> PersistentContainerManager.Data {
         switch _state {
         case .unloaded:
-            _state = .loading([])
-            _loadPersistentContainer(completion)
-        case .loading(let completionBlocks):
-            _state = .loading(completionBlocks + [completion])
+            return try await loadPersistentContainer()
+        case .loading:
+            return try await queueForResource()
+        case .loaded(let data):
+            return data
         case .failed(let error):
-            Logger.log(.error, "\(CoreDataManager.self): Could not load persistent store: \(error?.description ?? "_").", assert: true)
-            completion()
-        case .loaded:
-            completion()
+            throw error
         }
     }
 
-    private func _loadManagedObjectModel(_ completion: @escaping () -> Void) -> NSManagedObjectModel? {
+    // Queueing
+
+    private func queueForResource() async throws -> PersistentContainerManager.Data {
+        let uuid = UUID()
+        completionOrder.append(uuid)
+        return try await withCheckedThrowingContinuation { continuation in
+            Task {
+                await checkResourceAvailability(uuid: uuid) { result in
+                    switch result {
+                    case .success(let data):
+                        continuation.resume(returning: data)
+                    case .failure(let error):
+                        continuation.resume(throwing: error)
+                    }
+                }
+            }
+        }
+    }
+
+    private func checkResourceAvailability(uuid: UUID, completion: @escaping ((Result<PersistentContainerManager.Data, NSError>) async -> Void)) async {
+
+        switch _state {
+        case .unloaded,
+             .loading:
+            completionBlocks[uuid] = completion
+        case .loaded(let data):
+            await completion(.success(data))
+        case .failed(let error):
+            await completion(.failure(error))
+        }
+    }
+
+    // CoreData Loading
+
+    private func loadPersistentContainer(recovering: Bool = false) async throws -> PersistentContainerManager.Data {
+
+        do {
+            await setState(.loading)
+
+            let managedObjectModel = try await loadManagedObjectModel()
+
+            Logger.log(.info, "\(CoreDataManager.self): Loading persistent stores.")
+
+            let persistentContainer = NSPersistentContainer(name: modelName, managedObjectModel: managedObjectModel)
+
+            let description = NSPersistentStoreDescription(url: persistentStoreURL)
+            description.shouldAddStoreAsynchronously = true
+            description.shouldInferMappingModelAutomatically = true
+            description.shouldMigrateStoreAutomatically = true
+            description.type = storeType.descriptionType
+            persistentContainer.persistentStoreDescriptions = [description]
+
+            return try await withCheckedThrowingContinuation { continuation in
+                persistentContainer.loadPersistentStores { description, error in
+                    if let error = error {
+                        Task {
+                            Logger.log(.error, "\(CoreDataManager.self): Error while loading persistent stores: \(error).")
+
+                            if recovering {
+                                Logger.log(.error, "\(CoreDataManager.self): Persistent stores failed to load and won't be recovered.")
+                                continuation.resume(throwing: error)
+                            } else {
+                                Logger.log(.warning, "\(CoreDataManager.self): Deleting persistent stores and reloading.")
+                                self.removePersistentStore()
+                                do {
+                                    let data = try await self.loadPersistentContainer(recovering: true)
+                                    continuation.resume(returning: data)
+                                } catch {
+                                    continuation.resume(throwing: error)
+                                }
+                            }
+                        }
+                        return
+                    }
+
+                    Logger.log(.info, "\(CoreDataManager.self): Persistent stores loaded successfully.")
+                    Logger.log(.info, "\(CoreDataManager.self): \(description.url?.path.replacingOccurrences(of: " ", with: "\\ ") ?? "_")")
+
+                    let context = persistentContainer.newBackgroundContext()
+                    context.automaticallyMergesChangesFromParent = true
+
+                    Task {
+                        await self.executeMigrations(in: context)
+                        let data = Data(container: persistentContainer, context: context)
+                        continuation.resume(returning: data)
+                        await self.setState(.loaded(data))
+                    }
+                }
+            }
+        } catch {
+            await setState(.failed(error as NSError))
+            throw error
+        }
+    }
+
+    private func loadManagedObjectModel() async throws -> NSManagedObjectModel {
 
         switch storeType {
         case .memory:
-            if Configuration.isTestTarget == false {
+            if CoreDataManager.Configuration.isTestTarget == false {
                 Logger.log(.error, "\(CoreDataManager.self): Should not be using a memory store for release builds.", assert: true)
             }
-            if let model = CoreDataManager._testingManagedObjectModel {
+            if let model = PersistentContainerManager._testingManagedObjectModel {
                 return model
             }
         case .sqlite:
@@ -329,15 +425,12 @@ public final class CoreDataManager: NSObject {
 
         guard let managedObjectModel = NSManagedObjectModel(contentsOf: modelURL) else {
             Logger.log(.error, "\(CoreDataManager.self): Could not create a managed object model with url: \(modelURL).", assert: true)
-            let completionBlocks = self._state.completionBlocks(completion)
-            self._state = .failed(nil)
-            completionBlocks.forEach { $0() }
-            return nil
+            throw PersistentContainerManagerError.couldNotLoadManagedObjectModel
         }
 
         switch storeType {
         case .memory:
-            CoreDataManager._testingManagedObjectModel = managedObjectModel
+            PersistentContainerManager._testingManagedObjectModel = managedObjectModel
         case .sqlite:
             break
         }
@@ -345,59 +438,7 @@ public final class CoreDataManager: NSObject {
         return managedObjectModel
     }
 
-    private func _loadPersistentContainer(recovering: Bool = false, _ completion: @escaping () -> Void) {
-
-        guard let managedObjectModel = _loadManagedObjectModel(completion) else { return }
-
-        Logger.log(.info, "\(CoreDataManager.self): Loading persistent stores.")
-
-        let persistentContainer = NSPersistentContainer(name: modelName, managedObjectModel: managedObjectModel)
-
-        let description = NSPersistentStoreDescription(url: persistentStoreURL)
-        description.shouldAddStoreAsynchronously = true
-        description.shouldInferMappingModelAutomatically = true
-        description.shouldMigrateStoreAutomatically = true
-        description.type = storeType.descriptionType
-        persistentContainer.persistentStoreDescriptions = [description]
-
-        persistentContainer.loadPersistentStores { description, error in
-
-            self.stateDispatchQueue.async {
-
-                if let error = error {
-                    Logger.log(.error, "\(CoreDataManager.self): Error while loading persistent stores: \(error).")
-
-                    if recovering == false {
-                        Logger.log(.warning, "\(CoreDataManager.self): Deleting persistent stores and reloading.")
-                        self.removePersistentStore()
-                        self._loadPersistentContainer(recovering: true, completion)
-                    } else {
-                        Logger.log(.error, "\(CoreDataManager.self): Persistent stores failed to load and won't be recovered.")
-                        let completionBlocks = self._state.completionBlocks(completion)
-                        self._state = .failed(error as NSError)
-                        completionBlocks.forEach { $0() }
-                    }
-                    return
-                }
-
-                Logger.log(.info, "\(CoreDataManager.self): Persistent stores loaded successfully.")
-                Logger.log(.info, "\(CoreDataManager.self): \(description.url?.path.replacingOccurrences(of: " ", with: "\\ ") ?? "_")")
-
-                let context = persistentContainer.newBackgroundContext()
-                context.automaticallyMergesChangesFromParent = true
-
-                self._executeMigrations(in: context) {
-                    self.stateDispatchQueue.async {
-                        let completionBlocks = self._state.completionBlocks(completion)
-                        self._state = .loaded(persistentContainer, context)
-                        completionBlocks.forEach { $0() }
-                    }
-                }
-            }
-        }
-    }
-
-    private func _executeMigrations(in context: NSManagedObjectContext, completion: @escaping () -> Void) {
+    private func executeMigrations(in context: NSManagedObjectContext) async {
 
         let legacyKey = "\(CoreDataManager.self):last_migration_version"
         let key = "\(CoreDataManager.self):last_migration_app_version"
@@ -461,8 +502,6 @@ public final class CoreDataManager: NSObject {
             if let latestMigration = self.migrations.filter({ $0.version.isAppVersion }).last {
                 writeDefaults(latestMigration.version)
             }
-
-            completion()
         }
     }
 
@@ -477,30 +516,11 @@ public final class CoreDataManager: NSObject {
             }
         }
     }
-}
 
-private extension CoreDataManager.State {
-
-    var loadedValues: (containter: NSPersistentContainer, context: NSManagedObjectContext)? {
-        switch self {
-        case .loaded(let container, let context):
-            return (container, context)
-        case .failed,
-             .loading,
-             .unloaded:
-            return nil
-        }
-    }
-
-    func completionBlocks(_ completion: @escaping () -> Void) -> [() -> Void] {
-        switch self {
-        case .loading(let pendingCompletionBlocks):
-            return [completion] + pendingCompletionBlocks
-        case .failed,
-             .unloaded,
-             .loaded:
-            return [completion]
-        }
+    private var modelName: String {
+        return modelURL.lastPathComponent
+            .replacingOccurrences(of: ".momd", with: "")
+            .replacingOccurrences(of: ".mom", with: "")
     }
 }
 
@@ -517,32 +537,9 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
     }
 
     public func get(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
-
-        guard let identifier = query.identifier else {
-            completion(.failure(.identifierNotFound))
-            return
-        }
-
-        coreDataManager.makeContext { managedObjectContext in
-            guard let managedObjectContext = managedObjectContext else {
-                completion(.failure(.invalidCoreDataState))
-                return
-            }
-
-            managedObjectContext.perform {
-                switch CoreDataStore._get(byID: identifier, in: managedObjectContext) {
-                case .success(.some(let coreDataEntity)):
-                    guard let entity = E.entity(from: coreDataEntity) else {
-                        completion(.failure(.invalidCoreDataEntity))
-                        return
-                    }
-                    completion(.success(QueryResult(from: entity)))
-                case .success:
-                    completion(.success(.empty()))
-                case .failure(let error):
-                    completion(.failure(error))
-                }
-            }
+        Task {
+            let result = await get(withQuery: query, in: context)
+            completion(result)
         }
     }
 
@@ -551,7 +548,7 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
             return .failure(.identifierNotFound)
         }
 
-        let managedObjectContext = await coreDataManager.makeContext()
+        let managedObjectContext = try? await coreDataManager.persistentData().context
 
         guard let managedObjectContext = managedObjectContext else {
             return .failure(.invalidCoreDataState)
@@ -576,31 +573,14 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
     }
 
     public func search(withQuery query: Query<E>, in context: ReadContext<E>, completion: @escaping (Result<QueryResult<E>, StoreError>) -> Void) {
-
-        coreDataManager.makeContext { managedObjectContext in
-            guard let managedObjectContext = managedObjectContext else {
-                completion(.failure(.invalidCoreDataState))
-                return
-            }
-
-            managedObjectContext.perform {
-                switch CoreDataStore._search(withQuery: query, in: managedObjectContext) {
-                case .success(let coreDataEntities):
-                    var entities = coreDataEntities.compactMap { E.entity(from: $0) }
-                    if query.order.contains(where: { $0.isByIdentifiers }) {
-                        entities = entities.order(with: query.order)
-                    }
-                    let result = QueryResult(fromProcessedEntities: entities, for: query)
-                    completion(.success(result))
-                case .failure(let error):
-                    completion(.failure(error))
-                }
-            }
+        Task {
+            let result = await search(withQuery: query, in: context)
+            completion(result)
         }
     }
 
     public func search(withQuery query: Query<E>, in context: ReadContext<E>) async -> Result<QueryResult<E>, StoreError> {
-        let managedObjectContext = await coreDataManager.makeContext()
+        let managedObjectContext = try? await coreDataManager.persistentData().context
 
         guard let managedObjectContext = managedObjectContext else {
             return .failure(.invalidCoreDataState)
@@ -624,60 +604,14 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
     }
 
     public func set<S>(_ entities: S, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E>, StoreError>?) -> Void) where S: Sequence, S.Element == E {
-
-        coreDataManager.makeContext { managedObjectContext in
-            guard let managedObjectContext = managedObjectContext else {
-                completion(.failure(.invalidCoreDataState))
-                return
-            }
-
-            managedObjectContext.perform {
-                var mergedEntities: [E] = []
-                let query = Query<E>.identifiers(entities.map { $0.identifier }.any)
-
-                let searchResults = CoreDataStore._search(withQuery: query, in: managedObjectContext, loggingContext: "SET")
-                switch searchResults {
-                case .success(let searchEntities):
-                    var dictionary = DualHashDictionary<E.Identifier, (E.CoreDataObject, E)>()
-                    for coreDataEntity in searchEntities {
-                        guard let entity = E.entity(from: coreDataEntity) else { continue }
-                        dictionary[entity.identifier] = (coreDataEntity, entity)
-                    }
-
-                    for entity in entities {
-                        if let (coreDataEntity, existingEntity) = dictionary[entity.identifier] {
-                            if let identifier = coreDataEntity.identifierValueType(E.Identifier.self) {
-                                entity.identifier.update(with: identifier)
-                            }
-                            let mergedEntity = existingEntity.merging(entity)
-                            mergedEntity.merge(into: coreDataEntity)
-                            mergedEntities.append(mergedEntity)
-                        } else {
-                            let coreDataEntity = E.CoreDataObject(context: managedObjectContext)
-                            entity.merge(into: coreDataEntity)
-                            mergedEntities.append(entity)
-                        }
-                    }
-
-                case .failure(let error):
-                    Logger.log(.verbose, "\(CoreDataStore.self): SET error.")
-                    completion(.failure(error))
-                    return
-                }
-
-                do {
-                    try managedObjectContext.save()
-                    completion(.success(mergedEntities.any))
-                } catch {
-                    Logger.log(.verbose, "\(CoreDataStore.self): SET error: \(error).")
-                    completion(.failure(.coreData(error as NSError)))
-                }
-            }
+        Task {
+            let result = await set(entities, in: context)
+            completion(result)
         }
     }
 
     public func set<S>(_ entities: S, in context: WriteContext<E>) async -> Result<AnySequence<E>, StoreError>? where S : Sequence, E == S.Element {
-        let managedObjectContext = await coreDataManager.makeContext()
+        let managedObjectContext = try? await coreDataManager.persistentData().context
 
         guard let managedObjectContext = managedObjectContext else {
             return .failure(.invalidCoreDataState)
@@ -730,51 +664,14 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
     }
 
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>, completion: @escaping (Result<AnySequence<E.Identifier>, StoreError>?) -> Void) {
-
-        coreDataManager.makeContext { managedObjectContext in
-            guard let managedObjectContext = managedObjectContext else {
-                completion(.failure(.invalidCoreDataState))
-                return
-            }
-
-            managedObjectContext.perform {
-                switch CoreDataStore._search(withQuery: query, in: managedObjectContext, loggingContext: "REMOVE ALL") {
-                case .success(let coreDataEntities) where coreDataEntities.isEmpty:
-                    completion(.success(.empty))
-                case .success(let coreDataEntities) where query.filter == .all:
-                    let identifiers = coreDataEntities.compactMap { E.entity(from: $0)?.identifier }
-                    self.coreDataManager.clearDatabase([E.CoreDataObject.entity()]) { success, error in
-                        if success {
-                            completion(.success(identifiers.any))
-                        } else {
-                            if let error = error {
-                                completion(.failure(.coreData(error)))
-                            } else {
-                                completion(.failure(.invalidCoreDataState))
-                            }
-                        }
-                    }
-                case .success(let coreDataEntities):
-                    let identifiers = coreDataEntities.compactMap { E.entity(from: $0)?.identifier }
-                    coreDataEntities.forEach { coreDataEntity in
-                        managedObjectContext.delete(coreDataEntity)
-                    }
-                    do {
-                        try managedObjectContext.save()
-                        completion(.success(identifiers.any))
-                    } catch {
-                        Logger.log(.verbose, "\(CoreDataStore.self): REMOVE ALL failure: \(error).")
-                        completion(.failure(.coreData(error as NSError)))
-                    }
-                case .failure(let error):
-                    completion(.failure(error))
-                }
-            }
+        Task {
+            let result = await removeAll(withQuery: query, in: context)
+            completion(result)
         }
     }
 
     public func removeAll(withQuery query: Query<E>, in context: WriteContext<E>) async -> Result<AnySequence<E.Identifier>, StoreError>? {
-        let managedObjectContext = await coreDataManager.makeContext()
+        let managedObjectContext = try? await coreDataManager.persistentData().context
 
         guard let managedObjectContext = managedObjectContext else {
             return .failure(.invalidCoreDataState)
@@ -787,16 +684,13 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
                     continuation.resume(returning: .success(.empty))
                 case .success(let coreDataEntities) where query.filter == .all:
                     let identifiers = coreDataEntities.compactMap { E.entity(from: $0)?.identifier }
-                    self.coreDataManager.clearDatabase([E.CoreDataObject.entity()]) { success, error in
-                        if success {
-                            continuation.resume(returning: .success(identifiers.any))
-                        } else {
-                            if let error = error {
-                                continuation.resume(returning: .failure(.coreData(error)))
-                            } else {
-                                continuation.resume(returning: .failure(.invalidCoreDataState))
-                            }
-                        }
+                    let (success, error) = self.coreDataManager.clearDatabase([E.CoreDataObject.entity()], in: managedObjectContext)
+                    if success {
+                        continuation.resume(returning: .success(identifiers.any))
+                    } else if let error {
+                        continuation.resume(returning: .failure(.coreData(error)))
+                    } else {
+                        continuation.resume(returning: .failure(.invalidCoreDataState))
                     }
                 case .success(let coreDataEntities):
                     let identifiers = coreDataEntities.compactMap { E.entity(from: $0)?.identifier }
@@ -818,15 +712,10 @@ public final class CoreDataStore<E>: StoringConvertible where E: CoreDataEntity 
     }
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>, completion: @escaping (Result<Void, StoreError>?) -> Void) where S: Sequence, S.Element == E.Identifier {
-        return removeAll(withQuery: .identifiers(identifiers.any), in: context, completion: { result in
-            switch result {
-            case .success,
-                 .none:
-                completion(.success(()))
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        })
+        Task {
+            let result = await remove(identifiers, in: context)
+            completion(result)
+        }
     }
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S: Sequence, S.Element == E.Identifier {

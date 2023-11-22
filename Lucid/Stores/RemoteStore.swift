@@ -37,8 +37,6 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
 
     private let clientQueue: APIClientQueuing & APIClientQueueFlushing
 
-    private let processingQueue = AsyncTaskQueue()
-
     /// - Warning: This queue shall only be used for decoding computation.
     ///            It shall never be used for work deferring to other queues synchronously or it would
     ///            introduce a risk of thread pool starvation (no more threads available), leading to a crash.
@@ -479,17 +477,6 @@ public final class RemoteStore<E>: StoringConvertible where E: RemoteEntity {
     }
 
     public func remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
-        do {
-            return try await processingQueue.enqueueBarrier { completion in
-                defer { completion() }
-                return await self._remove(identifiers, in: context)
-            }
-        } catch {
-            return .failure(.enqueueingError)
-        }
-    }
-
-    private func _remove<S>(_ identifiers: S, in context: WriteContext<E>) async -> Result<Void, StoreError>? where S : Sequence, S.Element == E.Identifier {
         var countMismatch = false
         let requests = identifiers.compactMap { (identifier: E.Identifier) -> APIClientQueueRequest? in
 

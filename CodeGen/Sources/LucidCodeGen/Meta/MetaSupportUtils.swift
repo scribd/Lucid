@@ -132,7 +132,7 @@ struct MetaSupportUtils {
         for entity in descriptions.entities.filter({ $0.persist }) {
             let member = """
                         group.addTask {
-                            \(entity.typeID().swiftString).eraseLocalStore(\("coreManagerProvider.\(entity.coreManagerVariable.name))")
+                            return await \(entity.typeID().swiftString).eraseLocalStore(\("self.coreManagerProvider.\(entity.coreManagerVariable.name))")
                         }
             """
 

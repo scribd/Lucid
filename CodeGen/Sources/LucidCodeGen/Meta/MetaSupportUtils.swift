@@ -50,7 +50,7 @@ struct MetaSupportUtils {
             }
 
             public protocol LocalStoreCleanupManaging {
-                func removeAllLocalData() -> AnyPublisher<Void, [LocalStoreCleanupError]>
+                func removeAllLocalData() async -> [LocalStoreCleanupError]
             }
 
             public final class LocalStoreCleanupManager: LocalStoreCleanupManaging {
@@ -69,31 +69,22 @@ struct MetaSupportUtils {
             
                 // MARK: API
 
-                public func removeAllLocalData() -> AnyPublisher<Void, [LocalStoreCleanupError]> {
-                    return \(MetaCode(meta: Value.array(
-                        descriptions.entities.filter({ $0.persist }).map { entity in
-                            return Value.reference(entity.typeID().reference + .named("eraseLocalStore") | .call(Tuple()
-                                .adding(parameter: TupleParameter(value: Reference.named("coreManagerProvider.\(entity.coreManagerVariable.name)")))
-                            ))
-                        })
-                ))
-            \("""
-                        .publisher
-                        .flatMap { $0 }
-                        .collect()
-                        .map { $0.reduce(LocalStoreCleanupResult.success) { $0.merged(with: $1) } }
-                        .setFailureType(to: [LocalStoreCleanupError].self)
-                        .flatMap { erasedResults -> AnyPublisher<Void, [LocalStoreCleanupError]> in
-                            switch erasedResults {
+                public func removeAllLocalData() async -> [LocalStoreCleanupError] {
+                    return await withTaskGroup(of: LocalStoreCleanupResult.self, returning: [LocalStoreCleanupError].self) { group in
+            \(groupTasks().joined(separator: "\n"))
+
+                        var errors: [LocalStoreCleanupError] = []
+                        for await result in group {
+                            switch result {
                             case .success:
-                                return Just(()).setFailureType(to: [LocalStoreCleanupError].self).eraseToAnyPublisher()
-                            case .failure(let cleanupErrors):
-                                return Fail(outputType: Void.self, failure: cleanupErrors).eraseToAnyPublisher()
+                                break
+                            case .failure(let resultErrors):
+                                errors.append(contentsOf: resultErrors)
                             }
                         }
-                        .first()
-                        .eraseToAnyPublisher()
-            """)
+
+                        return errors
+                    }
                 }
             }
 
@@ -120,18 +111,33 @@ struct MetaSupportUtils {
                 /// `static func eraseLocalStore(_ manager: CoreManaging<Self, AppAnyEntity>) -> AnyPublisher<LocalStoreCleanupResult, Never>`
                 /// to an individual class adopting the Entity protocol to provide custom functionality
 
-                static func eraseLocalStore(_ manager: CoreManaging<Self, AppAnyEntity>) -> AnyPublisher<LocalStoreCleanupResult, Never> {
-                    return manager
-                        .removeAll(withQuery: .all, in: WriteContext<Self>(dataTarget: .local))
-                        .map { _ in LocalStoreCleanupResult.success }
-                        .catch { managerError -> Just<LocalStoreCleanupResult> in
-                            let cleanupError = LocalStoreCleanupError.manager(name: "\\(manager.self)", error: managerError)
-                            return Just(.failure([cleanupError]))
-                        }
-                        .eraseToAnyPublisher()
+                static func eraseLocalStore(_ manager: CoreManaging<Self, AppAnyEntity>) async -> LocalStoreCleanupResult {
+                    do {
+                        try await manager.removeAll(withQuery: .all, in: WriteContext<Self>(dataTarget: .local))
+                        return .success
+                    } catch let error as ManagerError {
+                        return .failure([LocalStoreCleanupError.manager(name: "\\(manager.self)", error: error)])
+                    } catch {
+                        return .failure([])
+                    }
                 }
             }
             """
         )
+    }
+
+    private func groupTasks() -> [String] {
+        var functionBody: [String] = []
+
+        for entity in descriptions.entities.filter({ $0.persist }) {
+            let member = """
+                        group.addTask {
+                            \(entity.typeID().swiftString).eraseLocalStore(\("coreManagerProvider.\(entity.coreManagerVariable.name))")
+                        }
+            """
+
+            functionBody.append(member)
+        }
+        return functionBody
     }
 }

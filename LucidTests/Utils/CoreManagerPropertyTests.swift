@@ -25,7 +25,7 @@ final class CoreManagerPropertyTests: XCTestCase {
 
                 group.addTask(priority: .low) {
                     let iterator = await property.stream.makeAsyncIterator()
-                    for try await value in iterator {
+                    for try await value in iterator where Task.isCancelled == false {
                         XCTAssertEqual(value, 5)
                         return
                     }
@@ -52,7 +52,7 @@ final class CoreManagerPropertyTests: XCTestCase {
                 group.addTask {
                     var count = 0
                     let iterator = await property.stream.makeAsyncIterator()
-                    for try await value in iterator {
+                    for try await value in iterator where Task.isCancelled == false {
                         if count == 0 {
                             XCTAssertEqual(value, nil)
                         } else if count == 1 {
@@ -94,7 +94,7 @@ final class CoreManagerPropertyTests: XCTestCase {
                 group.addTask {
                     var count = 0
                     let iterator = await property.stream.makeAsyncIterator()
-                    for try await value in iterator {
+                    for try await value in iterator where Task.isCancelled == false {
                         defer { count += 1 }
                         if count == 0 {
                             XCTAssertEqual(value, nil)
@@ -137,7 +137,7 @@ final class CoreManagerPropertyTests: XCTestCase {
         Task(priority: .high) {
             var count = 0
             let iterator = await property.stream.makeAsyncIterator()
-            for try await value in iterator {
+            for try await value in iterator where Task.isCancelled == false {
                 if count == 0 {
                     XCTAssertEqual(value, nil)
                 } else if count == 1 {
@@ -153,7 +153,7 @@ final class CoreManagerPropertyTests: XCTestCase {
         Task(priority: .high) {
             var count = 0
             let iterator = await property.stream.makeAsyncIterator()
-            for try await value in iterator {
+            for try await value in iterator where Task.isCancelled == false {
                 if count == 0 {
                     XCTAssertEqual(value, nil)
                 } else if count == 1 {

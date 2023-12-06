@@ -68,13 +68,21 @@ public final actor APIClientQueueProcessorSpy: APIClientQueueProcessing {
     }
 }
 
-public final class APIClientQueueProcessorDelegateSpy: APIClientQueueProcessorDelegate {
+public final actor APIClientQueueProcessorDelegateSpy: APIClientQueueProcessorDelegate {
 
     // MARK: - Stubs
 
     public var requestStub: APIClientQueueRequest?
 
+    public func setRequestStub(stub: APIClientQueueRequest?) {
+        self.requestStub = stub
+    }
+
     public var removeRequestsStub: [APIClientQueueRequest] = []
+
+    public func setRemoveRequestsStub(stub: [APIClientQueueRequest]) {
+        self.removeRequestsStub = stub
+    }
 
     // MARK: - Records
 

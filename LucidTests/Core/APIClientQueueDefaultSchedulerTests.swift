@@ -248,11 +248,8 @@ extension APIClientQueueDefaultSchedulerTests {
         let invocation = self.timerProvider.scheduledTimerInvocations[0]
         _ = invocation.target.perform(invocation.selector)
 
-        try? await Task.sleep(nanoseconds: 1000000)
-
         // ensure delegate was invoked
-        let processNextInvocationsEnd: [Void] = await delegate.processNextInvocations
-        XCTAssertEqual(processNextInvocationsEnd.count, 2)
+        await AsyncExpectation(expression: await self.delegate.processNextInvocations.count == 2, timeout: 5)
     }
 
     func testThatItInvalidatesTheTimerAndInvokesTheDelegateWhenDidEnqueueNewRequestIsCalledAndAPriorRequestFailedAndTheTimerHasNotFinished() async {

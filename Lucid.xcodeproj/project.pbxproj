@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		019C03042B1A7D8600E4B65F /* AsyncExpectation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 019C03032B1A7D8600E4B65F /* AsyncExpectation.swift */; };
+		019C03052B1A7D8600E4B65F /* AsyncExpectation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 019C03032B1A7D8600E4B65F /* AsyncExpectation.swift */; };
+		019C03062B1A7D8600E4B65F /* AsyncExpectation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 019C03032B1A7D8600E4B65F /* AsyncExpectation.swift */; };
+		019C03072B1A7D8600E4B65F /* AsyncExpectation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 019C03032B1A7D8600E4B65F /* AsyncExpectation.swift */; };
 		01ED569B29E9C3FA00C77548 /* Async.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ED569A29E9C3FA00C77548 /* Async.swift */; };
 		01ED569C29E9C3FA00C77548 /* Async.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ED569A29E9C3FA00C77548 /* Async.swift */; };
 		01ED569D29E9C3FA00C77548 /* Async.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ED569A29E9C3FA00C77548 /* Async.swift */; };
@@ -424,6 +428,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		019C03032B1A7D8600E4B65F /* AsyncExpectation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncExpectation.swift; sourceTree = "<group>"; };
 		01ED569A29E9C3FA00C77548 /* Async.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Async.swift; sourceTree = "<group>"; };
 		1907AD8224A6826400727F82 /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
 		190ADC082458D71000D22F6D /* Lucid.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Lucid.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -1615,6 +1620,7 @@
 			isa = PBXGroup;
 			children = (
 				1987FA452554A7210057F1CC /* Combine.swift */,
+				019C03032B1A7D8600E4B65F /* AsyncExpectation.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -2174,6 +2180,7 @@
 				190ADCDD2458D9A500D22F6D /* UserAccessValidatorSpy.swift in Sources */,
 				190ADCD92458D9A500D22F6D /* LoggerMock.swift in Sources */,
 				190ADCD82458D9A500D22F6D /* StoreSpy.swift in Sources */,
+				019C03042B1A7D8600E4B65F /* AsyncExpectation.swift in Sources */,
 				190ADCDF2458D9A500D22F6D /* FakeStore.swift in Sources */,
 				190ADCD62458D9A500D22F6D /* GraphStub.swift in Sources */,
 				1922E27F25C345AB0038DD8F /* ManagedEntitySpy+CoreDataClass.swift in Sources */,
@@ -2291,6 +2298,7 @@
 				F4A7588D2914746F0046DE3F /* DiskCacheSpy.swift in Sources */,
 				F4A7588A2914746F0046DE3F /* StoreSpy.swift in Sources */,
 				F4A7587E2914746F0046DE3F /* ManagedEntityRelationshipSpy+CoreDataProperties.swift in Sources */,
+				019C03072B1A7D8600E4B65F /* AsyncExpectation.swift in Sources */,
 				F4A758802914746F0046DE3F /* AnyEntitySpy.swift in Sources */,
 				F4A75891291474A20046DE3F /* Combine.swift in Sources */,
 				F4A758852914746F0046DE3F /* EntityRelationshipSpy.swift in Sources */,
@@ -2436,6 +2444,7 @@
 				F4A758B2291477A80046DE3F /* LoggerMock.swift in Sources */,
 				F4A758AD291477A80046DE3F /* DiskCacheSpy.swift in Sources */,
 				F4A758A8291477A80046DE3F /* APIClientQueueSpy.swift in Sources */,
+				019C03062B1A7D8600E4B65F /* AsyncExpectation.swift in Sources */,
 				F4A7589F291477A70046DE3F /* APIClientSpy.swift in Sources */,
 				F4A758AB291477A80046DE3F /* EntitySpy.swift in Sources */,
 				F4A758B3291477A80046DE3F /* ManagedEntitySpy+CoreDataProperties.swift in Sources */,
@@ -2467,6 +2476,7 @@
 				F4A758D6291479460046DE3F /* APIClientQueueSchedulerSpy.swift in Sources */,
 				F4A758CD291479460046DE3F /* UserAccessValidatorSpy.swift in Sources */,
 				F4A758CE291479460046DE3F /* DiskCacheSpy.swift in Sources */,
+				019C03052B1A7D8600E4B65F /* AsyncExpectation.swift in Sources */,
 				F4A758D3291479460046DE3F /* LoggerMock.swift in Sources */,
 				F4A758DD291479460046DE3F /* EntityRelationshipSpy.swift in Sources */,
 				F4A758DA291479460046DE3F /* CoreManagerSpy.swift in Sources */,

@@ -944,11 +944,10 @@ final class CoreManagerTests: XCTestCase {
             let result = try await manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: context)
             XCTAssertEqual(result.entity?.identifier.value.remoteValue, 42)
 
-            try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
+            await AsyncExpectation(expression: self.remoteStoreSpy.identifierRecords.count == 1, timeout: 2)
+            await AsyncExpectation(expression: self.memoryStoreSpy.entityRecords.count == 1, timeout: 2)
 
-            XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
             XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
-            XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
             XCTAssertEqual(self.memoryStoreSpy.entityRecords.last?.identifier.value.remoteValue, 42)
         } catch {
             XCTFail("Unexpected error: \(error)")
@@ -972,9 +971,8 @@ final class CoreManagerTests: XCTestCase {
             XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
             XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
 
-            try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
+            await AsyncExpectation(expression: self.memoryStoreSpy.entityRecords.count == 1, timeout: 1)
 
-            XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
             XCTAssertEqual(self.memoryStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
         } catch {
             XCTFail("Unexpected error: \(error)")
@@ -996,9 +994,6 @@ final class CoreManagerTests: XCTestCase {
             let result = try await manager.get(byID: EntitySpyIdentifier(value: .remote(42, nil)), in: context)
             XCTAssertNil(result.entity)
             XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
-
-            try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
-
             XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 0)
         } catch {
             XCTFail("Unexpected error: \(error)")
@@ -1023,9 +1018,8 @@ final class CoreManagerTests: XCTestCase {
             XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
             XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
 
-            try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
+            await AsyncExpectation(expression: self.memoryStoreSpy.entityRecords.count == 1, timeout: 1)
 
-            XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 1)
             XCTAssertEqual(self.memoryStoreSpy.entityRecords.first?.identifier.value.remoteValue, 42)
         } catch {
             XCTFail("Unexpected error: \(error)")
@@ -1053,9 +1047,6 @@ final class CoreManagerTests: XCTestCase {
         } catch let error as ManagerError where error == .store(.api(.api(httpStatusCode: 500, errorPayload: nil, response: response))) {
             XCTAssertEqual(self.remoteStoreSpy.identifierRecords.count, 1)
             XCTAssertEqual(self.remoteStoreSpy.identifierRecords.first?.value.remoteValue, 42)
-
-            try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
-
             XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 0)
         } catch {
             XCTFail("Unexpected error: \(error)")
@@ -1154,6 +1145,7 @@ final class CoreManagerTests: XCTestCase {
                     }
                 }
 
+                // Timeout
                 group.addTask(priority: .low) {
                     try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
                 }
@@ -1195,6 +1187,7 @@ final class CoreManagerTests: XCTestCase {
                     }
                 }
 
+                // Timeout
                 group.addTask(priority: .low) {
                     try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
                 }
@@ -1826,12 +1819,11 @@ final class CoreManagerTests: XCTestCase {
             XCTAssertEqual(result.array.last?.identifier.value.remoteValue, 42)
             XCTAssertEqual(result.count, 2)
 
-            try? await Task.sleep(nanoseconds: NSEC_PER_SEC)
+            await AsyncExpectation(expression: self.memoryStoreSpy.queryRecords.count == 2, timeout: 1)
+            await AsyncExpectation(expression: self.memoryStoreSpy.entityRecords.count == 2, timeout: 1)
+            await AsyncExpectation(expression: self.remoteStoreSpy.queryRecords.count == 1, timeout: 1)
 
             XCTAssertEqual(self.memoryStoreSpy.queryRecords.first?.filter, .identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil))))
-            XCTAssertEqual(self.memoryStoreSpy.queryRecords.count, 2)
-            XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 2)
-            XCTAssertEqual(self.remoteStoreSpy.queryRecords.count, 1)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -1855,12 +1847,11 @@ final class CoreManagerTests: XCTestCase {
             XCTAssertEqual(result.array.last?.identifier.value.remoteValue, 42)
             XCTAssertEqual(result.count, 2)
 
-            try? await Task.sleep(nanoseconds: 50000)
+            await AsyncExpectation(expression: self.memoryStoreSpy.queryRecords.count == 2, timeout: 1)
+            await AsyncExpectation(expression: self.memoryStoreSpy.entityRecords.count == 2, timeout: 1)
+            await AsyncExpectation(expression: self.remoteStoreSpy.queryRecords.count == 1, timeout: 1)
 
             XCTAssertEqual(self.memoryStoreSpy.queryRecords.first?.filter, .identifier == .identifier(EntitySpyIdentifier(value: .remote(42, nil))))
-            XCTAssertEqual(self.memoryStoreSpy.queryRecords.count, 2)
-            XCTAssertEqual(self.memoryStoreSpy.entityRecords.count, 2)
-            XCTAssertEqual(self.remoteStoreSpy.queryRecords.count, 1)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }

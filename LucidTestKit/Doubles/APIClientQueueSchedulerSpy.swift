@@ -30,19 +30,19 @@ public final class APIClientQueueSchedulerSpy: APIClientQueueScheduling {
 
     public weak var delegate: APIClientQueueSchedulerDelegate?
 
-    public func didEnqueueNewRequest() {
+    public func didEnqueueNewRequest() async {
         didEnqueueNewRequestCallCount += 1
     }
 
-    public func flush() {
+    public func flush() async {
         flushCallCount += 1
     }
 
-    public func requestDidSucceed() {
+    public func requestDidSucceed() async {
         requestDidSucceedCallCount += 1
     }
 
-    public func requestDidFail() {
+    public func requestDidFail() async {
         requestDidFailCallCount += 1
     }
 }

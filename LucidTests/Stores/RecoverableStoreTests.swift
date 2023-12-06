@@ -45,24 +45,22 @@ final class RecoverableStoreTests: StoreTests {
         ).storing
     }
 
-    override func asyncTearDown(_ completion: @escaping () -> Void) {
-        Task {
-            let success = await StubCoreDataManagerFactory.shared.clearDatabase()
-            if success == false {
-                XCTFail("Did not clear database successfully.")
-            }
-
-            self.combineQueue.sync { }
-            self.relationshipCombineQueue.sync { }
-
-            self.innerMainStore = nil
-            self.innerRecoveryStore = nil
-            self.outerRecoverableStore = nil
-            self.combineQueue = nil
-            self.relationshipCombineQueue = nil
-
-            completion()
+    override func tearDown() async throws {
+        let success = await StubCoreDataManagerFactory.shared.clearDatabase()
+        if success == false {
+            XCTFail("Did not clear database successfully.")
         }
+
+        self.combineQueue.sync { }
+        self.relationshipCombineQueue.sync { }
+
+        self.innerMainStore = nil
+        self.innerRecoveryStore = nil
+        self.outerRecoverableStore = nil
+        self.combineQueue = nil
+        self.relationshipCombineQueue = nil
+
+        try await super.tearDown()
     }
 
     func waitForCombineQueues() {

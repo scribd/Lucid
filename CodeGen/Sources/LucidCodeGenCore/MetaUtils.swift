@@ -64,29 +64,34 @@ public extension TypeIdentifier {
 // MARK: - Static Imports
 
 public extension Import {
-    
+
     static var xcTest: Import {
         return Import(name: "XCTest", testable: false)
     }
-    
+
+
     static var lucid: Import {
         return Import(name: "Lucid", testable: false)
     }
-    
+
     static var lucidTestKit: Import {
         return Import(name: "LucidTestKit", testable: false)
     }
-    
+
     static func app(_ descriptions: Descriptions, testable: Bool = false) -> Import {
         return Import(name: descriptions.targets.app.moduleName, testable: testable)
     }
-    
+
     static func appTestKit(_ descriptions: Descriptions) -> Import {
         return Import(name: descriptions.targets.appTestSupport.moduleName, testable: true)
     }
-    
+
     static var combine: Import {
         return Import(name: "Combine")
+    }
+
+    static var foundation: Import {
+        return Import(name: "Foundation")
     }
 }
 

@@ -12,6 +12,12 @@ struct MetaEntityFactories {
     
     let descriptions: Descriptions
     
+    func imports() -> [Import] {
+        return [
+            .foundation
+        ]
+    }
+
     func meta() -> [FileBodyMember] {
         return [
             entityFactory(),

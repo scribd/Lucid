@@ -35,6 +35,7 @@ public final class FactoriesGenerator: Generator {
             
             return Meta.File(name: filename)
                 .with(header: header.meta)
+                .with(imports: entityFactories.imports())
                 .adding(members: entityFactories.meta())
                 .swiftFile(in: directory)
             

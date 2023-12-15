@@ -208,7 +208,7 @@ struct MetaCoreDataMigrationTests {
                     }
                     let expectation = self.expectation(description: "database_cleanup")
                     Task {
-                        _ = await coreDataManager.clearDatabase
+                        _ = await coreDataManager.clearDatabase()
                         expectation.fulfill()
                     }
                     self.waitForExpectations(timeout: 1, handler: nil)

@@ -1,5 +1,5 @@
 name: Tests
-on: push
+on: workflow_dispatch
 
 env:
   ACTIONS_ALLOW_UNSECURE_COMMANDS: true

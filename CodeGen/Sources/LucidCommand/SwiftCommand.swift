@@ -92,7 +92,7 @@ final class SwiftCommand {
             self.logger.info("")
             self.logger.moveToParent()
         }
-
+        logger.moveToChild("Logging values")
         let descriptionsVersionManager = try DescriptionsVersionManager(workingPath: configuration._workingPath,
                                                                         outputPath: configuration.cachePath,
                                                                         inputPath: configuration._inputPath,
@@ -100,20 +100,42 @@ final class SwiftCommand {
                                                                         currentVersion: currentAppVersion,
                                                                         logger: logger)
 
+        if let descriptionsVersionManager = descriptionsVersionManager {
+            logger.info("descriptionsVersionManager: \(descriptionsVersionManager)")
+        } else {
+            logger.info("descriptionsVersionManager is nil")
+        }
+
         var modelMappingHistoryVersions = try currentDescriptions.modelMappingHistory(derivedFrom: descriptionsVersionManager?.versions() ?? [])
         modelMappingHistoryVersions.removeAll { $0 == currentAppVersion }
 
+        logger.info("modelMappingHistoryVersions: \(modelMappingHistoryVersions)")
+
         var descriptions = try modelMappingHistoryVersions.reduce(into: [Version: Descriptions]()) { descriptions, appVersion in
             guard appVersion < currentAppVersion else { return }
-            guard let descriptionsVersionManager = descriptionsVersionManager else { return }
-            let releaseTag = try descriptionsVersionManager.resolveLatestReleaseTag(excluding: false, appVersion: appVersion)
-            let descriptionsPath = try descriptionsVersionManager.fetchDescriptionsVersion(releaseTag: releaseTag)
-            let descriptionsParser = DescriptionsParser(inputPath: descriptionsPath, logger: Logger(level: .none))
-            descriptions[appVersion] = try descriptionsParser.parse(version: appVersion, includeEndpoints: false)
+            guard let descriptionsVersionManager = descriptionsVersionManager else {
+                logger.error("descriptionsVersionManager is nil")
+                return
+            }
+    
+            do {
+                logger.info("Resolving release tag for app version \(appVersion)...")
+                let releaseTag = try descriptionsVersionManager.resolveLatestReleaseTag(excluding: false, appVersion: appVersion)
+                logger.info("Resolved release tag: \(releaseTag)")
+                let descriptionsPath = try descriptionsVersionManager.fetchDescriptionsVersion(releaseTag: releaseTag)
+                let descriptionsParser = DescriptionsParser(inputPath: descriptionsPath, logger: Logger(level: .none))
+                descriptions[appVersion] = try descriptionsParser.parse(version: appVersion, includeEndpoints: false)
+            } catch {
+                logger.error("Failed to resolve release tag for app version \(appVersion): \(error.localizedDescription)")
+            }
             timer.invalidate()
         }
 
+        logger.info("descriptions: \(descriptions)")
+
         descriptions[currentAppVersion] = currentDescriptions
+
+        logger.moveToParent()
 
         let _shouldGenerateDataModel: Bool
         if configuration.forceBuildNewDBModel || configuration.forceBuildNewDBModelForVersions.contains(currentAppVersion.dotDescription) {

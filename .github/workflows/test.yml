@@ -8,9 +8,10 @@ jobs:
   codegen_tests:
     name: CodeGen Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Clone Project
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Run Lucid CodeGen tests
         run: |
@@ -18,7 +19,8 @@ jobs:
 
   lucid_tests:
     name: Lucid-iOS Tests
-    runs-on: macos-13
+    runs-on: macos-14
+    timeout-minutes: 30
     env:
       FASTLANE_LOGS: fastlane/test_output
       FASTLANE_FRAGILE_LOGS: fastlane/fragile_test_output
@@ -26,13 +28,17 @@ jobs:
       FRAGILE_TESTS: LucidTests/APIClientQueueProcessorTests/test_processor_does_attempt_to_process_request_if_already_running_concurrent_request,LucidTests/CoreManagerPropertyTests/test_that_delegate_gets_called_when_observers_are_released,LucidTests/CoreManagerTests/test_continuous_observer_should_receive_all_updates_in_order,LucidTests/CoreManagerTests/test_manager_should_send_entity_update_to_provider_when_entity_is_set,LucidTests/RelationshipControllerTests/test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_continuous_signal,LucidTests/RelationshipControllerTests/test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_once_signal,LucidTests/StoreStackTests/test_should_fail_to_remove_in_remote_store_only_with_memory_store_first,LucidTests/RecoverableStoreTests/test_store_should_overwrite_a_non_empty_recovery_store_with_a_non_empty_main_store_at_init,LucidTests/RecoverableStoreTests/test_store_only_reflects_main_store_in_get_operations
     steps:
       - name: Clone Project
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
+      - name: Retrieve Xcode Version from File
+        id: get-xcode-version
+        run: echo "xcode-version=$(cat .xcode-version)" >> $GITHUB_OUTPUT
 
       # use .xcode-version file to select the version of Xcode
       - name: Select Xcode Version
-        uses: AckeeCZ/load-xcode-version@1.0
+        uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode_version_location: .xcode-version
+          xcode-version: '${{ steps.get-xcode-version.outputs.xcode-version }}'
 
       - name: Run Lucid-iOS Tests
         run: |
@@ -55,7 +61,7 @@ jobs:
           zip -rX build-artifacts.zip .
 
       - name: Upload Fastlane Log Files
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: |

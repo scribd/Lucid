@@ -69,6 +69,7 @@ final class DescriptionsVersionManager {
         }
 
         if let gitRemote = gitRemote {
+            logger.info("removing and adding origin")
             try shellOut(to: "git remote remove origin || true", at: repositoryPath.absolute().string)
             try shellOut(to: "git remote add origin \(gitRemote)", at: repositoryPath.absolute().string)
         }
@@ -86,8 +87,10 @@ final class DescriptionsVersionManager {
 
         logger.moveToChild("Fetching descriptions for tag: \(releaseTag)...")
         try cacheRepository()
-
-        try shellOut(to: "git fetch origin tag \(releaseTag) --no-tags --quiet", at: repositoryPath.absolute().string)
+        logger.info("Actually running the fetch command for tag: \(releaseTag)...")
+        try shellOut(to: "git fetch origin \(releaseTag) --no-tags --quiet", at: repositoryPath.absolute().string)
+        logger.info("Have finished running the fetch command for tag: \(releaseTag)...")
+        // try shellOut(to: "git fetch origin tag \(releaseTag) --no-tags --quiet", at: repositoryPath.absolute().string)
         try shellOut(to: "git add -A && git reset --hard --quiet \(releaseTag) --", at: repositoryPath.absolute().string)
         logger.done("Checked out \(releaseTag).")
 
@@ -113,10 +116,11 @@ final class DescriptionsVersionManager {
         try cacheRepository()
 
         var output: String
-        output = (try? shellOut(to: "git ls-remote --quiet --tags | cut -d/ -f3", at: repositoryPath.absolute().string)) ?? String()
+        output = (try? shellOut(to: "git ls-remote --tags | cut -d/ -f3", at: repositoryPath.absolute().string)) ?? String()
         if output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             output = try shellOut(to: "git tag", at: repositoryPath.absolute().string)
         }
+        logger.info("output = \(output)")
 
         let versions: [Version] = output
             .split(separator: "\n")
@@ -132,15 +136,17 @@ final class DescriptionsVersionManager {
             .reversed()
 
         _versions = versions
+        logger.info("versions = \(versions)")
         return versions
     }
 
     func resolveLatestReleaseTag(excluding: Bool, appVersion: Version) throws -> String {
 
         logger.moveToChild("Resolving \(excluding ? "latest release tag " : "release tag for app version \(appVersion)")...")
-
+        logger.info("Setting versions var")
         let versions = try self.versions()
 
+        logger.info("Setting latestReleaseVersion and latestBetaReleaseVersion")
         let latestReleaseVersion = versions.first {
             $0.isAppStoreRelease && (excluding ? $0 < appVersion : Version.isMatchingRelease(appVersion, $0))
         }
@@ -148,6 +154,7 @@ final class DescriptionsVersionManager {
             $0.isBetaRelease && (excluding ? $0 < appVersion : Version.isMatchingRelease(appVersion, $0))
         }
 
+        logger.info("Setting resolve")
         let resolve = { () -> String? in
 
             guard let latestReleaseVersion = latestReleaseVersion else { return latestBetaReleaseVersion?.versionString }
@@ -160,6 +167,7 @@ final class DescriptionsVersionManager {
             }
         }
 
+        logger.info("Here's the guard")
         guard let releaseTag = resolve() else {
             try logger.throwError("Could not resolve tag for app version: \(appVersion.dotDescription).")
         }

@@ -58,6 +58,8 @@ final class DescriptionsVersionManager {
         self.currentVersion = currentVersion
         self.logger = logger
 
+        logger.info("output path: \(outputPath)")
+
         guard inputPath.isRelative else {
             try logger.throwError("Input path needs to be a relative path.")
         }
@@ -68,15 +70,15 @@ final class DescriptionsVersionManager {
             try shellOut(to: "git init --quiet", at: repositoryPath.absolute().string)
         }
 
-        if let gitRemote = gitRemote {
+        if let gitRemote {
             try shellOut(to: "git remote remove origin || true", at: repositoryPath.absolute().string)
             try shellOut(to: "git remote add origin \(gitRemote)", at: repositoryPath.absolute().string)
         }
     }
         
     func fetchDescriptionsVersion(releaseTag: String) throws -> Path {
-
         let destinationDescriptionsPath = outputPath + "descriptions_\(releaseTag)"
+        logger.info("destinationDescriptionsPath: \(destinationDescriptionsPath)")
         let destinationVersionPath = destinationDescriptionsPath + ".version"
         let destinationDescriptionsHash = try DescriptionsVersionManager.descriptionsHash(absoluteInputPath: destinationDescriptionsPath.absolute())
 
@@ -88,7 +90,7 @@ final class DescriptionsVersionManager {
         try cacheRepository()
 
         try shellOut(to: "git fetch origin tag \(releaseTag) --no-tags --quiet", at: repositoryPath.absolute().string)
-        try shellOut(to: "git add -A && git reset --hard --quiet \(releaseTag) --", at: repositoryPath.absolute().string)
+        try shellOut(to: "git reset --hard --quiet \(releaseTag) --", at: repositoryPath.absolute().string)
         logger.done("Checked out \(releaseTag).")
 
         if destinationDescriptionsPath.exists {
@@ -111,6 +113,8 @@ final class DescriptionsVersionManager {
         }
 
         try cacheRepository()
+
+        logger.info("repo path: \(repositoryPath.absolute().string)")
 
         var output: String
         output = (try? shellOut(to: "git ls-remote --quiet --tags | cut -d/ -f3", at: repositoryPath.absolute().string)) ?? String()
@@ -148,20 +152,31 @@ final class DescriptionsVersionManager {
             $0.isBetaRelease && (excluding ? $0 < appVersion : Version.isMatchingRelease(appVersion, $0))
         }
 
+        logger.info("latestReleaseVersion: \(latestReleaseVersion)")
+        logger.info("latestBetaReleaseVersion: \(latestBetaReleaseVersion)")
+
         let resolve = { () -> String? in
 
-            guard let latestReleaseVersion = latestReleaseVersion else { return latestBetaReleaseVersion?.versionString }
-            guard let latestBetaReleaseVersion = latestBetaReleaseVersion else { return latestReleaseVersion.versionString }
+            guard let latestReleaseVersion = latestReleaseVersion else {
+                self.logger.moveToChild("no latest release version")
+                return latestBetaReleaseVersion?.versionString
+            }
+            guard let latestBetaReleaseVersion = latestBetaReleaseVersion else {
+                self.logger.moveToChild("no latest beta release version")
+                return latestReleaseVersion.versionString
+            }
 
             if latestReleaseVersion > latestBetaReleaseVersion {
+                self.logger.moveToChild("latest \(latestReleaseVersion.versionString)")
                 return latestReleaseVersion.versionString
             } else {
+                self.logger.moveToChild("latest beta \(latestBetaReleaseVersion.versionString)")
                 return latestBetaReleaseVersion.versionString
             }
         }
 
         guard let releaseTag = resolve() else {
-            try logger.throwError("Could not resolve tag for app version: \(appVersion.dotDescription).")
+            try logger.throwError("Could not resolve tag for app version: \(appVersion.dotDescription). WTF.")
         }
 
         logger.done("Resolved tag: \(releaseTag).")
@@ -171,6 +186,7 @@ final class DescriptionsVersionManager {
     }
 
     private func cacheRepository() throws {
+        logger.info("checking cache")
         if (repositoryPath + ".git").exists == false {
             if repositoryPath.exists {
                 try repositoryPath.delete()

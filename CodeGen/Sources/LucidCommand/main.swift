@@ -28,7 +28,8 @@ let main = Group {
         
         let logger = Logger()
 
-        logger.moveToChild("Reading configuration file.")
+        logger.moveToChild("Reading configuration file for \(currentVersion).")
+
         let configuration = try CommandConfiguration.make(
             with: configPath.isEmpty ? nil : configPath,
             currentVersion: currentVersion.isEmpty ? nil : currentVersion,
@@ -79,9 +80,14 @@ let main = Group {
         }
 
         logger.moveToChild("Reading configuration file.")
-        let configuration = try CommandConfiguration.make(with: configPath)
 
-        try bootstrapCommand.createFileStructure(configuration)
+        do {
+            let configuration = try CommandConfiguration.make(with: configPath)
+            try bootstrapCommand.createFileStructure(configuration)
+        } catch {
+            logger.info("fuck")
+        }
+
     }
 }
 

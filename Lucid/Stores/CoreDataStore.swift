@@ -454,7 +454,7 @@ public final actor PersistentContainerManager {
             lastMigrationVersion = defaultsVersion ?? .oldestVersion
         }
 
-        context.perform {
+        await context.perform {
 
             let shouldMigrate: (MigrationVersion) -> Bool = { version in
                 switch version {

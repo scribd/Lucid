@@ -22,8 +22,10 @@ final class SwiftCommand {
     }
 
     func run() throws {
-
         let currentAppVersion = try Version(configuration.currentVersion, source: .description)
+
+        logger.info("configuration cache path: \(configuration.cachePath)")
+        
         let currentDescriptionsParser = DescriptionsParser(inputPath: configuration.inputPath,
                                                            targets: configuration.targets,
                                                            logger: logger)
@@ -93,6 +95,12 @@ final class SwiftCommand {
             self.logger.moveToParent()
         }
 
+        logger.info("_workingPath: \(configuration._workingPath)")
+        logger.info("cachePath: \(configuration.cachePath)")
+        logger.info("_inputPath: \(configuration._inputPath)")
+        logger.info("gitRemote: \(configuration.gitRemote)")
+        logger.info("currentAppVersion: \(currentAppVersion)")
+
         let descriptionsVersionManager = try DescriptionsVersionManager(workingPath: configuration._workingPath,
                                                                         outputPath: configuration.cachePath,
                                                                         inputPath: configuration._inputPath,
@@ -100,16 +108,35 @@ final class SwiftCommand {
                                                                         currentVersion: currentAppVersion,
                                                                         logger: logger)
 
+        logger.info("built descriptionsVersionManager")
+
         var modelMappingHistoryVersions = try currentDescriptions.modelMappingHistory(derivedFrom: descriptionsVersionManager?.versions() ?? [])
+
+        logger.info("modelMappingHistoryVersions: \(modelMappingHistoryVersions)")
+
         modelMappingHistoryVersions.removeAll { $0 == currentAppVersion }
 
+        logger.info("filtered modelMappingHistoryVersions: \(modelMappingHistoryVersions)")
+
         var descriptions = try modelMappingHistoryVersions.reduce(into: [Version: Descriptions]()) { descriptions, appVersion in
-            guard appVersion < currentAppVersion else { return }
-            guard let descriptionsVersionManager = descriptionsVersionManager else { return }
+            self.logger.info("description: \(descriptions) appVersion: \(appVersion)")
+            guard appVersion < currentAppVersion else {
+                self.logger.info("app version is less than current app version")
+                return
+            }
+            guard let descriptionsVersionManager = descriptionsVersionManager else {
+                self.logger.info("can't create descriptions version manager")
+                return
+            }
+            self.logger.info("past the guards")
             let releaseTag = try descriptionsVersionManager.resolveLatestReleaseTag(excluding: false, appVersion: appVersion)
+            self.logger.info("releaseTag \(releaseTag)")
             let descriptionsPath = try descriptionsVersionManager.fetchDescriptionsVersion(releaseTag: releaseTag)
+            self.logger.info("descriptionsPath: \(descriptionsPath)")
             let descriptionsParser = DescriptionsParser(inputPath: descriptionsPath, logger: Logger(level: .none))
+            self.logger.info("descriptionsParser: \(descriptionsParser)")
             descriptions[appVersion] = try descriptionsParser.parse(version: appVersion, includeEndpoints: false)
+            self.logger.info("parsed")
             timer.invalidate()
         }
 

@@ -149,7 +149,7 @@ final class DescriptionsParser {
     }
     
     func parse(version: Version, includeEndpoints: Bool = true) throws -> Descriptions {
-        logger.moveToChild("Parsing Descriptions.")
+        logger.moveToChild("Parsing Descriptions for \(version).")
         let descriptions = try Descriptions(self, targets.value, version, includeEndpoints)
         logger.moveToParent()
         return descriptions

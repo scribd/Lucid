@@ -98,6 +98,8 @@ struct CommandConfiguration {
 
         var configuration = configuration
 
+        logger.info("cache path: \(cachePath)")
+
         configuration._workingPath = configPath.parent()
         configuration.targets.app._workingPath = configuration._workingPath
         configuration.targets.appTests._workingPath = configuration._workingPath
@@ -128,6 +130,8 @@ struct CommandConfiguration {
     }
 
     static func make(with logger: Logger, configPath: Path) throws -> CommandConfiguration {
+
+        logger.info("default cache path string: \(Defaults.cachePath.string)")
 
         var configuration = try make(
             configPath: configPath,

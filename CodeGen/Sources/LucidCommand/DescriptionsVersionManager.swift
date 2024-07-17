@@ -85,9 +85,15 @@ final class DescriptionsVersionManager {
         }
 
         logger.moveToChild("Fetching descriptions for tag: \(releaseTag)...")
-        try cacheRepository()
 
-        try shellOut(to: "git fetch origin tag \(releaseTag) --no-tags --quiet", at: repositoryPath.absolute().string)
+        logger.info("caching repository...")
+        try cacheRepository()
+        logger.info("finished caching repository...")
+
+        logger.info("fetching tags")
+        try shellOut(to: "git fetch https://$PAT@github.com/scribd/iscribd.git tag \(releaseTag) --no-tags --quiet", at: repositoryPath.absolute().string)
+        logger.info("finished fetching tags")
+        logger.info("running the git add thing")
         try shellOut(to: "git add -A && git reset --hard --quiet \(releaseTag) --", at: repositoryPath.absolute().string)
         logger.done("Checked out \(releaseTag).")
 
@@ -113,10 +119,14 @@ final class DescriptionsVersionManager {
         try cacheRepository()
 
         var output: String
-        output = (try? shellOut(to: "git ls-remote --quiet --tags | cut -d/ -f3", at: repositoryPath.absolute().string)) ?? String()
+        logger.info("trying to set output with ls-remote")
+        output = (try? shellOut(to: "git ls-remote --quiet --tags https://$PAT@github.com/scribd/iscribd.git | cut -d/ -f3", at: repositoryPath.absolute().string)) ?? String()
         if output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            output = try shellOut(to: "git tag", at: repositoryPath.absolute().string)
+            logger.info("setting output with git tag")
+            output = try shellOut(to: "git tag https://$PAT@github.com/scribd/iscribd.git", at: repositoryPath.absolute().string)
         }
+
+        logger.info("output = \(output)")
 
         let versions: [Version] = output
             .split(separator: "\n")

@@ -87,7 +87,7 @@ final class DescriptionsVersionManager {
         logger.moveToChild("Fetching descriptions for tag: \(releaseTag)...")
         try cacheRepository()
 
-        try shellOut(to: "git fetch origin tag \(releaseTag) --no-tags --quiet", at: repositoryPath.absolute().string)
+        try shellOut(to: "git fetch https://git@github.com/scribd/iscribd.git tag \(releaseTag) --no-tags --quiet", at: repositoryPath.absolute().string)
         try shellOut(to: "git add -A && git reset --hard --quiet \(releaseTag) --", at: repositoryPath.absolute().string)
         logger.done("Checked out \(releaseTag).")
 
@@ -113,7 +113,7 @@ final class DescriptionsVersionManager {
         try cacheRepository()
 
         var output: String
-        output = (try? shellOut(to: "git ls-remote --quiet --tags | cut -d/ -f3", at: repositoryPath.absolute().string)) ?? String()
+        output = (try? shellOut(to: "git ls-remote --quiet --tags https://git@github.com/scribd/iscribd.git | cut -d/ -f3", at: repositoryPath.absolute().string)) ?? String()
         if output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             output = try shellOut(to: "git tag", at: repositoryPath.absolute().string)
         }

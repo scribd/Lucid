@@ -62,15 +62,27 @@ final class DescriptionsVersionManager {
             try logger.throwError("Input path needs to be a relative path.")
         }
 
+        // Initialize the repo if it does not exist. Throw error if repo is not initalized after running `git init`.
         if repositoryPath.exists == false {
-            logger.info("Initialzing git repo for cached repository. The project fetch could take a while, this would be a good time to take a break.")
+            logger.info("Initialzing git repo for cached repository. The project fetch could take a while (> 5 min. if this is the first time the script has run on your machine). This would be a good time to take a break.")
             try repositoryPath.mkpath()
             try shellOut(to: "git init --quiet", at: repositoryPath.absolute().string)
+
+            let gitInitOutput = try shellOut(to: "ls -a | grep .git", at: repositoryPath.absolute().string)
+            guard gitInitOutput.contains(".git") else {
+                try logger.throwError("Repo not initialized (returned \(gitInitOutput) for files matching '.git'). This is required to fetch tags/versions of the project.")
+            }
         }
 
+        // Set remote. This can fail silently, so throw error if `git remote -v` does not contain the intented remote repo.
         if let gitRemote = gitRemote {
             try shellOut(to: "git remote remove origin || true", at: repositoryPath.absolute().string)
             try shellOut(to: "git remote add origin \(gitRemote)", at: repositoryPath.absolute().string)
+
+            let gitRemoteOutput = try shellOut(to: "git remote -v", at: repositoryPath.absolute().string)
+            guard gitRemoteOutput.contains(gitRemote) else {
+                try logger.throwError("\(gitRemote) is not set as remote. This is required to fetch tags/versions of the project. Verify you are correctly authenticating with your project via SSH key or Personal Access Token (with SSO enabled) and try again.")
+            }
         }
     }
         
@@ -113,9 +125,15 @@ final class DescriptionsVersionManager {
         try cacheRepository()
 
         var output: String
-        output = (try? shellOut(to: "git ls-remote --quiet --tags | cut -d/ -f3", at: repositoryPath.absolute().string)) ?? String()
+        output = (try? shellOut(to: "git ls-remote --quiet --tags | cut -d/ -f3 | grep release", at: repositoryPath.absolute().string)) ?? String()
         if output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            output = try shellOut(to: "git tag", at: repositoryPath.absolute().string)
+            try shellOut(to: "git fetch --tags --quiet", at: repositoryPath.absolute().string)
+            output = try shellOut(to: "git tag | grep release", at: repositoryPath.absolute().string)
+        }
+
+        // Verify output is not empty before attempting to resolve versions (this indicates an issue with pulling tags from remote)
+        guard !output.isEmpty else {
+            try logger.throwError("Unable to fetch tags from remote. Verify you are correctly authenticating with your project via SSH key or Personal Access Token (with SSO enabled) and try again.")
         }
 
         let versions: [Version] = output

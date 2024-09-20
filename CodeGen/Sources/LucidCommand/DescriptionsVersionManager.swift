@@ -125,7 +125,7 @@ final class DescriptionsVersionManager {
         try cacheRepository()
 
         var output: String
-        output = (try? shellOut(to: "git ls-remote --quiet --tags | cut -d/ -f3 | grep release", at: repositoryPath.absolute().string)) ?? String()
+        output = (try? shellOut(to: "git ls-remote --quiet --tags | cut -d/ -f3", at: repositoryPath.absolute().string)) ?? String()
         if output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             try shellOut(to: "git fetch --tags --quiet", at: repositoryPath.absolute().string)
             output = try shellOut(to: "git tag | grep release", at: repositoryPath.absolute().string)

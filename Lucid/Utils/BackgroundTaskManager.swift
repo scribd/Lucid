@@ -12,7 +12,7 @@ import Foundation
 import UIKit
 
 protocol CoreBackgroundTaskManaging: AnyObject {
-    func beginBackgroundTask(expirationHandler: (() -> Void)?) -> UIBackgroundTaskIdentifier
+    func beginBackgroundTask(expirationHandler: (@MainActor @Sendable () -> Void)?) -> UIBackgroundTaskIdentifier
     func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier)
 }
 

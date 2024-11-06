@@ -31,7 +31,7 @@ public final class CoreBackgroundTaskManagerSpy: CoreBackgroundTaskManaging {
         // no-op
     }
 
-    public func beginBackgroundTask(expirationHandler: (() -> Void)?) -> UIBackgroundTaskIdentifier {
+    public func beginBackgroundTask(expirationHandler: (@MainActor @Sendable () -> Void)?) -> UIBackgroundTaskIdentifier {
         let identifier = UIBackgroundTaskIdentifier(rawValue: backgroundTaskIDRawValueStub)
         if let expirationHandler = expirationHandler {
             expirationHandlerRecords[identifier] = expirationHandler

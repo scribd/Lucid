@@ -12,11 +12,15 @@ import Foundation
 import UIKit
 
 protocol CoreBackgroundTaskManaging: AnyObject {
-    func beginBackgroundTask(expirationHandler: (() -> Void)?) -> UIBackgroundTaskIdentifier
+    func startBackgroundTask(expirationHandler: (@MainActor @Sendable () -> Void)?) -> UIBackgroundTaskIdentifier
     func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier)
 }
 
-extension UIApplication: CoreBackgroundTaskManaging {}
+extension UIApplication: CoreBackgroundTaskManaging {
+    func startBackgroundTask(expirationHandler: (@MainActor () -> Void)?) -> UIBackgroundTaskIdentifier {
+        self.beginBackgroundTask(expirationHandler: expirationHandler)
+    }
+}
 
 /// In charge of keeping one background task alive as long as needed.
 protocol BackgroundTaskManaging: AnyObject {
@@ -91,7 +95,7 @@ final class BackgroundTaskManager: BackgroundTaskManaging {
         }
         RunLoop.main.add(timer, forMode: .default)
 
-        _taskID = coreManager.beginBackgroundTask {
+        _taskID = coreManager.startBackgroundTask {
             timer.invalidate()
             self.asyncTaskQueue.async {
                 Logger.log(.warning, "\(BackgroundTaskManager.self): Background task timed out: \(self._taskID)")

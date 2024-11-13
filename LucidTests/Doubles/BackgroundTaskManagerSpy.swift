@@ -16,7 +16,7 @@ public final class CoreBackgroundTaskManagerSpy: CoreBackgroundTaskManaging {
 
     // MARK: - Records
 
-    public private(set) var expirationHandlerRecords = [UIBackgroundTaskIdentifier: (() -> Void)]()
+    public private(set) var expirationHandlerRecords = [UIBackgroundTaskIdentifier: (@MainActor @Sendable () -> Void)]()
     public private(set) var beginBackgroundTaskCallCountRecord = 0
 
     public private(set) var endBackgroundTaskRecords = [UIBackgroundTaskIdentifier]()
@@ -31,7 +31,7 @@ public final class CoreBackgroundTaskManagerSpy: CoreBackgroundTaskManaging {
         // no-op
     }
 
-    public func beginBackgroundTask(expirationHandler: (() -> Void)?) -> UIBackgroundTaskIdentifier {
+    public func startBackgroundTask(expirationHandler: (@MainActor @Sendable () -> Void)?) -> UIBackgroundTaskIdentifier {
         let identifier = UIBackgroundTaskIdentifier(rawValue: backgroundTaskIDRawValueStub)
         if let expirationHandler = expirationHandler {
             expirationHandlerRecords[identifier] = expirationHandler
@@ -40,7 +40,7 @@ public final class CoreBackgroundTaskManagerSpy: CoreBackgroundTaskManaging {
         return identifier
     }
 
-    public func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier) {
+    nonisolated public func endBackgroundTask(_ identifier: UIBackgroundTaskIdentifier) {
         endBackgroundTaskRecords.append(identifier)
     }
 }

@@ -368,6 +368,8 @@ public struct Entity: Equatable {
     public let clientQueueName: String
 
     public let cacheSize: EntityCacheSize
+    
+    public let senable: Bool
 
     public init(name: String,
                 persistedName: String? = nil,
@@ -382,7 +384,8 @@ public struct Entity: Equatable {
                 versionHistory: [VersionHistoryItem] = [],
                 queryContext: Bool = DescriptionDefaults.queryContext,
                 clientQueueName: String = DescriptionDefaults.clientQueueName,
-                cacheSize: EntityCacheSize = DescriptionDefaults.cacheSize) {
+                cacheSize: EntityCacheSize = DescriptionDefaults.cacheSize,
+                sendable: Bool = DescriptionDefaults.sendable) {
 
         self.name = name
         self.persistedName = persistedName
@@ -400,6 +403,7 @@ public struct Entity: Equatable {
         self.queryContext = queryContext
         self.clientQueueName = clientQueueName
         self.cacheSize = cacheSize
+        self.senable = sendable
     }
 }
 

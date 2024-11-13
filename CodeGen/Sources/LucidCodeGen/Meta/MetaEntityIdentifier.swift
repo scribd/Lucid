@@ -44,6 +44,7 @@ struct MetaEntityIdentifier {
 
         return Type(identifier: entity.identifierTypeID())
             .adding(inheritedType: .codable)
+            .adding(inheritedType: entity.senable ? .sendable : nil)
             .with(kind: .class(final: true))
             .with(accessLevel: .public)
             .adding(inheritedType: .coreDataIdentifier)

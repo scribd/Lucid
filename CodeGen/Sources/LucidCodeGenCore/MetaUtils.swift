@@ -206,6 +206,10 @@ public extension TypeIdentifier {
         return TypeIdentifier(name: "CoreDataConversionError")
     }
     
+    static var sendable: TypeIdentifier {
+        return TypeIdentifier(name: "Sendable")
+    }
+    
     static var equatable: TypeIdentifier {
         return TypeIdentifier(name: "Equatable")
     }

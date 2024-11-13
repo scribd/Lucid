@@ -645,6 +645,8 @@ public struct Subtype: Equatable {
     public let objc: Bool
     
     public let platforms: Set<Platform>
+    
+    public let sendable: Bool
 }
 
 // MARK: - Conversions

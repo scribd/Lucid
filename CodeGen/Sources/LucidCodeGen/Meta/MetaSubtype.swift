@@ -50,6 +50,7 @@ struct MetaSubtype {
         let type = Type(identifier: subtype.typeID())
             .with(accessLevel: .public)
             .adding(inheritedType: .codable)
+            .adding(inheritedType: subtype.sendable ? .sendable : nil)
             .adding(inheritedType: .hashable)
 
         switch subtype.items {

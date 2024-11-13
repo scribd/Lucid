@@ -757,6 +757,7 @@ extension Subtype: Codable {
         case objc
         case objcNoneCase
         case platforms
+        case sendable
     }
     
     public init(from decoder: Decoder) throws {
@@ -765,6 +766,7 @@ extension Subtype: Codable {
         name = try container.decode(String.self, forKey: .name)
         manualImplementations = Set(try container.decodeIfPresent([`Protocol`].self, forKey: .manualImplementations) ?? [])
         platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? DescriptionDefaults.platforms
+        sendable = try container.decodeIfPresent(Bool.self, forKey: .sendable) ?? DescriptionDefaults.sendable
         
         if let usedCases = try container.decodeIfPresent([String].self, forKey: .cases) {
             let unusedCases = try container.decodeIfPresent([String].self, forKey: .unusedCases) ?? []

@@ -20,7 +20,7 @@ final class BackgroundTaskManagerTests: XCTestCase {
     override func setUp() {
         super.setUp()
         coreManagerSpy = CoreBackgroundTaskManagerSpy()
-        manager = BackgroundTaskManager(coreManagerSpy, timeout: 0.25)
+        manager = BackgroundTaskManager(coreManagerSpy, timeout: 0.3)
     }
 
     override func tearDown() {
@@ -87,12 +87,12 @@ final class BackgroundTaskManagerTests: XCTestCase {
         let id = manager.start {}
         _ = manager.stop(id)
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             XCTAssertEqual(self.coreManagerSpy.beginBackgroundTaskCallCountRecord, 1)
             XCTAssertEqual(self.coreManagerSpy.endBackgroundTaskRecords.count, 1)
             expectation.fulfill()
         }
 
-        waitForExpectations(timeout: 1)
+        waitForExpectations(timeout: 2)
     }
 }

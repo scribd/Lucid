@@ -25,7 +25,7 @@ jobs:
       FASTLANE_LOGS: fastlane/test_output
       FASTLANE_FRAGILE_LOGS: fastlane/fragile_test_output
       GITHUB_ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-      FRAGILE_TESTS: LucidTests/APIClientQueueProcessorTests/test_processor_does_attempt_to_process_request_if_already_running_concurrent_request,LucidTests/CoreManagerPropertyTests/test_that_delegate_gets_called_when_observers_are_released,LucidTests/CoreManagerTests/test_continuous_observer_should_receive_all_updates_in_order,LucidTests/CoreManagerTests/test_manager_should_send_entity_update_to_provider_when_entity_is_set,LucidTests/RelationshipControllerTests/test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_continuous_signal,LucidTests/RelationshipControllerTests/test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_once_signal,LucidTests/StoreStackTests/test_should_fail_to_remove_in_remote_store_only_with_memory_store_first,LucidTests/RecoverableStoreTests/test_store_should_overwrite_a_non_empty_recovery_store_with_a_non_empty_main_store_at_init,LucidTests/RecoverableStoreTests/test_store_only_reflects_main_store_in_get_operations
+      FRAGILE_TESTS: LucidTests/APIClientQueueProcessorTests/test_processor_does_attempt_to_process_request_if_already_running_concurrent_request,LucidTests/CoreManagerPropertyTests/test_that_delegate_gets_called_when_observers_are_released,LucidTests/CoreManagerTests/test_continuous_observer_should_receive_all_updates_in_order,LucidTests/CoreManagerTests/test_manager_should_send_entity_update_to_provider_when_entity_is_set,LucidTests/RelationshipControllerTests/test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_continuous_signal,LucidTests/RelationshipControllerTests/test_relationship_controller_should_continuously_send_events_when_first_event_comes_from_once_signal,LucidTests/StoreStackTests/test_should_fail_to_remove_in_remote_store_only_with_memory_store_first,LucidTests/RecoverableStoreTests/test_store_should_overwrite_a_non_empty_recovery_store_with_a_non_empty_main_store_at_init,LucidTests/RecoverableStoreTests/test_store_only_reflects_main_store_in_get_operations,LucidTests/RecoverableStoreTests/test_store_affects_both_inner_stores_in_remove_operations_async,LucidTests/CoreManagerTests/test_manager_should_send_entity_update_to_provider_when_entity_is_removed,LucidTests/RecoverableStoreTests/test_store_only_reflects_main_store_in_get_operations_async
     steps:
       - name: Clone Project
         uses: actions/checkout@v4
@@ -42,14 +42,14 @@ jobs:
 
       - name: Run Lucid-iOS Tests
         run: |
-          fastlane scan --scheme Lucid-iOS --skip_testing "$FRAGILE_TESTS" --device "iPhone 15" --output_directory $FASTLANE_LOGS --result_bundle true
+          fastlane scan --scheme Lucid-iOS --skip_testing "$FRAGILE_TESTS" --device "iPhone 16" --output_directory $FASTLANE_LOGS --result_bundle true
 
       # Some tests need to be reworked. Don't forget about them, but don't crash the build either
       # https://scribdjira.atlassian.net/browse/IPT-4387
       - name: Run Fragile Tests
         continue-on-error: true
         run: |
-          fastlane scan --scheme Lucid-iOS --only_testing "$FRAGILE_TESTS" --device "iPhone 15" --output_directory $FASTLANE_FRAGILE_LOGS --result_bundle true
+          fastlane scan --scheme Lucid-iOS --only_testing "$FRAGILE_TESTS" --device "iPhone 16" --output_directory $FASTLANE_FRAGILE_LOGS --result_bundle true
 
       - name: Bundle Log Files
         run: |

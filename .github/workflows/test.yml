@@ -19,7 +19,7 @@ jobs:
 
   lucid_tests:
     name: Lucid-iOS Tests
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 30
     env:
       FASTLANE_LOGS: fastlane/test_output

@@ -61,7 +61,7 @@ extension AnySequence: Equatable where Element: Equatable {
     }
 }
 
-extension AnySequence: Sendable where Element: Sendable {}
+extension AnySequence: @unchecked Sendable where Element: Sendable {}
 
 public extension Result where Success: Sequence {
 

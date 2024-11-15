@@ -85,6 +85,8 @@ public enum Lazy<T> {
     case unrequested
 }
 
+extension Lazy: Sendable where T: Sendable {}
+
 public extension Lazy where T: PayloadIdentifiable {
 
     func identifier() -> Lazy<T.Identifier> {

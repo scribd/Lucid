@@ -68,6 +68,7 @@ struct MetaEntity {
 
         return Type(identifier: entity.typeID())
             .adding(inheritedType: .codable)
+            .adding(inheritedType: entity.senable ? .sendable : nil)
             .with(kind: .class(final: true))
             .with(accessLevel: .public)
             .with(body: [

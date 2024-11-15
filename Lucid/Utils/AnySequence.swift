@@ -61,6 +61,8 @@ extension AnySequence: Equatable where Element: Equatable {
     }
 }
 
+extension AnySequence: @unchecked Sendable where Element: Sendable {}
+
 public extension Result where Success: Sequence {
 
     @inlinable var any: Result<AnySequence<Success.Element>, Failure> {

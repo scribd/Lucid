@@ -9,7 +9,7 @@
 import Foundation
 
 /// A mutable property which can either ensure atomicity or not.
-public final class PropertyBox<T> {
+public final class PropertyBox<T>: @unchecked Sendable {
 
     private let valueQueue: DispatchQueue?
 

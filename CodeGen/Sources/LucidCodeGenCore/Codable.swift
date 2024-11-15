@@ -40,6 +40,7 @@ public enum DescriptionDefaults {
     public static let ignorePropertyMigrationChecksOn = [String]()
     public static let httpMethod: EndpointPayloadTest.HTTPMethod = .get
     public static let cacheSize: EntityCacheSize = .group(.medium)
+    public static let sendable = false
 }
 
 public extension Entity {
@@ -322,6 +323,7 @@ extension Entity: Codable {
         case queryContext
         case clientQueueName
         case cacheSize
+        case sendable
     }
     
     public init(from decoder: Decoder) throws {
@@ -348,6 +350,7 @@ extension Entity: Codable {
         queryContext = try container.decodeIfPresent(Bool.self, forKey: .queryContext) ?? DescriptionDefaults.queryContext
         clientQueueName = try container.decodeIfPresent(String.self, forKey: .clientQueueName) ?? DescriptionDefaults.clientQueueName
         cacheSize = try container.decodeIfPresent(EntityCacheSize.self, forKey: .cacheSize) ?? DescriptionDefaults.cacheSize
+        senable = try container.decodeIfPresent(Bool.self, forKey: .sendable) ?? DescriptionDefaults.sendable
 
         let systemPropertiesSet = Set(SystemPropertyName.allCases.map { $0.rawValue })
         for property in properties where systemPropertiesSet.contains(property.name) {
@@ -754,6 +757,7 @@ extension Subtype: Codable {
         case objc
         case objcNoneCase
         case platforms
+        case sendable
     }
     
     public init(from decoder: Decoder) throws {
@@ -762,6 +766,7 @@ extension Subtype: Codable {
         name = try container.decode(String.self, forKey: .name)
         manualImplementations = Set(try container.decodeIfPresent([`Protocol`].self, forKey: .manualImplementations) ?? [])
         platforms = try container.decodeIfPresent(Set<Platform>.self, forKey: .platforms) ?? DescriptionDefaults.platforms
+        sendable = try container.decodeIfPresent(Bool.self, forKey: .sendable) ?? DescriptionDefaults.sendable
         
         if let usedCases = try container.decodeIfPresent([String].self, forKey: .cases) {
             let unusedCases = try container.decodeIfPresent([String].self, forKey: .unusedCases) ?? []

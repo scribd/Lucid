@@ -80,7 +80,7 @@ public final class APIClientSpy: APIClient {
     public func send(request: APIRequest<Data>) async -> Result<APIClientResponse<Data>, APIError> {
         requestRecords.append(request as Any)
         guard let resultStub = resultStubs[request.config] as? Result<APIClientResponse<Data>, APIError> else {
-            XCTFail("Expected stub for request with path: \(request.config.path.description)")
+            XCTFail("Expected stub for request with path: \(request.config.path.description)\nresultStubs: \(resultStubs)")
             return .failure(.api(httpStatusCode: 500, errorPayload: nil, response: APIClientResponse(data: Data(), cachedResponse: false)))
         }
         if requestWillComplete {
